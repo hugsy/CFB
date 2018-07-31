@@ -140,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="driver.h" />
+    <ClInclude Include="ioctls.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="driver.c" />
