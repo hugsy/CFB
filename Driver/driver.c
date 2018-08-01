@@ -8,6 +8,13 @@
 #include "ioctls.h"
 
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text (INIT, DriverEntry)
+#pragma alloc_text (PAGE, DriverUnloadRoutine)
+#pragma alloc_text (PAGE, DriverCreateCloseRoutine)
+#pragma alloc_text (PAGE, DriverDeviceControlRoutine)
+#endif
+
 /**
  *
  */
@@ -177,6 +184,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
 
+	PAGED_CODE();
+
 	DriverObject->DriverUnload = DriverUnloadRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
@@ -228,6 +237,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	
+	PAGED_CODE();
+
 	DbgPrint("I'm hooked !!");
 
 	/* Find driver in list */
@@ -277,6 +288,7 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = Information;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+
 	return status;
 }
 
@@ -288,6 +300,8 @@ NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 
+	PAGED_CODE();
+
 	return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
 
@@ -298,6 +312,8 @@ NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
+
+	PAGED_CODE();
 
 	NTSTATUS status = STATUS_SUCCESS;
 	

@@ -4,7 +4,7 @@
 
 #include "../Common/common.h"
 
-#define CLI_PROMPT CFB_PROGRAM_NAME_SHORT L" >>"
+#define CLI_PROMPT CFB_PROGRAM_NAME_SHORT L" >>> "
 
 
 VOID RunInterpreter();
