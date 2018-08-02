@@ -151,12 +151,14 @@
     <ClInclude Include="device.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="client.c" />
     <ClCompile Include="device.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="stdafx.c" />
+    <ClCompile Include="utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">

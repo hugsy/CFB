@@ -1,39 +1,39 @@
 #include <Windows.h>
-
+#include <wchar.h>
 
 #include "stdafx.h"
 
 #include "../Common/common.h"
 #include "../Driver/ioctls.h"
 
-#include "device.h"
+
+
+ HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 
 /**
  *
  */
-HANDLE OpenDevice()
+BOOLEAN OpenCfbDevice()
 {
-	HANDLE hDevice = INVALID_HANDLE_VALUE;
-
-	hDevice = CreateFileW(CFB_USER_DEVICE_NAME,
+	g_hDevice = CreateFileW(CFB_USER_DEVICE_NAME,
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
 		NULL);
-
-	return hDevice;
+	
+	return g_hDevice != INVALID_HANDLE_VALUE;
 }
 
 
 /**
  *
  */
-BOOLEAN CloseDevice(HANDLE hDevice)
+BOOLEAN CloseCfbDevice()
 {
-	BOOL bRes = CloseHandle(hDevice);
+	BOOLEAN bRes = CloseHandle(g_hDevice);
 	return bRes;
 }
 
@@ -41,12 +41,12 @@ BOOLEAN CloseDevice(HANDLE hDevice)
 /**
  *
  */
-BOOLEAN QueryDevice(HANDLE hDevice)
+BOOLEAN EnumerateHookedDrivers()
 {
 	BOOLEAN bResult;
 	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
 
-	bResult = DeviceIoControl(hDevice,
+	bResult = DeviceIoControl(g_hDevice,
 		IOCTL_GetNumberOfDrivers,
 		NULL,
 		0,
@@ -62,4 +62,47 @@ BOOLEAN QueryDevice(HANDLE hDevice)
 	}
 
 	return TRUE;
+}
+
+
+/**
+ *
+ */
+BOOLEAN HookDriver(LPWSTR lpDriver)
+{
+	DWORD dwBytesReturned;
+	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
+
+	BOOLEAN bResult = DeviceIoControl(g_hDevice,
+		IOCTL_AddDriver,
+		lpDriver,
+		dwDriverLen,
+		NULL,
+		0,
+		&dwBytesReturned,
+		(LPOVERLAPPED)NULL);
+
+	return bResult;
+}
+
+
+
+/**
+ *
+ */
+NTSTATUS UnhookDriver(LPWSTR lpDriver)
+{
+	DWORD dwBytesReturned;
+	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
+
+	BOOLEAN bResult = DeviceIoControl(g_hDevice,
+		IOCTL_RemoveDriver,
+		lpDriver,
+		dwDriverLen,
+		NULL,
+		0,
+		&dwBytesReturned,
+		(LPOVERLAPPED)NULL);
+
+	return bResult;
 }

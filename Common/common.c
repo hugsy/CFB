@@ -35,19 +35,19 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	switch (level) 
 	{
 	case LOG_DEBUG:     
-		prio = L"[DEBUG]    "; 
+		prio = L"[DEBUG] "; 
 		break;
 	case LOG_INFO:     
-		prio = L"[INFO]     "; 
+		prio = L"[INFO] "; 
 		break;
 	case LOG_SUCCESS:   
-		prio = L"[SUCCESS]  "; 
+		prio = L"[SUCCESS] "; 
 		break;
 	case LOG_WARNING:   
-		prio = L"[WARNING]  "; 
+		prio = L"[WARNING] "; 
 		break;
 	case LOG_ERROR:     
-		prio = L"[ERROR]    "; 
+		prio = L"[ERROR] "; 
 		break;
 	case LOG_CRITICAL:  
 		prio = L"[CRITICAL] "; 

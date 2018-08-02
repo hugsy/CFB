@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Windows.h>
 
-
-HANDLE OpenDevice();
-BOOLEAN CloseDevice(HANDLE);
-BOOLEAN QueryDevice(HANDLE);
+HANDLE OpenCfbDevice();
+BOOLEAN CloseCfbDevice();
+BOOLEAN EnumerateHookedDrivers();
+NTSTATUS HookDriver(LPWSTR lpDriver);
+NTSTATUS UnhookDriver(LPWSTR lpDriver);
