@@ -1,8 +1,10 @@
 #pragma once
 
 
-HANDLE OpenCfbDevice();
-BOOLEAN CloseCfbDevice();
-BOOLEAN EnumerateHookedDrivers();
-NTSTATUS HookDriver(LPWSTR lpDriver);
-NTSTATUS UnhookDriver(LPWSTR lpDriver);
+BOOL OpenCfbDevice();
+BOOL CloseCfbDevice();
+
+
+BOOL EnumerateHookedDrivers();
+BOOL HookDriver(LPWSTR lpDriver);
+BOOL UnhookDriver(LPWSTR lpDriver);

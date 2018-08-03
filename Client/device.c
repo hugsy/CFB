@@ -8,13 +8,13 @@
 
 
 
- HANDLE g_hDevice = INVALID_HANDLE_VALUE;
+static HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 
 /**
  *
  */
-BOOLEAN OpenCfbDevice()
+BOOL OpenCfbDevice()
 {
 	g_hDevice = CreateFileW(CFB_USER_DEVICE_NAME,
 		GENERIC_READ | GENERIC_WRITE,
@@ -31,9 +31,10 @@ BOOLEAN OpenCfbDevice()
 /**
  *
  */
-BOOLEAN CloseCfbDevice()
+BOOL CloseCfbDevice()
 {
-	BOOLEAN bRes = CloseHandle(g_hDevice);
+	BOOL bRes = CloseHandle(g_hDevice);
+	g_hDevice = INVALID_HANDLE_VALUE;
 	return bRes;
 }
 
@@ -41,7 +42,7 @@ BOOLEAN CloseCfbDevice()
 /**
  *
  */
-BOOLEAN EnumerateHookedDrivers()
+BOOL EnumerateHookedDrivers()
 {
 	BOOLEAN bResult;
 	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
@@ -68,12 +69,12 @@ BOOLEAN EnumerateHookedDrivers()
 /**
  *
  */
-BOOLEAN HookDriver(LPWSTR lpDriver)
+BOOL HookDriver(LPWSTR lpDriver)
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
 
-	BOOLEAN bResult = DeviceIoControl(g_hDevice,
+	BOOL bResult = DeviceIoControl(g_hDevice,
 		IOCTL_AddDriver,
 		lpDriver,
 		dwDriverLen,
@@ -90,12 +91,12 @@ BOOLEAN HookDriver(LPWSTR lpDriver)
 /**
  *
  */
-NTSTATUS UnhookDriver(LPWSTR lpDriver)
+BOOL UnhookDriver(LPWSTR lpDriver)
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
 
-	BOOLEAN bResult = DeviceIoControl(g_hDevice,
+	BOOL bResult = DeviceIoControl(g_hDevice,
 		IOCTL_RemoveDriver,
 		lpDriver,
 		dwDriverLen,

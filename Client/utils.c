@@ -1,6 +1,29 @@
 #include <Windows.h>
 #include <wchar.h>
 
+#include "stdafx.h"
+
+#include "../Common/common.h"
+
+
+/**
+* perror() style of function for Windows
+*/
+VOID PrintError(LPWSTR msg)
+{
+	DWORD eNum;
+	WCHAR sysMsg[512] = { 0, };
+
+	eNum = GetLastError();
+	FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, eNum,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		sysMsg, sizeof(sysMsg) - 1, NULL);
+
+	xlog(LOG_ERROR, L"%s, errcode=0x%x : %s", msg, eNum, sysMsg);
+	return;
+}
+
 
 /**
  * Strips out the heading '\r' or '\n' and replace the trailing ones
@@ -27,7 +50,7 @@ VOID StringWStrip(LPWSTR wcStr)
 /**
 * Return TRUE if `wcStr` starts with `wcPattern`.
 */
-BOOLEAN StringWStartsWith(LPWSTR wcStr, LPWSTR wcPattern)
+BOOL StringWStartsWith(LPWSTR wcStr, LPWSTR wcPattern)
 {
 	return wcsncmp(wcStr, wcPattern, wcslen(wcPattern)) == 0;
 }

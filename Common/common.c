@@ -32,6 +32,11 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	va_list args;
 	const wchar_t* prio;
 
+#ifndef _DEBUG
+	if (prio == LOG_DEBUG)
+		return;
+#endif
+
 	switch (level) 
 	{
 	case LOG_DEBUG:     
@@ -52,7 +57,8 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	case LOG_CRITICAL:  
 		prio = L"[CRITICAL] "; 
 		break;
-	default: return;
+	default:
+		return;
 	}
 
 	fmt_len = wcslen(format) + wcslen(prio) + 4;
@@ -61,10 +67,16 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	va_start(args, format);
 	swprintf(fmt, fmt_len, L"%s %s", prio, format);
 
+	SYSTEMTIME lt;
+	GetLocalTime(&lt);
+
 	dwWaitResult = WaitForSingleObject(gConsoleMutex, INFINITE);
 
 	if (dwWaitResult == WAIT_OBJECT_0) 
 	{
+		fwprintf(stderr, L"%02d-%02d-%02d %02d:%02d:%02d ",
+			lt.wYear, lt.wMonth, lt.wDay,
+			lt.wHour, lt.wMinute, lt.wSecond);
 		vfwprintf(stderr, fmt, args);
 		fflush(stderr);
 	}

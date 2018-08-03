@@ -6,6 +6,7 @@
 #include "../Common/common.h"
 #include "client.h"
 #include "utils.h"
+#include "device.h"
 
 
 static BOOLEAN g_DoRun = FALSE;
@@ -16,7 +17,12 @@ static BOOLEAN g_DoRun = FALSE;
  */
 VOID PrintHelpMenu()
 {
-	wprintf(L"TODO: help menu here\n");
+	wprintf(
+		L"? , help            -- Print this help menu\n"
+		L"exit , quit         -- Exit cleanly\n"
+		L"hook <DriverName>   -- Add `DriverName' to the list of hooked drivers\n"
+		L"unhook <DriverName> -- Remove `DriverName' from the list of hooked drivers\n"
+	);
 	return;
 }
 
@@ -83,7 +89,7 @@ VOID RunInterpreter()
 
 		if (!ReadFile(hStdin, lpBufferCommand, sizeof(lpBufferCommand), &dwNumberOfBytesRead, NULL))
 		{
-			xlog(LOG_CRITICAL, L"ReadFile() failed: %lu\n", GetLastError());
+			PrintError(L"ReadFile()");
 			g_DoRun = FALSE;
 			break;
 		}
@@ -91,9 +97,9 @@ VOID RunInterpreter()
 		size_t szNumConvertedChars = 0;
 		mbstowcs_s(&szNumConvertedChars, lpBufferCommandW, sizeof(lpBufferCommandW), lpBufferCommand, _TRUNCATE);
 
-		StringWStrip((LPWSTR) lpBufferCommandW);
+		xlog(LOG_DEBUG, L"Received '%s'\n", lpBufferCommandW);
 
-		//xlog(LOG_DEBUG, L"Received command '%s'\n", lpBufferCommandW);
+		StringWStrip((LPWSTR) lpBufferCommandW);
 
 		lpCommandEntries = StringWSplit(lpBufferCommandW, L' ', &dwNbEntries);
 		if (!lpCommandEntries)
@@ -101,10 +107,7 @@ VOID RunInterpreter()
 			xlog(LOG_ERROR, L"Failed to parse the command\n");
 			continue;
 		}
-		/*
-		xlog(LOG_DEBUG, L"%d entries\n", dwNbEntries);
-		for (DWORD __i = 0; __i < dwNbEntries; __i++) xlog(LOG_DEBUG, L"%d '%s'\n", __i, lpCommandEntries[__i]);
-		*/
+
 		if (!wcscmp(lpCommandEntries[0], L"quit") || !wcscmp(lpCommandEntries[0], L"exit"))
 		{
 			xlog(LOG_INFO, L"Exiting...\n");
@@ -128,7 +131,7 @@ VOID RunInterpreter()
 
 				if (!HookDriver(lpDriver))
 				{
-					xlog(LOG_ERROR, L"HookDriver() failed: %lu\n", GetLastError());
+					PrintError(L"HookDriver()");
 				}
 				else
 				{
@@ -149,7 +152,7 @@ VOID RunInterpreter()
 
 				if (!HookDriver(lpDriver))
 				{
-					xlog(LOG_ERROR, L"UnhookDriver() failed: %lu\n", GetLastError());
+					PrintError(L"UnhookDriver()");
 				}
 				else
 				{
