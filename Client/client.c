@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include <stdio.h> 
+#include <stdio.h>
 
 #include "stdafx.h"
 
@@ -22,6 +22,7 @@ VOID PrintHelpMenu()
 		L"exit , quit         -- Exit cleanly\n"
 		L"hook <DriverName>   -- Add `DriverName' to the list of hooked drivers\n"
 		L"unhook <DriverName> -- Remove `DriverName' from the list of hooked drivers\n"
+		// TODO: finish
 	);
 	return;
 }
@@ -123,7 +124,7 @@ VOID RunInterpreter()
 		{
 			if (dwNbEntries != 2) {
 				xlog(LOG_ERROR, L"hook command expects 1 argument only\nExample: hook tcpip\n");
-			} 
+			}
 			else
 			{
 				LPWSTR lpDriver = lpCommandEntries[1];
@@ -138,7 +139,7 @@ VOID RunInterpreter()
 					xlog(LOG_SUCCESS, L"Driver object '%s' is now hooked\n", lpDriver);
 				}
 			}
-			
+
 		}
 		else if (!wcscmp(lpCommandEntries[0], L"unhook"))
 		{

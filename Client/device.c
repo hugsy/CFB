@@ -23,7 +23,7 @@ BOOL OpenCfbDevice()
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
 		NULL);
-	
+
 	return g_hDevice != INVALID_HANDLE_VALUE;
 }
 
@@ -44,7 +44,7 @@ BOOL CloseCfbDevice()
  */
 BOOL EnumerateHookedDrivers()
 {
-	BOOLEAN bResult;
+	BOOL bResult;
 	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
 
 	bResult = DeviceIoControl(g_hDevice,
