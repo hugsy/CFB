@@ -64,10 +64,10 @@ DWORD CountOccurence(LPWSTR wcStr, WCHAR p)
 	DWORD dwNb = 0;
 	for (LPWSTR ptr = wcStr; *ptr; ptr++)
 	{
-		if (*ptr == p) 
+		if (*ptr == p)
 		{
 			dwNb++;
-		}			
+		}
 	}
 	return dwNb;
 }
@@ -80,7 +80,7 @@ LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 {
 	DWORD dwNumberOfEntries = CountOccurence(wcStr, p);
 	LPWSTR* lpEntries = LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, (dwNumberOfEntries+1+1) * sizeof(LPWSTR));
-	if (!lpEntries) 
+	if (!lpEntries)
 	{
 		return NULL;
 	}
@@ -91,7 +91,7 @@ LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 
 	for (DWORD j=0; j < szOrigLen+1; j++)
 	{
-		LPWSTR ptr = wcStr + j; 
+		LPWSTR ptr = wcStr + j;
 		if (*ptr == p || j == szOrigLen)
 		{
 			*ptr = L'\0';
