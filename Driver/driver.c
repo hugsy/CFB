@@ -28,8 +28,8 @@ VOID CfbDbgPrint(const char* lpFormatString, ...)
 	vsprintf_s(buffer, sizeof(buffer) / sizeof(char), lpFormatString, args);
 	va_end(args);
 
-	KdPrint(("[CFB] " ));
-	KdPrint((buffer));
+	DbgPrint("[CFB] " );
+	DbgPrint(buffer);
 #endif
 }
 
@@ -292,9 +292,11 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 
 
-/**
- * struct _IRP: https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
- */
+/*++
+
+Link struct _IRP: https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
+
+--*/
 NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 
@@ -329,6 +331,7 @@ NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	return (*OldDispatchRoutine)(DeviceObject, Irp);
 }
 
+
 /*++
 
 --*/
@@ -342,6 +345,7 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	/* Unlink all HookedDrivers left */
 
 	PHOOKED_DRIVER Driver;
+	SIZE_T NbRemoved = 0, NbLoaded = GetNumberOfHookedDrivers();
 
 	while ( (Driver = GetLastHookedDriver()) != NULL )
 	{
@@ -353,8 +357,11 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 		else
 		{
 			CfbDbgPrint("Driver %wZ removed\n", Driver->Name);
+			NbRemoved++;
 		}
 	}
+
+	CfbDbgPrint("Removed %lu/%lu drivers\n", NbRemoved, NbLoaded);
 
 	CfbDbgPrint("Success unloading %wZ removed\n", CFB_PROGRAM_NAME_SHORT);
 
@@ -362,9 +369,9 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 }
 
 
-/**
- *
- */
+/*++
+
+--*/
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 {
 	Irp->IoStatus.Status = status;
@@ -375,9 +382,9 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 }
 
 
-/**
- *
- */
+/*++
+
+--*/
 NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
@@ -388,9 +395,9 @@ NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 }
 
 
-/**
- *
- */
+/*++
+
+--*/
 NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
@@ -400,32 +407,78 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 	NTSTATUS status = STATUS_SUCCESS;
 
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
-	/*
-	ULONG InputLen = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
-	ULONG OutputLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
-	*/
+
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+
+	LPWSTR lpDriverName;
+	ULONG InputBufferLen, OutputBufferLen;
 
 	switch (IoctlCode)
 	{
 	case IOCTL_AddDriver:
-		DbgPrint("Received 'IoctlAddDriver'\n");
+		CfbDbgPrint("Received 'IoctlAddDriver'\n");
+
+		InputBufferLen = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
+
+		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
+		{
+			CfbDbgPrint("Input buffer too large\n");
+			status = STATUS_BUFFER_OVERFLOW;
+			break;
+		}
+
+		lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
+		lpDriverName[InputBufferLen-1] = L'\0';
+
+		status = AddDriverByName(lpDriverName);
+		CfbDbgPrint("AddDriverByName('%wZ') returned %#x\n", lpDriverName, status);
 		break;
+
 
 	case IOCTL_RemoveDriver:
-		DbgPrint("Received 'IoctlRemoveDriver'\n");
+		CfbDbgPrint("Received 'IoctlRemoveDriver'\n");
+
+		InputBufferLen = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
+
+		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
+		{
+			CfbDbgPrint("Input buffer too large\n");
+			status = STATUS_BUFFER_OVERFLOW;
+			break;
+		}
+
+		lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
+		lpDriverName[InputBufferLen - 1] = L'\0';
+
+		status = RemoveDriverByName(lpDriverName);
+		CfbDbgPrint("RemoveDriverByName('%wZ') returned %#x\n", lpDriverName, status);
+
 		break;
+
 
 	case IOCTL_GetNumberOfDrivers:
-		DbgPrint("Received 'IoctlGetNumberOfDrivers'\n");
+		CfbDbgPrint("Received 'IoctlGetNumberOfDrivers'\n");
+
+		OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
+		if (OutputBufferLen < sizeof(SIZE_T))
+		{
+			status = STATUS_BUFFER_TOO_SMALL;
+			break;
+		}
+
+		SIZE_T* szRes = (SIZE_T*)Irp->AssociatedIrp.SystemBuffer;
+		*szRes = GetNumberOfHookedDrivers();
+		status = STATUS_SUCCESS;
 		break;
+
 
 	case IOCTL_ListAllDrivers:
-		DbgPrint("Received 'IoctlListAllDrivers'\n");
+		CfbDbgPrint("Received 'IoctlListAllDrivers' (TODO)\n");
 		break;
 
+
 	default:
-		DbgPrint("Received invalid ioctl '%x'\n", IoctlCode);
+		CfbDbgPrint("Received invalid ioctl '%x'\n", IoctlCode);
 		return STATUS_UNSUCCESSFUL;
 	}
 

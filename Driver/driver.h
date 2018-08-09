@@ -29,10 +29,12 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	OUT PVOID *ObjectPtr
 );
 
+#define HOOKED_DRIVER_MAX_NAME_LEN 512
+
 typedef struct __hooked_driver
 {
 	BOOLEAN Enabled;
-	WCHAR Name[512];
+	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
 	UNICODE_STRING UnicodeName;
 	PDRIVER_OBJECT DriverObject;
 	PVOID OldDeviceControlRoutine;
