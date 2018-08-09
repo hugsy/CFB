@@ -19,6 +19,23 @@
 /**
  *
  */
+VOID CfbDbgPrint(const char* lpFormatString, ...)
+{
+#ifdef _DEBUG
+	va_list args;
+	char_t buffer[1024] = { 0, };
+	va_start(args, lpFormatString);
+	vsprintf_s(buffer, sizeof(buffer) / sizeof(char), lpFormatString, args);
+	va_end(args);
+
+	KdPrint((buffer));
+#endif
+}
+
+
+/**
+ *
+ */
 SIZE_T GetNumberOfHookedDrivers()
 {
 	SIZE_T i;
