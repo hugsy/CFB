@@ -11,9 +11,9 @@
 static HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 
-/**
- *
- */
+/*++
+
+--*/
 BOOL OpenCfbDevice()
 {
 	g_hDevice = CreateFileW(CFB_USER_DEVICE_NAME,
@@ -28,9 +28,9 @@ BOOL OpenCfbDevice()
 }
 
 
-/**
- *
- */
+/*++
+
+--*/
 BOOL CloseCfbDevice()
 {
 	BOOL bRes = CloseHandle(g_hDevice);
@@ -39,10 +39,12 @@ BOOL CloseCfbDevice()
 }
 
 
-/**
- *
- */
-BOOL EnumerateHookedDrivers()
+/*++
+
+Returns the number of currently hooked drivers in the klist.
+
+--*/
+BOOL GetNumberOfDrivers(PDWORD pdwNbDrivers)
 {
 	BOOL bResult;
 	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
@@ -56,19 +58,40 @@ BOOL EnumerateHookedDrivers()
 		&dwBytesReturned,
 		(LPOVERLAPPED)NULL);
 
-	if (bResult == FALSE)
-	{
-		wprintf(L"DeviceIoControl(IOCTL_GetNumberOfDrivers) failed\n");
-		return FALSE;
-	}
+	*pdwNbDrivers = dwNbDriversHooked;
 
-	return TRUE;
+	return bResult;
 }
 
 
-/**
- *
- */
+/*++
+
+Get the information structure about drivers at index provided.
+
+--*/
+BOOL GetHookedDriverInfo(DWORD dwDriverIndex)
+{
+	BOOL bResult;
+	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
+
+	bResult = DeviceIoControl(g_hDevice,
+		IOCTL_GetDriverInfo,
+		&dwDriverIndex,
+		sizeof(DWORD),
+		&dwNbDriversHooked,
+		sizeof(DWORD),
+		&dwBytesReturned,
+		(LPOVERLAPPED)NULL);
+
+	return bResult;
+}
+
+
+/*++
+
+Send the IO request to add a driver to the hooked list.
+
+--*/
 BOOL HookDriver(LPWSTR lpDriver)
 {
 	DWORD dwBytesReturned;
@@ -88,9 +111,11 @@ BOOL HookDriver(LPWSTR lpDriver)
 
 
 
-/**
- *
- */
+/*++
+
+Send the IO request to remove a driver to the hooked list.
+
+--*/
 BOOL UnhookDriver(LPWSTR lpDriver)
 {
 	DWORD dwBytesReturned;

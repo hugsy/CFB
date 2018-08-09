@@ -18,10 +18,11 @@ static BOOLEAN g_DoRun = FALSE;
 VOID PrintHelpMenu()
 {
 	wprintf(
-		L"? , help            -- Print this help menu\n"
-		L"exit , quit         -- Exit cleanly\n"
-		L"hook <DriverName>   -- Add `DriverName' to the list of hooked drivers\n"
-		L"unhook <DriverName> -- Remove `DriverName' from the list of hooked drivers\n"
+		L"?                     -- Print this help menu\n"
+		L"quit                  -- Exit cleanly\n"
+		L"hook <DriverName>     -- Add `DriverName' to the list of hooked drivers\n"
+		L"unhook <DriverName>   -- Remove `DriverName' from the list of hooked drivers\n"
+		L"count                 -- Returns the number of drivers hooked\n"
 		// TODO: finish
 	);
 	return;
@@ -109,62 +110,69 @@ VOID RunInterpreter()
 			continue;
 		}
 
-		if (!wcscmp(lpCommandEntries[0], L"quit") || !wcscmp(lpCommandEntries[0], L"exit"))
-		{
-			xlog(LOG_INFO, L"Exiting...\n");
-			g_DoRun = FALSE;
-		}
+		xlog(LOG_DEBUG, L"Command '%s' has %d entries\n", lpCommandEntries[0], dwNbEntries);
 
-		else if (!wcscmp(lpCommandEntries[0], L"help") || !wcscmp(lpCommandEntries[0], L"?"))
+		do
 		{
-			PrintHelpMenu();
-		}
-
-		else if (!wcscmp(lpCommandEntries[0], L"hook"))
-		{
-			if (dwNbEntries != 2) {
-				xlog(LOG_ERROR, L"hook command expects 1 argument only\nExample: hook tcpip\n");
-			}
-			else
+			if (!wcscmp(lpCommandEntries[0], L"quit"))
 			{
-				LPWSTR lpDriver = lpCommandEntries[1];
-				xlog(LOG_DEBUG, L"Trying to hook '%s'\n", lpDriver);
+				xlog(LOG_INFO, L"Exiting...\n");
+				g_DoRun = FALSE;
+				break;
+			}
 
-				if (!HookDriver(lpDriver))
+			if (!wcscmp(lpCommandEntries[0], L"?"))
+			{
+				PrintHelpMenu();
+				break;
+			}
+
+			if (!wcscmp(lpCommandEntries[0], L"hook") || !wcscmp(lpCommandEntries[0], L"unhook"))
+			{
+				if (dwNbEntries != 2)
+				{
+					xlog(LOG_ERROR, L"Command '%1$s' expects 1 argument only\nExample: %1$s tcpip\n", lpCommandEntries[0]);
+					break;
+				}
+
+				LPWSTR lpDriver = lpCommandEntries[1];
+				xlog(LOG_DEBUG, L"Trying to %s '%s'\n", lpCommandEntries[0], lpDriver);
+
+				if (!wcscmp(lpCommandEntries[0], L"hook") && !HookDriver(lpDriver))
 				{
 					PrintError(L"HookDriver()");
 				}
-				else
-				{
-					xlog(LOG_SUCCESS, L"Driver object '%s' is now hooked\n", lpDriver);
-				}
-			}
-
-		}
-		else if (!wcscmp(lpCommandEntries[0], L"unhook"))
-		{
-			if (dwNbEntries != 2) {
-				xlog(LOG_ERROR, L"unhook command expects 1 argument only\nExample: unhook tcpip\n");
-			}
-			else
-			{
-				LPWSTR lpDriver = lpCommandEntries[1];
-				xlog(LOG_DEBUG, L"Trying to unhook '%s'\n", lpDriver);
-
-				if (!HookDriver(lpDriver))
+				else if (!wcscmp(lpCommandEntries[0], L"unhook") && !UnhookDriver(lpDriver))
 				{
 					PrintError(L"UnhookDriver()");
 				}
 				else
 				{
-					xlog(LOG_SUCCESS, L"Driver object '%s' is now unhooked\n", lpDriver);
+					xlog(LOG_SUCCESS, L"Driver object '%s' is now %sed\n", lpDriver, lpCommandEntries[0]);
 				}
+
+				break;
 			}
-		}
-		else
-		{
+
+			if (!wcscmp(lpCommandEntries[0], L"count"))
+			{
+				DWORD dwNbDrivers;
+
+				if (!GetNumberOfDrivers(&dwNbDrivers))
+				{
+					PrintError(L"GetNumberOfDrivers()");
+				} 
+				else
+				{
+					xlog(LOG_SUCCESS, L"%d drivers hooked\n", dwNbDrivers);
+				}
+				
+				break;
+			}
+
 			xlog(LOG_ERROR, L"Unknown command '%s'\n", lpCommandEntries[0]);
-		}
+		
+		} while (0);
 
 		FreeAllSplittedElements(lpCommandEntries, dwNbEntries);
 	}
