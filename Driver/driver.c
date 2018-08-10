@@ -494,7 +494,6 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		}
 
 		lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
-		lpDriverName[InputBufferLen - 1] = L'\0';
 
 		if (IoctlCode == IOCTL_AddDriver)
 		{
@@ -515,7 +514,7 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		CfbDbgPrint(L"Received 'IoctlGetNumberOfDrivers'\n");
 
 		OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
-		if (OutputBufferLen < sizeof(SIZE_T))
+		if (OutputBufferLen < sizeof(DWORD))
 		{
 			status = STATUS_BUFFER_TOO_SMALL;
 			break;

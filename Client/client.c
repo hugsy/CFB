@@ -20,10 +20,10 @@ VOID PrintHelpMenu()
 	wprintf(
 		L"?                     -- Print this help menu\n"
 		L"quit                  -- Exit cleanly\n"
-		L"hook <DriverName>     -- Add `DriverName' to the list of hooked drivers\n"
-		L"unhook <DriverName>   -- Remove `DriverName' from the list of hooked drivers\n"
+		L"hook <DrvName>        -- Add `DrvName' to the list of hooked drivers (ex. '\\driver\\HEVD')\n"
+		L"unhook <DrvName>      -- Remove `DrvName' from the list of hooked drivers (ex. '\\driver\\HEVD')\n"
 		L"count                 -- Returns the number of drivers hooked\n"
-		// TODO: finish
+		L"info <DrvIdx>         -- Displays some info about the hooked driver number DrvIdx (ex. 2)\n"
 	);
 	return;
 }
@@ -97,9 +97,7 @@ VOID RunInterpreter()
 		}
 
 		size_t szNumConvertedChars = 0;
-		mbstowcs_s(&szNumConvertedChars, lpBufferCommandW, sizeof(lpBufferCommandW), lpBufferCommand, _TRUNCATE);
-
-		xlog(LOG_DEBUG, L"Received '%s'\n", lpBufferCommandW);
+		mbstowcs_s(&szNumConvertedChars, lpBufferCommandW, sizeof(lpBufferCommandW), lpBufferCommand, sizeof(lpBufferCommand));
 
 		StringWStrip((LPWSTR) lpBufferCommandW);
 
@@ -110,62 +108,75 @@ VOID RunInterpreter()
 			continue;
 		}
 
-		xlog(LOG_DEBUG, L"Command '%s' has %d entries\n", lpCommandEntries[0], dwNbEntries);
+		xlog(LOG_DEBUG, L"Received command '%s' with %d arguments\n", lpCommandEntries[0], dwNbEntries-1);
+
+
+#define HANDLE_COMMAND(x) if (!wcscmp(lpCommandEntries[0], x))
 
 #define ASSERT_ARGNUM(x) { \
-								if (dwNbEntries != x) \
+								if ( (dwNbEntries-1) != x ) \
 								{ \
-									xlog(LOG_ERROR, L"Command '%s' expects 1 argument only\n", lpCommandEntries[0]); \
+									xlog(LOG_ERROR, L"Command '%s' expects %d argument only\n", lpCommandEntries[0], (x-1)); \
 									break; \
 								} \
 						}
 
 		do
 		{
-			if (!wcscmp(lpCommandEntries[0], L"quit"))
+			HANDLE_COMMAND(L"quit")
 			{
 				xlog(LOG_INFO, L"Exiting...\n");
 				g_DoRun = FALSE;
 				break;
 			}
 
-			if (!wcscmp(lpCommandEntries[0], L"?"))
+			
+			HANDLE_COMMAND(L"?")
 			{
 				PrintHelpMenu();
 				break;
 			}
 
-			if (!wcscmp(lpCommandEntries[0], L"hook") || !wcscmp(lpCommandEntries[0], L"unhook"))
+
+			HANDLE_COMMAND(L"hook")
 			{
-				/*
-				if (dwNbEntries != 2)
-				{
-					xlog(LOG_ERROR, L"Command '%1$s' expects 1 argument only\nExample: %1$s tcpip\n", lpCommandEntries[0]);
-					break;
-				}
-				*/
-				ASSERT_ARGNUM(2);
+				ASSERT_ARGNUM(1);
 
-				LPWSTR lpDriver = lpCommandEntries[1];
-				xlog(LOG_DEBUG, L"Trying to %s '%s'\n", lpCommandEntries[0], lpDriver);
+				xlog(LOG_DEBUG, L"Hook command to '%s' (%dB)\n", lpCommandEntries[1], wcslen( lpCommandEntries[1] ));
 
-				if (!wcscmp(lpCommandEntries[0], L"hook") && !HookDriver(lpDriver))
+				if( !HookDriver(lpCommandEntries[1]) )
 				{
 					PrintError(L"HookDriver()");
 				}
-				else if (!wcscmp(lpCommandEntries[0], L"unhook") && !UnhookDriver(lpDriver))
-				{
-					PrintError(L"UnhookDriver()");
-				}
 				else
 				{
-					xlog(LOG_SUCCESS, L"Driver object '%s' is now %sed\n", lpDriver, lpCommandEntries[0]);
+					xlog(LOG_SUCCESS, L"Driver '%s' is now hooked\n", lpCommandEntries[1]);
 				}
 
 				break;
 			}
 
-			if (!wcscmp(lpCommandEntries[0], L"count"))
+
+			HANDLE_COMMAND(L"unhook")
+			{
+				ASSERT_ARGNUM(1);
+
+				xlog(LOG_DEBUG, L"Unhook command to '%s'\n", lpCommandEntries[1]);
+
+				if ( !UnhookDriver(lpCommandEntries[1]) )
+				{
+					PrintError(L"UnhookDriver()");
+				}
+				else
+				{
+					xlog(LOG_SUCCESS, L"Driver '%s' is now unhooked\n", lpCommandEntries[1]);
+				}
+
+				break;
+			}
+
+
+			HANDLE_COMMAND(L"count")
 			{
 				DWORD dwNbDrivers;
 
@@ -181,16 +192,10 @@ VOID RunInterpreter()
 				break;
 			}
 
-			if (!wcscmp(lpCommandEntries[0], L"info"))
+
+			HANDLE_COMMAND(L"info")
 			{
-				/*
-				if (dwNbEntries != 2)
-				{
-					xlog(LOG_ERROR, L"Command '%1$s' expects 1 argument only\nExample: %1$s 1\n", lpCommandEntries[0]);
-					break;
-				}
-				*/
-				ASSERT_ARGNUM(2);
+				ASSERT_ARGNUM(1);
 
 				HOOKED_DRIVER_INFO hDrvInfo;
 				DWORD dwIndex = _wtoi(lpCommandEntries[1]);

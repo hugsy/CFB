@@ -93,15 +93,15 @@ BOOL GetHookedDriverInfo(DWORD dwDriverIndex, PHOOKED_DRIVER_INFO hDrvInfo)
 Send the IO request to add a driver to the hooked list.
 
 --*/
-BOOL HookDriver(LPWSTR lpDriver)
+BOOL HookDriver(LPWSTR lpDriverName)
 {
 	DWORD dwBytesReturned;
-	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
+	DWORD dwDriverNameLen = (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
 
 	BOOL bResult = DeviceIoControl(g_hDevice,
 		IOCTL_AddDriver,
-		lpDriver,
-		dwDriverLen,
+		lpDriverName,
+		dwDriverNameLen,
 		NULL,
 		0,
 		&dwBytesReturned,
@@ -117,15 +117,15 @@ BOOL HookDriver(LPWSTR lpDriver)
 Send the IO request to remove a driver to the hooked list.
 
 --*/
-BOOL UnhookDriver(LPWSTR lpDriver)
+BOOL UnhookDriver(LPWSTR lpDriverName )
 {
 	DWORD dwBytesReturned;
-	DWORD dwDriverLen = (DWORD)(wcslen(lpDriver) * sizeof(WCHAR));
+	DWORD dwDriverNameLen= (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
 
 	BOOL bResult = DeviceIoControl(g_hDevice,
 		IOCTL_RemoveDriver,
-		lpDriver,
-		dwDriverLen,
+		lpDriverName,
+		dwDriverNameLen,
 		NULL,
 		0,
 		&dwBytesReturned,
