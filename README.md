@@ -2,14 +2,15 @@
 
 ## Concept
 
-<add diagram>
+_TODO add pretty diagram here_
 
 
 ## Build
 
 ### GUI
 
-Clone the repository, and open with Visual Studio the CFB.sln at the project root.
+Clone the repository, and build the `CFB.sln` at the project root with Visual Studio (Debug - very verbose - or Release).
+
 
 
 ### Command line
@@ -33,7 +34,7 @@ CFB >>> hook <MyDriver>
 
 For instance
 ```
-CFB >>> hook tcpip
+CFB >>> hook \driver\tcpip
 ```
 
 All `DeviceIoControl()` from user-land will be hooked through our driver, which will capture the IRP user data 
