@@ -8,6 +8,7 @@
 
 
 
+
 static HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 
@@ -69,7 +70,7 @@ BOOL GetNumberOfDrivers(PDWORD pdwNbDrivers)
 Get the information structure about drivers at index provided.
 
 --*/
-BOOL GetHookedDriverInfo(DWORD dwDriverIndex)
+BOOL GetHookedDriverInfo(DWORD dwDriverIndex, PHOOKED_DRIVER_INFO hDrvInfo)
 {
 	BOOL bResult;
 	DWORD dwNbDriversHooked = 0, dwBytesReturned = 0;
@@ -78,8 +79,8 @@ BOOL GetHookedDriverInfo(DWORD dwDriverIndex)
 		IOCTL_GetDriverInfo,
 		&dwDriverIndex,
 		sizeof(DWORD),
-		&dwNbDriversHooked,
-		sizeof(DWORD),
+		&hDrvInfo,
+		sizeof(HOOKED_DRIVER_INFO),
 		&dwBytesReturned,
 		(LPOVERLAPPED)NULL);
 

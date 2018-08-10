@@ -109,10 +109,7 @@ PHOOKED_DRIVER GetHookedDriverByIndex(DWORD dwIndex)
 
 	PHOOKED_DRIVER Driver = g_HookedDriversHead;
 
-	while (dwIndex--)
-	{
-		Driver = Driver->Next;
-	}
+	for (; dwIndex; dwIndex--, Driver = Driver->Next);
 
 	return Driver;
 }
@@ -194,6 +191,7 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 
 
 /*++
+
 --*/
 NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 {
@@ -253,6 +251,37 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	/* free the driver */
 	ObDereferenceObject(DriverToRemove->DriverObject);
 	ExFreePoolWithTag(DriverToRemove, CFB_DEVICE_TAG);
+
+	return status;
+}
+
+
+/*++
+
+
+--*/
+NTSTATUS GetDriverInfo(DWORD dwIndex, PHOOKED_DRIVER_INFO pDrvInfo)
+{
+	NTSTATUS status = STATUS_SUCCESS;
+
+	PHOOKED_DRIVER pDriver = GetHookedDriverByIndex(dwIndex);
+
+	if (!pDriver)
+	{
+		return STATUS_INVALID_PARAMETER;
+	}
+
+	__try
+	{
+		RtlSecureZeroMemory(pDrvInfo, sizeof(HOOKED_DRIVER_INFO));
+		RtlCopyMemory((PVOID)pDrvInfo->Enabled, (PVOID)pDriver->Enabled, sizeof(BOOLEAN));
+		RtlCopyMemory((PVOID)pDrvInfo->Name, (PVOID)pDriver->Name, HOOKED_DRIVER_MAX_NAME_LEN * sizeof(WCHAR));
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		status = GetExceptionCode();
+		CfbDbgPrint(L"[-] Exception Code: 0x%X\n", status);
+	}
 
 	return status;
 }
@@ -500,6 +529,29 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 	case IOCTL_GetDriverInfo:
 		CfbDbgPrint(L"Received 'IoctlGetDriverInfo' (TODO)\n");
+
+		InputBufferLen = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
+
+		if (InputBufferLen > sizeof(DWORD))
+		{
+			CfbDbgPrint(L"Input buffer too large\n");
+			status = STATUS_BUFFER_OVERFLOW;
+			break;
+		}
+
+		OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
+		if (OutputBufferLen < sizeof(HOOKED_DRIVER_INFO))
+		{
+			status = STATUS_BUFFER_TOO_SMALL;
+			break;
+		}
+
+		DWORD* pdwDriverIndex = (DWORD*)Irp->AssociatedIrp.SystemBuffer;
+
+		status = GetDriverInfo(*pdwDriverIndex, (PHOOKED_DRIVER_INFO)Irp->AssociatedIrp.SystemBuffer);
+
+		CfbDbgPrint(L"GetDriverInfo(%d) returned %#x\n", *pdwDriverIndex, status);
+
 		break;
 
 

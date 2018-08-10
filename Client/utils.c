@@ -6,9 +6,11 @@
 #include "../Common/common.h"
 
 
-/**
-* perror() style of function for Windows
-*/
+/*++
+
+perror() style of function for Windows
+
+--*/
 VOID PrintError(LPWSTR msg)
 {
 	DWORD eNum;
@@ -25,10 +27,12 @@ VOID PrintError(LPWSTR msg)
 }
 
 
-/**
- * Strips out the heading '\r' or '\n' and replace the trailing ones
- * with NULL bytes.
- */
+/*++
+
+Strips out the heading '\r' or '\n' and replace the trailing ones
+with NULL bytes.
+
+--*/
 VOID StringWStrip(LPWSTR wcStr)
 {
 	SIZE_T szStrLen = wcslen(wcStr)-1;
@@ -47,18 +51,22 @@ VOID StringWStrip(LPWSTR wcStr)
 }
 
 
-/**
-* Return TRUE if `wcStr` starts with `wcPattern`.
-*/
+/*++
+
+Return TRUE if `wcStr` starts with `wcPattern`.
+
+--*/
 BOOL StringWStartsWith(LPWSTR wcStr, LPWSTR wcPattern)
 {
 	return wcsncmp(wcStr, wcPattern, wcslen(wcPattern)) == 0;
 }
 
 
-/**
- * Count the number of occurence of a WCHAR in a LPWSTR
- */
+/*++
+
+Count the number of occurence of a WCHAR in a LPWSTR
+
+--*/
 DWORD CountOccurence(LPWSTR wcStr, WCHAR p)
 {
 	DWORD dwNb = 0;
@@ -73,9 +81,14 @@ DWORD CountOccurence(LPWSTR wcStr, WCHAR p)
 }
 
 
-/**
- *
- */
+/*++
+
+Splits an LPWSTR into a array of LPWSTR separated by the delimitor provided.
+
+On success, the function returns the created array, which must be free-ed by
+calling FreeAllSplittedElements().
+
+--*/
 LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 {
 	DWORD dwNumberOfEntries = CountOccurence(wcStr, p);
@@ -103,9 +116,7 @@ LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 				break;
 			}
 
-			wcsncpy_s(lpEntries[i], szCurArgLength, lpStartPtr, _TRUNCATE);
-			//wprintf(L"[%d] '%s' -> '%s' %llu\n", i, lpStartPtr, lpEntries[i], szCurArgLength);
-			i++;
+			wcsncpy_s(lpEntries[i++], szCurArgLength, lpStartPtr, _TRUNCATE);
 			*ptr = p;
 			lpStartPtr += szCurArgLength;
 		}
@@ -117,8 +128,10 @@ LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 
 
 /**
- *
- */
+
+Free all the elements created by StringWSplit(), and the table itself.
+
+--*/
 VOID FreeAllSplittedElements(LPWSTR* lpEntries, DWORD dwNbEntries)
 {
 	for (DWORD i = 0; i < dwNbEntries; i++)

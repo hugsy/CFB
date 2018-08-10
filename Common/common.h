@@ -17,6 +17,8 @@
 #define CFB_DEVICE_LINK				L"\\??\\CFB"
 
 
+#define HOOKED_DRIVER_MAX_NAME_LEN 512
+
 
 #ifdef _DEBUG
 /* Debug */
@@ -24,14 +26,14 @@
 #define WIDECHAR(x) WIDE2(x)
 
 #define WIDE_FUNCTION WIDECHAR(__FUNCTION__) L"()"
-#define WIDE_FILE WIDECHAR(__FILE__) 
+#define WIDE_FILE WIDECHAR(__FILE__)
 
 #define dbg wprintf
 #define GEN_FMT L"in '%s'(%s:%d) "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
 #define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, WIDE_FUNCTION, WIDE_FILE, __LINE__, __VA_ARGS__)
 
-#else 
+#else
 /* Release */
 
 #define dbg wprintf
@@ -40,7 +42,7 @@
 #endif /* _DEBUG_ */
 
 
-typedef enum 
+typedef enum
 {
 	LOG_DEBUG,
 	LOG_INFO,
@@ -49,6 +51,14 @@ typedef enum
 	LOG_ERROR,
 	LOG_CRITICAL
 } log_level_t;
+
+
+typedef struct __hooked_driver_info
+{
+	BOOLEAN Enabled;
+	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
+}
+HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
 
 
 __declspec(dllexport) void _xlog(log_level_t level, const wchar_t* format, ...);

@@ -1,9 +1,6 @@
 #include "../Common/common.h"
 
-/*
-#define CFB_DEVICE_NAME		L"\\Device\\CFB"
-#define CFB_DEVICE_LINK		L"\\??\\CFB"
-*/
+
 #define CFB_MAX_DEVICES		32
 #define CFB_DEVICE_TAG		0x20424643 // " BFC"
 
@@ -29,7 +26,6 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	OUT PVOID *ObjectPtr
 );
 
-#define HOOKED_DRIVER_MAX_NAME_LEN 512
 
 typedef struct __hooked_driver
 {
