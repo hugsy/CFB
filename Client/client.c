@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <stdio.h>
+#include <psapi.h>
 
 #include "stdafx.h"
 
@@ -12,9 +13,11 @@
 static BOOLEAN g_DoRun = FALSE;
 
 
-/**
- *
- */
+/*++
+
+Print the help menu
+
+--*/
 VOID PrintHelpMenu()
 {
 	wprintf(
@@ -24,14 +27,57 @@ VOID PrintHelpMenu()
 		L"unhook <DrvName>      -- Remove `DrvName' from the list of hooked drivers (ex. '\\driver\\HEVD')\n"
 		L"count                 -- Returns the number of drivers hooked\n"
 		L"info <DrvIdx>         -- Displays some info about the hooked driver number DrvIdx (ex. 2)\n"
+		L"enum                  -- Enumerate all drivers on the system\n"
 	);
 	return;
 }
 
 
-/**
- *
- */
+/*++
+
+Adjusted version from MSDN
+https://docs.microsoft.com/en-us/windows/desktop/psapi/enumerating-all-device-drivers-in-the-system
+
+--*/
+BOOL EnumerateDrivers()
+{
+	LPVOID lpDrivers[2048];
+	DWORD cbNeeded;
+	int cDrivers;
+
+	if (EnumDeviceDrivers(lpDrivers, sizeof(lpDrivers), &cbNeeded) && cbNeeded < sizeof(lpDrivers))
+	{
+		WCHAR wszDriver[2048] = { 0, };
+
+		cDrivers = cbNeeded / sizeof(LPVOID);
+
+		for (int i = 0; i < cDrivers; i++)
+		{
+			//if (GetDeviceDriverBaseName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
+			if (GetDeviceDriverFileName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
+			{
+				xlog(LOG_SUCCESS, L"%d: %s\n", i + 1, wszDriver);
+			}
+			else
+			{
+				PrintError(L"GetDeviceDriverBaseName()");
+				return FALSE;
+			}
+		}
+	}
+	else
+	{
+		xlog(LOG_ERROR, L"EnumDeviceDrivers() failed; array size needed is %d\n", cbNeeded / sizeof(LPVOID));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+
+/*++
+
+--*/
 static BOOL CtrlHandler(DWORD fdwCtrlType)
 {
 	switch (fdwCtrlType)
@@ -45,16 +91,16 @@ static BOOL CtrlHandler(DWORD fdwCtrlType)
 		xlog(LOG_INFO, L"Received Ctrl-Close, stopping...\n");
 		g_DoRun = FALSE;
 		return TRUE;
-
-	default:
-		return FALSE;
 	}
+
+	return FALSE;
 }
 
 
-/**
-*
-*/
+
+/*++
+
+--*/
 VOID RunInterpreter()
 {
 	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
@@ -130,19 +176,24 @@ VOID RunInterpreter()
 				break;
 			}
 
-			
+
 			HANDLE_COMMAND(L"?")
 			{
 				PrintHelpMenu();
 				break;
 			}
 
+			HANDLE_COMMAND(L"enum")
+			{
+				EnumerateDrivers();
+				break;
+			}
 
 			HANDLE_COMMAND(L"hook")
 			{
 				ASSERT_ARGNUM(1);
 
-				xlog(LOG_DEBUG, L"Hook command to '%s' (%dB)\n", lpCommandEntries[1], wcslen( lpCommandEntries[1] ));
+				xlog(LOG_DEBUG, L"Hook command to '%s' (%dB)\n", lpCommandEntries[1], wcslen(lpCommandEntries[1]));
 
 				if( !HookDriver(lpCommandEntries[1]) )
 				{

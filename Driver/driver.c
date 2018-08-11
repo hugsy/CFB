@@ -164,7 +164,7 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
 	PVOID OldDeviceControlRoutine = InterlockedExchangePointer((PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
-		(PVOID)DummyHookedDispatchRoutine);
+		(PVOID)InterceptedDispatchRoutine);
 
 	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpDriverName);
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
@@ -233,7 +233,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	}
 
 	/* reverse back the device control major function */
-	InterlockedExchangePointer((PVOID*)DummyHookedDispatchRoutine,
+	InterlockedExchangePointer((PVOID*)InterceptedDispatchRoutine,
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL]);
 
 	/* fix the chain */
@@ -348,20 +348,31 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 
 
-
 /*++
 
-Link struct _IRP: https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
+This routine is the CFB interception routine that will be executed *before* the original
+routine from the hooked driver.
+
+Links:
+ - https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
 
 --*/
-NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+
+NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 
 	PAGED_CODE();
 
-	CfbDbgPrint(L"TODO !! I'm hooked !!\n\n");
+	CfbDbgPrint(L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp);
 
-	/* Find driver in list */
+	//
+	// TODO: do more stuff here
+	//
+
+	//
+	// Find the original DEVICE_CONTROL function for the driver
+	//
 	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
 	BOOLEAN Found = FALSE;
 
@@ -381,10 +392,11 @@ NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	/* Call the original routine */
-	typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
-	PDRIVER_DISPATCH (*OldDispatchRoutine) = (PDRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 
+	//
+	// Call the original routine
+	//
+	PDRIVER_DISPATCH* OldDispatchRoutine = (PDRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 	return (*OldDispatchRoutine)(DeviceObject, Irp);
 }
 
@@ -527,7 +539,7 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 
 	case IOCTL_GetDriverInfo:
-		CfbDbgPrint(L"Received 'IoctlGetDriverInfo' (TODO)\n");
+		CfbDbgPrint(L"Received 'IoctlGetDriverInfo'\n");
 
 		InputBufferLen = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
 

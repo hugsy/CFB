@@ -40,4 +40,4 @@ HOOKED_DRIVER, *PHOOKED_DRIVER;
 
 PHOOKED_DRIVER g_HookedDriversHead;
 
-NTSTATUS DummyHookedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
