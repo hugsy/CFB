@@ -4,7 +4,7 @@
 #include "stdafx.h"
 
 #include "../Common/common.h"
-#include "../Driver/ioctls.h"
+#include "../Driver/IoctlCodes.h"
 
 
 

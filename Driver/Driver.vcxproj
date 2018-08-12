@@ -150,11 +150,22 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Common.h" />
     <ClInclude Include="driver.h" />
-    <ClInclude Include="ioctls.h" />
+    <ClInclude Include="HookedDrivers.h" />
+    <ClInclude Include="IoAddDriver.h" />
+    <ClInclude Include="IoctlCodes.h" />
+    <ClInclude Include="IoGetDriverInfo.h" />
+    <ClInclude Include="IoRemoveDriver.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="driver.c" />
+    <ClCompile Include="Driver.c" />
+    <ClCompile Include="HookedDrivers.c" />
+    <ClCompile Include="IoAddDriver.c" />
+    <ClCompile Include="IoGetDriverInfo.c" />
+    <ClCompile Include="IoRemoveDriver.c" />
+    <ClCompile Include="Utils.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

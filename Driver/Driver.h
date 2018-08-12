@@ -1,8 +1,10 @@
+#ifndef __DRIVER_H__
+#define __DRIVER_H__
+
+#pragma once
+
+#include "Common.h"
 #include "../Common/common.h"
-
-
-#define CFB_MAX_DEVICES		32
-#define CFB_DEVICE_TAG		0x20424643 // " BFC"
 
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
@@ -17,8 +19,7 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
 //
 extern POBJECT_TYPE* IoDriverObjectType;
 
-extern NTSYSAPI
-NTSTATUS NTAPI ObReferenceObjectByName(
+extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	IN PUNICODE_STRING ObjectPath,
 	IN ULONG Attributes,
 	IN PACCESS_STATE PassedAccessState OPTIONAL,
@@ -29,18 +30,7 @@ NTSTATUS NTAPI ObReferenceObjectByName(
 	OUT PVOID *ObjectPtr
 );
 
-
-typedef struct __hooked_driver
-{
-	BOOLEAN Enabled;
-	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
-	UNICODE_STRING UnicodeName;
-	PDRIVER_OBJECT DriverObject;
-	PVOID OldDeviceControlRoutine;
-	struct __hooked_driver *Next;
-}
-HOOKED_DRIVER, *PHOOKED_DRIVER;
-
-PHOOKED_DRIVER g_HookedDriversHead;
-
 NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+
+
+#endif /* __DRIVER_H__ */
