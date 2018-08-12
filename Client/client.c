@@ -53,8 +53,8 @@ BOOL EnumerateDrivers()
 
 		for (int i = 0; i < cDrivers; i++)
 		{
-			//if (GetDeviceDriverBaseName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
-			if (GetDeviceDriverFileName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
+			if (GetDeviceDriverBaseName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
+			//if (GetDeviceDriverFileName(lpDrivers[i], wszDriver, sizeof(wszDriver) / sizeof(WCHAR)))
 			{
 				xlog(LOG_SUCCESS, L"%d: %s\n", i + 1, wszDriver);
 			}
@@ -80,20 +80,35 @@ BOOL EnumerateDrivers()
 --*/
 static BOOL CtrlHandler(DWORD fdwCtrlType)
 {
+	BOOL bRes = TRUE;
+
+	xlog(LOG_DEBUG, L"In CtrlHandler)()\n");
+
 	switch (fdwCtrlType)
 	{
 	case CTRL_C_EVENT:
 		xlog(LOG_INFO, L"Received Ctrl-C event, stopping...\n");
 		g_DoRun = FALSE;
-		return TRUE;
+		break;
 
 	case CTRL_CLOSE_EVENT:
 		xlog(LOG_INFO, L"Received Ctrl-Close, stopping...\n");
 		g_DoRun = FALSE;
-		return TRUE;
+		break;
+
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
+		xlog(LOG_INFO, L"Received stop from system...\n");
+		g_DoRun = FALSE;
+		break;
+
+	default:
+		xlog(LOG_ERROR, L"Unhandled control signal\n");
+		bRes = FALSE;
+		break;
 	}
 
-	return FALSE;
+	return bRes;
 }
 
 
@@ -103,6 +118,7 @@ static BOOL CtrlHandler(DWORD fdwCtrlType)
 --*/
 VOID RunInterpreter()
 {
+
 	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
 	{
 		xlog(LOG_ERROR, L"Failed to install CtrlHandler...\n");
@@ -117,11 +133,13 @@ VOID RunInterpreter()
 	}
 
 
-	xlog(LOG_INFO, L"Starting main loop...\n");
+	xlog(LOG_INFO, L"Everything is ready!! Starting main loop... (Press Ctrl-C or type 'quit' to exit)\n");
+
 	g_DoRun = TRUE;
 
 	BYTE lpBufferCommand[256];
 	WCHAR lpBufferCommandW[sizeof(lpBufferCommand)];
+
 
 	while (g_DoRun)
 	{
@@ -139,36 +157,51 @@ VOID RunInterpreter()
 		{
 			PrintError(L"ReadFile()");
 			g_DoRun = FALSE;
-			break;
 		}
 
+		if (!g_DoRun)
+			break;
+
 		size_t szNumConvertedChars = 0;
-		mbstowcs_s(&szNumConvertedChars, lpBufferCommandW, sizeof(lpBufferCommandW), lpBufferCommand, sizeof(lpBufferCommand));
+		mbstowcs_s(&szNumConvertedChars,
+			       lpBufferCommandW,
+			       sizeof(lpBufferCommandW)/sizeof(WCHAR),
+			       lpBufferCommand,
+			       dwNumberOfBytesRead);
 
 		StringWStrip((LPWSTR) lpBufferCommandW);
 
 		lpCommandEntries = StringWSplit(lpBufferCommandW, L' ', &dwNbEntries);
-		if (!lpCommandEntries)
+		if (!lpCommandEntries || !dwNbEntries)
 		{
 			xlog(LOG_ERROR, L"Failed to parse the command\n");
 			continue;
 		}
 
-		xlog(LOG_DEBUG, L"Received command '%s' with %d arguments\n", lpCommandEntries[0], dwNbEntries-1);
+		DWORD dwNbArgs = dwNbEntries - 1;
+
+#ifdef _DEBUG
+		xlog(LOG_DEBUG, L"Received command '%s' with %d arguments\n", lpCommandEntries[0], dwNbArgs);
+
+		for(DWORD i=0; i<dwNbArgs; i++)
+			xlog(LOG_DEBUG, L"Arg[%d] = '%s'\n", i, lpCommandEntries[1+i]);
+
+#endif
 
 
 #define HANDLE_COMMAND(x) if (!wcscmp(lpCommandEntries[0], x))
 
 #define ASSERT_ARGNUM(x) { \
-								if ( (dwNbEntries-1) != x ) \
+								if ( dwNbArgs < x ) \
 								{ \
-									xlog(LOG_ERROR, L"Command '%s' expects %d argument only\n", lpCommandEntries[0], (x-1)); \
+									xlog(LOG_ERROR, L"Command '%s' expects %d argument(s)\n", lpCommandEntries[0], x); \
 									break; \
 								} \
 						}
 
 		do
 		{
+
 			HANDLE_COMMAND(L"quit")
 			{
 				xlog(LOG_INFO, L"Exiting...\n");

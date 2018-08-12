@@ -91,6 +91,9 @@ calling FreeAllSplittedElements().
 --*/
 LPWSTR* StringWSplit(LPWSTR wcStr, WCHAR p, LPDWORD lpdwNbEntries)
 {
+	if (wcslen(wcStr) == 0)
+		return NULL;
+
 	DWORD dwNumberOfEntries = CountOccurence(wcStr, p);
 	LPWSTR* lpEntries = LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, (dwNumberOfEntries+1+1) * sizeof(LPWSTR));
 	if (!lpEntries)

@@ -7,19 +7,19 @@
 
 
 
-static HANDLE gConsoleMutex;
+HANDLE g_ConsoleMutex;
 
 
 static void init()
 {
-	gConsoleMutex = CreateMutex(NULL, FALSE, NULL);
+	g_ConsoleMutex = CreateMutex(NULL, FALSE, NULL);
 	return;
 }
 
 
 static void fini()
 {
-	CloseHandle(gConsoleMutex);
+	CloseHandle(g_ConsoleMutex);
 	return;
 }
 
@@ -71,7 +71,7 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	SYSTEMTIME lt;
 	GetLocalTime(&lt);
 
-	dwWaitResult = WaitForSingleObject(gConsoleMutex, INFINITE);
+	dwWaitResult = WaitForSingleObject(g_ConsoleMutex, INFINITE);
 
 	if (dwWaitResult == WAIT_OBJECT_0)
 	{
@@ -82,7 +82,7 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 		fflush(stderr);
 	}
 	va_end(args);
-	ReleaseMutex(gConsoleMutex);
+	ReleaseMutex(g_ConsoleMutex);
 
 	LocalFree(fmt);
 
@@ -145,14 +145,14 @@ static inline void __hexdump_thread_safe(PVOID data, SIZE_T size)
  */
 void Hexdump(PVOID data, SIZE_T size)
 {
-	DWORD dwWaitResult = WaitForSingleObject(gConsoleMutex, INFINITE);
+	DWORD dwWaitResult = WaitForSingleObject(g_ConsoleMutex, INFINITE);
 
 	if (dwWaitResult == WAIT_OBJECT_0)
 	{
 		__hexdump_thread_safe(data, size);
 	}
 
-	ReleaseMutex(gConsoleMutex);
+	ReleaseMutex(g_ConsoleMutex);
 }
 
 

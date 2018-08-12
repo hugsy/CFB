@@ -15,7 +15,8 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
 /* https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/ */
 extern POBJECT_TYPE* IoDriverObjectType;
 
-extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
+extern NTSYSAPI
+NTSTATUS NTAPI ObReferenceObjectByName(
 	IN PUNICODE_STRING ObjectPath,
 	IN ULONG Attributes,
 	IN PACCESS_STATE PassedAccessState OPTIONAL,

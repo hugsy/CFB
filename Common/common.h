@@ -12,16 +12,24 @@
 #define CFB_AUTHOR					L"@_hugsy_"
 #define CFB_VERSION					0.01
 
-#define CFB_USER_DEVICE_NAME		L"\\\\.\\CFB"
-#define CFB_DEVICE_NAME				L"\\Device\\CFB"
-#define CFB_DEVICE_LINK				L"\\??\\CFB"
+#define CFB_USER_DEVICE_NAME		L"\\\\.\\IrpDumper"
+#define CFB_DEVICE_NAME				L"\\Device\\IrpDumper"
+#define CFB_DEVICE_LINK				L"\\??\\IrpDumper"
 
+#define CFB_DRIVER_NAME				L"IrpDumper.sys"
+#define CFB_SERVICE_NAME			L"IrpDumper"
+#define CFB_SERVICE_DESCRIPTION		L"CFB IRP Dumper Driver"
+#define CFB_PIPE_NAME				L"\\\\.\\pipe\\CFB"
+#define CFB_PIPE_MAXCLIENTS			5
+#define CFB_PIPE_INBUFLEN			4096  //TODO : adjust
+#define CFB_PIPE_OUTBUFLEN			4096  //TODO : adjust
 
-#define HOOKED_DRIVER_MAX_NAME_LEN 512
+#define HOOKED_DRIVER_MAX_NAME_LEN	512
 
 
 #ifdef _DEBUG
 /* Debug */
+
 #define WIDE2(x) L##x
 #define WIDECHAR(x) WIDE2(x)
 
@@ -29,14 +37,15 @@
 #define WIDE_FILE WIDECHAR(__FILE__)
 
 #define dbg wprintf
-#define GEN_FMT L"in '%s'(%s:%d) "
+#define GEN_FMT L"in '%s'(%s:%d) [%d] "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
-#define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, WIDE_FUNCTION, WIDE_FILE, __LINE__, __VA_ARGS__)
+#define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, WIDE_FUNCTION, WIDE_FILE, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
 
 #else
 /* Release */
 
-#define dbg wprintf
+VOID dbg(LPWSTR lpFmt, ...) {};
+
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 
 #endif /* _DEBUG_ */
