@@ -367,10 +367,6 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	CfbDbgPrint(L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp);
 
 	//
-	// TODO: do more stuff here
-	//
-
-	//
 	// Find the original DEVICE_CONTROL function for the driver
 	//
 	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
@@ -389,15 +385,25 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 	if (!Found)
 	{
-		return STATUS_INVALID_PARAMETER;
+		//
+		// This is really bad: it means our interception routine got called by a non-hooked driver
+		// Could be a bad pointer restoration. Anyway, we log and fail for now.
+		//
+		CfbDbgPrint(L"InterceptedDispatchRoutine() failed: couldn't get the current DriverObject\n");
+		return STATUS_NO_SUCH_DEVICE;
 	}
 
+	//
+	// TODO: collect IRP data here(only if Enabled)
+	//
+
+	CfbDbgPrint(L"Found OriginalDriver = '%s', calling %p\n", curDriver->Name, curDriver->OldDeviceControlRoutine);
 
 	//
 	// Call the original routine
 	//
-	PDRIVER_DISPATCH* OldDispatchRoutine = (PDRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
-	return (*OldDispatchRoutine)(DeviceObject, Irp);
+	PDRIVER_DISPATCH OldDispatchRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
+	return OldDispatchRoutine(DeviceObject, Irp);
 }
 
 

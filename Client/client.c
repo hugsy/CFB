@@ -303,5 +303,7 @@ VOID RunInterpreter()
 		FreeAllSplittedElements(lpCommandEntries, dwNbEntries);
 	}
 
+	xlog(LOG_DEBUG, L"Ending thread of RunInterpreter()...\n");
+
 	return;
 }
