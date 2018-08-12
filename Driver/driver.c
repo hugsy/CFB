@@ -19,6 +19,7 @@
 #endif
 
 
+
 /*++
 
 --*/
@@ -57,6 +58,52 @@ PHOOKED_DRIVER GetLastHookedDriver()
 	PHOOKED_DRIVER lastDriver;
 	for (lastDriver = g_HookedDriversHead; lastDriver; lastDriver = lastDriver->Next) {}
 	return lastDriver;
+}
+
+
+/*++
+
+--*/
+PHOOKED_DRIVER GetPreviousHookedDriver(PHOOKED_DRIVER pDriver)
+{
+	if (!g_HookedDriversHead)
+		return NULL;
+
+	PHOOKED_DRIVER pCurDriver = g_HookedDriversHead->Next;
+	PHOOKED_DRIVER pPrevDriver = g_HookedDriversHead;
+	BOOLEAN Found = FALSE;
+
+	while (pCurDriver)
+	{
+		if (pCurDriver == pDriver)
+		{
+			Found = TRUE;
+			break;
+		}
+
+		pPrevDriver = pCurDriver;
+		pCurDriver = pCurDriver->Next;
+	}
+
+	//
+	// if not found
+	//
+	if (!Found)
+		return NULL;
+
+	return pPrevDriver;
+}
+
+
+/*++
+
+--*/
+PHOOKED_DRIVER GetNextHookedDriver(PHOOKED_DRIVER pDriver)
+{
+	if (!pDriver)
+		return NULL;
+
+	return pDriver->Next;
 }
 
 
@@ -147,14 +194,20 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	/* check if driver is already hooked */
+	//
+	// check if driver is already hooked
+	//
+
 	if( IsDriverHooked(pDriver) || GetHookedDriverByName(lpDriverName))
 	{
 		return STATUS_ALREADY_REGISTERED;
 	}
 
 
-	/* create the new hooked driver object */
+	//
+	// create the new hooked driver pool object, and chain it to the rest
+	//
+
 	PHOOKED_DRIVER NewDriver = ExAllocatePoolWithTag(PagedPool, sizeof(HOOKED_DRIVER), CFB_DEVICE_TAG);
 	if (!NewDriver)
 	{
@@ -163,8 +216,11 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
-	PVOID OldDeviceControlRoutine = InterlockedExchangePointer((PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
-		(PVOID)InterceptedDispatchRoutine);
+
+	PVOID OldDeviceControlRoutine = InterlockedExchangePointer(
+		(PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
+		(PVOID)InterceptedDispatchRoutine
+	);
 
 	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpDriverName);
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
@@ -174,17 +230,19 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	NewDriver->Next = NULL;
 
 
-	/* add it to the list */
+	//
+	// add it to the list
+	//
 	PHOOKED_DRIVER LastDriver = GetLastHookedDriver();
 	if (LastDriver == NULL)
 	{
-		/* 1st element */
-		g_HookedDriversHead = NewDriver;
+		g_HookedDriversHead = NewDriver; // 1st element
 	}
 	else
 	{
 		LastDriver->Next = NewDriver;
 	}
+
 
 	return status;
 }
@@ -197,60 +255,55 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
-	PHOOKED_DRIVER DriverToRemove, PrevDriverToRemove = NULL;
+	CfbDbgPrint(L"RemoveDriverByName('%s')\n", lpDriverName);
 
-	for (DriverToRemove = g_HookedDriversHead;
-		DriverToRemove && !wcscmp(DriverToRemove->Name, lpDriverName);
-		DriverToRemove = DriverToRemove->Next)
+	PHOOKED_DRIVER pDriverToRemove = GetHookedDriverByName(lpDriverName);
+
+	if (!pDriverToRemove)
 	{
-		PrevDriverToRemove = DriverToRemove;
-	}
-
-	if (DriverToRemove == NULL)
-	{
-		return STATUS_UNSUCCESSFUL;
-	}
-
-
-	DriverToRemove->Enabled = FALSE;
-
-
-	/* restore the former device control function pointer */
-	PDRIVER_OBJECT pDriver;
-	status = ObReferenceObjectByName(
-		/* IN PUNICODE_STRING */ &DriverToRemove->UnicodeName,
-		/* IN ULONG */ OBJ_CASE_INSENSITIVE,
-		/* IN PACCESS_STATE */ NULL,
-		/* IN ACCESS_MASK */ 0,
-		/* IN POBJECT_TYPE */ *IoDriverObjectType,
-		/* IN KPROCESSOR_MODE */KernelMode,
-		/* IN OUT PVOID */ NULL,
-		/* OUT PVOID* */ (PVOID*)&pDriver);
-
-	if ( !NT_SUCCESS(status) )
-	{
+		CfbDbgPrint(L"RemoveDriverByName(): no hooked driver found as '%s'\n", lpDriverName);
 		return STATUS_INVALID_PARAMETER;
 	}
 
-	/* reverse back the device control major function */
-	InterlockedExchangePointer((PVOID*)InterceptedDispatchRoutine,
-		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL]);
+	PHOOKED_DRIVER pPrevDriverToRemove = GetPreviousHookedDriver(pDriverToRemove);
 
-	/* fix the chain */
-	if (PrevDriverToRemove == NULL)
+
+	//
+	// restore the former device control function pointer
+	//
+	PDRIVER_OBJECT pDriver = pDriverToRemove->DriverObject;
+
+	CfbDbgPrint(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL\n", lpDriverName);
+
+	pDriverToRemove->Enabled = FALSE;
+
+	InterlockedExchangePointer(
+		(PVOID*)&pDriverToRemove->OldDeviceControlRoutine,
+		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL]
+	);
+
+
+	//
+	// fix the chain
+	//
+
+	CfbDbgPrint(L"RemoveDriverByName('%s'): unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
+
+	if (pPrevDriverToRemove == NULL)
 	{
-		/* trying to remove 1st element */
-		g_HookedDriversHead = DriverToRemove->Next;
+		g_HookedDriversHead = pDriverToRemove->Next;  // trying to remove 1st element
 	}
 	else
 	{
-		PrevDriverToRemove->Next = DriverToRemove->Next;
+		pPrevDriverToRemove->Next = pDriverToRemove->Next;
 	}
 
 
-	/* free the driver */
-	ObDereferenceObject(DriverToRemove->DriverObject);
-	ExFreePoolWithTag(DriverToRemove, CFB_DEVICE_TAG);
+	//
+	// free the driver pool and its reference
+	//
+	ObDereferenceObject(pDriverToRemove->DriverObject);
+	ExFreePoolWithTag(pDriverToRemove, CFB_DEVICE_TAG);
 
 	return status;
 }
@@ -289,6 +342,19 @@ NTSTATUS GetDriverInfo(DWORD dwIndex, PHOOKED_DRIVER_INFO pDrvInfo)
 
 /*++
 
+--*/
+NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	UNREFERENCED_PARAMETER(DeviceObject);
+	PAGED_CODE();
+	CfbDbgPrint(L"In IrpNotImplementedHandler()\n");
+	CompleteRequest(Irp, STATUS_SUCCESS, 0);
+	return STATUS_NOT_SUPPORTED;
+}
+
+
+/*++
+
 Driver entry point: create the driver object for CFB
 
 --*/
@@ -302,18 +368,18 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	CfbDbgPrint(L"     Loading driver %s\n", CFB_PROGRAM_NAME_SHORT);
 	CfbDbgPrint(L"-----------------------------------------\n");
 
-	DriverObject->DriverUnload = DriverUnloadRoutine;
-	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateCloseRoutine;
-	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
-	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
-
+	NTSTATUS status = STATUS_UNSUCCESSFUL;
+	PDEVICE_OBJECT DeviceObject;
 	UNICODE_STRING name, symLink;
+
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
 
-	NTSTATUS status = STATUS_SUCCESS;
 
-	PDEVICE_OBJECT DeviceObject;
+	//
+	// Create the device
+	//
+
 	status = IoCreateDevice(DriverObject,
 							0,
 							&name,
@@ -325,11 +391,34 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	if( !NT_SUCCESS(status) )
 	{
 		CfbDbgPrint(L"Error creating device object (0x%08X)\n", status);
+		if (DeviceObject)
+		{
+			IoDeleteDevice(DeviceObject);
+		}
+
 		return status;
 	}
 
+	//
+	// Populate the IRP handlers
+	//
+
+	for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
+	{
+		DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
+	}
+
+	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateCloseRoutine;
+	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
+	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
+
+	DriverObject->DriverUnload = DriverUnloadRoutine;
+
 	CfbDbgPrint(L"Device object '%s' created\n", CFB_DEVICE_NAME);
 
+	//
+	// Create the symlink
+	//
 	status = IoCreateSymbolicLink(&symLink, &name);
 	if (!NT_SUCCESS(status))
 	{
@@ -393,15 +482,19 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		return STATUS_NO_SUCH_DEVICE;
 	}
 
+
 	//
 	// TODO: collect IRP data here(only if Enabled)
 	//
 
-	CfbDbgPrint(L"Found OriginalDriver = '%s', calling %p\n", curDriver->Name, curDriver->OldDeviceControlRoutine);
+
 
 	//
 	// Call the original routine
 	//
+
+	CfbDbgPrint(L"Found OriginalDriver = '%s', calling %p\n", curDriver->Name, curDriver->OldDeviceControlRoutine);
+
 	PDRIVER_DISPATCH OldDispatchRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 	return OldDispatchRoutine(DeviceObject, Irp);
 }
@@ -412,11 +505,14 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 --*/
 VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 {
+	PAGED_CODE();
 
 	CfbDbgPrint(L"Unloading %s\n", CFB_PROGRAM_NAME_SHORT);
 
 
-	/* Unlink all HookedDrivers left */
+	//
+	// Unlink all HookedDrivers left
+	//
 
 	PHOOKED_DRIVER Driver;
 	DWORD dwNbRemoved = 0, dwNbLoaded = GetNumberOfHookedDrivers();
@@ -440,9 +536,11 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	g_HookedDriversHead = NULL;
 
 
-	/* Delete the device object */
+	//
+	// Delete the device object
+	//
 
-	UNICODE_STRING symLink;
+	UNICODE_STRING symLink = { 0, };
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
 
 	IoDeleteSymbolicLink(&symLink);
@@ -456,11 +554,14 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 
 /*++
 
+Generic function for IRP completion
+
 --*/
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 {
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = Information;
+
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
 	return status;
@@ -489,7 +590,8 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 	PAGED_CODE();
 
-	NTSTATUS status = STATUS_SUCCESS;
+	NTSTATUS Status = STATUS_SUCCESS;
+	ULONG_PTR Information = 0;
 
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -507,7 +609,7 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
 		{
 			CfbDbgPrint(L"Input buffer too large\n");
-			status = STATUS_BUFFER_OVERFLOW;
+			Status = STATUS_BUFFER_OVERFLOW;
 			break;
 		}
 
@@ -516,14 +618,14 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		if (IoctlCode == IOCTL_AddDriver)
 		{
 			CfbDbgPrint(L"Received 'IoctlAddDriver'\n");
-			status = AddDriverByName(lpDriverName);
-			CfbDbgPrint(L"AddDriverByName('%s') returned %#x\n", lpDriverName, status);
+			Status = AddDriverByName(lpDriverName);
+			CfbDbgPrint(L"AddDriverByName('%s') returned %#x\n", lpDriverName, Status);
 		}
 		else
 		{
 			CfbDbgPrint(L"Received 'IoctlRemoveDriver'\n");
-			status = RemoveDriverByName(lpDriverName);
-			CfbDbgPrint(L"RemoveDriverByName('%s') returned %#x\n", lpDriverName, status);
+			Status = RemoveDriverByName(lpDriverName);
+			CfbDbgPrint(L"RemoveDriverByName('%s') returned %#x\n", lpDriverName, Status);
 		}
 		break;
 
@@ -534,13 +636,13 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
 		if (OutputBufferLen < sizeof(DWORD))
 		{
-			status = STATUS_BUFFER_TOO_SMALL;
+			Status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
 
 		DWORD* dwRes = (DWORD*)Irp->AssociatedIrp.SystemBuffer;
 		*dwRes = GetNumberOfHookedDrivers();
-		status = STATUS_SUCCESS;
+		Status = STATUS_SUCCESS;
 		break;
 
 
@@ -552,31 +654,33 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		if (InputBufferLen > sizeof(DWORD))
 		{
 			CfbDbgPrint(L"Input buffer too large\n");
-			status = STATUS_BUFFER_OVERFLOW;
+			Status = STATUS_BUFFER_OVERFLOW;
 			break;
 		}
 
 		OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
 		if (OutputBufferLen < sizeof(HOOKED_DRIVER_INFO))
 		{
-			status = STATUS_BUFFER_TOO_SMALL;
+			Status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
 
 		DWORD* pdwDriverIndex = (DWORD*)Irp->AssociatedIrp.SystemBuffer;
 
-		status = GetDriverInfo(*pdwDriverIndex, (PHOOKED_DRIVER_INFO)Irp->AssociatedIrp.SystemBuffer);
+		Status = GetDriverInfo(*pdwDriverIndex, (PHOOKED_DRIVER_INFO)Irp->AssociatedIrp.SystemBuffer);
 
-		CfbDbgPrint(L"GetDriverInfo(%d) returned %#x\n", *pdwDriverIndex, status);
+		CfbDbgPrint(L"GetDriverInfo(%d) returned %#x\n", *pdwDriverIndex, Status);
 
 		break;
 
 
 	default:
 		CfbDbgPrint(L"Received invalid ioctl '%#X'\n", IoctlCode);
-		status = STATUS_INVALID_DEVICE_REQUEST;
+		Status = STATUS_INVALID_DEVICE_REQUEST;
 		break;
 	}
 
-	return status;
+	CompleteRequest(Irp, Status, Information);
+
+	return Status;
 }

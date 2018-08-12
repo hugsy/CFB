@@ -14,7 +14,7 @@
 
 #define CFB_USER_DEVICE_NAME		L"\\\\.\\IrpDumper"
 #define CFB_DEVICE_NAME				L"\\Device\\IrpDumper"
-#define CFB_DEVICE_LINK				L"\\??\\IrpDumper"
+#define CFB_DEVICE_LINK				L"\\DosDevices\\IrpDumper"
 
 #define CFB_DRIVER_NAME				L"IrpDumper.sys"
 #define CFB_SERVICE_NAME			L"IrpDumper"

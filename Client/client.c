@@ -270,7 +270,7 @@ VOID RunInterpreter()
 				}
 				else
 				{
-					xlog(LOG_SUCCESS, L"%d drivers hooked\n", dwNbDrivers);
+					xlog(LOG_SUCCESS, L"%d driver(s) hooked\n", dwNbDrivers);
 				}
 
 				break;

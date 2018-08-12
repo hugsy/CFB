@@ -12,7 +12,9 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
 
 
-/* https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/ */
+//
+// See https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/
+//
 extern POBJECT_TYPE* IoDriverObjectType;
 
 extern NTSYSAPI
