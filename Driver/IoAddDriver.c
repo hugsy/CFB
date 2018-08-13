@@ -115,8 +115,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		// Check IRP arguments
 		//
 
-		// lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
-		lpDriverName = (LPWSTR)Stack->Parameters.DeviceIoControl.Type3InputBuffer;
+		lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
 
 		if (!lpDriverName)
 		{
