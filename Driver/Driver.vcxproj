@@ -151,7 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
-    <ClInclude Include="driver.h" />
+    <ClInclude Include="Driver.h" />
     <ClInclude Include="HookedDrivers.h" />
     <ClInclude Include="IoAddDriver.h" />
     <ClInclude Include="IoctlCodes.h" />

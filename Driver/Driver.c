@@ -206,7 +206,7 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	IoDeleteSymbolicLink(&symLink);
 	IoDeleteDevice(DriverObject->DeviceObject);
 
-	CfbDbgPrint(L"Success unloading %s removed\n", CFB_PROGRAM_NAME_SHORT);
+	CfbDbgPrint(L"Success unloading %s\n", CFB_PROGRAM_NAME_SHORT);
 
 	return;
 }
