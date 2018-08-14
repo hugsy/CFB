@@ -33,7 +33,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	//
 	PDRIVER_OBJECT pDriver = pDriverToRemove->DriverObject;
 
-	CfbDbgPrint(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL\n", lpDriverName);
+	CfbDbgPrint(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
 
 	pDriverToRemove->Enabled = FALSE;
 
