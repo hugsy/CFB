@@ -151,12 +151,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common.h" />
-    <ClInclude Include="driver.h" />
+    <ClInclude Include="Driver.h" />
     <ClInclude Include="HookedDrivers.h" />
     <ClInclude Include="IoAddDriver.h" />
     <ClInclude Include="IoctlCodes.h" />
     <ClInclude Include="IoGetDriverInfo.h" />
     <ClInclude Include="IoRemoveDriver.h" />
+    <ClInclude Include="PipeComm.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
@@ -165,6 +166,7 @@
     <ClCompile Include="IoAddDriver.c" />
     <ClCompile Include="IoGetDriverInfo.c" />
     <ClCompile Include="IoRemoveDriver.c" />
+    <ClCompile Include="PipeComm.c" />
     <ClCompile Include="Utils.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

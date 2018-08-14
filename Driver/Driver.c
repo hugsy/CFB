@@ -4,6 +4,7 @@
 #include "IoctlCodes.h"
 #include "Utils.h"
 #include "HookedDrivers.h"
+#include "PipeComm.h"
 
 #include "IoAddDriver.h"
 #include "IoRemoveDriver.h"
@@ -139,6 +140,8 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	//
 	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
 	BOOLEAN Found = FALSE;
+	NTSTATUS Status;
+	PIO_STACK_LOCATION Stack;
 
 	while (curDriver)
 	{
@@ -158,13 +161,23 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Could be a bad pointer restoration. Anyway, we log and fail for now.
 		//
 		CfbDbgPrint(L"InterceptedDispatchRoutine() failed: couldn't get the current DriverObject\n");
-		return STATUS_NO_SUCH_DEVICE;
+		Status = STATUS_NO_SUCH_DEVICE;
+
+		CompleteRequest(Irp, Status, 0);
+		return Status;
 	}
 
 
 	//
-	// TODO: collect IRP data here(only if Enabled)
+	// Push the message to the named pipe
 	//
+	Stack = IoGetCurrentIrpStackLocation(Irp);
+	Status = HandleInterceptedIrp(Irp, Stack);
+
+	//if (!NT_SUCCESS(Status))
+	{
+		CfbDbgPrint(L"[-] HandleInterceptedIrp() returned %#X\n", Status);
+	}
 
 
 
