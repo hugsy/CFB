@@ -38,10 +38,9 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	pDriverToRemove->Enabled = FALSE;
 
 	InterlockedExchangePointer(
-		(PVOID*)&pDriverToRemove->OldDeviceControlRoutine,
-		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL]
+		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
+		(PVOID)pDriverToRemove->OldDeviceControlRoutine
 	);
-
 
 	//
 	// fix the chain
