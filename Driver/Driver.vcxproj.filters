@@ -45,6 +45,9 @@
     <ClInclude Include="IoGetDriverInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PipeComm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -66,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="IoGetDriverInfo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PipeComm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -10,5 +10,6 @@
 #pragma once
 
 VOID CfbDbgPrint(const WCHAR* lpFormatString, ...);
+VOID CfbHexDump(UCHAR *Buffer, ULONG Length);
 
 #endif /* __UTILS_H__ */

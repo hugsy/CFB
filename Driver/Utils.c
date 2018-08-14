@@ -17,3 +17,19 @@ VOID CfbDbgPrint(const WCHAR* lpFormatString, ...)
 	KdPrint(("[CFB] %S", buffer));
 #endif
 }
+
+
+/*++
+
+Simplified version of the one in common\.
+
+--*/
+VOID CfbHexDump(UCHAR *Buffer, ULONG Length)
+{
+	for (ULONG i = 0; i < Length; i++)
+	{
+		if(i%16==0)	KdPrint(("\n"));
+		KdPrint(("%02x ", Buffer[i]));
+	}
+	KdPrint(("\n"));
+}
