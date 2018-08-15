@@ -104,64 +104,50 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 --*/
 NTSTATUS PreparePipeMessage(IN ULONG Pid, IN ULONG Sid, IN ULONG IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
 {
-	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	PSNIFFED_DATA pMsgOutput;
-	PSNIFFED_DATA_HEADER pMsgHeader;
+	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
-	pMsgHeader = NULL;
-	pMsgOutput = NULL;
-
-	do
+	PSNIFFED_DATA pMsgOutput=(PSNIFFED_DATA)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA ), CFB_DEVICE_TAG );
+	if ( !pMsgOutput )
 	{
-		//
-		// create and fill the header structure
-		//
-		CfbDbgPrint(L"Filling header\n");
-		pMsgHeader = (PSNIFFED_DATA_HEADER)ExAllocatePoolWithTag(NonPagedPool, sizeof(SNIFFED_DATA_HEADER), CFB_DEVICE_TAG);
-		if (!pMsgHeader)
-		{
-			Status = STATUS_INSUFFICIENT_RESOURCES;
-			break;
-		}
-
-		pMsgHeader->Pid = Pid;
-		pMsgHeader->SessionId = Sid;
-		pMsgHeader->BufferLength = BodyLen;
-		pMsgHeader->IoctlCode = IoctlCode;
-
-
-		//
-		// fill up the message structure
-		//
-		CfbDbgPrint(L"Filling message\n");
-		pMsgOutput = (PSNIFFED_DATA)ExAllocatePoolWithTag(NonPagedPool, sizeof(SNIFFED_DATA), CFB_DEVICE_TAG);
-		if (!pMsgOutput)
-		{
-			Status = STATUS_INSUFFICIENT_RESOURCES;
-			break;
-		}
-
-		pMsgOutput->Header = pMsgHeader;
-		pMsgOutput->Body = pBody;
-
-	} while (0);
-
-	if (!NT_SUCCESS(Status))
-	{
-		if (pMsgHeader)
-			ExFreePoolWithTag(pMsgHeader, CFB_DEVICE_TAG);
-
-		if (pMsgOutput)
-			ExFreePoolWithTag(pMsgOutput, CFB_DEVICE_TAG);
-	}
-	else
-	{
-		*pMessage = pMsgOutput;
+		return Status;
 	}
 
+	PSNIFFED_DATA_HEADER pMsgHeader=(PSNIFFED_DATA_HEADER)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA_HEADER ), CFB_DEVICE_TAG );
+	if ( !pMsgHeader )
+	{
+		ExFreePoolWithTag( pMsgOutput, CFB_DEVICE_TAG );
+		return Status;
+	}
+
+
+	//
+	// create and fill the header structure
+	//
+	CfbDbgPrint(L"Filling header %p\n", pMsgHeader);
+
+	KeQuerySystemTime( &pMsgHeader->TimeStamp );
+	pMsgHeader->Pid = Pid;
+	pMsgHeader->SessionId = Sid;
+	pMsgHeader->Irql = KeGetCurrentIrql();
+	pMsgHeader->BufferLength = BodyLen;
+	pMsgHeader->IoctlCode = IoctlCode;
+
+
+	//
+	// fill up the message structure
+	//
+	CfbDbgPrint( L"Filling message %p\n", pMsgOutput);
+
+	pMsgOutput->Header = pMsgHeader;
+	pMsgOutput->Body = pBody;
+
+	Status = STATUS_SUCCESS;
+
+	*pMessage = pMsgOutput;
 
 	return Status;
 }
+
 
 /*++
 
@@ -212,7 +198,7 @@ NTSTATUS SendToPipe(IN PSNIFFED_DATA pData)
 
 		if (!NT_SUCCESS(Status))
 		{
-			CfbDbgPrint(L"Failed to open pipe '%s'\n: (status=%#X)", lpPipeName, Status);
+			CfbDbgPrintErr(L"ZwCreateFile('%s') failed: Status=0x%X\n", lpPipeName, Status);
 		}
 		else
 		{
@@ -234,7 +220,7 @@ NTSTATUS SendToPipe(IN PSNIFFED_DATA pData)
 
 			if (!NT_SUCCESS(Status))
 			{
-				CfbDbgPrint(L"Failed to write header to pipe '%s': (Status=%#X)\n", lpPipeName, Status);
+				CfbDbgPrint(L"ZwWriteFile('%s', header) failed: Status=0x%X\n", lpPipeName, Status);
 			}
 			else
 			{
@@ -256,7 +242,7 @@ NTSTATUS SendToPipe(IN PSNIFFED_DATA pData)
 
 				if (!NT_SUCCESS(Status))
 				{
-					CfbDbgPrint(L"Failed to write body to pipe '%s': Status=%#X\n", lpPipeName, Status);
+					CfbDbgPrint( L"ZwWriteFile('%s', body) failed: Status=0x%X\n", lpPipeName, Status );
 				}
 
 			}
@@ -268,7 +254,7 @@ NTSTATUS SendToPipe(IN PSNIFFED_DATA pData)
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		Status = GetExceptionCode();
-		CfbDbgPrint(L"[-] Exception Code: 0x%X\n", Status);
+		CfbDbgPrintErr(L"Exception Code: 0x%X\n", Status);
 	}
 	return Status;
 }
@@ -323,12 +309,6 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	CfbDbgPrint(L"Extracted IRP data (%p, %d B), dumping...\n", IrpExtractedData, IrpExtractedDataLength);
 	CfbHexDump(IrpExtractedData, IrpExtractedDataLength);
 
-	if (KeGetCurrentIrql() < APC_LEVEL)
-	{
-		CfbDbgPrint(L"[-] KeGetCurrentIrql() < APC_LEVEL\n");
-		// TODO: wait for raiseIrql(APC_LEVEL) because of IoGetRequestorProcessId & IoGetRequestorSessionId
-		return Status;
-	}
 
 	IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
 	Pid = IoGetRequestorProcessId(Irp);
@@ -338,12 +318,12 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 
 	if (!NT_SUCCESS(Status) || pMessage == NULL)
 	{
-		CfbDbgPrint(L"[-] PreparePipeMessage() failed, Status=%#X\n", Status);
+		CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
 		ExFreePoolWithTag(IrpExtractedData, CFB_DEVICE_TAG);
 		return Status;
 	}
 
-	CfbDbgPrint(
+	CfbDbgPrintOk(
 		L"Prepared new pipe message %p (Pid=%d, Ioctl=%#x, Size=%d)\n",
 		pMessage->Header->Pid,
 		pMessage->Header->IoctlCode,
@@ -354,10 +334,9 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 
 	if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrint(L"[-] SendToPipe() failed\n");
+		CfbDbgPrintErr(L"SendToPipe() failed\n");
 	}
 
-	ExFreePoolWithTag(IrpExtractedData, CFB_DEVICE_TAG);
 	FreePipeMessage(pMessage);
 
 	return Status;

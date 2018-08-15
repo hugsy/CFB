@@ -18,8 +18,11 @@ UINT32 GetNumberOfHookedDrivers()
 --*/
 PHOOKED_DRIVER GetLastHookedDriver()
 {
+	if (!g_HookedDriversHead )
+		return NULL;
+
 	PHOOKED_DRIVER lastDriver;
-	for (lastDriver = g_HookedDriversHead; lastDriver; lastDriver = lastDriver->Next) {}
+	for ( lastDriver=g_HookedDriversHead; lastDriver->Next; lastDriver=lastDriver->Next );
 	return lastDriver;
 }
 

@@ -176,7 +176,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 	//if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrint(L"[-] HandleInterceptedIrp() returned %#X\n", Status);
+		CfbDbgPrintErr(L"HandleInterceptedIrp() returned %#X\n", Status);
 	}
 
 

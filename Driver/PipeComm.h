@@ -11,7 +11,8 @@
 
 typedef struct __sniffed_data_header_t
 {
-	// todo add timestamp
+	LARGE_INTEGER TimeStamp;
+	KIRQL Irql;
 	ULONG IoctlCode;
 	ULONG Pid;
 	ULONG SessionId;
