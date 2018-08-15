@@ -36,15 +36,12 @@
 #define WIDE_FUNCTION WIDECHAR(__FUNCTION__) L"()"
 #define WIDE_FILE WIDECHAR(__FILE__)
 
-#define dbg wprintf
 #define GEN_FMT L"in '%s'(%s:%d) [%d] "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
 #define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, WIDE_FUNCTION, WIDE_FILE, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
 
 #else
 /* Release */
-
-VOID dbg(LPWSTR lpFmt, ...) {};
 
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 

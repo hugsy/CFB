@@ -75,9 +75,11 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 
 	if (dwWaitResult == WAIT_OBJECT_0)
 	{
+#ifdef _DEBUG
 		fwprintf(stderr, L"%02d-%02d-%02d %02d:%02d:%02d ",
 			lt.wYear, lt.wMonth, lt.wDay,
 			lt.wHour, lt.wMinute, lt.wSecond);
+#endif
 		vfwprintf(stderr, fmt, args);
 		fflush(stderr);
 	}
