@@ -4,6 +4,10 @@
 
 _TODO add pretty diagram here_
 
+## Show Me!
+
+_TODO add pretty screenshot here_
+
 
 ## Build
 
@@ -29,20 +33,22 @@ prompt (must have the `SeDebugPrivilege`). The client will open a handle to the 
 simply enter
 
 ```
-CFB >>> hook <MyDriver>
+CFB >>> hook <DriverPath>
 ```
 
-For instance
+For instance using the brilliant [HEVD](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver) driver
 ```
-CFB >>> hook \driver\tcpip
+CFB >>> hook \driver\hevd
 ```
 
-All `DeviceIoControl()` from user-land will be hooked through our driver, which will capture the IRP user data 
-(if any). This data will be passed back to the monitor in userland (i.e. the client) that'll inject a thread 
-into the process who emitted that interrupt request, and fuzz the data using a few known strategies like:
+The driver `IRP_MJ_DEVICE_CONTROL` will then be intercepted by the IrpDumper driver: every call to `DeviceIoControl()` 
+to this driver which will be captured and its the IRP user data (if any) pushed to an internal named pipe (by default `\Devices\PIPE\CFB`).
 
- - LSB/MSB {D,Q}WORD bitflip
- - {D,Q}WORD replacement with large known values (0xffffffff, 0x7fffffff, etc.)
+It is now possible to start the fuzzer GUI that offers several possibilities:
+
+  - Passive role, by simply monitoring all IRPs in the DataView
+  - Automatically fuzz a specific IOCTL code on a driver using some well-known fuzzing patterns (BitFlip, ByteFlip, Random, etc.)
+  - Hexview, save to disk, modify and/or manually replay a specific IOCTL.
 
 Once the fuzzing is done, the thread will terminate cleanly.
 
@@ -52,3 +58,5 @@ In any case, it is **highly** recommended to run this tool on a VM with KD attac
 of triage (`!exploitable` still lives!).
 
 Hope you'll enjoy the tool !!
+
+-- hugsy

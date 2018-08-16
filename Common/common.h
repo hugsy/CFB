@@ -24,7 +24,7 @@
 #define CFB_PIPE_INBUFLEN			4096  //TODO : adjust
 #define CFB_PIPE_OUTBUFLEN			4096  //TODO : adjust
 
-#define HOOKED_DRIVER_MAX_NAME_LEN	512
+#define HOOKED_DRIVER_MAX_NAME_LEN	0x104
 
 
 #ifdef _DEBUG
