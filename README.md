@@ -28,9 +28,14 @@ Clone the repository and in a VS prompt run
 
 ## Use
 
-Load the driver (using OSR DriverLoader for instance). Then run the client in a privilege command 
-prompt (must have the `SeDebugPrivilege`). The client will open a handle to the driver. To hook a driver
-simply enter
+Double-click on `CFB.exe` and check out all the commands available via the help menu `?`
+```
+CFB >>> ?
+```
+
+The `CFB` console tool will automatically deploy the driver `IrpDumper` and load the associated service. Therefore,
+it requires administrative privileges on the host it is being run on. The client will open a handle to the driver. 
+To hook a driver simply enter:
 
 ```
 CFB >>> hook <DriverPath>
