@@ -74,29 +74,33 @@ namespace Fuzzer
         /// </summary>
         public void EndClientThread()
         {
-            Debug.WriteLine("Ending NamedPipeDataReader thread...");
-            doLoop = false;
-            var success_wait = false;
 
-            for(int i=0; i<5; i++)
+            if (thread != null)
             {
-                Debug.WriteLine( String.Format("Attempt {0}", i) );
-                Int32 waitFor = 1*1000; // 1 second
-                if (!thread.Wait(waitFor))
+                Debug.WriteLine("Ending NamedPipeDataReader thread...");
+
+                doLoop = false;
+                var success_wait = false;
+
+                for (int i = 0; i < 5; i++)
                 {
-                    continue;
+                    Debug.WriteLine(String.Format("Attempt {0}", i));
+                    Int32 waitFor = 1*1000; // 1 second
+                    if (!thread.Wait(waitFor))
+                    {
+                        continue;
+                    }
+                    success_wait = true;
+                    break;
                 }
-                success_wait = true;
-                break;
-            }
 
-            if (!success_wait)
-            {
-                Debug.WriteLine("Failed to kill gracefully, forcing thread termination!");
+                if (!success_wait)
+                {
+                    Debug.WriteLine("Failed to kill gracefully, forcing thread termination!");
+                }
 
+                Debug.WriteLine("NamedPipeDataReader thread ended!");
             }
-            
-            Debug.WriteLine("NamedPipeDataReader thread ended!");
         }
 
 
