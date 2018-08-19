@@ -7,6 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
+
+
 
 namespace Fuzzer
 {
@@ -20,6 +23,11 @@ namespace Fuzzer
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             PipeReader = new NamedPipeDataReader();
             IrpDataView.DataSource = PipeReader.Messages;
+        }
+
+        public void Log(string message)
+        {
+            LogTextBox.AppendText(message + "\n");
         }
 
         private void StartListening()
@@ -41,34 +49,49 @@ namespace Fuzzer
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            Log("Initializing CFB...");
+
+            LoadDriverBtn.Enabled = true;
+            StartMonitorBtn.Enabled = false;
+            StopMonitorBtn.Enabled = false;
+            UnloadDriverBtn.Enabled = false;
+
+            //
+            //
+            //
+            Log("Checking privileges...");
+            if (!Core.HasPrivilege("SeDebugPrivilege"))
+            {
+                Log("SeDebugPrivilege missing, trying to add...");
+            }
+            else
+            {
+                Log("SeDebugPrivilege missing, trying to add...");
+            }
+
 
         }
 
-        private void groupBox1_Enter(object sender, EventArgs e)
-        {
 
-        }
-
-        private void button1_Click(object sender, EventArgs e)
+        private void StartMonitorBtn_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Starting monitoring");
             StartListening();
-            button1.Enabled = false;
-            button2.Enabled = true;          
+            StartMonitorBtn.Enabled = false;
+            StopMonitorBtn.Enabled = true;          
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void StopMonitorBtn_Click(object sender, EventArgs e)
         {
             MessageBox.Show("Stopping monitoring");
             StopListening();
-            button1.Enabled = true;
-            button2.Enabled = false;
+            StartMonitorBtn.Enabled = true;
+            StopMonitorBtn.Enabled = false;
         }
 
         private void IrpDataView_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
         }
-
     }
 }
