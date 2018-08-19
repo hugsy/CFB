@@ -93,7 +93,7 @@ BOOL GetHookedDriverInfo(DWORD dwDriverIndex, PHOOKED_DRIVER_INFO hDrvInfo)
 Send the IO request to add a driver to the hooked list.
 
 --*/
-BOOL HookDriver(LPWSTR lpDriverName)
+__declspec(dllexport) BOOL HookDriver(LPWSTR lpDriverName)
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverNameLen = (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
@@ -117,7 +117,7 @@ BOOL HookDriver(LPWSTR lpDriverName)
 Send the IO request to remove a driver to the hooked list.
 
 --*/
-BOOL UnhookDriver(LPWSTR lpDriverName )
+__declspec(dllexport) BOOL UnhookDriver(LPWSTR lpDriverName )
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverNameLen= (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;

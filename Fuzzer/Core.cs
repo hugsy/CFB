@@ -13,22 +13,37 @@ namespace Fuzzer
     class Core
     {
 
-        [DllImport("Core.dll", EntryPoint = "DllMain", CharSet = CharSet.Unicode)]
-        private static extern bool HasPrivilege(String PrivilegeName, IntPtr lpHasPriv);
+        // from main.c
+        [DllImport("Core.dll")]
+        public static extern bool CheckWindowsVersion();
 
-        public static bool HasPrivilege(String PrivName)
-        {
-            IntPtr lpHasPriv = new IntPtr(0);
+        [DllImport("Core.dll")]
+        public static extern bool RunInitializationChecks();
 
-            if (!HasPrivilege(PrivName, lpHasPriv))
-            {
-                throw new Exception("HasPrivilege() failed");
-            }
+        [DllImport("Core.dll")]
+        public static extern bool CreateCfbPipe();
 
-            return (int)lpHasPriv != 0;
-        }
+        [DllImport("Core.dll")]
+        public static extern bool LoadDriver();
 
-        
+        [DllImport("Core.dll")]
+        public static extern bool InitializeCfbContext();
 
+        [DllImport("Core.dll")]
+        public static extern void CleanupCfbContext();
+
+        [DllImport("Core.dll")]
+        public static extern bool CloseCfbPipe();
+
+        [DllImport("Core.dll")]
+        public static extern bool UnloadDriver();
+
+
+        // from device.c
+        [DllImport("Core.dll", CharSet = CharSet.Unicode)]
+        public static extern bool HookDriver(String DriverName);
+
+        [DllImport("Core.dll", CharSet = CharSet.Unicode)]
+        public static extern bool UnhookDriver(String DriverName);
     }
 }

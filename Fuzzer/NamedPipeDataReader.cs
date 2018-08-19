@@ -16,6 +16,7 @@ namespace Fuzzer
         public DataTable Messages;
         private Task thread;
         private bool doLoop;
+        private Form1 form;
 
         public bool IsThreadRunning
         {
@@ -43,9 +44,9 @@ namespace Fuzzer
         /// <summary>
         /// Constructor
         /// </summary>
-        public NamedPipeDataReader()
+        public NamedPipeDataReader(Form1 f)
         {
-            
+
             Messages = new DataTable("IrpData");
             Messages.Columns.Add("TimeStamp", typeof(DateTime));
             Messages.Columns.Add("Irql", typeof(byte));
@@ -54,6 +55,7 @@ namespace Fuzzer
             Messages.Columns.Add("SessionId", typeof(ulong));
             Messages.Columns.Add("Buffer", typeof(byte[]));
 
+            form = f;
             doLoop = false;
         }
 
@@ -63,28 +65,28 @@ namespace Fuzzer
         /// </summary>
         public void StartClientThread()
         {
-            Debug.WriteLine("Starting NamedPipeDataReader thread...");
+            form.Log("Starting NamedPipeDataReader thread...");
             thread = Task.Factory.StartNew(ReadFromPipe);
             doLoop = true;
-            Debug.WriteLine("NamedPipeDataReader thread started!");
+            form.Log("NamedPipeDataReader thread started!");
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public void EndClientThread()
         {
 
             if (thread != null)
             {
-                Debug.WriteLine("Ending NamedPipeDataReader thread...");
+                form.Log("Ending NamedPipeDataReader thread...");
 
                 doLoop = false;
                 var success_wait = false;
 
                 for (int i = 0; i < 5; i++)
                 {
-                    Debug.WriteLine(String.Format("Attempt {0}", i));
+                    form.Log(String.Format("Attempt {0}", i));
                     Int32 waitFor = 1*1000; // 1 second
                     if (!thread.Wait(waitFor))
                     {
@@ -96,10 +98,10 @@ namespace Fuzzer
 
                 if (!success_wait)
                 {
-                    Debug.WriteLine("Failed to kill gracefully, forcing thread termination!");
+                    form.Log("Failed to kill gracefully, forcing thread termination!");
                 }
 
-                Debug.WriteLine("NamedPipeDataReader thread ended!");
+                form.Log("NamedPipeDataReader thread ended!");
             }
         }
 
@@ -116,7 +118,7 @@ namespace Fuzzer
             //
 
             var HeaderSize = Marshal.SizeOf(typeof(NamedPipeMessageHeader));
-            var RawHeader = new byte[HeaderSize];   
+            var RawHeader = new byte[HeaderSize];
 
             pipe.Read(RawHeader, 0, HeaderSize);
 
@@ -124,7 +126,7 @@ namespace Fuzzer
             Marshal.StructureToPtr(RawHeader, ptr, false);
             NamedPipeMessageHeader Header = (NamedPipeMessageHeader)Marshal.PtrToStructure(ptr, typeof(NamedPipeMessageHeader));
 
-        
+
             //
             // Read body
             //
@@ -142,9 +144,9 @@ namespace Fuzzer
         {
             using (var CfbPipe = new NamedPipeClientStream(".", "CFB", PipeDirection.In, PipeOptions.Asynchronous) )
             {
-                Debug.WriteLine("Waiting to connect to pipe");
+                form.Log("Waiting to connect to pipe");
                 CfbPipe.Connect();
-                Debug.WriteLine("Connected to named pipe");
+                form.Log("Connected to named pipe");
 
                 try
                 {
@@ -154,10 +156,10 @@ namespace Fuzzer
                         var Header = Message.Item1;
                         var Body = Message.Item2;
 
-                        // Debug 
-                        var line = String.Format("Read Ioctl {0:x} from PID {1:d}, {2:d} bytes of data", 
+                        // Debug
+                        var line = String.Format("Read Ioctl {0:x} from PID {1:d}, {2:d} bytes of data",
                             Header.IoctlCode, Header.Pid, Header.BufferLength);
-                        Debug.WriteLine(line);
+                        form.Log(line);
                         // EndofDebug
 
                         Messages.Rows.Add(
@@ -168,9 +170,9 @@ namespace Fuzzer
                             Header.SessionId,
                             Body
                             );
-                        
+
                     }
-                    
+
                 }
                 catch (Exception Ex)
                 {
@@ -178,7 +180,7 @@ namespace Fuzzer
                 }
 
                 CfbPipe.Flush();
-                Debug.WriteLine("Closing handle");
+                form.Log("Closing handle");
             }
         }
 

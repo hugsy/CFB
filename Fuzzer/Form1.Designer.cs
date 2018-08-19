@@ -60,7 +60,7 @@
             this.groupBox1.Controls.Add(this.LogTextBox);
             this.groupBox1.Location = new System.Drawing.Point(39, 65);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(1252, 304);
+            this.groupBox1.Size = new System.Drawing.Size(1075, 304);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Output";
@@ -73,12 +73,12 @@
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ReadOnly = true;
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogTextBox.Size = new System.Drawing.Size(1198, 247);
+            this.LogTextBox.Size = new System.Drawing.Size(1020, 247);
             this.LogTextBox.TabIndex = 0;
             // 
             // StartMonitorBtn
             // 
-            this.StartMonitorBtn.Location = new System.Drawing.Point(1492, 134);
+            this.StartMonitorBtn.Location = new System.Drawing.Point(1168, 153);
             this.StartMonitorBtn.Name = "StartMonitorBtn";
             this.StartMonitorBtn.Size = new System.Drawing.Size(142, 55);
             this.StartMonitorBtn.TabIndex = 1;
@@ -89,7 +89,7 @@
             // StopMonitorBtn
             // 
             this.StopMonitorBtn.Enabled = false;
-            this.StopMonitorBtn.Location = new System.Drawing.Point(1492, 201);
+            this.StopMonitorBtn.Location = new System.Drawing.Point(1168, 220);
             this.StopMonitorBtn.Name = "StopMonitorBtn";
             this.StopMonitorBtn.Size = new System.Drawing.Size(142, 55);
             this.StopMonitorBtn.TabIndex = 2;
@@ -102,10 +102,11 @@
             this.groupBox2.Controls.Add(this.IrpDataView);
             this.groupBox2.Location = new System.Drawing.Point(39, 391);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1467, 542);
+            this.groupBox2.Size = new System.Drawing.Size(1271, 479);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "IRPs";
+            this.groupBox2.Enter += new System.EventHandler(this.groupBox2_Enter);
             // 
             // IrpDataView
             // 
@@ -116,7 +117,7 @@
             this.IrpDataView.Name = "IrpDataView";
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
             this.IrpDataView.RowTemplate.Height = 28;
-            this.IrpDataView.Size = new System.Drawing.Size(1461, 517);
+            this.IrpDataView.Size = new System.Drawing.Size(1265, 454);
             this.IrpDataView.TabIndex = 3;
             this.IrpDataView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.IrpDataView_CellContentClick);
             // 
@@ -149,7 +150,7 @@
             this.MenuBar.Location = new System.Drawing.Point(0, 0);
             this.MenuBar.Name = "MenuBar";
             this.MenuBar.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
-            this.MenuBar.Size = new System.Drawing.Size(1666, 35);
+            this.MenuBar.Size = new System.Drawing.Size(1371, 35);
             this.MenuBar.TabIndex = 6;
             this.MenuBar.Text = "CFB";
             // 
@@ -186,10 +187,10 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 928);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 897);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Padding = new System.Windows.Forms.Padding(2, 0, 21, 0);
-            this.statusStrip1.Size = new System.Drawing.Size(1666, 30);
+            this.statusStrip1.Size = new System.Drawing.Size(1371, 30);
             this.statusStrip1.TabIndex = 7;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -201,7 +202,7 @@
             // 
             // LoadDriverBtn
             // 
-            this.LoadDriverBtn.Location = new System.Drawing.Point(1492, 65);
+            this.LoadDriverBtn.Location = new System.Drawing.Point(1168, 84);
             this.LoadDriverBtn.Name = "LoadDriverBtn";
             this.LoadDriverBtn.Size = new System.Drawing.Size(142, 55);
             this.LoadDriverBtn.TabIndex = 8;
@@ -211,18 +212,19 @@
             // UnloadDriverBtn
             // 
             this.UnloadDriverBtn.Enabled = false;
-            this.UnloadDriverBtn.Location = new System.Drawing.Point(1492, 271);
+            this.UnloadDriverBtn.Location = new System.Drawing.Point(1168, 290);
             this.UnloadDriverBtn.Name = "UnloadDriverBtn";
             this.UnloadDriverBtn.Size = new System.Drawing.Size(142, 55);
             this.UnloadDriverBtn.TabIndex = 9;
             this.UnloadDriverBtn.Text = "UnloadDriver";
             this.UnloadDriverBtn.UseVisualStyleBackColor = true;
+            this.UnloadDriverBtn.Click += new System.EventHandler(this.UnloadDriverBtn_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1666, 958);
+            this.ClientSize = new System.Drawing.Size(1371, 927);
             this.Controls.Add(this.UnloadDriverBtn);
             this.Controls.Add(this.LoadDriverBtn);
             this.Controls.Add(this.statusStrip1);
