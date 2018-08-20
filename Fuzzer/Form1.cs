@@ -15,14 +15,14 @@ namespace Fuzzer
 {
     public partial class Form1 : Form
     {
-        private NamedPipeDataReader PipeReader;
+        private CfbDataReader CfbReader;
 
         public Form1()
         {
             InitializeComponent();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
-            PipeReader = new NamedPipeDataReader(this);
-            IrpDataView.DataSource = PipeReader.Messages;
+            CfbReader = new CfbDataReader(this);
+            IrpDataView.DataSource = CfbReader.Messages;
         }
 
         public void Log(string message)
@@ -32,17 +32,17 @@ namespace Fuzzer
 
         private void StartListening()
         {
-            PipeReader.StartClientThread();
+            CfbReader.StartClientThread();
         }
 
         private void StopListening()
         {
-            PipeReader.EndClientThread();
+            CfbReader.EndClientThread();
         }
 
         private void OnProcessExit(object sender, EventArgs e)
         {
-            if (PipeReader.IsThreadRunning)
+            if (CfbReader.IsThreadRunning)
                 StopListening();
 
             CleanupCfbContext();
@@ -64,7 +64,7 @@ namespace Fuzzer
             StopMonitorBtn.Enabled = false;
             UnloadDriverBtn.Enabled = false;
 
-
+            // TODO : exit cleanly when one of the checks fails
             Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
             {
@@ -77,14 +77,6 @@ namespace Fuzzer
             if (!Core.RunInitializationChecks())
             {
                 MessageBox.Show("RunInitializationChecks() failed");
-                Application.Exit();
-            }
-
-
-            Log("Creating named pipe...");
-            if (!Core.CreateCfbPipe())
-            {
-                MessageBox.Show("CreateCfbPipe() failed");
                 Application.Exit();
             }
 
@@ -111,15 +103,15 @@ namespace Fuzzer
             UnloadDriverBtn.Enabled = true;
 
             // test
-            Log("Hooking HEVD");
+            Log("Hooking hmpalert");
 
-            if (!Core.HookDriver("\\driver\\HEVD"))
+            if (!Core.HookDriver("\\driver\\hmpalert"))
             {
-                Log("HookDriver(HEVD) failed");
+                Log("HookDriver(hmpalert) failed");
             }
             else
             {
-                Log("HEVD is hooked.");
+                Log("hmpalert is hooked.");
             }
 
         }
@@ -133,28 +125,21 @@ namespace Fuzzer
         private void CleanupCfbContext()
         {
             // test
-            Log("Unhooking HEVD");
+            Log("Unhooking hmpalert");
 
-            if (!Core.UnhookDriver("\\driver\\HEVD"))
+            if (!Core.UnhookDriver("\\driver\\hmpalert"))
             {
-                Log("UnhookDriver(HEVD) failed");
+                Log("UnhookDriver(hmpalert) failed");
             }
             else
             {
-                Log("HEVD is unhooked.");
+                Log("hmpalert is unhooked.");
             }
 
 
             Log("Cleaning up context...");
 
             Core.CleanupCfbContext();
-
-
-            Log("Closing named pipe...");
-            if (!Core.CloseCfbPipe())
-            {
-                Log("CloseCfbPipe() failed");
-            }
 
 
             Log("Unloading service and driver...");
@@ -167,8 +152,8 @@ namespace Fuzzer
 
             LoadDriverBtn.Enabled = true;
             StartMonitorBtn.Enabled = false;
+            StopMonitorBtn.Enabled = false;
             UnloadDriverBtn.Enabled = false;
-            LoadDriverBtn.Enabled = false;
         }
 
 
@@ -188,16 +173,6 @@ namespace Fuzzer
             StopMonitorBtn.Enabled = false;
         }
 
-        private void IrpDataView_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
-        }
-
-        private void groupBox2_Enter(object sender, EventArgs e)
-        {
-
-        }
-
         private void UnloadDriverBtn_Click(object sender, EventArgs e)
         {
             CleanupCfbContext();
@@ -208,6 +183,11 @@ namespace Fuzzer
             StopListening();
             CleanupCfbContext();
             Application.Exit();
+        }
+
+        private void LoadDriverBtn_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

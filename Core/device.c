@@ -14,6 +14,8 @@ static HANDLE g_hDevice = INVALID_HANDLE_VALUE;
 
 /*++
 
+Get a R/W handle to the CFB device
+
 --*/
 BOOL OpenCfbDevice()
 {
@@ -31,11 +33,31 @@ BOOL OpenCfbDevice()
 
 /*++
 
+Close the handle to the CFB device
+
 --*/
 BOOL CloseCfbDevice()
 {
 	BOOL bRes = CloseHandle(g_hDevice);
 	g_hDevice = INVALID_HANDLE_VALUE;
+	return bRes;
+}
+
+
+/*++
+
+Read new IRP data from the device.
+
+--*/
+BOOL ReadCfbDevice(LPVOID Buffer, DWORD BufSize, LPDWORD lpNbBytesRead)
+{
+	BOOL bRes = ReadFile(
+		g_hDevice,
+		Buffer,
+		BufSize,
+		lpNbBytesRead,
+		NULL );
+		
 	return bRes;
 }
 

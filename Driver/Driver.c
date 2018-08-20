@@ -1,23 +1,63 @@
-#include "Common.h"
-
 #include "Driver.h"
-#include "IoctlCodes.h"
-#include "Utils.h"
-#include "HookedDrivers.h"
-#include "PipeComm.h"
-
-#include "IoAddDriver.h"
-#include "IoRemoveDriver.h"
-#include "IoGetDriverInfo.h"
 
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
+#pragma alloc_text (INIT, DriverReadRoutine)
 #pragma alloc_text (PAGE, DriverUnloadRoutine)
 #pragma alloc_text (PAGE, DriverCreateCloseRoutine)
 #pragma alloc_text (PAGE, DriverDeviceControlRoutine)
 #endif
 
+
+/*++
+
+--*/
+NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+{
+	UNREFERENCED_PARAMETER( DeviceObject );
+	UNREFERENCED_PARAMETER( Irp );
+
+	PAGED_CODE();
+
+	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
+	PVOID Buffer = Irp->AssociatedIrp.SystemBuffer;
+	ULONG BufferSize = Stack->Parameters.Read.Length;
+
+	CfbDbgPrintInfo( L"In DriverReadRoutine(), trying to read %ld bytes at %p\n", BufferSize, Buffer );
+
+	if ( BufferSize < sizeof( SNIFFED_DATA_HEADER ) )
+	{
+		CfbDbgPrintErr( L"Buffer is too small\n" );
+		return STATUS_BUFFER_TOO_SMALL;
+	}
+
+	PSNIFFED_DATA pData = PopFromQueue();
+	if ( !pData )
+	{
+		// empty buffer
+		CfbDbgPrintOk( L"No message\n" );
+		return STATUS_SUCCESS;
+	}
+
+	CfbDbgPrintInfo(L"Pop message %p\n", pData);
+
+	RtlCopyMemory( Buffer, pData->Header, sizeof( SNIFFED_DATA_HEADER ) );
+	RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pData->Header->BufferLength );
+
+	CfbDbgPrintInfo( L"Freeing message %p\n", pData );
+	FreePipeMessage( pData );
+
+	return STATUS_SUCCESS;
+	
+	// TODO
+	// 0. check bufsize >= sizeof(msghdr)
+	// 1. pop from queue
+	// 2. send header
+	// 3. check bufsize == sizeof(msghdr) + msghdr.buflen
+	// 4. send body
+	// 5. free message
+}
 
 
 /*++
@@ -27,7 +67,7 @@ NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 	PAGED_CODE();
-	CfbDbgPrint(L"In IrpNotImplementedHandler()\n");
+	CfbDbgPrintInfo(L"In IrpNotImplementedHandler()\n");
 	CompleteRequest(Irp, STATUS_SUCCESS, 0);
 	return STATUS_NOT_SUPPORTED;
 }
@@ -44,13 +84,18 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	PAGED_CODE();
 
-	CfbDbgPrint(L"-----------------------------------------\n");
-	CfbDbgPrint(L"     Loading driver %s\n", CFB_PROGRAM_NAME_SHORT);
-	CfbDbgPrint(L"-----------------------------------------\n");
+	CfbDbgPrintInfo(L"-----------------------------------------\n");
+	CfbDbgPrintInfo(L"     Loading driver IrpDumper\n");
+	CfbDbgPrintInfo(L"-----------------------------------------\n");
 
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	PDEVICE_OBJECT DeviceObject;
 	UNICODE_STRING name, symLink;
+
+	if ( !NT_SUCCESS( InitializeQueue() ) )
+	{
+		return STATUS_UNSUCCESSFUL;
+	}
 
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
@@ -70,7 +115,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	if( !NT_SUCCESS(status) )
 	{
-		CfbDbgPrint(L"Error creating device object (0x%08X)\n", status);
+		CfbDbgPrintErr(L"Error creating device object (0x%08X)\n", status);
 		if (DeviceObject)
 		{
 			IoDeleteDevice(DeviceObject);
@@ -94,7 +139,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	DriverObject->DriverUnload = DriverUnloadRoutine;
 
-	CfbDbgPrint(L"Device object '%s' created\n", CFB_DEVICE_NAME);
+	CfbDbgPrintOk(L"Device object '%s' created\n", CFB_DEVICE_NAME);
 
 	//
 	// Create the symlink
@@ -102,16 +147,18 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	status = IoCreateSymbolicLink(&symLink, &name);
 	if (!NT_SUCCESS(status))
 	{
-		CfbDbgPrint(L"Error creating symbolic link (0x%08X)\n", status);
+		CfbDbgPrintErr(L"Error creating symbolic link (0x%08X)\n", status);
 		IoDeleteDevice(DeviceObject);
 	}
 	else
 	{
-		CfbDbgPrint(L"Symlink '%s' to device object created\n", CFB_DEVICE_LINK);
+		CfbDbgPrintErr(L"Symlink '%s' to device object created\n", CFB_DEVICE_LINK);
 		g_HookedDriversHead = NULL;
 	}
 
-	CfbDbgPrint(L"Device '%s' successfully created\n", CFB_DEVICE_NAME);
+	CfbDbgPrintOk(L"Device '%s' successfully created\n", CFB_DEVICE_NAME);
+
+
 	return status;
 }
 
@@ -133,7 +180,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 	PAGED_CODE();
 
-	CfbDbgPrint(L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp);
+	CfbDbgPrintInfo(L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp);
 
 	//
 	// Find the original DEVICE_CONTROL function for the driver
@@ -160,7 +207,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// This is really bad: it means our interception routine got called by a non-hooked driver
 		// Could be a bad pointer restoration. Anyway, we log and fail for now.
 		//
-		CfbDbgPrint(L"InterceptedDispatchRoutine() failed: couldn't get the current DriverObject\n");
+		CfbDbgPrintErr(L"InterceptedDispatchRoutine() failed: couldn't get the current DriverObject\n");
 		Status = STATUS_NO_SUCH_DEVICE;
 
 		CompleteRequest(Irp, Status, 0);
@@ -174,14 +221,14 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	Stack = IoGetCurrentIrpStackLocation(Irp);
 	Status = HandleInterceptedIrp(Irp, Stack);
 
-	CfbDbgPrintErr(L"HandleInterceptedIrp() returned 0x%X\n", Status);
+	CfbDbgPrintOk(L"HandleInterceptedIrp() returned 0x%X\n", Status);
 
 
 	//
 	// Call the original routine
 	//
 
-	CfbDbgPrint(L"Found OriginalDriver = '%s', calling %p\n", curDriver->Name, curDriver->OldDeviceControlRoutine);
+	CfbDbgPrintInfo(L"Fallback to Ioctl routine at %p for '%s'\n", curDriver->OldDeviceControlRoutine, curDriver->Name);
 
 	PDRIVER_DISPATCH OldDispatchRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 	return OldDispatchRoutine(DeviceObject, Irp);
@@ -202,6 +249,8 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	// Unlink all HookedDrivers left
 	//
 
+	FlushQueue();
+
 	RemoveAllDrivers();
 
 
@@ -216,6 +265,8 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	IoDeleteDevice(DriverObject->DeviceObject);
 
 	CfbDbgPrint(L"Success unloading %s\n", CFB_PROGRAM_NAME_SHORT);
+
+	FreeQueue();
 
 	return;
 }
@@ -269,13 +320,13 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 	{
 
 	case IOCTL_AddDriver:
-		CfbDbgPrint(L"Received 'IoctlGetNumberOfDrivers'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlGetNumberOfDrivers'\n");
 		Status = HandleIoAddDriver(Irp, CurrentStack);
 		break;
 
 
 	case IOCTL_RemoveDriver:
-		CfbDbgPrint(L"Received 'IoctlRemoveDriver'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlRemoveDriver'\n");
 		Status = HandleIoRemoveDriver(Irp, CurrentStack);
 		break;
 
@@ -283,24 +334,24 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 
 	case IOCTL_GetNumberOfDrivers:
-		CfbDbgPrint(L"Received 'IoctlGetNumberOfDrivers'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlGetNumberOfDrivers'\n");
 		Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack);
 		break;
 
 
 	case IOCTL_GetDriverInfo:
-		CfbDbgPrint(L"Received 'IoctlGetDriverInfo'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlGetDriverInfo'\n");
 		Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack);
 		break;
 
 
 	default:
-		CfbDbgPrint(L"Received invalid ioctl '%#X'\n", IoctlCode);
+		CfbDbgPrintErr(L"Received invalid ioctl '%#X'\n", IoctlCode);
 		Status = STATUS_INVALID_DEVICE_REQUEST;
 		break;
 	}
 
-	CfbDbgPrint(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
+	CfbDbgPrintInfo(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
 
 	CompleteRequest(Irp, Status, Information);
 

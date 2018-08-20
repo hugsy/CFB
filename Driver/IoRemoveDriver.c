@@ -114,7 +114,7 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 	UNREFERENCED_PARAMETER(Irp);
 	PAGED_CODE();
 
-	CfbDbgPrint(L"Received 'IoctlAddDriver'\n");
+	CfbDbgPrintInfo(L"In 'HandleIoRemoveDriver'\n");
 
 	NTSTATUS Status = STATUS_SUCCESS;
 	LPWSTR lpDriverName;
@@ -139,7 +139,7 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
 		{
-			CfbDbgPrint(L"Input buffer too large\n");
+			CfbDbgPrintErr(L"Input buffer too large\n");
 			Status = STATUS_BUFFER_OVERFLOW;
 			break;
 		}
@@ -150,7 +150,7 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		//
 		Status = RemoveDriverByName(lpDriverName);
 
-		CfbDbgPrint(L"AddDriverByName('%s') returned %#x\n", lpDriverName, Status);
+		CfbDbgPrintOk(L"RemoveDriverByName('%s') returned %#x\n", lpDriverName, Status);
 
 	} while (0);
 

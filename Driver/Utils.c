@@ -23,16 +23,16 @@ VOID CfbDbgPrint(const WCHAR* lpFormatString, ...)
 
 /*++
 
-Simplified version of the one in common\.
+Simple hexdumping function.
 
 --*/
-VOID CfbHexDump(UCHAR *Buffer, ULONG Length)
+VOID CfbHexDump(PUCHAR Buffer, ULONG Length)
 {
 #ifdef _DEBUG
 	for (ULONG i = 0; i < Length; i++)
 	{
 		if(i%16==0)	KdPrint(("\n"));
-		KdPrint(("%02x ", Buffer[i]));
+		KdPrint(("%02x ", (UCHAR)Buffer[i]));
 	}
 	KdPrint(("\n"));
 #else

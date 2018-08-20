@@ -19,7 +19,7 @@
 #define CFB_DRIVER_NAME				L"IrpDumper.sys"
 #define CFB_SERVICE_NAME			L"IrpDumper"
 #define CFB_SERVICE_DESCRIPTION		L"CFB IRP Dumper Driver"
-#define CFB_PIPE_NAME				L"\\\\.\\pipe\\CFB"
+#define CFB_PIPE_NAME				L"\\??\\pipe\\CFB"
 #define CFB_PIPE_MAXCLIENTS			5
 #define CFB_PIPE_INBUFLEN			4096  //TODO : adjust
 #define CFB_PIPE_OUTBUFLEN			4096  //TODO : adjust
@@ -65,6 +65,29 @@ typedef struct __hooked_driver_info
 	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
 }
 HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
+
+
+typedef struct __sniffed_data_header_t
+{
+	LARGE_INTEGER TimeStamp;
+	UCHAR Irql;
+	ULONG IoctlCode;
+	ULONGLONG Pid;
+	ULONGLONG Tid;
+	ULONG SessionId;
+	ULONG BufferLength;
+	WCHAR DriverName[HOOKED_DRIVER_MAX_NAME_LEN];
+}
+SNIFFED_DATA_HEADER, *PSNIFFED_DATA_HEADER;
+
+typedef PVOID PSNIFFED_DATA_BODY;
+
+typedef struct __sniffed_data_t
+{
+	PSNIFFED_DATA_HEADER Header;
+	PSNIFFED_DATA_BODY Body;
+}
+SNIFFED_DATA, *PSNIFFED_DATA;
 
 
 __declspec(dllexport) void _xlog(log_level_t level, const wchar_t* format, ...);

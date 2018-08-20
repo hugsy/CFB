@@ -1,13 +1,21 @@
-#ifndef __DRIVER_H__
-#define __DRIVER_H__
-
 #pragma once
 
 #include "Common.h"
 #include "../Common/common.h"
 
+#include "IoctlCodes.h"
+#include "Utils.h"
+#include "HookedDrivers.h"
+#include "PipeComm.h"
+#include "Queue.h"
+
+#include "IoAddDriver.h"
+#include "IoRemoveDriver.h"
+#include "IoGetDriverInfo.h"
+
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
+NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject);
 NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
 NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
@@ -31,6 +39,3 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 );
 
 NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
-
-
-#endif /* __DRIVER_H__ */

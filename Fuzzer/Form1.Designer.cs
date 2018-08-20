@@ -58,29 +58,31 @@
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.LogTextBox);
-            this.groupBox1.Location = new System.Drawing.Point(39, 65);
+            this.groupBox1.Location = new System.Drawing.Point(26, 42);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(1075, 304);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Size = new System.Drawing.Size(717, 198);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Output";
             // 
             // LogTextBox
             // 
-            this.LogTextBox.Location = new System.Drawing.Point(27, 28);
-            this.LogTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.LogTextBox.Location = new System.Drawing.Point(18, 18);
             this.LogTextBox.Multiline = true;
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ReadOnly = true;
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogTextBox.Size = new System.Drawing.Size(1020, 247);
+            this.LogTextBox.Size = new System.Drawing.Size(681, 162);
             this.LogTextBox.TabIndex = 0;
             // 
             // StartMonitorBtn
             // 
-            this.StartMonitorBtn.Location = new System.Drawing.Point(1168, 153);
+            this.StartMonitorBtn.Location = new System.Drawing.Point(779, 99);
+            this.StartMonitorBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.StartMonitorBtn.Name = "StartMonitorBtn";
-            this.StartMonitorBtn.Size = new System.Drawing.Size(142, 55);
+            this.StartMonitorBtn.Size = new System.Drawing.Size(95, 36);
             this.StartMonitorBtn.TabIndex = 1;
             this.StartMonitorBtn.Text = "Start Monitoring";
             this.StartMonitorBtn.UseVisualStyleBackColor = true;
@@ -89,9 +91,10 @@
             // StopMonitorBtn
             // 
             this.StopMonitorBtn.Enabled = false;
-            this.StopMonitorBtn.Location = new System.Drawing.Point(1168, 220);
+            this.StopMonitorBtn.Location = new System.Drawing.Point(779, 143);
+            this.StopMonitorBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.StopMonitorBtn.Name = "StopMonitorBtn";
-            this.StopMonitorBtn.Size = new System.Drawing.Size(142, 55);
+            this.StopMonitorBtn.Size = new System.Drawing.Size(95, 36);
             this.StopMonitorBtn.TabIndex = 2;
             this.StopMonitorBtn.Text = "Stop Monitoring";
             this.StopMonitorBtn.UseVisualStyleBackColor = true;
@@ -100,26 +103,27 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.IrpDataView);
-            this.groupBox2.Location = new System.Drawing.Point(39, 391);
+            this.groupBox2.Location = new System.Drawing.Point(26, 254);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1271, 479);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox2.Size = new System.Drawing.Size(847, 311);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "IRPs";
-            this.groupBox2.Enter += new System.EventHandler(this.groupBox2_Enter);
             // 
             // IrpDataView
             // 
             this.IrpDataView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
             this.IrpDataView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.IrpDataView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.IrpDataView.Location = new System.Drawing.Point(3, 22);
+            this.IrpDataView.Location = new System.Drawing.Point(2, 15);
+            this.IrpDataView.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.IrpDataView.Name = "IrpDataView";
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
             this.IrpDataView.RowTemplate.Height = 28;
-            this.IrpDataView.Size = new System.Drawing.Size(1265, 454);
+            this.IrpDataView.Size = new System.Drawing.Size(843, 294);
             this.IrpDataView.TabIndex = 3;
-            this.IrpDataView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.IrpDataView_CellContentClick);
             // 
             // IrpTimeStamp
             // 
@@ -149,8 +153,7 @@
             this.helpToolStripMenuItem});
             this.MenuBar.Location = new System.Drawing.Point(0, 0);
             this.MenuBar.Name = "MenuBar";
-            this.MenuBar.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
-            this.MenuBar.Size = new System.Drawing.Size(1371, 35);
+            this.MenuBar.Size = new System.Drawing.Size(914, 24);
             this.MenuBar.TabIndex = 6;
             this.MenuBar.Text = "CFB";
             // 
@@ -159,13 +162,13 @@
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.quitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(97, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -174,13 +177,13 @@
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(61, 29);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(146, 30);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
             this.aboutToolStripMenuItem.Text = "About";
             // 
             // statusStrip1
@@ -188,34 +191,36 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 897);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 581);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Padding = new System.Windows.Forms.Padding(2, 0, 21, 0);
-            this.statusStrip1.Size = new System.Drawing.Size(1371, 30);
+            this.statusStrip1.Size = new System.Drawing.Size(914, 22);
             this.statusStrip1.TabIndex = 7;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // StatusBar
             // 
             this.StatusBar.Name = "StatusBar";
-            this.StatusBar.Size = new System.Drawing.Size(42, 25);
+            this.StatusBar.Size = new System.Drawing.Size(28, 17);
             this.StatusBar.Text = "CFB";
             // 
             // LoadDriverBtn
             // 
-            this.LoadDriverBtn.Location = new System.Drawing.Point(1168, 84);
+            this.LoadDriverBtn.Location = new System.Drawing.Point(779, 55);
+            this.LoadDriverBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.LoadDriverBtn.Name = "LoadDriverBtn";
-            this.LoadDriverBtn.Size = new System.Drawing.Size(142, 55);
+            this.LoadDriverBtn.Size = new System.Drawing.Size(95, 36);
             this.LoadDriverBtn.TabIndex = 8;
             this.LoadDriverBtn.Text = "Load driver";
             this.LoadDriverBtn.UseVisualStyleBackColor = true;
+            this.LoadDriverBtn.Click += new System.EventHandler(this.LoadDriverBtn_Click);
             // 
             // UnloadDriverBtn
             // 
             this.UnloadDriverBtn.Enabled = false;
-            this.UnloadDriverBtn.Location = new System.Drawing.Point(1168, 290);
+            this.UnloadDriverBtn.Location = new System.Drawing.Point(779, 188);
+            this.UnloadDriverBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.UnloadDriverBtn.Name = "UnloadDriverBtn";
-            this.UnloadDriverBtn.Size = new System.Drawing.Size(142, 55);
+            this.UnloadDriverBtn.Size = new System.Drawing.Size(95, 36);
             this.UnloadDriverBtn.TabIndex = 9;
             this.UnloadDriverBtn.Text = "UnloadDriver";
             this.UnloadDriverBtn.UseVisualStyleBackColor = true;
@@ -223,9 +228,9 @@
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1371, 927);
+            this.ClientSize = new System.Drawing.Size(914, 603);
             this.Controls.Add(this.UnloadDriverBtn);
             this.Controls.Add(this.LoadDriverBtn);
             this.Controls.Add(this.statusStrip1);
@@ -234,6 +239,7 @@
             this.Controls.Add(this.StartMonitorBtn);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MenuBar);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "Form1";
             this.Text = "Fuzzer Engine for CFB";
             this.Load += new System.EventHandler(this.Form1_Load);

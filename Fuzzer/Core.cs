@@ -21,9 +21,6 @@ namespace Fuzzer
         public static extern bool RunInitializationChecks();
 
         [DllImport("Core.dll")]
-        public static extern bool CreateCfbPipe();
-
-        [DllImport("Core.dll")]
         public static extern bool LoadDriver();
 
         [DllImport("Core.dll")]
@@ -33,10 +30,21 @@ namespace Fuzzer
         public static extern void CleanupCfbContext();
 
         [DllImport("Core.dll")]
-        public static extern bool CloseCfbPipe();
+        public static extern bool UnloadDriver();
 
         [DllImport("Core.dll")]
-        public static extern bool UnloadDriver();
+        private static extern bool CfbReadMessage(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
+        public static bool ReadMessage(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead)
+        {
+            return CfbReadMessage(Buffer, BufSize, lpNbBytesRead);
+        }
+
+        [DllImport("Core.dll")]
+        private static extern int CfbGetMessageHeaderSize();
+        public static int MessageHeaderSize()
+        {
+            return CfbGetMessageHeaderSize();
+        }
 
 
         // from device.c

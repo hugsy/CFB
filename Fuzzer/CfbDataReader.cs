@@ -11,7 +11,7 @@ using System.Data;
 
 namespace Fuzzer
 {
-    class NamedPipeDataReader
+    class CfbDataReader
     {
         public DataTable Messages;
         private Task thread;
@@ -35,7 +35,8 @@ namespace Fuzzer
             public ulong TimeStamp;
             public char Irql;
             public ulong IoctlCode;
-            public ulong Pid;
+            public ulong ProcessId;
+            public ulong ThreadId;
             public ulong SessionId;
             public ulong BufferLength;
         }
@@ -44,7 +45,7 @@ namespace Fuzzer
         /// <summary>
         /// Constructor
         /// </summary>
-        public NamedPipeDataReader(Form1 f)
+        public CfbDataReader(Form1 f)
         {
 
             Messages = new DataTable("IrpData");
@@ -52,6 +53,7 @@ namespace Fuzzer
             Messages.Columns.Add("Irql", typeof(byte));
             Messages.Columns.Add("IoctlCode", typeof(ulong));
             Messages.Columns.Add("ProcessId", typeof(ulong));
+            Messages.Columns.Add("ThreadId", typeof(ulong));
             Messages.Columns.Add("SessionId", typeof(ulong));
             Messages.Columns.Add("Buffer", typeof(byte[]));
 
@@ -110,30 +112,27 @@ namespace Fuzzer
         /// <summary>
         /// Read a message from the CFB named pipe. This function converts the raw bytes into a proper structure.
         /// </summary>
-        /// <param name="pipe">The handle to the named pipe</param>
         /// <returns>A tuple of NamedPipeMessageHeader for the header and an array of byte for the body.</returns>
-        public Tuple<NamedPipeMessageHeader, byte[]> ReadMessage(NamedPipeClientStream pipe)
+        public Tuple<NamedPipeMessageHeader, byte[]> ReadMessage()
         {
             //
             // Read the header first (fixed-length)
             //
-
-            var HeaderSize = Marshal.SizeOf(typeof(NamedPipeMessageHeader));
-            var RawHeader = new byte[HeaderSize];
-
-            pipe.Read(RawHeader, 0, HeaderSize);
-
-            IntPtr ptr = Marshal.AllocHGlobal(HeaderSize);
-            Marshal.StructureToPtr(RawHeader, ptr, false);
-            NamedPipeMessageHeader Header = (NamedPipeMessageHeader)Marshal.PtrToStructure(ptr, typeof(NamedPipeMessageHeader));
+            
+            int HeaderSize = Core.MessageHeaderSize();
+            IntPtr BufferHeader = Marshal.AllocHGlobal(HeaderSize);
+            var Result = Core.ReadMessage(BufferHeader, HeaderSize, new IntPtr(0));
+            //Marshal.StructureToPtr(RawHeader, ptr, false);
+            NamedPipeMessageHeader Header = (NamedPipeMessageHeader)Marshal.PtrToStructure(BufferHeader, typeof(NamedPipeMessageHeader));
 
 
             //
             // Read body
             //
-            var Body = new byte[Header.BufferLength];
-            pipe.Read(Body, 0, Convert.ToInt32(Header.BufferLength));
-
+            int BufLen = (int)Header.BufferLength;
+            IntPtr BufferBody = Marshal.AllocHGlobal(BufLen);
+            Result = Core.ReadMessage(BufferBody, BufLen, new IntPtr(0));
+            byte[] Body = (byte[])Marshal.PtrToStructure(BufferBody, typeof(byte[]));
             return Tuple.Create(Header, Body);
         }
 
@@ -143,49 +142,39 @@ namespace Fuzzer
         /// </summary>
         void ReadFromPipe()
         {
-            using (var CfbPipe = new NamedPipeClientStream(".", "CFB", PipeDirection.In, PipeOptions.Asynchronous) )
+
+            try
             {
-                form.Log("Waiting to connect to pipe");
-                CfbPipe.Connect();
-                form.Log("Connected to named pipe");
-
-                try
+                while (doLoop)
                 {
-                    while (doLoop)
-                    {
-                        var Message = ReadMessage(CfbPipe);
-                        var Header = Message.Item1;
-                        var Body = Message.Item2;
+                    var Message = ReadMessage();
+                    var Header = Message.Item1;
+                    var Body = Message.Item2;
 
-                        // Debug
-                        var line = String.Format("Read Ioctl {0:x} from PID {1:d}, {2:d} bytes of data",
-                            Header.IoctlCode, Header.Pid, Header.BufferLength);
-                        form.Log(line);
-                        // EndofDebug
+                    // Debug
+                    var line = String.Format("Read Ioctl {0:x} from PID {1:d} (TID={2:d}), {3:d} bytes of data",
+                            Header.IoctlCode, Header.ProcessId, Header.ThreadId, Header.BufferLength);
+                    form.Log(line);
+                    // EndofDebug
 
-                        Messages.Rows.Add(
-                            DateTime.FromFileTime((long)Header.TimeStamp),
-                            Header.Irql,
-                            Header.IoctlCode,
-                            Header.Pid,
-                            Header.SessionId,
-                            Body
-                            );
-
-                    }
+                    Messages.Rows.Add(
+                        DateTime.FromFileTime((long)Header.TimeStamp),
+                        Header.Irql,
+                        Header.IoctlCode,
+                        Header.ProcessId,
+                        Header.ThreadId,
+                        Header.SessionId,
+                        Body
+                        );
 
                 }
-                catch (Exception Ex)
-                {
-                    Debug.WriteLine(Ex.Message);
-                }
 
-                CfbPipe.Flush();
-                form.Log("Closing handle");
             }
+            catch (Exception Ex)
+            {
+                form.Log(Ex.Message);
+            }
+
         }
-
-
     }
-
 }

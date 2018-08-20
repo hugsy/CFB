@@ -102,20 +102,19 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 
 
 --*/
-NTSTATUS PreparePipeMessage(IN ULONG Pid, IN ULONG Sid, IN ULONG IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN ULONGLONG Pid, IN ULONGLONG Tid, IN ULONG Sid, IN ULONG IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
-	PSNIFFED_DATA pMsgOutput=(PSNIFFED_DATA)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA ), CFB_DEVICE_TAG );
-	if ( !pMsgOutput )
+	*pMessage = (PSNIFFED_DATA)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA ), CFB_DEVICE_TAG );
+	if ( !pMessage )
 	{
 		return Status;
 	}
 
-	PSNIFFED_DATA_HEADER pMsgHeader=(PSNIFFED_DATA_HEADER)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA_HEADER ), CFB_DEVICE_TAG );
+	PSNIFFED_DATA_HEADER pMsgHeader = (PSNIFFED_DATA_HEADER)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA_HEADER ), CFB_DEVICE_TAG );
 	if ( !pMsgHeader )
 	{
-		ExFreePoolWithTag( pMsgOutput, CFB_DEVICE_TAG );
 		return Status;
 	}
 
@@ -123,10 +122,11 @@ NTSTATUS PreparePipeMessage(IN ULONG Pid, IN ULONG Sid, IN ULONG IoctlCode, IN P
 	//
 	// create and fill the header structure
 	//
-	CfbDbgPrint(L"Filling header %p\n", pMsgHeader);
+	CfbDbgPrintInfo(L"Filling header %p\n", pMsgHeader);
 
 	KeQuerySystemTime( &pMsgHeader->TimeStamp );
 	pMsgHeader->Pid = Pid;
+	pMsgHeader->Tid = Tid;
 	pMsgHeader->SessionId = Sid;
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
@@ -136,126 +136,13 @@ NTSTATUS PreparePipeMessage(IN ULONG Pid, IN ULONG Sid, IN ULONG IoctlCode, IN P
 	//
 	// fill up the message structure
 	//
-	CfbDbgPrint( L"Filling message %p\n", pMsgOutput);
+	CfbDbgPrintInfo( L"Filling message %p\n", *pMessage);
 
-	pMsgOutput->Header = pMsgHeader;
-	pMsgOutput->Body = pBody;
+	(*pMessage)->Header = pMsgHeader;
+	(*pMessage)->Body = pBody;
 
 	Status = STATUS_SUCCESS;
 
-	*pMessage = pMsgOutput;
-
-	return Status;
-}
-
-
-/*++
-
-From http://www.osronline.com/showThread.cfm?link=71108
-
---*/
-NTSTATUS SendToPipe(IN PSNIFFED_DATA pData)
-{
-	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	HANDLE hPipe;
-	PWSTR lpPipeName = CFB_PIPE_NAME;
-	OBJECT_ATTRIBUTES ObjectAttributes = { 0, };
-	UNICODE_STRING UnicodePipeName;
-	IO_STATUS_BLOCK IoStatusBlock;
-
-	ULONG Flags = OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE | OBJ_FORCE_ACCESS_CHECK;
-	ULONG CreateOptions = /*FILE_NON_DIRECTORY_FILE |*/ FILE_SYNCHRONOUS_IO_NONALERT;
-
-	RtlInitUnicodeString(
-		&UnicodePipeName,
-		lpPipeName
-	);
-
-	InitializeObjectAttributes(
-		&ObjectAttributes,
-		&UnicodePipeName,
-		Flags,
-		NULL,
-		NULL
-	);
-
-	__try
-	{
-
-		Status = ZwCreateFile(
-			&hPipe,
-			SYNCHRONIZE | GENERIC_WRITE,
-			&ObjectAttributes,
-			&IoStatusBlock,
-			NULL,
-			FILE_ATTRIBUTE_NORMAL,
-			FILE_SHARE_WRITE,
-			FILE_OPEN_IF,
-			CreateOptions,
-			NULL,
-			0
-		);
-
-		if (!NT_SUCCESS(Status))
-		{
-			CfbDbgPrintErr(L"ZwCreateFile('%s') failed: Status=0x%X\n", lpPipeName, Status);
-		}
-		else
-		{
-
-			//
-			// Send the header
-			//
-			Status = ZwWriteFile(
-				hPipe,
-				NULL,
-				NULL,
-				NULL,
-				&IoStatusBlock,
-				pData->Header,
-				sizeof(SNIFFED_DATA_HEADER),
-				NULL,
-				NULL
-			);
-
-			if (!NT_SUCCESS(Status))
-			{
-				CfbDbgPrint(L"ZwWriteFile('%s', header) failed: Status=0x%X\n", lpPipeName, Status);
-			}
-			else
-			{
-
-				//
-				// Send the body
-				//
-				Status = ZwWriteFile(
-					hPipe,
-					NULL,
-					NULL,
-					NULL,
-					&IoStatusBlock,
-					pData->Body,
-					pData->Header->BufferLength,
-					NULL,
-					NULL
-				);
-
-				if (!NT_SUCCESS(Status))
-				{
-					CfbDbgPrint( L"ZwWriteFile('%s', body) failed: Status=0x%X\n", lpPipeName, Status );
-				}
-
-			}
-
-			ZwClose(hPipe);
-		}
-
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		Status = GetExceptionCode();
-		CfbDbgPrintErr(L"Exception Code: 0x%X\n", Status);
-	}
 	return Status;
 }
 
@@ -288,11 +175,12 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	ULONG Pid, Sid = 0;
+	ULONGLONG Pid, Tid = 0;
+	ULONG Sid = 0;
 	PVOID IrpExtractedData;
 	ULONG IrpExtractedDataLength = 0;
 	ULONG IoctlCode = 0;
-	PSNIFFED_DATA pMessage;
+	PSNIFFED_DATA pMessage = NULL;
 
 
 	Status = GetDataFromIrp(Irp, Stack, &IrpExtractedData);
@@ -307,14 +195,18 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	IrpExtractedDataLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
 
 	CfbDbgPrint(L"Extracted IRP data (%p, %d B), dumping...\n", IrpExtractedData, IrpExtractedDataLength);
-	CfbHexDump(IrpExtractedData, IrpExtractedDataLength);
-
+	if(IrpExtractedDataLength)
+	{
+		CfbHexDump( IrpExtractedData, IrpExtractedDataLength );
+	}
+	
 
 	IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-	Pid = IoGetRequestorProcessId(Irp);
+	Pid = (ULONGLONG)PsGetProcessId( PsGetCurrentProcess() );
+	Tid = (ULONGLONG)PsGetCurrentThreadId();
 	IoGetRequestorSessionId(Irp, &Sid);
 
-	Status = PreparePipeMessage(Pid, Sid, IoctlCode, IrpExtractedData, IrpExtractedDataLength, &pMessage);
+	Status = PreparePipeMessage(Pid, Tid, Sid, IoctlCode, IrpExtractedData, IrpExtractedDataLength, &pMessage);
 
 	if (!NT_SUCCESS(Status) || pMessage == NULL)
 	{
@@ -324,20 +216,22 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	}
 
 	CfbDbgPrintOk(
-		L"Prepared new pipe message %p (Pid=%d, Ioctl=%#x, Size=%d)\n",
+		L"Prepared new pipe message %p (Pid=%llu, Ioctl=0x%#llx, Size=%lu)\n",
+		pMessage,
 		pMessage->Header->Pid,
 		pMessage->Header->IoctlCode,
 		pMessage->Header->BufferLength
 	);
 
-	Status = SendToPipe(pMessage);
+	Status = PushToQueue( pMessage );
 
-	if (!NT_SUCCESS(Status))
+	if ( !NT_SUCCESS( Status ) )
 	{
-		CfbDbgPrintErr(L"SendToPipe() failed\n");
+		CfbDbgPrintErr( L"PushToQueue() failed, discarding message\n" );
+		FreePipeMessage( pMessage );
 	}
 
-	FreePipeMessage(pMessage);
+	CfbDbgPrintOk( L"Success! Message pushed to queue...\n" );
 
 	return Status;
 }
