@@ -99,6 +99,7 @@ namespace Fuzzer
                 if (!success_wait)
                 {
                     form.Log("Failed to kill gracefully, forcing thread termination!");
+                    // TODO
                 }
 
                 form.Log("NamedPipeDataReader thread ended!");

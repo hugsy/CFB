@@ -174,11 +174,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	Stack = IoGetCurrentIrpStackLocation(Irp);
 	Status = HandleInterceptedIrp(Irp, Stack);
 
-	//if (!NT_SUCCESS(Status))
-	{
-		CfbDbgPrintErr(L"HandleInterceptedIrp() returned %#X\n", Status);
-	}
-
+	CfbDbgPrintErr(L"HandleInterceptedIrp() returned 0x%X\n", Status);
 
 
 	//

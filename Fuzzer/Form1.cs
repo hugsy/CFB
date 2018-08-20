@@ -109,6 +109,19 @@ namespace Fuzzer
             LoadDriverBtn.Enabled = false;
             StartMonitorBtn.Enabled = true;
             UnloadDriverBtn.Enabled = true;
+
+            // test
+            Log("Hooking HEVD");
+
+            if (!Core.HookDriver("\\driver\\HEVD"))
+            {
+                Log("HookDriver(HEVD) failed");
+            }
+            else
+            {
+                Log("HEVD is hooked.");
+            }
+
         }
 
 
@@ -119,6 +132,19 @@ namespace Fuzzer
 
         private void CleanupCfbContext()
         {
+            // test
+            Log("Unhooking HEVD");
+
+            if (!Core.UnhookDriver("\\driver\\HEVD"))
+            {
+                Log("UnhookDriver(HEVD) failed");
+            }
+            else
+            {
+                Log("HEVD is unhooked.");
+            }
+
+
             Log("Cleaning up context...");
 
             Core.CleanupCfbContext();
@@ -175,6 +201,13 @@ namespace Fuzzer
         private void UnloadDriverBtn_Click(object sender, EventArgs e)
         {
             CleanupCfbContext();
+        }
+
+        private void quitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            StopListening();
+            CleanupCfbContext();
+            Application.Exit();
         }
     }
 }
