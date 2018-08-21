@@ -118,7 +118,7 @@ namespace Fuzzer
             //
             // Read the header first (fixed-length)
             //
-            
+
             int HeaderSize = Core.MessageHeaderSize();
             IntPtr BufferHeader = Marshal.AllocHGlobal(HeaderSize);
             var Result = Core.ReadMessage(BufferHeader, HeaderSize, new IntPtr(0));

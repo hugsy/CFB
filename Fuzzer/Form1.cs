@@ -51,7 +51,8 @@ namespace Fuzzer
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            InitCfbContext();
+            //InitCfbContext();
+            ShowIrpBtn.Enabled = true;
         }
 
 
@@ -103,15 +104,15 @@ namespace Fuzzer
             UnloadDriverBtn.Enabled = true;
 
             // test
-            Log("Hooking hmpalert");
+            Log("Hooking hevd");
 
-            if (!Core.HookDriver("\\driver\\hmpalert"))
+            if (!Core.HookDriver("\\driver\\hevd"))
             {
-                Log("HookDriver(hmpalert) failed");
+                Log("HookDriver(hevd) failed");
             }
             else
             {
-                Log("hmpalert is hooked.");
+                Log("hevd is hooked.");
             }
 
         }
@@ -125,15 +126,15 @@ namespace Fuzzer
         private void CleanupCfbContext()
         {
             // test
-            Log("Unhooking hmpalert");
+            Log("Unhooking hevd");
 
-            if (!Core.UnhookDriver("\\driver\\hmpalert"))
+            if (!Core.UnhookDriver("\\driver\\hevd"))
             {
-                Log("UnhookDriver(hmpalert) failed");
+                Log("UnhookDriver(hevd) failed");
             }
             else
             {
-                Log("hmpalert is unhooked.");
+                Log("hevd is unhooked.");
             }
 
 
@@ -188,6 +189,15 @@ namespace Fuzzer
         private void LoadDriverBtn_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void ShowIrpBtn_Click(object sender, EventArgs e)
+        {
+            var Data = new byte[0x100];
+            for (var i = 0; i < Data.Length; i++) Data[i] = 0x42;
+
+            HexViewerForm f = new HexViewerForm(1337, Data);
+            f.Show();
         }
     }
 }
