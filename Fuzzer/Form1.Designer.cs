@@ -41,6 +41,7 @@
             this.Action = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.MenuBar = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hookUnhookDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -50,7 +51,7 @@
             this.UnloadDriverBtn = new System.Windows.Forms.Button();
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
-            this.hookUnhookDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hookUnhookDriverFromNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -61,29 +62,33 @@
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.LogTextBox);
-            this.groupBox1.Location = new System.Drawing.Point(39, 65);
+            this.groupBox1.Location = new System.Drawing.Point(26, 42);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(1076, 305);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox1.Size = new System.Drawing.Size(717, 198);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Output";
             // 
             // LogTextBox
             // 
-            this.LogTextBox.Location = new System.Drawing.Point(27, 28);
-            this.LogTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.LogTextBox.BackColor = System.Drawing.SystemColors.Control;
+            this.LogTextBox.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.LogTextBox.Location = new System.Drawing.Point(18, 18);
             this.LogTextBox.Multiline = true;
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ReadOnly = true;
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogTextBox.Size = new System.Drawing.Size(1020, 247);
+            this.LogTextBox.Size = new System.Drawing.Size(681, 162);
             this.LogTextBox.TabIndex = 0;
             // 
             // StartMonitorBtn
             // 
-            this.StartMonitorBtn.Location = new System.Drawing.Point(1168, 152);
+            this.StartMonitorBtn.Location = new System.Drawing.Point(779, 99);
+            this.StartMonitorBtn.Margin = new System.Windows.Forms.Padding(2);
             this.StartMonitorBtn.Name = "StartMonitorBtn";
-            this.StartMonitorBtn.Size = new System.Drawing.Size(142, 55);
+            this.StartMonitorBtn.Size = new System.Drawing.Size(95, 36);
             this.StartMonitorBtn.TabIndex = 1;
             this.StartMonitorBtn.Text = "Start Monitoring";
             this.StartMonitorBtn.UseVisualStyleBackColor = true;
@@ -92,9 +97,10 @@
             // StopMonitorBtn
             // 
             this.StopMonitorBtn.Enabled = false;
-            this.StopMonitorBtn.Location = new System.Drawing.Point(1168, 220);
+            this.StopMonitorBtn.Location = new System.Drawing.Point(779, 143);
+            this.StopMonitorBtn.Margin = new System.Windows.Forms.Padding(2);
             this.StopMonitorBtn.Name = "StopMonitorBtn";
-            this.StopMonitorBtn.Size = new System.Drawing.Size(142, 55);
+            this.StopMonitorBtn.Size = new System.Drawing.Size(95, 36);
             this.StopMonitorBtn.TabIndex = 2;
             this.StopMonitorBtn.Text = "Stop Monitoring";
             this.StopMonitorBtn.UseVisualStyleBackColor = true;
@@ -103,23 +109,27 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.IrpDataView);
-            this.groupBox2.Location = new System.Drawing.Point(39, 410);
+            this.groupBox2.Location = new System.Drawing.Point(26, 266);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(1102, 459);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
+            this.groupBox2.Size = new System.Drawing.Size(735, 298);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "IRPs";
             // 
             // IrpDataView
             // 
-            this.IrpDataView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.AllCells;
+            this.IrpDataView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.IrpDataView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.IrpDataView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.IrpDataView.Location = new System.Drawing.Point(3, 22);
+            this.IrpDataView.Location = new System.Drawing.Point(2, 15);
+            this.IrpDataView.Margin = new System.Windows.Forms.Padding(2);
             this.IrpDataView.Name = "IrpDataView";
+            this.IrpDataView.ReadOnly = true;
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
             this.IrpDataView.RowTemplate.Height = 28;
-            this.IrpDataView.Size = new System.Drawing.Size(1096, 434);
+            this.IrpDataView.Size = new System.Drawing.Size(731, 281);
             this.IrpDataView.TabIndex = 3;
             // 
             // IrpTimeStamp
@@ -150,8 +160,7 @@
             this.helpToolStripMenuItem});
             this.MenuBar.Location = new System.Drawing.Point(0, 0);
             this.MenuBar.Name = "MenuBar";
-            this.MenuBar.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
-            this.MenuBar.Size = new System.Drawing.Size(1371, 35);
+            this.MenuBar.Size = new System.Drawing.Size(914, 24);
             this.MenuBar.TabIndex = 6;
             this.MenuBar.Text = "CFB";
             // 
@@ -159,15 +168,23 @@
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.hookUnhookDriverToolStripMenuItem,
+            this.hookUnhookDriverFromNameToolStripMenuItem,
             this.quitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             this.fileToolStripMenuItem.Text = "File";
+            // 
+            // hookUnhookDriverToolStripMenuItem
+            // 
+            this.hookUnhookDriverToolStripMenuItem.Name = "hookUnhookDriverToolStripMenuItem";
+            this.hookUnhookDriverToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
+            this.hookUnhookDriverToolStripMenuItem.Text = "Hook / Unhook Driver from List";
+            this.hookUnhookDriverToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverToolStripMenuItem_Click);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(272, 30);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -176,13 +193,13 @@
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(61, 29);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(146, 30);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
             this.aboutToolStripMenuItem.Text = "About";
             // 
             // statusStrip1
@@ -190,24 +207,24 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 898);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 581);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Padding = new System.Windows.Forms.Padding(2, 0, 21, 0);
-            this.statusStrip1.Size = new System.Drawing.Size(1371, 30);
+            this.statusStrip1.Size = new System.Drawing.Size(914, 22);
             this.statusStrip1.TabIndex = 7;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // StatusBar
             // 
             this.StatusBar.Name = "StatusBar";
-            this.StatusBar.Size = new System.Drawing.Size(42, 25);
+            this.StatusBar.Size = new System.Drawing.Size(28, 17);
             this.StatusBar.Text = "CFB";
             // 
             // LoadDriverBtn
             // 
-            this.LoadDriverBtn.Location = new System.Drawing.Point(1168, 85);
+            this.LoadDriverBtn.Location = new System.Drawing.Point(779, 55);
+            this.LoadDriverBtn.Margin = new System.Windows.Forms.Padding(2);
             this.LoadDriverBtn.Name = "LoadDriverBtn";
-            this.LoadDriverBtn.Size = new System.Drawing.Size(142, 55);
+            this.LoadDriverBtn.Size = new System.Drawing.Size(95, 36);
             this.LoadDriverBtn.TabIndex = 8;
             this.LoadDriverBtn.Text = "Load driver";
             this.LoadDriverBtn.UseVisualStyleBackColor = true;
@@ -216,9 +233,10 @@
             // UnloadDriverBtn
             // 
             this.UnloadDriverBtn.Enabled = false;
-            this.UnloadDriverBtn.Location = new System.Drawing.Point(1168, 289);
+            this.UnloadDriverBtn.Location = new System.Drawing.Point(779, 188);
+            this.UnloadDriverBtn.Margin = new System.Windows.Forms.Padding(2);
             this.UnloadDriverBtn.Name = "UnloadDriverBtn";
-            this.UnloadDriverBtn.Size = new System.Drawing.Size(142, 55);
+            this.UnloadDriverBtn.Size = new System.Drawing.Size(95, 36);
             this.UnloadDriverBtn.TabIndex = 9;
             this.UnloadDriverBtn.Text = "Unload Driver";
             this.UnloadDriverBtn.UseVisualStyleBackColor = true;
@@ -227,9 +245,10 @@
             // ShowIrpBtn
             // 
             this.ShowIrpBtn.Enabled = false;
-            this.ShowIrpBtn.Location = new System.Drawing.Point(1168, 432);
+            this.ShowIrpBtn.Location = new System.Drawing.Point(779, 281);
+            this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2);
             this.ShowIrpBtn.Name = "ShowIrpBtn";
-            this.ShowIrpBtn.Size = new System.Drawing.Size(142, 55);
+            this.ShowIrpBtn.Size = new System.Drawing.Size(95, 36);
             this.ShowIrpBtn.TabIndex = 10;
             this.ShowIrpBtn.Text = "Show IRP";
             this.ShowIrpBtn.UseVisualStyleBackColor = true;
@@ -238,25 +257,27 @@
             // DumpToFileBtn
             // 
             this.DumpToFileBtn.Enabled = false;
-            this.DumpToFileBtn.Location = new System.Drawing.Point(1168, 505);
+            this.DumpToFileBtn.Location = new System.Drawing.Point(779, 328);
+            this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2);
             this.DumpToFileBtn.Name = "DumpToFileBtn";
-            this.DumpToFileBtn.Size = new System.Drawing.Size(142, 55);
+            this.DumpToFileBtn.Size = new System.Drawing.Size(95, 36);
             this.DumpToFileBtn.TabIndex = 11;
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
             // 
-            // hookUnhookDriverToolStripMenuItem
+            // hookUnhookDriverFromNameToolStripMenuItem
             // 
-            this.hookUnhookDriverToolStripMenuItem.Name = "hookUnhookDriverToolStripMenuItem";
-            this.hookUnhookDriverToolStripMenuItem.Size = new System.Drawing.Size(272, 30);
-            this.hookUnhookDriverToolStripMenuItem.Text = "Hook / Unhook Driver";
-            this.hookUnhookDriverToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverToolStripMenuItem_Click);
+            this.hookUnhookDriverFromNameToolStripMenuItem.Name = "hookUnhookDriverFromNameToolStripMenuItem";
+            this.hookUnhookDriverFromNameToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
+            this.hookUnhookDriverFromNameToolStripMenuItem.Text = "Hook / Unhook Driver from Name";
+            this.hookUnhookDriverFromNameToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverFromNameToolStripMenuItem_Click);
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1371, 928);
+            this.AutoSize = true;
+            this.ClientSize = new System.Drawing.Size(914, 603);
             this.Controls.Add(this.DumpToFileBtn);
             this.Controls.Add(this.ShowIrpBtn);
             this.Controls.Add(this.UnloadDriverBtn);
@@ -267,6 +288,7 @@
             this.Controls.Add(this.StartMonitorBtn);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MenuBar);
+            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "Form1";
             this.Text = "Fuzzer Engine for CFB";
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -308,6 +330,7 @@
         private System.Windows.Forms.Button ShowIrpBtn;
         private System.Windows.Forms.Button DumpToFileBtn;
         private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverFromNameToolStripMenuItem;
     }
 }
 

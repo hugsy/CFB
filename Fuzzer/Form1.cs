@@ -53,7 +53,7 @@ namespace Fuzzer
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            //InitCfbContext();
+            InitCfbContext();
             ShowIrpBtn.Enabled = true;
         }
 
@@ -67,7 +67,6 @@ namespace Fuzzer
             StopMonitorBtn.Enabled = false;
             UnloadDriverBtn.Enabled = false;
 
-            // TODO : exit cleanly when one of the checks fails
             Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
             {
@@ -144,6 +143,7 @@ namespace Fuzzer
             StopMonitorBtn.Enabled = true;
         }
 
+
         private void StopMonitorBtn_Click(object sender, EventArgs e)
         {
             Log("Stopping monitoring");
@@ -152,10 +152,12 @@ namespace Fuzzer
             StopMonitorBtn.Enabled = false;
         }
 
+
         private void UnloadDriverBtn_Click(object sender, EventArgs e)
         {
             CleanupCfbContext();
         }
+
 
         private void quitToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -173,6 +175,7 @@ namespace Fuzzer
             InitCfbContext();
         }
 
+
         private void ShowIrpBtn_Click(object sender, EventArgs e)
         {
             // todo: collect Data from selected IRP text
@@ -183,12 +186,29 @@ namespace Fuzzer
             hvForm.Show();
         }
 
+
         private void hookUnhookDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Form fc = Application.OpenForms["LoadDriverForm"];
 
-            if (fc == null)
-                fc.Show();
+            if (fc == null || fc.Visible == false)
+            {
+                ldForm.Show();
+            }
+        }
+
+        private void hookUnhookDriverFromNameToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\tcpip'):", "Manual driver selection");
+            Log(String.Format("Trying to hook '{0:s}'", DriverName));
+
+            if (!Core.HookDriver(DriverName))
+            {
+                Log(String.Format("Failed to hook '{0:s}'", DriverName));
+                return;
+            }
+
+            Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
         }
     }
 }

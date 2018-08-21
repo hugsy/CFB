@@ -80,24 +80,28 @@ NTSTATUS RemoveAllDrivers()
 
 	while ((Driver = GetLastHookedDriver()) != NULL)
 	{
-		NTSTATUS status = RemoveDriverByName(Driver->Name);
+
+		WCHAR OldDriverName[HOOKED_DRIVER_MAX_NAME_LEN]={ 0, };
+		wcscpy( OldDriverName, Driver->Name );
+
+		NTSTATUS status = RemoveDriverByName( Driver->Name );
 		if (!NT_SUCCESS(status))
 		{
-			CfbDbgPrint(L"Failed to remove driver %s\n", Driver->Name);
+			CfbDbgPrint(L"Failed to remove driver %s\n", OldDriverName );
 			Status = status;
 		}
 		else
 		{
-			CfbDbgPrint(L"Driver %s removed\n", Driver->Name);
+			CfbDbgPrint(L"Driver %s removed\n", OldDriverName );
 			dwNbRemoved++;
 		}
 	}
 
-	CfbDbgPrint(L"Removed %lu/%lu drivers\n", dwNbRemoved, dwNbLoaded);
+	CfbDbgPrintOk(L"Removed %lu/%lu drivers\n", dwNbRemoved, dwNbLoaded);
 
 	if (dwNbRemoved != dwNbLoaded)
 	{
-		CfbDbgPrint(L"[!] Not all hooked structures were successfully deallocated, the system might be unstable. It is recommended to reboot.\n");
+		CfbDbgPrintErr(L"[!] Not all hooked structures were successfully deallocated, the system might be unstable. It is recommended to reboot.\n");
 	}
 
 	g_HookedDriversHead = NULL;
