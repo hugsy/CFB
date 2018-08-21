@@ -55,7 +55,7 @@ namespace Fuzzer
             Messages.Columns.Add("ProcessId", typeof(ulong));
             Messages.Columns.Add("ThreadId", typeof(ulong));
             Messages.Columns.Add("SessionId", typeof(ulong));
-            Messages.Columns.Add("Buffer", typeof(byte[]));
+            Messages.Columns.Add("Buffer", typeof(string));
 
             form = f;
             doLoop = false;

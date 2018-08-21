@@ -16,6 +16,7 @@ namespace Fuzzer
     public partial class Form1 : Form
     {
         private CfbDataReader CfbReader;
+        private LoadDriverForm ldForm;
 
         public Form1()
         {
@@ -23,6 +24,7 @@ namespace Fuzzer
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
             IrpDataView.DataSource = CfbReader.Messages;
+            ldForm = new LoadDriverForm();
         }
 
         public void Log(string message)
@@ -94,6 +96,7 @@ namespace Fuzzer
             if (!Core.InitializeCfbContext())
             {
                 MessageBox.Show("InitializeCfbContext() failed");
+                Core.UnloadDriver();
                 Application.Exit();
             }
 
@@ -102,19 +105,6 @@ namespace Fuzzer
             LoadDriverBtn.Enabled = false;
             StartMonitorBtn.Enabled = true;
             UnloadDriverBtn.Enabled = true;
-
-            // test
-            Log("Hooking hevd");
-
-            if (!Core.HookDriver("\\driver\\hevd"))
-            {
-                Log("HookDriver(hevd) failed");
-            }
-            else
-            {
-                Log("hevd is hooked.");
-            }
-
         }
 
 
@@ -123,21 +113,9 @@ namespace Fuzzer
             CleanupCfbContext();
         }
 
+
         private void CleanupCfbContext()
         {
-            // test
-            Log("Unhooking hevd");
-
-            if (!Core.UnhookDriver("\\driver\\hevd"))
-            {
-                Log("UnhookDriver(hevd) failed");
-            }
-            else
-            {
-                Log("hevd is unhooked.");
-            }
-
-
             Log("Cleaning up context...");
 
             Core.CleanupCfbContext();
@@ -181,23 +159,36 @@ namespace Fuzzer
 
         private void quitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            StopListening();
-            CleanupCfbContext();
-            Application.Exit();
+            DialogResult dialogResult = MessageBox.Show("Are you sure you want to leave CFB ?", "Leave CFB", MessageBoxButtons.YesNo);
+            if (dialogResult == DialogResult.Yes)
+            {
+                StopListening();
+                CleanupCfbContext();
+                Application.Exit();
+            }
         }
 
         private void LoadDriverBtn_Click(object sender, EventArgs e)
         {
-
+            InitCfbContext();
         }
 
         private void ShowIrpBtn_Click(object sender, EventArgs e)
         {
+            // todo: collect Data from selected IRP text
             var Data = new byte[0x100];
             for (var i = 0; i < Data.Length; i++) Data[i] = 0x42;
 
-            HexViewerForm f = new HexViewerForm(1337, Data);
-            f.Show();
+            HexViewerForm hvForm = new HexViewerForm(42, 1337, Data);
+            hvForm.Show();
+        }
+
+        private void hookUnhookDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form fc = Application.OpenForms["LoadDriverForm"];
+
+            if (fc == null)
+                fc.Show();
         }
     }
 }

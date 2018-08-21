@@ -50,6 +50,7 @@
             this.UnloadDriverBtn = new System.Windows.Forms.Button();
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
+            this.hookUnhookDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -157,6 +158,7 @@
             // fileToolStripMenuItem
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.hookUnhookDriverToolStripMenuItem,
             this.quitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
@@ -165,7 +167,7 @@
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(130, 30);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(272, 30);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -243,6 +245,13 @@
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
             // 
+            // hookUnhookDriverToolStripMenuItem
+            // 
+            this.hookUnhookDriverToolStripMenuItem.Name = "hookUnhookDriverToolStripMenuItem";
+            this.hookUnhookDriverToolStripMenuItem.Size = new System.Drawing.Size(272, 30);
+            this.hookUnhookDriverToolStripMenuItem.Text = "Hook / Unhook Driver";
+            this.hookUnhookDriverToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverToolStripMenuItem_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -298,6 +307,7 @@
         private System.Windows.Forms.Button UnloadDriverBtn;
         private System.Windows.Forms.Button ShowIrpBtn;
         private System.Windows.Forms.Button DumpToFileBtn;
+        private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverToolStripMenuItem;
     }
 }
 
