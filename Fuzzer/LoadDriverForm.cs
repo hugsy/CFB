@@ -10,53 +10,46 @@ namespace Fuzzer
     {
         private DataTable DriverDataTable;
         private List<String> LoadedDrivers;
+        private Form1 RootForm;
 
-        public LoadDriverForm()
+        public LoadDriverForm(Form1 f)
         {
             InitializeComponent();
-            try
-            {
-                this.FormBorderStyle = FormBorderStyle.FixedSingle;
+
+            RootForm = f;
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
 
             LoadedDrivers = new List<String>();
             DriverDataTable = new DataTable();
-            DriverDataTable.Columns.Add("ImageBase", typeof(String));
-            DriverDataTable.Columns.Add("Name", typeof(String));
+            DriverDataTable.Columns.Add("DevicePath", typeof(String));
 
             LoadedDriverGridView.DataSource = DriverDataTable;
             var CheckboxColumn = new DataGridViewCheckBoxColumn();
             CheckboxColumn.HeaderText = "Hooked ?";
             LoadedDriverGridView.Columns.Insert(0, CheckboxColumn);
-            LoadedDriverGridView.Columns["ImageBase"].ReadOnly = true;
-            LoadedDriverGridView.Columns["Name"].ReadOnly = true;
+            LoadedDriverGridView.Columns["DevicePath"].ReadOnly = true;
 
-
-                RefreshDriverList();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message + "\n" + ex.StackTrace);
-            }
+            RefreshDriverList();
         }
 
         private void RefreshDriverList()
         {
             DriverDataTable.Clear();
-            
-            foreach (Tuple<UIntPtr, string> kvp in EnumerateDrivers.GetAllDrivers() )
+
+            foreach (var DevicePath in EnumerateDrivers.GetAllDriverObjects())
             {
                 DataRow row = DriverDataTable.NewRow();
-                row["ImageBase"] = kvp.Item1.ToUInt64().ToString("x");
-                row["Name"] = kvp.Item2;
+                row["DevicePath"] = "\\driver\\" + DevicePath;
+
                 DriverDataTable.Rows.Add(row);
             }
 
 
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {
-                row.Cells[0].Value = LoadedDrivers.Contains(row.Cells[2].Value.ToString());
+                row.Cells[0].Value = LoadedDrivers.Contains(row.Cells[1].Value.ToString());
             }
 
         }
@@ -64,6 +57,52 @@ namespace Fuzzer
 
         private void CloseBtn_Click(object sender, EventArgs e)
         {
+            //
+            // check for changes
+            //
+            List<DataGridViewRow> rows_with_checked_column = new List<DataGridViewRow>();
+            foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
+            {
+                var IsTicked = Convert.ToBoolean(row.Cells[0].Value);
+                var DriverName = row.Cells[1].Value.ToString();
+
+                //
+                // unhook driver ?
+                //
+                if (!IsTicked && LoadedDrivers.Contains(DriverName))
+                {
+                    RootForm.Log(String.Format("Unhooking '{0:s}'", DriverName));
+                    if (!Core.UnhookDriver(DriverName))
+                    {
+                        RootForm.Log(String.Format("Failed to unhook '{0:s}'", DriverName));
+                    }
+                    else
+                    {
+                        LoadedDrivers.Remove(DriverName);
+                        RootForm.Log(String.Format("Driver object '{0:s}' is now unhooked.", DriverName));
+                    }
+                    continue;
+                }
+
+                //
+                // hook driver ?
+                //
+                if (IsTicked && !LoadedDrivers.Contains(DriverName))
+                {
+                    RootForm.Log(String.Format("Hooking '{0:s}'", DriverName));
+                    if (!Core.HookDriver(DriverName))
+                    {
+                        RootForm.Log(String.Format("Failed to hook '{0:s}'", DriverName));
+                    }
+                    else
+                    {
+                        LoadedDrivers.Add(DriverName);
+                        RootForm.Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
+                    }
+                    continue;
+                }
+            }
+
             this.Hide();
         }
 

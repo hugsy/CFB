@@ -16,7 +16,7 @@ namespace Fuzzer
         public DataTable Messages;
         private Task thread;
         private bool doLoop;
-        private Form1 form;
+        private Form1 RootForm;
 
         public bool IsThreadRunning
         {
@@ -34,10 +34,10 @@ namespace Fuzzer
         {
             public ulong TimeStamp;
             public char Irql;
-            public ulong IoctlCode;
-            public ulong ProcessId;
-            public ulong ThreadId;
-            public ulong SessionId;
+            public UInt32 IoctlCode;
+            public UInt32 ProcessId;
+            public UInt32 ThreadId;
+            //public UInt32 SessionId;
             public ulong BufferLength;
         }
 
@@ -50,14 +50,14 @@ namespace Fuzzer
 
             Messages = new DataTable("IrpData");
             Messages.Columns.Add("TimeStamp", typeof(DateTime));
-            Messages.Columns.Add("Irql", typeof(byte));
+            Messages.Columns.Add("Irql", typeof(char));
             Messages.Columns.Add("IoctlCode", typeof(ulong));
             Messages.Columns.Add("ProcessId", typeof(ulong));
             Messages.Columns.Add("ThreadId", typeof(ulong));
-            Messages.Columns.Add("SessionId", typeof(ulong));
+            //Messages.Columns.Add("SessionId", typeof(ulong));
             Messages.Columns.Add("Buffer", typeof(string));
 
-            form = f;
+            RootForm = f;
             doLoop = false;
         }
 
@@ -67,10 +67,10 @@ namespace Fuzzer
         /// </summary>
         public void StartClientThread()
         {
-            form.Log("Starting NamedPipeDataReader thread...");
+            RootForm.Log("Starting NamedPipeDataReader thread...");
             thread = Task.Factory.StartNew(ReadFromPipe);
             doLoop = true;
-            form.Log("NamedPipeDataReader thread started!");
+            RootForm.Log("NamedPipeDataReader thread started!");
         }
 
         /// <summary>
@@ -81,14 +81,14 @@ namespace Fuzzer
 
             if (thread != null)
             {
-                form.Log("Ending NamedPipeDataReader thread...");
+                RootForm.Log("Ending NamedPipeDataReader thread...");
 
                 doLoop = false;
                 var success_wait = false;
 
                 for (int i = 0; i < 5; i++)
                 {
-                    form.Log(String.Format("Attempt {0}", i));
+                    RootForm.Log(String.Format("Attempt {0}", i));
                     Int32 waitFor = 1*1000; // 1 second
                     if (!thread.Wait(waitFor))
                     {
@@ -100,11 +100,11 @@ namespace Fuzzer
 
                 if (!success_wait)
                 {
-                    form.Log("Failed to kill gracefully, forcing thread termination!");
+                    RootForm.Log("Failed to kill gracefully, forcing thread termination!");
                     // TODO
                 }
 
-                form.Log("NamedPipeDataReader thread ended!");
+                RootForm.Log("NamedPipeDataReader thread ended!");
             }
         }
 
@@ -113,27 +113,39 @@ namespace Fuzzer
         /// Read a message from the CFB named pipe. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>A tuple of NamedPipeMessageHeader for the header and an array of byte for the body.</returns>
-        public Tuple<NamedPipeMessageHeader, byte[]> ReadMessage()
+        public unsafe Tuple<NamedPipeMessageHeader, byte[]> ReadMessage()
         {
             //
             // Read the header first (fixed-length)
             //
-
             int HeaderSize = Core.MessageHeaderSize();
-            IntPtr BufferHeader = Marshal.AllocHGlobal(HeaderSize);
-            var Result = Core.ReadMessage(BufferHeader, HeaderSize, new IntPtr(0));
-            //Marshal.StructureToPtr(RawHeader, ptr, false);
-            NamedPipeMessageHeader Header = (NamedPipeMessageHeader)Marshal.PtrToStructure(BufferHeader, typeof(NamedPipeMessageHeader));
-
+            var BufferHeader = Marshal.AllocCoTaskMem(HeaderSize);
+            RootForm.Log(String.Format("ReadMessage() - MessageHeaderSize= {0:d}", HeaderSize));
+            var Header  = (NamedPipeMessageHeader*)BufferHeader.ToPointer();
+            var Result = Core.ReadMessage(Header, HeaderSize);
+            NamedPipeMessageHeader Header2 = (NamedPipeMessageHeader)Marshal.PtrToStructure(BufferHeader, typeof(NamedPipeMessageHeader));
+            RootForm.Log(String.Format("ReadMessage() - Header= {0:d}", HeaderSize));
+            var line = String.Format("Read Ioctl {0:x} from PID {1:lu} (TID={2:lu}), {3:lu} bytes of data",
+                            Header2.IoctlCode, Header2.ProcessId, Header2.ThreadId, Header2.BufferLength);
+            RootForm.Log(line);
 
             //
             // Read body
             //
-            int BufLen = (int)Header.BufferLength;
-            IntPtr BufferBody = Marshal.AllocHGlobal(BufLen);
-            Result = Core.ReadMessage(BufferBody, BufLen, new IntPtr(0));
-            byte[] Body = (byte[])Marshal.PtrToStructure(BufferBody, typeof(byte[]));
-            return Tuple.Create(Header, Body);
+            var BufLen = (int)(*Header).BufferLength;
+            var BufferBody = Marshal.AllocCoTaskMem(BufLen);
+            var Body  = (byte*)BufferHeader.ToPointer();
+            Result = Core.ReadMessage(Body, BufLen);
+            byte[] body2 = new byte[BufLen];
+            for (int i = 0; i < BufLen; i++)
+                body2[i] = Body[i];
+ 
+            Tuple<NamedPipeMessageHeader, byte[]> t = Tuple.Create(Header2, body2);
+
+            Marshal.FreeCoTaskMem(BufferHeader);
+            Marshal.FreeCoTaskMem(BufferBody);
+
+            return t;
         }
 
 
@@ -151,19 +163,12 @@ namespace Fuzzer
                     var Header = Message.Item1;
                     var Body = Message.Item2;
 
-                    // Debug
-                    var line = String.Format("Read Ioctl {0:x} from PID {1:d} (TID={2:d}), {3:d} bytes of data",
-                            Header.IoctlCode, Header.ProcessId, Header.ThreadId, Header.BufferLength);
-                    form.Log(line);
-                    // EndofDebug
-
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)Header.TimeStamp),
                         Header.Irql,
                         Header.IoctlCode,
                         Header.ProcessId,
                         Header.ThreadId,
-                        Header.SessionId,
                         Body
                         );
 
@@ -172,7 +177,7 @@ namespace Fuzzer
             }
             catch (Exception Ex)
             {
-                form.Log(Ex.Message);
+                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
             }
 
         }

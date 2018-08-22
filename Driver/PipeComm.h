@@ -13,7 +13,7 @@ extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
 
 
 NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buffer);
-NTSTATUS PreparePipeMessage( IN ULONGLONG Pid, IN ULONGLONG Tid, IN ULONG Sid, IN ULONG IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA* pMessage );
+NTSTATUS PreparePipeMessage( IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage );
 NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack);
 
 VOID FreePipeMessage( IN PSNIFFED_DATA pMessage );

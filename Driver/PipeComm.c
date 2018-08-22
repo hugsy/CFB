@@ -102,7 +102,7 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 
 
 --*/
-NTSTATUS PreparePipeMessage(IN ULONGLONG Pid, IN ULONGLONG Tid, IN ULONG Sid, IN ULONG IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -127,7 +127,7 @@ NTSTATUS PreparePipeMessage(IN ULONGLONG Pid, IN ULONGLONG Tid, IN ULONG Sid, IN
 	KeQuerySystemTime( &pMsgHeader->TimeStamp );
 	pMsgHeader->Pid = Pid;
 	pMsgHeader->Tid = Tid;
-	pMsgHeader->SessionId = Sid;
+	//pMsgHeader->SessionId = Sid;
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
 	pMsgHeader->IoctlCode = IoctlCode;
@@ -175,11 +175,11 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	ULONGLONG Pid, Tid = 0;
-	ULONG Sid = 0;
+	UINT32 Pid, Tid = 0;
+	//ULONG Sid = 0;
 	PVOID IrpExtractedData;
 	ULONG IrpExtractedDataLength = 0;
-	ULONG IoctlCode = 0;
+	UINT32 IoctlCode = 0;
 	PSNIFFED_DATA pMessage = NULL;
 
 
@@ -202,11 +202,11 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	
 
 	IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-	Pid = (ULONGLONG)PsGetProcessId( PsGetCurrentProcess() );
-	Tid = (ULONGLONG)PsGetCurrentThreadId();
-	IoGetRequestorSessionId(Irp, &Sid);
+	Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
+	Tid =(UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
+	//IoGetRequestorSessionId(Irp, &Sid);
 
-	Status = PreparePipeMessage(Pid, Tid, Sid, IoctlCode, IrpExtractedData, IrpExtractedDataLength, &pMessage);
+	Status = PreparePipeMessage(Pid, Tid, IoctlCode, IrpExtractedData, IrpExtractedDataLength, &pMessage);
 
 	if (!NT_SUCCESS(Status) || pMessage == NULL)
 	{

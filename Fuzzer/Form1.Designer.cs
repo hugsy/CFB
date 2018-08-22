@@ -66,7 +66,7 @@
             this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox1.Name = "groupBox1";
             this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox1.Size = new System.Drawing.Size(717, 198);
+            this.groupBox1.Size = new System.Drawing.Size(681, 105);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Output";
@@ -75,17 +75,17 @@
             // 
             this.LogTextBox.BackColor = System.Drawing.SystemColors.Control;
             this.LogTextBox.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.LogTextBox.Location = new System.Drawing.Point(18, 18);
+            this.LogTextBox.Location = new System.Drawing.Point(5, 18);
             this.LogTextBox.Multiline = true;
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ReadOnly = true;
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogTextBox.Size = new System.Drawing.Size(681, 162);
+            this.LogTextBox.Size = new System.Drawing.Size(667, 75);
             this.LogTextBox.TabIndex = 0;
             // 
             // StartMonitorBtn
             // 
-            this.StartMonitorBtn.Location = new System.Drawing.Point(779, 99);
+            this.StartMonitorBtn.Location = new System.Drawing.Point(810, 57);
             this.StartMonitorBtn.Margin = new System.Windows.Forms.Padding(2);
             this.StartMonitorBtn.Name = "StartMonitorBtn";
             this.StartMonitorBtn.Size = new System.Drawing.Size(95, 36);
@@ -97,7 +97,7 @@
             // StopMonitorBtn
             // 
             this.StopMonitorBtn.Enabled = false;
-            this.StopMonitorBtn.Location = new System.Drawing.Point(779, 143);
+            this.StopMonitorBtn.Location = new System.Drawing.Point(810, 97);
             this.StopMonitorBtn.Margin = new System.Windows.Forms.Padding(2);
             this.StopMonitorBtn.Name = "StopMonitorBtn";
             this.StopMonitorBtn.Size = new System.Drawing.Size(95, 36);
@@ -109,11 +109,11 @@
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.IrpDataView);
-            this.groupBox2.Location = new System.Drawing.Point(26, 266);
+            this.groupBox2.Location = new System.Drawing.Point(26, 163);
             this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox2.Name = "groupBox2";
             this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox2.Size = new System.Drawing.Size(735, 298);
+            this.groupBox2.Size = new System.Drawing.Size(749, 394);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "IRPs";
@@ -129,7 +129,7 @@
             this.IrpDataView.ReadOnly = true;
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
             this.IrpDataView.RowTemplate.Height = 28;
-            this.IrpDataView.Size = new System.Drawing.Size(731, 281);
+            this.IrpDataView.Size = new System.Drawing.Size(745, 377);
             this.IrpDataView.TabIndex = 3;
             // 
             // IrpTimeStamp
@@ -221,7 +221,7 @@
             // 
             // LoadDriverBtn
             // 
-            this.LoadDriverBtn.Location = new System.Drawing.Point(779, 55);
+            this.LoadDriverBtn.Location = new System.Drawing.Point(711, 57);
             this.LoadDriverBtn.Margin = new System.Windows.Forms.Padding(2);
             this.LoadDriverBtn.Name = "LoadDriverBtn";
             this.LoadDriverBtn.Size = new System.Drawing.Size(95, 36);
@@ -233,7 +233,7 @@
             // UnloadDriverBtn
             // 
             this.UnloadDriverBtn.Enabled = false;
-            this.UnloadDriverBtn.Location = new System.Drawing.Point(779, 188);
+            this.UnloadDriverBtn.Location = new System.Drawing.Point(711, 97);
             this.UnloadDriverBtn.Margin = new System.Windows.Forms.Padding(2);
             this.UnloadDriverBtn.Name = "UnloadDriverBtn";
             this.UnloadDriverBtn.Size = new System.Drawing.Size(95, 36);
@@ -245,7 +245,7 @@
             // ShowIrpBtn
             // 
             this.ShowIrpBtn.Enabled = false;
-            this.ShowIrpBtn.Location = new System.Drawing.Point(779, 281);
+            this.ShowIrpBtn.Location = new System.Drawing.Point(792, 177);
             this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2);
             this.ShowIrpBtn.Name = "ShowIrpBtn";
             this.ShowIrpBtn.Size = new System.Drawing.Size(95, 36);
@@ -257,7 +257,7 @@
             // DumpToFileBtn
             // 
             this.DumpToFileBtn.Enabled = false;
-            this.DumpToFileBtn.Location = new System.Drawing.Point(779, 328);
+            this.DumpToFileBtn.Location = new System.Drawing.Point(792, 224);
             this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2);
             this.DumpToFileBtn.Name = "DumpToFileBtn";
             this.DumpToFileBtn.Size = new System.Drawing.Size(95, 36);

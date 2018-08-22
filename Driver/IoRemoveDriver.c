@@ -15,13 +15,13 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
-	CfbDbgPrint(L"RemoveDriverByName('%s')\n", lpDriverName);
+	CfbDbgPrintInfo(L"RemoveDriverByName('%s')\n", lpDriverName);
 
 	PHOOKED_DRIVER pDriverToRemove = GetHookedDriverByName(lpDriverName);
 
 	if (!pDriverToRemove)
 	{
-		CfbDbgPrint(L"RemoveDriverByName(): no hooked driver found as '%s'\n", lpDriverName);
+		CfbDbgPrintErr(L"RemoveDriverByName(): no hooked driver found as '%s'\n", lpDriverName);
 		return STATUS_INVALID_PARAMETER;
 	}
 
@@ -33,7 +33,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	//
 	PDRIVER_OBJECT pDriver = pDriverToRemove->DriverObject;
 
-	CfbDbgPrint(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
+	CfbDbgPrintInfo(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
 
 	pDriverToRemove->Enabled = FALSE;
 
@@ -46,7 +46,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	// fix the chain
 	//
 
-	CfbDbgPrint(L"RemoveDriverByName('%s'): unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
+	CfbDbgPrintInfo(L"RemoveDriverByName('%s'): unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
 
 	if (pPrevDriverToRemove == NULL)
 	{
@@ -87,12 +87,12 @@ NTSTATUS RemoveAllDrivers()
 		NTSTATUS status = RemoveDriverByName( Driver->Name );
 		if (!NT_SUCCESS(status))
 		{
-			CfbDbgPrint(L"Failed to remove driver %s\n", OldDriverName );
+			CfbDbgPrintErr(L"Failed to remove driver %s\n", OldDriverName );
 			Status = status;
 		}
 		else
 		{
-			CfbDbgPrint(L"Driver %s removed\n", OldDriverName );
+			CfbDbgPrintOk(L"Driver %s removed\n", OldDriverName );
 			dwNbRemoved++;
 		}
 	}
@@ -101,7 +101,7 @@ NTSTATUS RemoveAllDrivers()
 
 	if (dwNbRemoved != dwNbLoaded)
 	{
-		CfbDbgPrintErr(L"[!] Not all hooked structures were successfully deallocated, the system might be unstable. It is recommended to reboot.\n");
+		CfbDbgPrintErr(L"Not all hooked structures were successfully deallocated, the system might be unstable. It is recommended to reboot.\n");
 	}
 
 	g_HookedDriversHead = NULL;

@@ -33,10 +33,10 @@ namespace Fuzzer
         public static extern bool UnloadDriver();
 
         [DllImport("Core.dll")]
-        private static extern bool CfbReadMessage(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
-        public static bool ReadMessage(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead)
+        private unsafe static extern bool CfbReadMessage(void* Buffer, int BufSize, int* lpNbBytesRead);
+        public unsafe static bool ReadMessage(void* Buffer, int BufSize)
         {
-            return CfbReadMessage(Buffer, BufSize, lpNbBytesRead);
+            return CfbReadMessage(Buffer, BufSize, null);
         }
 
         [DllImport("Core.dll")]

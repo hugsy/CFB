@@ -24,7 +24,7 @@ namespace Fuzzer
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
             IrpDataView.DataSource = CfbReader.Messages;
-            ldForm = new LoadDriverForm();
+            ldForm = new LoadDriverForm(this);
         }
 
         public void Log(string message)
@@ -199,7 +199,7 @@ namespace Fuzzer
 
         private void hookUnhookDriverFromNameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\tcpip'):", "Manual driver selection");
+            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Manual driver selection");
             Log(String.Format("Trying to hook '{0:s}'", DriverName));
 
             if (!Core.HookDriver(DriverName))

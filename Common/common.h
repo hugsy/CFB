@@ -71,11 +71,11 @@ typedef struct __sniffed_data_header_t
 {
 	LARGE_INTEGER TimeStamp;
 	UCHAR Irql;
-	ULONG IoctlCode;
-	ULONGLONG Pid;
-	ULONGLONG Tid;
-	ULONG SessionId;
-	ULONG BufferLength;
+	UINT32 IoctlCode;
+	UINT32 Pid;
+	UINT32 Tid;
+	//ULONG SessionId;
+	UINT32 BufferLength;
 	WCHAR DriverName[HOOKED_DRIVER_MAX_NAME_LEN];
 }
 SNIFFED_DATA_HEADER, *PSNIFFED_DATA_HEADER;
