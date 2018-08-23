@@ -8,8 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-
-
+using System.Threading;
 
 namespace Fuzzer
 {
@@ -17,10 +16,13 @@ namespace Fuzzer
     {
         private CfbDataReader CfbReader;
         private LoadDriverForm ldForm;
+        private static Mutex LogMutex;
+
 
         public Form1()
         {
             InitializeComponent();
+            LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
             IrpDataView.DataSource = CfbReader.Messages;
@@ -29,7 +31,10 @@ namespace Fuzzer
 
         public void Log(string message)
         {
-            LogTextBox.AppendText(message + "\n");
+            string line = String.Format("[TID={0:d}] {1:s}\n", Thread.CurrentThread.ManagedThreadId, message);
+            LogMutex.WaitOne();
+            LogTextBox.AppendText(line);
+            LogMutex.ReleaseMutex();
         }
 
         private void StartListening()
@@ -39,7 +44,7 @@ namespace Fuzzer
 
         private void StopListening()
         {
-            CfbReader.EndClientThread();
+            CfbReader.EndClientThreads();
         }
 
         private void OnProcessExit(object sender, EventArgs e)
@@ -104,10 +109,6 @@ namespace Fuzzer
             LoadDriverBtn.Enabled = false;
             StartMonitorBtn.Enabled = true;
             UnloadDriverBtn.Enabled = true;
-
-            // TODO remove me
-            if (Core.HookDriver("\\driver\\hmpalert"))
-                Log("HMP hooked");
         }
 
 

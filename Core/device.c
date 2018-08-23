@@ -19,13 +19,15 @@ Get a R/W handle to the CFB device
 --*/
 BOOL OpenCfbDevice()
 {
-	g_hDevice = CreateFileW(CFB_USER_DEVICE_NAME,
-		GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
+	g_hDevice = CreateFileW(
+		CFB_USER_DEVICE_NAME,
+		GENERIC_READ,
+		FILE_SHARE_READ,
 		NULL,
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
-		NULL);
+		NULL
+	);
 
 	return g_hDevice != INVALID_HANDLE_VALUE;
 }
@@ -40,7 +42,10 @@ BOOL CloseCfbDevice()
 {
 	BOOL bRes = CloseHandle(g_hDevice);
 	if(bRes)
+	{
 		g_hDevice = INVALID_HANDLE_VALUE;
+	}
+
 	return bRes;
 }
 

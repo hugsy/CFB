@@ -32,12 +32,6 @@ namespace Fuzzer
         [DllImport(@"Core.dll")]
         public static extern bool UnloadDriver();
 
-        [DllImport(@"Core.dll", SetLastError = true)]
-        public static unsafe extern bool ReadCfbDevice(void* Buffer, int BufSize, int* lpNbBytesRead);
-
-        [DllImport(@"Core.dll")]
-        public static extern int GetCfbMessageHeaderSize();
-
 
         // from device.c
         [DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
@@ -45,5 +39,11 @@ namespace Fuzzer
 
         [DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
         public static extern bool UnhookDriver(String DriverName);
+
+        [DllImport(@"Core.dll")]
+        public static extern int GetCfbMessageHeaderSize();
+
+        [DllImport(@"Core.dll", SetLastError = true)]
+        public static extern bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
     }
 }

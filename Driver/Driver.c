@@ -46,12 +46,20 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 		return STATUS_SUCCESS;
 	}
 
-	
+
 	UINT32 dwExpectedSize = sizeof( SNIFFED_DATA_HEADER ) + pData->Header->BufferLength;
+
+	if ( BufferSize == 0 )
+	{
+		CfbDbgPrintOk( L"DriverReadRoutine() - Sending expected size=%dB\n", dwExpectedSize );
+		CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
+		return STATUS_SUCCESS;
+	}
+
 	if ( BufferSize < dwExpectedSize )
 	{
 		CfbDbgPrintErr( L"DriverReadRoutine() - Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-		CompleteRequest( pIrp, STATUS_BUFFER_TOO_SMALL, dwExpectedSize );
+		CompleteRequest( pIrp, STATUS_BUFFER_TOO_SMALL, 0 );
 		return STATUS_BUFFER_TOO_SMALL;
 	}
 
@@ -261,7 +269,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	// Push the message to the named pipe
 	//
 	Stack = IoGetCurrentIrpStackLocation(Irp);
-	Status = HandleInterceptedIrp(Irp, Stack);
+	Status = HandleInterceptedIrp(curDriver, Irp, Stack);
 
 	CfbDbgPrintOk(L"HandleInterceptedIrp() returned 0x%X\n", Status);
 

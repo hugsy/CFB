@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Threading;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Data;
-using System.IO;
+using System.Windows.Forms;
+using System.Collections.Concurrent;
 
 namespace Fuzzer
 {
@@ -13,10 +15,13 @@ namespace Fuzzer
         /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
         /// </summary>
         [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Unicode)]
-        public unsafe struct CfbMessageHeader
+        public struct CfbMessageHeader
         {
             public ulong TimeStamp;
-            public UInt32 Irql;
+            public byte Irql;
+            public byte Padding0;
+            public byte Padding1;
+            public byte Padding2;
             public UInt32 IoctlCode;
             public UInt32 ProcessId;
             public UInt32 ThreadId;
@@ -26,7 +31,7 @@ namespace Fuzzer
 
 
         /// <summary>
-        ///
+        /// 
         /// </summary>
         public struct IRP
         {
@@ -36,7 +41,8 @@ namespace Fuzzer
 
 
         public DataTable Messages;
-        private Task thread;
+        private Thread MessageCollectorThread, MessageDisplayThread;
+        private BlockingCollection<IRP> NewIrpQueue;
         private bool doLoop;
         private Form1 RootForm;
         private List<IRP> Irps;
@@ -61,6 +67,7 @@ namespace Fuzzer
             Messages.Columns.Add("Irql", typeof(string));
             Messages.Columns.Add("IoctlCode", typeof(string));
             Messages.Columns.Add("ProcessId", typeof(UInt32));
+            Messages.Columns.Add("ProcessName", typeof(string));
             Messages.Columns.Add("ThreadId", typeof(UInt32));
             Messages.Columns.Add("BufferLength", typeof(UInt32));
             Messages.Columns.Add("DriverName", typeof(string));
@@ -69,6 +76,7 @@ namespace Fuzzer
             RootForm = f;
             doLoop = false;
             Irps = new List<IRP>();
+            NewIrpQueue = new BlockingCollection<IRP>();
         }
 
 
@@ -77,45 +85,71 @@ namespace Fuzzer
         /// </summary>
         public void StartClientThread()
         {
-            RootForm.Log("Starting thread...");
+            RootForm.Log("Starting threads...");
+
             doLoop = true;
-            thread = Task.Factory.StartNew(DataReaderThread);
-            RootForm.Log("Thread started!");
+
+            MessageDisplayThread = new Thread(DisplayMessagesThreadRoutine)
+            {
+                Name = "MessageDisplayThread"
+            };
+
+            MessageCollectorThread = new Thread(PopMessagesFromDriverThreadRoutine)
+            {
+                Name = "MessageCollectorThread"
+            };
+  
+            MessageDisplayThread.Start();
+            MessageCollectorThread.Start();
+            RootForm.Log("Threads started!");
         }
 
+
         /// <summary>
-        /// Tries to end cleanly the thread.
+        /// Tries to end cleanly all the threads.
         /// </summary>
-        public void EndClientThread()
+        public void EndClientThreads()
+        {
+            JoinThread(MessageCollectorThread);
+            JoinThread(MessageDisplayThread);
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="t"></param>
+        private void JoinThread(Thread t)
         {
             doLoop = false;
 
-            if (thread == null)
+            if (!t.IsAlive || t==null)
                 return;
 
-            RootForm.Log("Ending thread...");
+            RootForm.Log($"Ending thread '{t.Name:s}'...");
 
-            var success_wait = false;
             Int32 waitFor = 1*1000; // 1 second
 
             for (int i = 0; i < 5; i++)
             {
-                if (!thread.Wait(waitFor))
+                if (t.Join(waitFor) == false)
                 {
                     continue;
                 }
 
-                success_wait = true;
-                break;
+                RootForm.Log($"Thread '{t.Name:s}' ended!");
+                return;
             }
 
-            if (!success_wait)
+            RootForm.Log("Failed to kill gracefully, forcing thread termination!");
+            try
             {
-                RootForm.Log("Failed to kill gracefully, forcing thread termination!");
-                // TODO : call to TerminateThread
+                MessageCollectorThread.Abort();
             }
-
-             RootForm.Log("Thread ended!");
+            catch (ThreadAbortException TaEx)
+            {
+                RootForm.Log($"Thread '{t.Name:s}' killed: {TaEx.Message:s}");
+            }
         }
 
 
@@ -123,56 +157,57 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
-        private unsafe IRP ReadMessage()
+        private IRP ReadMessage()
         {
             int HeaderSize;
             int ErrNo;
             bool bResult;
-            int dwNumberOfByteRead = 0;
+            int dwNumberOfByteRead;
+            IntPtr lpdwNumberOfByteRead;
 
             //
-            // Read the raw header
+            // Read the raw header 
             //
             HeaderSize = Core.GetCfbMessageHeaderSize();
-            RootForm.Log($"ReadMessage() - MessageHeaderSize={HeaderSize:d}");
 
 
             //
             // Get the exact size of the next message
             //
 
-            //var lpdwNumberOfByteRead = new IntPtr(0);
+            lpdwNumberOfByteRead =  Marshal.AllocHGlobal(sizeof(int));
+            
+            while(true)
+            { 
+                bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
 
-            while (true)
-            {
-                bResult = Core.ReadCfbDevice(null, 0, &dwNumberOfByteRead);
-
-                ErrNo = Marshal.GetLastWin32Error();
-
-                if (bResult)
+                if (!bResult)
                 {
-                    if (ErrNo == 0x00)
-                    {
-                        System.Threading.Thread.Sleep(5000);
-                        continue;
-                    }
-
+                    ErrNo = Marshal.GetLastWin32Error();
+                    throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) while querying message: GetLastError()=0x{ErrNo:x}");
                 }
 
+                /*
+                ErrNo = Marshal.GetLastWin32Error();
+                if (ErrNo != 0x7A) // ERROR_INSUFFICIENT_BUFFER
+                {
+                    throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed unexpectedly: GetLastError()=0x{ErrNo:x}");
+                }
+                */
+
+                dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
+                
+                if (dwNumberOfByteRead == 0)
+                {
+                    // replace w/ event
+                    System.Threading.Thread.Sleep(5000);
+                    continue;
+                }
+
+                RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
+
                 break;
-
             }
-
-            if (ErrNo != 0x7A) // ERROR_INSUFFICIENT_BUFFER
-            {
-                throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed unexpectedly: GetLastError()=0x{ErrNo:x}");
-            }
-
-
-
-            //dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
-            //dwNumberOfByteRead = Marshal.ReadInt32(lpdwNumberOfByteRead);
-            RootForm.Log($"ReadMessage() - ReadCfbDevice(HEADER) read {dwNumberOfByteRead:d} Bytes");
 
 
             if (dwNumberOfByteRead < HeaderSize)
@@ -185,73 +220,48 @@ namespace Fuzzer
             // Get the whole thing
             //
 
-            //var RawMessage = Marshal.AllocHGlobal(dwNumberOfByteRead);
-            byte[] RawMessage = new byte[dwNumberOfByteRead];
+            var RawMessage = Marshal.AllocHGlobal(dwNumberOfByteRead);
 
-            fixed (byte* DstBuf = RawMessage)
+            bResult = Core.ReadCfbDevice(RawMessage, dwNumberOfByteRead, new IntPtr(0));
+
+            if (!bResult)
             {
-                bResult = Core.ReadCfbDevice(DstBuf, dwNumberOfByteRead, null);
-
-                if (bResult)
-                {
-                    ErrNo = Marshal.GetLastWin32Error();
-                    throw new Exception($"ReadMessage() - ReadCfbDevice(BODY) failed unexpectedly with 0x{ErrNo:x}");
-                }
+                ErrNo = Marshal.GetLastWin32Error();
+                throw new Exception($"ReadMessage() - ReadCfbDevice() failed while reading message: GetLastError()=0x{ErrNo:x}");
             }
+
 
 
             //
             // And convert it to managed code
             //
 
-            //CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
-            Stream stream = new MemoryStream(RawMessage);
-            BinaryReader br = new BinaryReader(stream);
+            CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
 
-            CfbMessageHeader Header = new CfbMessageHeader
-            {
-                TimeStamp = br.ReadUInt64(),
-                Irql = br.ReadUInt32(),
-                IoctlCode = br.ReadUInt32(),
-                ProcessId = br.ReadUInt32(),
-                ThreadId = br.ReadUInt32(),
-                BufferLength = br.ReadUInt32(),
-                DriverName = br.ReadString()
-            };
-
-
-
-            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from PID {Header.ProcessId:d} (TID={Header.ThreadId:d}), {Header.BufferLength:d} bytes of data");
+            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from driver {Header.DriverName:s} to PID={Header.ProcessId:d},TID={Header.ThreadId:d}, {Header.BufferLength:d} bytes of data");
 
             byte[] Body = new byte[Header.BufferLength];
 
-            //Marshal.Copy(RawMessage, Body, HeaderSize, Convert.ToInt32(Header.BufferLength));
+            Marshal.Copy(RawMessage + HeaderSize, Body, 0, Convert.ToInt32(Header.BufferLength));
+
+            Marshal.FreeHGlobal(lpdwNumberOfByteRead);
+            Marshal.FreeHGlobal(RawMessage);
 
 
-            //Marshal.FreeHGlobal(lpdwNumberOfByteRead);
-            //Marshal.FreeHGlobal(RawMessage);
-
-
-
-            //
-            // Prepare and return the IRP object
-            //
-            IRP irp = new IRP
+            return new IRP
             {
                 Header = Header,
                 Body = Body
             };
-
-
-            return irp;
         }
 
 
         /// <summary>
         /// Threaded function that'll open a handle to named pipe, and pop out structured messages
         /// </summary>
-        private void DataReaderThread()
+        private void PopMessagesFromDriverThreadRoutine()
         {
+            RootForm.Log("Starting PopMessagesFromDriverThreadRoutine");
 
             try
             {
@@ -260,16 +270,35 @@ namespace Fuzzer
                     var irp = ReadMessage();
                     Irps.Add(irp);
 
-                    RootForm.Log("New IRP received");
+                    int NbItems = Irps.Count;
+                    RootForm.Log($"Pushing IRP #{NbItems:d}");
+                    NewIrpQueue.Add(irp);
+                }
+            }
+            catch (Exception Ex)
+            {
+                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
+            }
+        }
 
 
-                    var Header = irp.Header;
-                    string BodyString = "";
+        /// <summary>
+        /// Pops new IRPs from the queue and display them in the DataGridView
+        /// </summary>
+        private void DisplayMessagesThreadRoutine()
+        {
+            RootForm.Log("Starting DisplayMessagesThreadRoutine");
+            try
+            {
+                while (doLoop)
+                {
+                    IRP Irp = NewIrpQueue.Take();
+                    var Header = Irp.Header;
+                    var Body = "";
 
-
-                    foreach (byte b in irp.Body)
+                    foreach (byte b in Irp.Body)
                     {
-                        BodyString += $"{b:x2} ";
+                        Body += $"{b:x2} ";
                     }
 
                     Messages.Rows.Add(
@@ -277,15 +306,13 @@ namespace Fuzzer
                         "0x" + Header.Irql.ToString("x"),
                         "0x" + Header.IoctlCode.ToString("x"),
                         Header.ProcessId,
+                        GetProcessById(Header.ProcessId),
                         Header.ThreadId,
                         Header.BufferLength,
-                        "<drivername here>",
-                        BodyString
+                        Header.DriverName,
+                        Body
                         );
-
-                    doLoop = false;
                 }
-
             }
             catch (Exception Ex)
             {
@@ -293,5 +320,29 @@ namespace Fuzzer
             }
 
         }
+
+
+        /// <summary>
+        /// Simple wrapper around Process.GetProcessById
+        /// </summary>
+        /// <param name="ProcessId"></param>
+        /// <returns></returns>
+        private string GetProcessById(uint ProcessId)
+        {
+            string Res = "";
+
+            try
+            {
+                Process p = Process.GetProcessById((int)ProcessId);
+                Res = p.ProcessName;
+            }
+            catch
+            {
+                Res = "";
+            }
+
+            return Res;
+        }
+
     }
 }

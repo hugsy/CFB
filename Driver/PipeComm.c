@@ -103,7 +103,7 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 
 
 --*/
-NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, IN WCHAR* lpDriverName, OUT PSNIFFED_DATA *pMessage)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -131,7 +131,8 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
 	pMsgHeader->IoctlCode = IoctlCode;
-	// todo fill drivername
+	wcscpy_s( pMsgHeader->DriverName, wcslen(pMsgHeader->DriverName), lpDriverName );
+
 
 	//
 	// fill up the message structure
@@ -167,7 +168,7 @@ from the IRP packet (depending on its method), and build a SNIFFED_DATA packet t
 written back to the userland client.
 
 --*/
-NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
+NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 {
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
@@ -201,7 +202,15 @@ NTSTATUS HandleInterceptedIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
 	Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
 	Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
 
-	Status = PreparePipeMessage(Pid, Tid, IoctlCode, IrpExtractedData, IrpExtractedDataLength, &pMessage);
+	Status = PreparePipeMessage(
+		Pid, 
+		Tid, 
+		IoctlCode, 
+		IrpExtractedData, 
+		IrpExtractedDataLength, 
+		Driver->Name,
+		&pMessage
+	);
 
 	if (!NT_SUCCESS(Status) || pMessage == NULL)
 	{
