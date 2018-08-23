@@ -119,7 +119,11 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 		return Status;
 	}
 
+	RtlSecureZeroMemory( pMsgHeader, sizeof( SNIFFED_DATA_HEADER ) );
 
+	size_t szDriverNameLength= wcslen( lpDriverName );
+	szDriverNameLength=szDriverNameLength > HOOKED_DRIVER_MAX_NAME_LEN ? HOOKED_DRIVER_MAX_NAME_LEN : szDriverNameLength + 1;
+	
 	//
 	// create and fill the header structure
 	//
@@ -131,7 +135,7 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
 	pMsgHeader->IoctlCode = IoctlCode;
-	wcscpy_s( pMsgHeader->DriverName, wcslen(pMsgHeader->DriverName), lpDriverName );
+	wcscpy_s( pMsgHeader->DriverName, szDriverNameLength, lpDriverName );
 
 
 	//

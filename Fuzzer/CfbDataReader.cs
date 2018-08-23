@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Data;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace Fuzzer
 {
@@ -14,7 +15,7 @@ namespace Fuzzer
         /// <summary>
         /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
         /// </summary>
-        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Unicode)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct CfbMessageHeader
         {
             public ulong TimeStamp;
@@ -26,7 +27,6 @@ namespace Fuzzer
             public UInt32 ProcessId;
             public UInt32 ThreadId;
             public UInt32 BufferLength;
-            public string DriverName;
         }
 
 
@@ -36,6 +36,7 @@ namespace Fuzzer
         public struct IRP
         {
             public CfbMessageHeader Header;
+            public string DriverName;
             public byte[] Body;
         }
 
@@ -236,21 +237,30 @@ namespace Fuzzer
             // And convert it to managed code
             //
 
+            // header
             CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
 
-            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from driver {Header.DriverName:s} to PID={Header.ProcessId:d},TID={Header.ThreadId:d}, {Header.BufferLength:d} bytes of data");
-
+            // driver name
+            byte[] DriverNameBytes = new byte[2*0x104];
+            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(CfbMessageHeader)), DriverNameBytes, 0, DriverNameBytes.Length);
+            char[] charsToTrim = { '\0' };
+            string DriverName = System.Text.Encoding.Unicode.GetString(DriverNameBytes).Trim(charsToTrim);
+            
+            // body          
             byte[] Body = new byte[Header.BufferLength];
-
             Marshal.Copy(RawMessage + HeaderSize, Body, 0, Convert.ToInt32(Header.BufferLength));
+
 
             Marshal.FreeHGlobal(lpdwNumberOfByteRead);
             Marshal.FreeHGlobal(RawMessage);
 
 
+            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from driver '{DriverName:s}' to PID={Header.ProcessId:d},TID={Header.ThreadId:d}, {Header.BufferLength:d} bytes of data");
+
             return new IRP
             {
                 Header = Header,
+                DriverName = DriverName,
                 Body = Body
             };
         }
@@ -277,7 +287,8 @@ namespace Fuzzer
             }
             catch (Exception Ex)
             {
-                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
+                //RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
+                MessageBox.Show(Ex.Message + "\n" + Ex.StackTrace);
             }
         }
 
@@ -293,7 +304,6 @@ namespace Fuzzer
                 while (doLoop)
                 {
                     IRP Irp = NewIrpQueue.Take();
-                    var Header = Irp.Header;
                     var Body = "";
 
                     foreach (byte b in Irp.Body)
@@ -302,14 +312,14 @@ namespace Fuzzer
                     }
 
                     Messages.Rows.Add(
-                        DateTime.FromFileTime((long)Header.TimeStamp),
-                        "0x" + Header.Irql.ToString("x"),
-                        "0x" + Header.IoctlCode.ToString("x"),
-                        Header.ProcessId,
-                        GetProcessById(Header.ProcessId),
-                        Header.ThreadId,
-                        Header.BufferLength,
-                        Header.DriverName,
+                        DateTime.FromFileTime((long)Irp.Header.TimeStamp),
+                        "0x" + Irp.Header.Irql.ToString("x2"),
+                        "0x" + Irp.Header.IoctlCode.ToString("x8"),
+                        Irp.Header.ProcessId,
+                        GetProcessById(Irp.Header.ProcessId),
+                        Irp.Header.ThreadId,
+                        Irp.Header.BufferLength,
+                        Irp.DriverName,
                         Body
                         );
                 }
