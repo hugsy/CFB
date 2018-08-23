@@ -33,7 +33,7 @@ namespace Fuzzer
         public static extern bool UnloadDriver();
 
         [DllImport(@"Core.dll", SetLastError = true)]
-        public static extern int ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
+        public static unsafe extern bool ReadCfbDevice(void* Buffer, int BufSize, int* lpNbBytesRead);
 
         [DllImport(@"Core.dll")]
         public static extern int GetCfbMessageHeaderSize();

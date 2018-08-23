@@ -1,13 +1,9 @@
 ﻿using System;
-using System.IO;
-using System.IO.Pipes;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Data;
+using System.IO;
 
 namespace Fuzzer
 {
@@ -16,7 +12,7 @@ namespace Fuzzer
         /// <summary>
         /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
         /// </summary>
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Unicode)]
         public unsafe struct CfbMessageHeader
         {
             public ulong TimeStamp;
@@ -25,12 +21,12 @@ namespace Fuzzer
             public UInt32 ProcessId;
             public UInt32 ThreadId;
             public UInt32 BufferLength;
-            public fixed char DriverName[520];
+            public string DriverName;
         }
 
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         public struct IRP
         {
@@ -103,7 +99,7 @@ namespace Fuzzer
             Int32 waitFor = 1*1000; // 1 second
 
             for (int i = 0; i < 5; i++)
-            {        
+            {
                 if (!thread.Wait(waitFor))
                 {
                     continue;
@@ -127,14 +123,15 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
-        private IRP ReadMessage()
+        private unsafe IRP ReadMessage()
         {
             int HeaderSize;
-            int errno;
-
+            int ErrNo;
+            bool bResult;
+            int dwNumberOfByteRead = 0;
 
             //
-            // Read the raw header 
+            // Read the raw header
             //
             HeaderSize = Core.GetCfbMessageHeaderSize();
             RootForm.Log($"ReadMessage() - MessageHeaderSize={HeaderSize:d}");
@@ -144,24 +141,37 @@ namespace Fuzzer
             // Get the exact size of the next message
             //
 
-            var lpdwNumberOfByteRead =  Marshal.AllocHGlobal(sizeof(int));
+            //var lpdwNumberOfByteRead = new IntPtr(0);
 
-            int bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
-
-            if (bResult != 0)
+            while (true)
             {
-                throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed");
+                bResult = Core.ReadCfbDevice(null, 0, &dwNumberOfByteRead);
+
+                ErrNo = Marshal.GetLastWin32Error();
+
+                if (bResult)
+                {
+                    if (ErrNo == 0x00)
+                    {
+                        System.Threading.Thread.Sleep(5000);
+                        continue;
+                    }
+
+                }
+
+                break;
+
+            }
+
+            if (ErrNo != 0x7A) // ERROR_INSUFFICIENT_BUFFER
+            {
+                throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed unexpectedly: GetLastError()=0x{ErrNo:x}");
             }
 
 
-            errno = Marshal.GetLastWin32Error();
-            if (errno != 0x7A) // ERROR_INSUFFICIENT_BUFFER
-            {
-                throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed unexpectedly: GetLastError()=0x{errno:x}");
-            }
 
-            
-            var dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
+            //dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
+            //dwNumberOfByteRead = Marshal.ReadInt32(lpdwNumberOfByteRead);
             RootForm.Log($"ReadMessage() - ReadCfbDevice(HEADER) read {dwNumberOfByteRead:d} Bytes");
 
 
@@ -175,33 +185,51 @@ namespace Fuzzer
             // Get the whole thing
             //
 
-            var RawMessage = Marshal.AllocHGlobal(dwNumberOfByteRead);
+            //var RawMessage = Marshal.AllocHGlobal(dwNumberOfByteRead);
+            byte[] RawMessage = new byte[dwNumberOfByteRead];
 
-            bResult = Core.ReadCfbDevice(RawMessage, dwNumberOfByteRead, new IntPtr(0));
-
-            if (bResult == 0)
+            fixed (byte* DstBuf = RawMessage)
             {
-                errno = Marshal.GetLastWin32Error();
-                throw new Exception($"ReadMessage() - ReadCfbDevice(BODY) failed unexpectedly with 0x{errno:x}");
-            }
+                bResult = Core.ReadCfbDevice(DstBuf, dwNumberOfByteRead, null);
 
+                if (bResult)
+                {
+                    ErrNo = Marshal.GetLastWin32Error();
+                    throw new Exception($"ReadMessage() - ReadCfbDevice(BODY) failed unexpectedly with 0x{ErrNo:x}");
+                }
+            }
 
 
             //
             // And convert it to managed code
             //
 
-            CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
+            //CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
+            Stream stream = new MemoryStream(RawMessage);
+            BinaryReader br = new BinaryReader(stream);
+
+            CfbMessageHeader Header = new CfbMessageHeader
+            {
+                TimeStamp = br.ReadUInt64(),
+                Irql = br.ReadUInt32(),
+                IoctlCode = br.ReadUInt32(),
+                ProcessId = br.ReadUInt32(),
+                ThreadId = br.ReadUInt32(),
+                BufferLength = br.ReadUInt32(),
+                DriverName = br.ReadString()
+            };
+
+
 
             RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from PID {Header.ProcessId:d} (TID={Header.ThreadId:d}), {Header.BufferLength:d} bytes of data");
 
             byte[] Body = new byte[Header.BufferLength];
 
-            Marshal.Copy(RawMessage, Body, HeaderSize, Convert.ToInt32(Header.BufferLength));
+            //Marshal.Copy(RawMessage, Body, HeaderSize, Convert.ToInt32(Header.BufferLength));
 
 
-            Marshal.FreeHGlobal(lpdwNumberOfByteRead);
-            Marshal.FreeHGlobal(RawMessage);
+            //Marshal.FreeHGlobal(lpdwNumberOfByteRead);
+            //Marshal.FreeHGlobal(RawMessage);
 
 
 
@@ -234,11 +262,11 @@ namespace Fuzzer
 
                     RootForm.Log("New IRP received");
 
-                    
+
                     var Header = irp.Header;
                     string BodyString = "";
-                    
-                    
+
+
                     foreach (byte b in irp.Body)
                     {
                         BodyString += $"{b:x2} ";
