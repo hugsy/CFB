@@ -13,4 +13,5 @@ NTSTATUS FreeQueue();
 NTSTATUS FlushQueue();
 UINT32 GetQueueNextFreeSlotIndex();
 PVOID PopFromQueue();
-NTSTATUS PushToQueue( PVOID pData );
+NTSTATUS PushToQueue( PVOID pData, PUINT32 lpdwIndex );
+PVOID GetItemInQueue( UINT32 Index );

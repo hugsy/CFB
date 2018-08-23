@@ -19,6 +19,7 @@ NTSTATUS InitializeQueue()
 
 	RtlSecureZeroMemory( g_CfbQueue, CFB_QUEUE_SIZE * sizeof( PVOID ) );
 
+	CfbDbgPrintOk( L"Message queue initialized at %p\n", g_CfbQueue );
 	return STATUS_SUCCESS;
 }
 
@@ -29,7 +30,7 @@ NTSTATUS InitializeQueue()
 NTSTATUS FreeQueue()
 {
 	ExFreePoolWithTag( g_CfbQueue, CFB_DEVICE_TAG );
-
+	CfbDbgPrintOk( L"Message queue %p freeed\n", g_CfbQueue );
 	return STATUS_SUCCESS;
 }
 
@@ -56,8 +57,9 @@ UINT32 GetQueueNextFreeSlotIndex()
 /*++
 
 --*/
-NTSTATUS PushToQueue( PVOID pData)
+NTSTATUS PushToQueue(PVOID pData, PUINT32 lpdwIndex)
 {
+	// todo: this could be raced, protect section
 	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
 
 	if ( dwIndex == (UINT32)-1 )
@@ -67,7 +69,9 @@ NTSTATUS PushToQueue( PVOID pData)
 	}
 
 	g_CfbQueue[dwIndex] = pData;
+	*lpdwIndex = dwIndex;
 
+	CfbDbgPrintOk( L"PushToQueue(%p, %d) ok...\n", g_CfbQueue, dwIndex );
 	return STATUS_SUCCESS;
 }
 
@@ -76,12 +80,13 @@ NTSTATUS PushToQueue( PVOID pData)
 --*/
 PVOID PopFromQueue()
 {
-	// TODO critical section here
+	// todo: this could be raced, protect section
 	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
 
 	if ( dwIndex == (UINT32)-1 || dwIndex == 0 )
 	{
 		// empty list
+		CfbDbgPrintErr( L"The queue is empty, cannot pop...\n" );
 		return NULL;
 	}
 
@@ -94,6 +99,8 @@ PVOID PopFromQueue()
 	}
 
 	g_CfbQueue[dwIndex] = NULL;
+
+	CfbDbgPrintOk( L"PopFromQueue() = %p ok...\n", pData );
 
 	return pData;
 }
@@ -116,6 +123,7 @@ NTSTATUS FlushQueue()
 		return STATUS_SUCCESS;
 	}
 
+	CfbDbgPrintInfo( L"In FlushQueue()...\n");
 
 	for ( UINT32 i=0; i < dwIndex; i++ )
 	{
@@ -125,4 +133,20 @@ NTSTATUS FlushQueue()
 
 
 	return STATUS_SUCCESS;
+}
+
+
+/*++
+
+--*/
+PVOID GetItemInQueue( UINT32 Index )
+{
+	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
+
+	if ( dwIndex == (UINT32)-1 || Index >= dwIndex )
+	{
+		return NULL;
+	}
+
+	return g_CfbQueue[Index];
 }

@@ -24,7 +24,7 @@ BOOL OpenCfbDevice()
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL,
 		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+		FILE_ATTRIBUTE_NORMAL,
 		NULL);
 
 	return g_hDevice != INVALID_HANDLE_VALUE;
@@ -39,7 +39,8 @@ Close the handle to the CFB device
 BOOL CloseCfbDevice()
 {
 	BOOL bRes = CloseHandle(g_hDevice);
-	g_hDevice = INVALID_HANDLE_VALUE;
+	if(bRes)
+		g_hDevice = INVALID_HANDLE_VALUE;
 	return bRes;
 }
 
@@ -49,16 +50,19 @@ BOOL CloseCfbDevice()
 Read new IRP data from the device.
 
 --*/
-BOOL ReadCfbDevice(LPVOID Buffer, DWORD BufSize, LPDWORD lpNbBytesRead)
+__declspec(dllexport) BOOL ReadCfbDevice(LPVOID Buffer, DWORD BufSize, LPDWORD lpNbBytesRead)
 {
-	BOOL bRes = ReadFile(
-		g_hDevice,
-		Buffer,
-		BufSize,
-		lpNbBytesRead,
-		NULL );
-		
+	BOOL bRes = ReadFile(g_hDevice, Buffer, BufSize, lpNbBytesRead,	NULL );	
 	return bRes;
+}
+
+
+/*++
+
+--*/
+__declspec(dllexport) DWORD GetCfbMessageHeaderSize()
+{
+	return sizeof( SNIFFED_DATA_HEADER );
 }
 
 

@@ -104,6 +104,10 @@ namespace Fuzzer
             LoadDriverBtn.Enabled = false;
             StartMonitorBtn.Enabled = true;
             UnloadDriverBtn.Enabled = true;
+
+            // TODO remove me
+            if (Core.HookDriver("\\driver\\hmpalert"))
+                Log("HMP hooked");
         }
 
 
@@ -132,6 +136,7 @@ namespace Fuzzer
             StartMonitorBtn.Enabled = false;
             StopMonitorBtn.Enabled = false;
             UnloadDriverBtn.Enabled = false;
+
         }
 
 
@@ -178,7 +183,7 @@ namespace Fuzzer
 
         private void ShowIrpBtn_Click(object sender, EventArgs e)
         {
-            // todo: collect Data from selected IRP text
+            // todo: collect Data from selected IRP row
             var Data = new byte[0x100];
             for (var i = 0; i < Data.Length; i++) Data[i] = 0x42;
 
@@ -205,6 +210,7 @@ namespace Fuzzer
             if (!Core.HookDriver(DriverName))
             {
                 Log(String.Format("Failed to hook '{0:s}'", DriverName));
+                ldForm.LoadedDrivers.Add(DriverName);
                 return;
             }
 

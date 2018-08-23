@@ -14,44 +14,36 @@ namespace Fuzzer
     {
 
         // from main.c
-        [DllImport("Core.dll")]
+        [DllImport(@"Core.dll")]
         public static extern bool CheckWindowsVersion();
 
-        [DllImport("Core.dll")]
+        [DllImport(@"Core.dll")]
         public static extern bool RunInitializationChecks();
 
         [DllImport("Core.dll")]
         public static extern bool LoadDriver();
 
-        [DllImport("Core.dll")]
+        [DllImport(@"Core.dll")]
         public static extern bool InitializeCfbContext();
 
-        [DllImport("Core.dll")]
+        [DllImport(@"Core.dll")]
         public static extern void CleanupCfbContext();
 
-        [DllImport("Core.dll")]
+        [DllImport(@"Core.dll")]
         public static extern bool UnloadDriver();
 
-        [DllImport("Core.dll")]
-        private unsafe static extern bool CfbReadMessage(void* Buffer, int BufSize, int* lpNbBytesRead);
-        public unsafe static bool ReadMessage(void* Buffer, int BufSize)
-        {
-            return CfbReadMessage(Buffer, BufSize, null);
-        }
+        [DllImport(@"Core.dll", SetLastError = true)]
+        public static extern int ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
 
-        [DllImport("Core.dll")]
-        private static extern int CfbGetMessageHeaderSize();
-        public static int MessageHeaderSize()
-        {
-            return CfbGetMessageHeaderSize();
-        }
+        [DllImport(@"Core.dll")]
+        public static extern int GetCfbMessageHeaderSize();
 
 
         // from device.c
-        [DllImport("Core.dll", CharSet = CharSet.Unicode)]
+        [DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
         public static extern bool HookDriver(String DriverName);
 
-        [DllImport("Core.dll", CharSet = CharSet.Unicode)]
+        [DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
         public static extern bool UnhookDriver(String DriverName);
     }
 }

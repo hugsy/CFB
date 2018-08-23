@@ -7,7 +7,6 @@
 
 
 
-extern NTKERNELAPI NTSTATUS IoGetRequestorSessionId(PIRP Irp, PULONG pSessionId);
 extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
 extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
 

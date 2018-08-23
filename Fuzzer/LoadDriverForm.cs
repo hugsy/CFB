@@ -9,7 +9,7 @@ namespace Fuzzer
     public partial class LoadDriverForm : Form
     {
         private DataTable DriverDataTable;
-        private List<String> LoadedDrivers;
+        public List<String> LoadedDrivers;
         private Form1 RootForm;
 
         public LoadDriverForm(Form1 f)

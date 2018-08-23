@@ -2,61 +2,101 @@
 
 
 #ifdef ALLOC_PRAGMA
+
+//
+// Discard after initialization
+//
 #pragma alloc_text (INIT, DriverEntry)
-#pragma alloc_text (INIT, DriverReadRoutine)
+
+//
+// Lock routines to pages
+//
+#pragma alloc_text (PAGE, DriverReadRoutine)
 #pragma alloc_text (PAGE, DriverUnloadRoutine)
 #pragma alloc_text (PAGE, DriverCreateCloseRoutine)
 #pragma alloc_text (PAGE, DriverDeviceControlRoutine)
+#pragma alloc_text (PAGE, IrpNotImplementedHandler)
 #endif
 
 
 /*++
 
 --*/
-NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 {
-	UNREFERENCED_PARAMETER( DeviceObject );
-	UNREFERENCED_PARAMETER( Irp );
+	UNREFERENCED_PARAMETER( pDeviceObject );
 
-	PAGED_CODE();
+	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( pIrp );
 
-	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
-	PVOID Buffer = Irp->AssociatedIrp.SystemBuffer;
-	ULONG BufferSize = Stack->Parameters.Read.Length;
-
-	CfbDbgPrintInfo( L"In DriverReadRoutine(), trying to read %ld bytes at %p\n", BufferSize, Buffer );
-
-	if ( BufferSize < sizeof( SNIFFED_DATA_HEADER ) )
+	if ( !pStack )
 	{
-		CfbDbgPrintErr( L"Buffer is too small\n" );
-		return STATUS_BUFFER_TOO_SMALL;
+		CfbDbgPrintErr( L"DriverReadRoutine() - Failed to get a pointer to the stack of IRP %p\n", pIrp );
+		CompleteRequest( pIrp, STATUS_UNSUCCESSFUL, 0 );
+		return STATUS_UNSUCCESSFUL;
 	}
 
-	PSNIFFED_DATA pData = PopFromQueue();
+
+	ULONG BufferSize = pStack->Parameters.Read.Length;
+
+	PSNIFFED_DATA pData = (PSNIFFED_DATA)GetItemInQueue(0);
 	if ( !pData )
 	{
-		// empty buffer
-		CfbDbgPrintOk( L"No message\n" );
+		CfbDbgPrintOk( L"DriverReadRoutine() - No message\n" );
+		CompleteRequest( pIrp, STATUS_SUCCESS, 0 );
 		return STATUS_SUCCESS;
 	}
 
-	CfbDbgPrintInfo(L"Pop message %p\n", pData);
+	
+	UINT32 dwExpectedSize = sizeof( SNIFFED_DATA_HEADER ) + pData->Header->BufferLength;
+	if ( BufferSize < dwExpectedSize )
+	{
+		CfbDbgPrintErr( L"DriverReadRoutine() - Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
+		CompleteRequest( pIrp, STATUS_BUFFER_TOO_SMALL, dwExpectedSize );
+		return STATUS_BUFFER_TOO_SMALL;
+	}
 
-	RtlCopyMemory( Buffer, pData->Header, sizeof( SNIFFED_DATA_HEADER ) );
-	RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pData->Header->BufferLength );
 
-	CfbDbgPrintInfo( L"Freeing message %p\n", pData );
+	PVOID Buffer = MmGetSystemAddressForMdlSafe( pIrp->MdlAddress, HighPagePriority );
+
+	if ( !Buffer )
+	{
+		CfbDbgPrintErr( L"DriverReadRoutine() - Input buffer is NULL\n" );
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+
+	CfbDbgPrintInfo( L"DriverReadRoutine() - Trying to read %ld bytes at %p\n", BufferSize, Buffer );
+
+	pData = PopFromQueue();
+	if ( !pData )
+	{
+		CfbDbgPrintOk( L"DriverReadRoutine() - No message\n" );
+		return STATUS_SUCCESS;
+	}
+
+	CfbDbgPrintInfo(L"DriverReadRoutine() - Poped message %p\n", pData);
+
+
+	//
+	// Copy header
+	//
+	PSNIFFED_DATA_HEADER pHeader = pData->Header;
+	RtlCopyMemory( Buffer, pHeader, sizeof( SNIFFED_DATA_HEADER ) );
+
+	//
+	// Copy body (if any)
+	//
+	if( pHeader->BufferLength && pData->Body )
+	{
+		RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pHeader->BufferLength );
+	}
+
+	CfbDbgPrintInfo( L"DriverReadRoutine() - Freeing message %p\n", pData );
 	FreePipeMessage( pData );
 
+	CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
+
 	return STATUS_SUCCESS;
-	
-	// TODO
-	// 0. check bufsize >= sizeof(msghdr)
-	// 1. pop from queue
-	// 2. send header
-	// 3. check bufsize == sizeof(msghdr) + msghdr.buflen
-	// 4. send body
-	// 5. free message
 }
 
 
@@ -66,7 +106,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
-	PAGED_CODE();
+	
 	CfbDbgPrintInfo(L"In IrpNotImplementedHandler()\n");
 	CompleteRequest(Irp, STATUS_SUCCESS, 0);
 	return STATUS_NOT_SUPPORTED;
@@ -82,8 +122,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
 
-	PAGED_CODE();
-
 	CfbDbgPrintInfo(L"-----------------------------------------\n");
 	CfbDbgPrintInfo(L"     Loading driver IrpDumper\n");
 	CfbDbgPrintInfo(L"-----------------------------------------\n");
@@ -96,6 +134,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	{
 		return STATUS_UNSUCCESSFUL;
 	}
+
+	g_HookedDriversHead = NULL;
 
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
@@ -124,6 +164,9 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		return status;
 	}
 
+	CfbDbgPrintOk( L"Device object '%s' created\n", CFB_DEVICE_NAME );
+
+
 	//
 	// Populate the IRP handlers
 	//
@@ -136,10 +179,11 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
-
+	DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
 	DriverObject->DriverUnload = DriverUnloadRoutine;
+	
+	CfbDbgPrintOk( L"Driver object '%s' routines populated\n", CFB_DEVICE_NAME );
 
-	CfbDbgPrintOk(L"Device object '%s' created\n", CFB_DEVICE_NAME);
 
 	//
 	// Create the symlink
@@ -152,12 +196,12 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	}
 	else
 	{
-		CfbDbgPrintErr(L"Symlink '%s' to device object created\n", CFB_DEVICE_LINK);
-		g_HookedDriversHead = NULL;
+		CfbDbgPrintOk( L"Symlink '%s' to driver object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 	}
 
-	CfbDbgPrintOk(L"Device '%s' successfully created\n", CFB_DEVICE_NAME);
+	DeviceObject->Flags |= DO_DIRECT_IO;
 
+	DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
 
 	return status;
 }
@@ -177,8 +221,6 @@ typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
 NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-
-	PAGED_CODE();
 
 	CfbDbgPrintInfo(L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp);
 
@@ -240,7 +282,6 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 --*/
 VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 {
-	PAGED_CODE();
 
 	CfbDbgPrint(L"Unloading %s\n", CFB_PROGRAM_NAME_SHORT);
 

@@ -42,6 +42,7 @@
             this.MenuBar = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hookUnhookDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hookUnhookDriverFromNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -51,7 +52,6 @@
             this.UnloadDriverBtn = new System.Windows.Forms.Button();
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
-            this.hookUnhookDriverFromNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -120,6 +120,9 @@
             // 
             // IrpDataView
             // 
+            this.IrpDataView.AllowUserToAddRows = false;
+            this.IrpDataView.AllowUserToDeleteRows = false;
+            this.IrpDataView.AllowUserToResizeRows = false;
             this.IrpDataView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.IrpDataView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.IrpDataView.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -181,10 +184,17 @@
             this.hookUnhookDriverToolStripMenuItem.Text = "Hook / Unhook Driver from List";
             this.hookUnhookDriverToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverToolStripMenuItem_Click);
             // 
+            // hookUnhookDriverFromNameToolStripMenuItem
+            // 
+            this.hookUnhookDriverFromNameToolStripMenuItem.Name = "hookUnhookDriverFromNameToolStripMenuItem";
+            this.hookUnhookDriverFromNameToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
+            this.hookUnhookDriverFromNameToolStripMenuItem.Text = "Hook / Unhook Driver from Name";
+            this.hookUnhookDriverFromNameToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverFromNameToolStripMenuItem_Click);
+            // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -264,13 +274,6 @@
             this.DumpToFileBtn.TabIndex = 11;
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
-            // 
-            // hookUnhookDriverFromNameToolStripMenuItem
-            // 
-            this.hookUnhookDriverFromNameToolStripMenuItem.Name = "hookUnhookDriverFromNameToolStripMenuItem";
-            this.hookUnhookDriverFromNameToolStripMenuItem.Size = new System.Drawing.Size(254, 22);
-            this.hookUnhookDriverFromNameToolStripMenuItem.Text = "Hook / Unhook Driver from Name";
-            this.hookUnhookDriverFromNameToolStripMenuItem.Click += new System.EventHandler(this.hookUnhookDriverFromNameToolStripMenuItem_Click);
             // 
             // Form1
             // 
