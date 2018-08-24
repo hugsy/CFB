@@ -238,8 +238,7 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
 	BOOLEAN Found = FALSE;
 	NTSTATUS Status;
-	PIO_STACK_LOCATION Stack;
-
+	
 	while (curDriver)
 	{
 		if (curDriver->DriverObject == DeviceObject->DriverObject)
@@ -268,8 +267,8 @@ NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	//
 	// Push the message to the named pipe
 	//
-	Stack = IoGetCurrentIrpStackLocation(Irp);
-	Status = HandleInterceptedIrp(curDriver, Irp, Stack);
+
+	Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
 
 	CfbDbgPrintOk(L"HandleInterceptedIrp() returned 0x%X\n", Status);
 

@@ -59,7 +59,6 @@ namespace Fuzzer
         private void Form1_Load(object sender, EventArgs e)
         {
             InitCfbContext();
-            ShowIrpBtn.Enabled = true;
         }
 
 
@@ -202,21 +201,21 @@ namespace Fuzzer
             if (selectedCellCount == 1)
             {
                 var CurrentCell = IrpDataView.SelectedCells[0];
-                var Index = CurrentCell.RowIndex;
-                var Irp = CfbReader.Irps[Index];
+                var Irp = CfbReader.Irps[CurrentCell.RowIndex];
 
-                SaveFileDialog saveFileDialog1 = new SaveFileDialog
+                SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
                     Filter = "Raw|*.raw",
                     Title = "Save IRP body to file"
                 };
-                saveFileDialog1.ShowDialog();
+                saveFileDialog.ShowDialog();
 
-                if (saveFileDialog1.FileName != "")
+                if (saveFileDialog.FileName != "")
                 {
-                    System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+                    System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog.OpenFile();
                     fs.Write(Irp.Body, 0, Irp.Body.Length);
                     fs.Close();
+                    Log($"Saved as '{saveFileDialog.FileName:s}'");
                 }
             }
         }
@@ -232,6 +231,7 @@ namespace Fuzzer
                 ldForm.Show();
             }
         }
+
 
         private void hookUnhookDriverFromNameToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -257,15 +257,78 @@ namespace Fuzzer
             {
                 ShowIrpBtn.Enabled = true;
                 DumpToFileBtn.Enabled = true;
+                SaveForReplayBtn.Enabled = true;
             }
             else
             {
                 ShowIrpBtn.Enabled = false;
                 DumpToFileBtn.Enabled = false;
+                SaveForReplayBtn.Enabled = false;
             }
             return;
         }
 
+        private void SaveForReplayBtn_Click(object sender, EventArgs e)
+        {
+            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
+            if (selectedCellCount == 1)
+            {
+                var CurrentCell = IrpDataView.SelectedCells[0];
+                var Irp = CfbReader.Irps[CurrentCell.RowIndex];
 
+                SaveFileDialog saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "Python|*.py",
+                    Title = "Save IRP body to file"
+                };
+                saveFileDialog.ShowDialog();
+
+                if (saveFileDialog.FileName != "")
+                {
+                    string IrpDataStr = "";
+                    foreach( byte c in Irp.Body )
+                    {
+                        IrpDataStr += $"\\x{c:X2}";
+                    }
+
+                    string PythonReplayTemplate = 
+$@"
+#import ctypes, os, struct, sys, win32con
+from ctypes import *
+#from ctypes.wintypes import *
+#from win32com.shell import shell
+
+ntdll = windll.ntdll
+kernel32 = windll.kernel32
+
+GENERIC_READ  = 0x80000000
+GENERIC_WRITE = 0x40000000
+OPEN_EXISTING = 0x03
+
+def KdPrint(message):
+    print(message)
+    kernel32.OutputDebugStringA(message + '\n')
+    return
+
+def Trigger():
+    lpIrpData = '{IrpDataStr:s}'
+    dwBytesReturned = c_uint32()
+    hDriver = kernel32.CreateFileA(r'''{Irp.DeviceName:s}''', GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None)
+    KdPrint(r'Opened handle to device {Irp.DeviceName:s}')
+    kernel32.DeviceIoControl(hDriver, 0x{Irp.Header.IoctlCode:x}, lpIrpData, len(lpIrpData), None, 0, byref(dwBytesReturned), None)
+    KdPrint('Sent {Irp.Header.BufferLength:d} Bytes to IOCTL #{Irp.Header.IoctlCode:x}')
+    kernel32.CloseHandle(hDriver)
+    KdPrint(r'Closed handle to {Irp.DriverName:s}')
+    return 
+
+if __name__ == '__main__':
+    Trigger()
+";
+                    System.IO.File.WriteAllText(saveFileDialog.FileName, PythonReplayTemplate);
+
+                    Log($"Saved as '{saveFileDialog.FileName:s}'");
+                }
+            }
+        }
     }
 }

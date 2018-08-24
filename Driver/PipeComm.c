@@ -103,7 +103,7 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 
 
 --*/
-NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, IN WCHAR* lpDriverName, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, IN WCHAR* lpDriverName, IN WCHAR* lpDeviceName, OUT PSNIFFED_DATA *pMessage)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -121,9 +121,13 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 
 	RtlSecureZeroMemory( pMsgHeader, sizeof( SNIFFED_DATA_HEADER ) );
 
-	size_t szDriverNameLength= wcslen( lpDriverName );
-	szDriverNameLength=szDriverNameLength > HOOKED_DRIVER_MAX_NAME_LEN ? HOOKED_DRIVER_MAX_NAME_LEN : szDriverNameLength + 1;
+	size_t szDriverNameLength = wcslen( lpDriverName );
+	szDriverNameLength=szDriverNameLength > MAX_PATH ? MAX_PATH : szDriverNameLength + 1;
 	
+	size_t szDeviceNameLength = wcslen( lpDeviceName );
+	szDeviceNameLength = szDeviceNameLength > MAX_PATH ? MAX_PATH : szDeviceNameLength + 1;
+
+
 	//
 	// create and fill the header structure
 	//
@@ -135,7 +139,9 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
 	pMsgHeader->IoctlCode = IoctlCode;
+
 	wcscpy_s( pMsgHeader->DriverName, szDriverNameLength, lpDriverName );
+	wcscpy_s( pMsgHeader->DeviceName, szDeviceNameLength, lpDeviceName );
 
 
 	//
@@ -172,16 +178,15 @@ from the IRP packet (depending on its method), and build a SNIFFED_DATA packet t
 written back to the userland client.
 
 --*/
-NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PIRP Irp, IN PIO_STACK_LOCATION Stack)
+NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp)
 {
-
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 	UINT32 Pid, Tid = 0;
 	PVOID IrpExtractedData;
 	ULONG IrpExtractedDataLength = 0;
 	UINT32 IoctlCode = 0;
 	PSNIFFED_DATA pMessage = NULL;
-
+	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
 
 	Status = GetDataFromIrp(Irp, Stack, &IrpExtractedData);
 
@@ -201,10 +206,19 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PIRP Irp, IN PIO_STAC
 		CfbHexDump( IrpExtractedData, IrpExtractedDataLength > 0x40 ? 0x40 : IrpExtractedDataLength );
 	}
 	
+	WCHAR DeviceName[MAX_PATH] = { 0, };
+
+	Status = GetDeviceNameFromDeviceObject( pDeviceObject, DeviceName, MAX_PATH );
+
+	if ( !NT_SUCCESS( Status ) )
+	{
+		CfbDbgPrintWarn( L"GetDeviceName() failed, Status=0x%#x... Using empty string\n", Status );
+	}
 
 	IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
 	Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
 	Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
+
 
 	Status = PreparePipeMessage(
 		Pid, 
@@ -213,6 +227,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PIRP Irp, IN PIO_STAC
 		IrpExtractedData, 
 		IrpExtractedDataLength, 
 		Driver->Name,
+		DeviceName,
 		&pMessage
 	);
 

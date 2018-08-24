@@ -52,6 +52,7 @@
             this.UnloadDriverBtn = new System.Windows.Forms.Button();
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
+            this.SaveForReplayBtn = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -277,12 +278,25 @@
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
             this.DumpToFileBtn.Click += new System.EventHandler(this.DumpToFileBtn_Click);
             // 
+            // SaveForReplayBtn
+            // 
+            this.SaveForReplayBtn.Enabled = false;
+            this.SaveForReplayBtn.Location = new System.Drawing.Point(792, 274);
+            this.SaveForReplayBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.SaveForReplayBtn.Name = "SaveForReplayBtn";
+            this.SaveForReplayBtn.Size = new System.Drawing.Size(95, 36);
+            this.SaveForReplayBtn.TabIndex = 12;
+            this.SaveForReplayBtn.Text = "Save for Replay";
+            this.SaveForReplayBtn.UseVisualStyleBackColor = true;
+            this.SaveForReplayBtn.Click += new System.EventHandler(this.SaveForReplayBtn_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(914, 603);
+            this.Controls.Add(this.SaveForReplayBtn);
             this.Controls.Add(this.DumpToFileBtn);
             this.Controls.Add(this.ShowIrpBtn);
             this.Controls.Add(this.UnloadDriverBtn);
@@ -336,6 +350,7 @@
         private System.Windows.Forms.Button DumpToFileBtn;
         private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverFromNameToolStripMenuItem;
+        private System.Windows.Forms.Button SaveForReplayBtn;
     }
 }
 

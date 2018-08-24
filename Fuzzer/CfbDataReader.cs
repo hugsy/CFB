@@ -54,13 +54,14 @@ namespace Fuzzer
         {
             Messages = new DataTable("IrpData");
             Messages.Columns.Add("TimeStamp", typeof(DateTime));
-            Messages.Columns.Add("Irql", typeof(string));
+            Messages.Columns.Add("IrqLevel", typeof(string));
             Messages.Columns.Add("IoctlCode", typeof(string));
             Messages.Columns.Add("ProcessId", typeof(UInt32));
             Messages.Columns.Add("ProcessName", typeof(string));
             Messages.Columns.Add("ThreadId", typeof(UInt32));
             Messages.Columns.Add("BufferLength", typeof(UInt32));
             Messages.Columns.Add("DriverName", typeof(string));
+            Messages.Columns.Add("DeviceName", typeof(string));
             Messages.Columns.Add("Buffer", typeof(string));
 
             RootForm = f;
@@ -177,14 +178,6 @@ namespace Fuzzer
                     throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) while querying message: GetLastError()=0x{ErrNo:x}");
                 }
 
-                /*
-                ErrNo = Marshal.GetLastWin32Error();
-                if (ErrNo != 0x7A) // ERROR_INSUFFICIENT_BUFFER
-                {
-                    throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) failed unexpectedly: GetLastError()=0x{ErrNo:x}");
-                }
-                */
-
                 dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
                 
                 if (dwNumberOfByteRead == 0)
@@ -226,15 +219,21 @@ namespace Fuzzer
             // And convert it to managed code
             //
 
+            char[] charsToTrim = { '\0' };
+
             // header
             CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
 
             // driver name
             byte[] DriverNameBytes = new byte[2*0x104];
             Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(CfbMessageHeader)), DriverNameBytes, 0, DriverNameBytes.Length);
-            char[] charsToTrim = { '\0' };
             string DriverName = System.Text.Encoding.Unicode.GetString(DriverNameBytes).Trim(charsToTrim);
-            
+
+            // driver name
+            byte[] DeviceNameBytes = new byte[2*0x104];
+            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(CfbMessageHeader)) + DriverNameBytes.Length, DeviceNameBytes, 0, DeviceNameBytes.Length);
+            string DeviceName = System.Text.Encoding.Unicode.GetString(DeviceNameBytes).Trim(charsToTrim);
+
             // body          
             byte[] Body = new byte[Header.BufferLength];
             Marshal.Copy(RawMessage + HeaderSize, Body, 0, Convert.ToInt32(Header.BufferLength));
@@ -250,6 +249,7 @@ namespace Fuzzer
             {
                 Header = Header,
                 DriverName = DriverName,
+                DeviceName = DeviceName,
                 Body = Body
             };
         }
@@ -296,13 +296,14 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        "0x" + irp.Header.Irql.ToString("x2"),
+                        IrlqToHuman(irp.Header.Irql),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
                         irp.Header.ProcessId,
                         GetProcessById(irp.Header.ProcessId),
                         irp.Header.ThreadId,
                         irp.Header.BufferLength,
                         irp.DriverName,
+                        irp.DeviceName,
                         BitConverter.ToString(irp.Body)
                         );
                 }
@@ -312,6 +313,33 @@ namespace Fuzzer
                 RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
             }
 
+        }
+
+        private string IrlqToHuman(byte irql)
+        {
+            string hexvalue = "0x" + irql.ToString("x2");
+            string strvalue = "";
+
+            switch (irql)
+            {
+                case 0:
+                    strvalue = "PASSIVE_LEVEL";
+                    break;
+
+                case 1:
+                    strvalue = "APC_LEVEL";
+                    break;
+
+                case 2:
+                    strvalue = "DPC_LEVEL";
+                    break;
+
+                default:
+                    strvalue = "??";
+                    break;   
+            }
+
+            return $"{strvalue:s} ({hexvalue:s})" ;
         }
 
 

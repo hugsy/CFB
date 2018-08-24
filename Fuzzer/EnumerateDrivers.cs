@@ -2,6 +2,7 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using Microsoft.Win32.SafeHandles;
 
 namespace Fuzzer
 {
@@ -28,7 +29,7 @@ namespace Fuzzer
             int baseNameStringSizeChars
         );
 
-        public static List<Tuple<UIntPtr, String>> GetAllDrivers()
+        public static List<Tuple<UIntPtr, String>> EnumerateAllDeviceDrivers()
         {
             long arraySize;
             UInt32 arraySizeBytes;
@@ -66,84 +67,44 @@ namespace Fuzzer
             return Result;
         }
 
+        
 
-        [StructLayout(LayoutKind.Sequential, Pack = 0)]
-        public unsafe struct UNICODE_STRING
+        public static List<String> EnumerateDirectoryObjects(string RootPath)
         {
-            public ushort Length;
-            public ushort MaximumLength;
-            public char* Buffer;
+            SafeFileHandle Handle;
+            List<String> Res = new List<String>();
 
-        }
+            var ObjAttr = new Win32.OBJECT_ATTRIBUTES(RootPath, Win32.OBJ_CASE_INSENSITIVE);
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct OBJECT_DIRECTORY_INFORMATION
-        {
-            public UNICODE_STRING Name;
-            public UNICODE_STRING TypeName;
-        }
-
-        [StructLayout(LayoutKind.Sequential, Pack = 0)]
-        public unsafe struct OBJECT_ATTRIBUTES
-        {
-            public Int32 Length;
-            public IntPtr RootDirectory;
-            public void* ObjectName;
-            public uint Attributes;
-            public IntPtr SecurityDescriptor;
-            public IntPtr SecurityQualityOfService;
-
-        }
-
-        [DllImport("ntdll.dll")]
-        public static extern int NtOpenDirectoryObject(
-           out IntPtr DirectoryHandle,
-           uint DesiredAccess,
-           ref OBJECT_ATTRIBUTES ObjectAttributes);
-
-        [DllImport("ntdll.dll")]
-        public static unsafe extern int NtQueryDirectoryObject(
-           IntPtr DirectoryHandle,
-           void* Buffer,
-           int Length,
-           bool ReturnSingleEntry,
-           bool RestartScan,
-           ref uint Context,
-           out uint ReturnLength);
-
-        public static unsafe List<String> GetAllDriverObjects()
-        {
-            OBJECT_ATTRIBUTES objAttributes = new OBJECT_ATTRIBUTES();
-            UNICODE_STRING directoryName = new UNICODE_STRING();
-            string DriverPath = "\\driver";
-            var buffer = Marshal.AllocCoTaskMem(1 << 16);
-            var ObjectDirectoryInformation  = (OBJECT_DIRECTORY_INFORMATION*)buffer.ToPointer();
-            var drivers = new List<string>(128);
-            fixed (char* sname = DriverPath)
+            var Status = Win32.NtOpenDirectoryObject(out Handle, Win32.DIRECTORY_QUERY | Win32.DIRECTORY_TRAVERSE, ref ObjAttr);
+            if (Status != 0)
             {
-                directoryName.Buffer = sname;
-                directoryName.Length = (ushort)(DriverPath.Length*2);
+                return Res;
+            }
+                
 
-                objAttributes.Length = sizeof(OBJECT_ATTRIBUTES);
-                objAttributes.ObjectName = &directoryName;
-                objAttributes.Attributes = 0x40;
-                if (0 == NtOpenDirectoryObject(out var hDirectory, 3, ref objAttributes))
+            int RawBufferSize = 128*1024;
+            IntPtr RawBuffer = Marshal.AllocHGlobal(RawBufferSize);
+            int ObjDirInfoStructSize = Marshal.SizeOf(typeof(Win32.OBJECT_DIRECTORY_INFORMATION));
+            uint Context = 0;
+
+            Status = Win32.NtQueryDirectoryObject(Handle, RawBuffer, RawBufferSize, false, true, ref Context, out uint ReturnLength);
+            if (Status == 0)
+            {             
+                for (int i = 0; i < Context; i++)
                 {
-                    var first = true;
-                    uint index = 0;
-                    var status = NtQueryDirectoryObject(hDirectory, ObjectDirectoryInformation , 1 << 16, false, first, ref index, out var returned);
-                    if (status == 0)
-                    {
-                        for (int i = 0; i < index; i++)
-                        {
-                            drivers.Add(new string(ObjectDirectoryInformation[i].Name.Buffer));
-                        }
-                    }
+                    IntPtr Addr = RawBuffer + i*ObjDirInfoStructSize;
+                    var ObjectDirectoryInformation = (Win32.OBJECT_DIRECTORY_INFORMATION)Marshal.PtrToStructure(Addr, typeof(Win32.OBJECT_DIRECTORY_INFORMATION));
+                    Res.Add(ObjectDirectoryInformation.Name.ToString());
                 }
             }
-            Marshal.FreeCoTaskMem(buffer);
-            return drivers;
+
+            Marshal.FreeHGlobal(RawBuffer);
+            Handle.Dispose();
+
+            return Res;
         }
+
 
     }
 }

@@ -23,13 +23,16 @@ namespace Fuzzer
 
             LoadedDrivers = new List<String>();
             DriverDataTable = new DataTable();
-            DriverDataTable.Columns.Add("DevicePath", typeof(String));
+            DriverDataTable.Columns.Add("DriverPath", typeof(String));
 
             LoadedDriverGridView.DataSource = DriverDataTable;
-            var CheckboxColumn = new DataGridViewCheckBoxColumn();
-            CheckboxColumn.HeaderText = "Hooked ?";
+            var CheckboxColumn = new DataGridViewCheckBoxColumn()
+            {
+                HeaderText = "Hooked ?"
+            };
+
             LoadedDriverGridView.Columns.Insert(0, CheckboxColumn);
-            LoadedDriverGridView.Columns["DevicePath"].ReadOnly = true;
+            LoadedDriverGridView.Columns["DriverPath"].ReadOnly = true;
 
             RefreshDriverList();
         }
@@ -38,11 +41,12 @@ namespace Fuzzer
         {
             DriverDataTable.Clear();
 
-            foreach (var DevicePath in EnumerateDrivers.GetAllDriverObjects())
+            string RootPath = "\\driver";
+
+            foreach (var DevicePath in EnumerateDrivers.EnumerateDirectoryObjects(RootPath))
             {
                 DataRow row = DriverDataTable.NewRow();
-                row["DevicePath"] = "\\driver\\" + DevicePath;
-
+                row["DriverPath"] = RootPath + "\\" + DevicePath;
                 DriverDataTable.Rows.Add(row);
             }
 
@@ -50,6 +54,7 @@ namespace Fuzzer
             {
                 row.Cells[0].Value = LoadedDrivers.Contains(row.Cells[1].Value.ToString());
             }
+
         }
 
 

@@ -24,7 +24,10 @@
 #define CFB_PIPE_INBUFLEN			4096  //TODO : adjust
 #define CFB_PIPE_OUTBUFLEN			4096  //TODO : adjust
 
-#define HOOKED_DRIVER_MAX_NAME_LEN	0x104
+#ifndef MAX_PATH
+#define MAX_PATH                    0x104
+#endif
+#define HOOKED_DRIVER_MAX_NAME_LEN	MAX_PATH
 
 
 #ifdef _DEBUG
@@ -62,7 +65,7 @@ typedef enum
 typedef struct __hooked_driver_info
 {
 	BOOLEAN Enabled;
-	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
+	WCHAR Name[MAX_PATH];
 }
 HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
 
@@ -75,7 +78,8 @@ typedef struct __sniffed_data_header_t
 	UINT32 Pid;
 	UINT32 Tid;
 	UINT32 BufferLength;
-	WCHAR DriverName[HOOKED_DRIVER_MAX_NAME_LEN];
+	WCHAR DriverName[MAX_PATH];
+	WCHAR DeviceName[MAX_PATH];
 }
 SNIFFED_DATA_HEADER, *PSNIFFED_DATA_HEADER;
 

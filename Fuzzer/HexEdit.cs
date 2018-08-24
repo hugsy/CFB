@@ -22,7 +22,8 @@ using System.Text;
 using System.Windows.Forms;
 using System.Data;
 using System.Runtime.InteropServices;
-using Win32API;
+
+using Fuzzer;
 
 namespace HexEdit
 {
@@ -189,7 +190,7 @@ namespace HexEdit
             get
             {
                 Point pt = Point.Empty;
-                Win32API.Window.GetCaretPos(ref pt);
+                Win32Window.GetCaretPos(ref pt);
                 return pt;
             }
         }
@@ -210,7 +211,7 @@ namespace HexEdit
         ///
         public int LineIndex(int iLine)
         {
-            return (int)Win32API.Window.SendMessage(new HandleRef(this, Handle), EM_LINEINDEX, iLine, 0);
+            return (int)Win32Window.SendMessage(new HandleRef(this, Handle), EM_LINEINDEX, iLine, 0);
         }
 
         /*
