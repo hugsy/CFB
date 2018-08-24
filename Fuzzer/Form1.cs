@@ -184,12 +184,16 @@ namespace Fuzzer
 
         private void ShowIrpBtn_Click(object sender, EventArgs e)
         {
-            // todo: collect Data from selected IRP row
-            var Data = new byte[0x100];
-            for (var i = 0; i < Data.Length; i++) Data[i] = 0x42;
+            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
+            if (selectedCellCount == 1)
+            {
+                var CurrentCell = IrpDataView.SelectedCells[0];
+                var Index = CurrentCell.RowIndex;
+                var Irp = CfbReader.Irps[Index];
 
-            HexViewerForm hvForm = new HexViewerForm(42, 1337, Data);
-            hvForm.Show();
+                HexViewerForm hvForm = new HexViewerForm(Index, Irp);
+                hvForm.Show();
+            }
         }
 
 
@@ -199,6 +203,7 @@ namespace Fuzzer
 
             if (fc == null || fc.Visible == false)
             {
+                ldForm.RefreshDriverList();
                 ldForm.Show();
             }
         }
@@ -216,6 +221,23 @@ namespace Fuzzer
             }
 
             Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
+        }
+
+
+        private void IrpDataView_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
+            if (selectedCellCount == 1)
+            {
+                ShowIrpBtn.Enabled = true;
+                DumpToFileBtn.Enabled = true;
+            }
+            else
+            {
+                ShowIrpBtn.Enabled = false;
+                DumpToFileBtn.Enabled = false;
+            }
+            return;
         }
     }
 }

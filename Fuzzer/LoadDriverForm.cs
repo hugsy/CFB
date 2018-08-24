@@ -34,7 +34,7 @@ namespace Fuzzer
             RefreshDriverList();
         }
 
-        private void RefreshDriverList()
+        public void RefreshDriverList()
         {
             DriverDataTable.Clear();
 
@@ -46,12 +46,10 @@ namespace Fuzzer
                 DriverDataTable.Rows.Add(row);
             }
 
-
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {
                 row.Cells[0].Value = LoadedDrivers.Contains(row.Cells[1].Value.ToString());
             }
-
         }
 
 

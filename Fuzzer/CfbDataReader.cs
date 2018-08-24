@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 using System.Data;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
-using System.Text;
+
 
 namespace Fuzzer
 {
-    class CfbDataReader
+    public class CfbDataReader
     {
         /// <summary>
         /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
@@ -30,23 +30,12 @@ namespace Fuzzer
         }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public struct IRP
-        {
-            public CfbMessageHeader Header;
-            public string DriverName;
-            public byte[] Body;
-        }
-
-
         public DataTable Messages;
         private Thread MessageCollectorThread, MessageDisplayThread;
-        private BlockingCollection<IRP> NewIrpQueue;
+        private BlockingCollection<Irp> NewIrpQueue;
         private bool doLoop;
         private Form1 RootForm;
-        private List<IRP> Irps;
+        public List<Irp> Irps;
 
 
         public bool IsThreadRunning
@@ -76,8 +65,8 @@ namespace Fuzzer
 
             RootForm = f;
             doLoop = false;
-            Irps = new List<IRP>();
-            NewIrpQueue = new BlockingCollection<IRP>();
+            Irps = new List<Irp>();
+            NewIrpQueue = new BlockingCollection<Irp>();
         }
 
 
@@ -158,7 +147,7 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
-        private IRP ReadMessage()
+        private Irp ReadMessage()
         {
             int HeaderSize;
             int ErrNo;
@@ -255,9 +244,9 @@ namespace Fuzzer
             Marshal.FreeHGlobal(RawMessage);
 
 
-            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} from driver '{DriverName:s}' to PID={Header.ProcessId:d},TID={Header.ThreadId:d}, {Header.BufferLength:d} bytes of data");
+            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} by '{DriverName:s}' from (PID={Header.ProcessId:d},TID={Header.ThreadId:d}), BodyLen={Header.BufferLength:d}B");
 
-            return new IRP
+            return new Irp
             {
                 Header = Header,
                 DriverName = DriverName,
@@ -303,24 +292,18 @@ namespace Fuzzer
             {
                 while (doLoop)
                 {
-                    IRP Irp = NewIrpQueue.Take();
-                    var Body = "";
-
-                    foreach (byte b in Irp.Body)
-                    {
-                        Body += $"{b:x2} ";
-                    }
+                    Irp irp = NewIrpQueue.Take();
 
                     Messages.Rows.Add(
-                        DateTime.FromFileTime((long)Irp.Header.TimeStamp),
-                        "0x" + Irp.Header.Irql.ToString("x2"),
-                        "0x" + Irp.Header.IoctlCode.ToString("x8"),
-                        Irp.Header.ProcessId,
-                        GetProcessById(Irp.Header.ProcessId),
-                        Irp.Header.ThreadId,
-                        Irp.Header.BufferLength,
-                        Irp.DriverName,
-                        Body
+                        DateTime.FromFileTime((long)irp.Header.TimeStamp),
+                        "0x" + irp.Header.Irql.ToString("x2"),
+                        "0x" + irp.Header.IoctlCode.ToString("x8"),
+                        irp.Header.ProcessId,
+                        GetProcessById(irp.Header.ProcessId),
+                        irp.Header.ThreadId,
+                        irp.Header.BufferLength,
+                        irp.DriverName,
+                        BitConverter.ToString(irp.Body)
                         );
                 }
             }

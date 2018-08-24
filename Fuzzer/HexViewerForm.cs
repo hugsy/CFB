@@ -28,12 +28,12 @@ namespace Fuzzer
         }
 
 
-        public HexViewerForm(int IrpNumber, int IoctlNumer, byte[] Data)
+        public HexViewerForm(int Index, Irp irp)
         {
             InitializeComponent();
 
-            this.Text = String.Format("HexViewer for IRP #{0:d} (IoctlNumber={1:d})", IrpNumber, IoctlNumer);
-            m_abyData = Data;
+            this.Text = String.Format("HexViewer for IRP #{0:d} (IoctlNumber={1:d})", Index, irp.Header.IoctlCode);
+            m_abyData = irp.Body;
         }
 
 

@@ -134,6 +134,7 @@
             this.IrpDataView.RowTemplate.Height = 28;
             this.IrpDataView.Size = new System.Drawing.Size(745, 377);
             this.IrpDataView.TabIndex = 3;
+            this.IrpDataView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.IrpDataView_CellContentClick);
             // 
             // IrpTimeStamp
             // 

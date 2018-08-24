@@ -69,6 +69,7 @@
     <Compile Include="HexViewerForm.Designer.cs">
       <DependentUpon>HexViewerForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Irp.cs" />
     <Compile Include="LoadDriverForm.cs">
       <SubType>Form</SubType>
     </Compile>
