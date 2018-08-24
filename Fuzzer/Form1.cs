@@ -196,6 +196,31 @@ namespace Fuzzer
             }
         }
 
+        private void DumpToFileBtn_Click(object sender, EventArgs e)
+        {
+            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
+            if (selectedCellCount == 1)
+            {
+                var CurrentCell = IrpDataView.SelectedCells[0];
+                var Index = CurrentCell.RowIndex;
+                var Irp = CfbReader.Irps[Index];
+
+                SaveFileDialog saveFileDialog1 = new SaveFileDialog
+                {
+                    Filter = "Raw|*.raw",
+                    Title = "Save IRP body to file"
+                };
+                saveFileDialog1.ShowDialog();
+
+                if (saveFileDialog1.FileName != "")
+                {
+                    System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog1.OpenFile();
+                    fs.Write(Irp.Body, 0, Irp.Body.Length);
+                    fs.Close();
+                }
+            }
+        }
+
 
         private void hookUnhookDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -224,6 +249,7 @@ namespace Fuzzer
         }
 
 
+
         private void IrpDataView_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
@@ -239,5 +265,7 @@ namespace Fuzzer
             }
             return;
         }
+
+
     }
 }

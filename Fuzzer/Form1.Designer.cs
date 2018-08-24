@@ -275,6 +275,7 @@
             this.DumpToFileBtn.TabIndex = 11;
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
+            this.DumpToFileBtn.Click += new System.EventHandler(this.DumpToFileBtn_Click);
             // 
             // Form1
             // 
