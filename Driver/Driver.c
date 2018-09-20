@@ -144,6 +144,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	}
 
 	g_HookedDriversHead = NULL;
+	g_EventNotificationPointer = NULL;
 
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
@@ -292,6 +293,15 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 
 	CfbDbgPrint(L"Unloading %s\n", CFB_PROGRAM_NAME_SHORT);
 
+	//
+	// Disable events
+	//
+	if ( g_EventNotificationPointer )
+	{
+		ObDereferenceObject( g_EventNotificationPointer );
+		g_EventNotificationPointer = NULL;
+	}
+
 
 	//
 	// Unlink all HookedDrivers left
@@ -389,7 +399,13 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 	case IOCTL_GetDriverInfo:
 		CfbDbgPrintInfo(L"Received 'IoctlGetDriverInfo'\n");
-		Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack);
+		Status = HandleIoGetDriverInfo( Irp, CurrentStack );
+		break;
+
+
+	case IOCTL_SetEventPointer:
+		CfbDbgPrintInfo( L"Received 'IoctlSetEventPointer'\n" );
+		Status = HandleIoSetEventPointer(Irp, CurrentStack);
 		break;
 
 

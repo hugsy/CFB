@@ -1,248 +1,78 @@
-/*
-***************************************************************************
-**
-** Module: HexEdit.cs
-**
-** Description:
-** CopyRight INCO - Howard Glenn Inman
-**
-** Revision History:
-** ------------------------------------------------------------------------
-** Date        Name         Reason
-** 6/24/2005    HGI          Initial Creation
-**
-**
-**
-*/
 using System;
 using System.Drawing;
-using System.Collections;
-using System.ComponentModel;
 using System.Text;
 using System.Windows.Forms;
-using System.Data;
 using System.Runtime.InteropServices;
 
 using Fuzzer;
 
 namespace HexEdit
 {
-    /*
-    ***************************************************************************
-    **
-    ** Class: HexEditBase
-    **
-    */
-    ///<summary>
-    /// Base class for the Hex Edit Pair of boxes
-    ///</summary>
-    ///<remarks>
-    ///</remarks>
-    ///
     public class HexEditBase : RichTextBox
     {
-        /*
-        ** Local Variables
-        */
-        ///<summary>Flag to prevent linked update</summary>
         protected bool              m_bNoUpdate         = false;  // Control the Updates between windows
-
-        ///<summary>The Controls Contect Menu</summary>
         protected ContextMenu       m_menuContext       = null;
-
-        /*
-        ** Constants
-        */
-        ///<summary>Constants for Line Index - SDK Call</summary>
         protected const int EM_LINEINDEX        = 0xbb;
-
-        ///<summary>Constants for Line From Char - SDK Call</summary>
         protected const int EM_LINEFROMCHAR     = 0xc9;
-
-        ///<summary>Constants for Get Selection - SDK Call</summary>
         protected const int EM_GETSEL           = 0xb0;
 
-        /*
-        ** Definitions from the Outer World
-        */
-
-        /*
-        ***************************************************************************
-        **
-        ** Class: CharPosition
-        **
-        */
-        ///<summary>
-        /// A class the contains the line and character position in the bxo
-        ///</summary>
-        ///<remarks>
-        ///</remarks>
-        ///
         public class CharPosition
         {
-            /*
-            ** Local Variables
-            */
-            ///<summary>Current Line Position</summary>
             protected int m_iLine   = 0;
-
-            ///<summary>Current Character Position</summary>
             protected int m_iChar   = 0;
 
-            /*
-            ***************************************************************************
-            **
-            ** Function: CharPosition
-            */
-            ///<summary>
-            /// Default empty constructor
-            ///</summary>
-            ///<returns>void</returns>
-            ///
             public CharPosition()
             {
             }
 
-            /*
-            ***************************************************************************
-            **
-            ** Function: CharPosition
-            */
-            ///<summary>
-            /// Constructor that sets the Line and Char position
-            ///</summary>
-            ///<param name="iLine" type="int">Line position to create with</param>
-            ///<param name="iChar" type="int">Character position to create with</param>
-            ///<returns>void</returns>
-            ///
+
             public CharPosition(int iLine, int iChar)
             {
                 LinePos = iLine;
                 CharPos = iChar;
             }
 
-            /*
-            ***************************************************************************
-            **
-            ** Property(int): LinePos
-            */
-            ///<summary>
-            /// Line Position
-            ///</summary>
-            ///<value>
-            ///
-            ///</value>
-            ///
             public int LinePos
             {
                 get{return m_iLine;}
                 set{m_iLine = value;}
             }
 
-            /*
-            ***************************************************************************
-            **
-            ** Property(int): CharPos
-            */
-            ///<summary>
-            /// Character Position
-            ///</summary>
-            ///<value>
-            ///
-            ///</value>
-            ///
             public int CharPos
             {
                 get{return m_iChar;}
                 set{m_iChar = value;}
             }
 
-            /*
-            ***************************************************************************
-            **
-            ** Function: ToString
-            */
-            ///<summary>
-            /// Convert the Object to a string
-            ///</summary>
-            ///<returns>string</returns>
-            ///
             public override string ToString()
             {
                 return(String.Format("{{L={0}, C={1}}}", LinePos, CharPos));
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Property(System.Drawing.Point): CaretPosition
-        */
-        ///<summary>
-        /// Get the Caret Position
-        ///</summary>
-        ///<value>
-        ///
-        ///</value>
-        ///
+
         public Point CaretPosition
         {
             get
             {
                 Point pt = Point.Empty;
-                Win32Window.GetCaretPos(ref pt);
                 return pt;
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: LineIndex
-        */
-        ///<summary>
-        ///The return value is the number of characters that
-        ///precede the first character in the line containing
-        ///the caret.
-        ///
-        ///</summary>
-        ///<param name="iLine" type="int">line to get the Caracters to</param>
-        ///<returns>int - Number of characters to the beginning of iLine</returns>
-        ///
+
         public int LineIndex(int iLine)
         {
             return (int)Win32Window.SendMessage(new HandleRef(this, Handle), EM_LINEINDEX, iLine, 0);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: LineIndex
-        */
-        ///<summary>
-        ///Send the EM_LINEINDEX message with the value of -1
-        ///in wParam.
-        ///
-        ///</summary>
-        ///<returns>int</returns>
-        ///
+
         public int LineIndex()
         {
             return LineIndex(-1);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Property(HexEdit.HexEditBase.CharPosition): Position
-        */
-        ///<summary>
-        ///Get the Line Char positions in the buffer
-        ///</summary>
-        ///<value>
-        ///
-        ///</value>
-        ///
+
         public CharPosition Position
         {
             get
@@ -256,19 +86,7 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: GetDisplayChar
-        */
-        ///<summary>
-        ///Get the Display char from a entered char
-        ///this prevents non displayable characters from
-        ///going to the display
-        ///</summary>
-        ///<param name="cData" type="char">character to check</param>
-        ///<returns>char</returns>
-        ///
+
         protected char GetDisplayChar(char cData)
         {
             if(20 > cData)
@@ -279,33 +97,13 @@ namespace HexEdit
             return cData;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: GetDisplayChar
-        */
-        ///<summary>
-        ///<see cref="GetDisplayChar"/>Converts to byte to char before doing the
-        ///display filtering
-        ///</summary>
-        ///<param name="byData" type="byte"></param>
-        ///<returns>char</returns>
-        ///
+
         protected char GetDisplayChar(byte byData)
         {
             return GetDisplayChar((char)byData);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: GetFontWidth
-        */
-        ///<summary>
-        /// Return the Font Width, assumes fixed font
-        ///</summary>
-        ///<returns>int - the width of the font</returns>
-        ///
+
         protected int GetFontWidth()
         {
             Graphics    g       = CreateGraphics();
@@ -319,23 +117,7 @@ namespace HexEdit
             return iWidth;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: SetTextTabLocations
-        */
-        ///<summary>
-        ///
-        ///</summary>
-        ///<returns>void</returns>
-        ///<exception cref="System.Exception">Thrown</exception>
-        ///<remarks>
-        ///</remarks>
-        ///<example>How to use this function
-        ///<code>
-        ///</code>
-        ///</example>
-        ///
+
         public void SetTextTabLocations()
         {
             /*
@@ -355,19 +137,7 @@ namespace HexEdit
         }
 
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: HexCtoB
-        */
-        ///<summary>
-        /// Convert a character to its Byte Equivalent
-        ///</summary>
-        ///<param name="cVar" type="char"></param>
-        ///<returns>byte</returns>
-        ///<example>char = A (0x41) returns a byte of A (0xA)
-        ///</example>
-        ///
+
         protected byte HexCtoB(char cVar)
         {
             byte    byRet   = 0;
@@ -384,34 +154,13 @@ namespace HexEdit
             return byRet;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: InitializeComponent
-        */
-        ///<summary>
-        /// This is a overridable function to process any initialization stuff the box
-        /// might need
-        ///</summary>
-        ///<returns>void</returns>
-        ///
+
         virtual public void InitializeComponent()
         {
         }
     }
 
-    /*
-    ***************************************************************************
-    **
-    ** Class: HexEditBox
-    **
-    */
-    ///<summary>
-    ///This is the Hex Edit Box Display
-    ///</summary>
-    ///<remarks>
-    ///</remarks>
-    ///
+
     public class HexEditBox : HexEditBase
     {
         /*
@@ -451,23 +200,6 @@ namespace HexEdit
         protected MenuItem  m_miCopyBytes       = null;
 
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: InitializeComponent
-        */
-        ///<summary>
-        /// This is the custom initialization we set our menu and font here
-        ///</summary>
-        ///<returns>void</returns>
-        ///<exception cref="System.Exception">Thrown</exception>
-        ///<remarks>
-        ///</remarks>
-        ///<example>How to use this function
-        ///<code>
-        ///</code>
-        ///</example>
-        ///
         override public void InitializeComponent()
         {
             /*
@@ -546,18 +278,7 @@ namespace HexEdit
         }
 
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: MenuPopup
-        */
-        ///<summary>
-        ///
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void MenuPopup(object sender, System.EventArgs e)
         {
             /*
@@ -609,52 +330,19 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_SelectAll
-        */
-        ///<summary>
-        ///Select all
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void Menu_SelectAll(object sender, System.EventArgs e)
         {
             SelectAll();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_Copy
-        */
-        ///<summary>
-        /// Process the Copy Menu Item
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void Menu_Copy(object sender, System.EventArgs e)
         {
             Copy();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_CopyASCII
-        */
-        ///<summary>
-        ///
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void Menu_CopyASCII(object sender, System.EventArgs e)
         {
             /*
@@ -684,18 +372,7 @@ namespace HexEdit
             Clipboard.SetDataObject(sbVar.ToString());
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_CopyBytes
-        */
-        ///<summary>
-        /// Process the Menu Copy Bytes (Converts the hex to Asc in the Hex window)
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void Menu_CopyBytes(object sender, System.EventArgs e)
         {
             /*
@@ -724,21 +401,7 @@ namespace HexEdit
             Clipboard.SetDataObject(abyCopy);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_PasteASCII
-        */
-        ///<summary>
-        /// Processes the paste ASCII bytes to the hex winedow
-        ///</summary>
-        ///<remarks>
-        ///This is marked internal so that the linked window can call it
-        ///</remarks>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         internal void Menu_PasteASCII(object sender, System.EventArgs e)
         {
             /*
@@ -786,18 +449,7 @@ namespace HexEdit
             SelectionStart = iSave;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_PasteBytes
-        */
-        ///<summary>
-        ///
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         internal void Menu_PasteBytes(object sender, System.EventArgs e)
         {
             /*
@@ -844,52 +496,20 @@ namespace HexEdit
             SelectionStart = iSave;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: LinkDisplay
-        */
-        ///<summary>
-        /// This allows you to link a 'ASCII Display' to the Hex Window
-        /// So you can see both
-        ///</summary>
-        ///<param name="rtbLink" type="HexEdit.LinkedBox">null to unlink else a LinkedBox</param>
-        ///<returns>void</returns>
-        ///
+
         public void LinkDisplay(LinkedBox rtbLink)
         {
             m_rtbLink = rtbLink;
             m_rtbLink.LinkHex(this);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: GetDisplayForByte
-        */
-        ///<summary>
-        /// Get the Display for a Data Byte
-        ///</summary>
-        ///<param name="byData" type="byte"></param>
-        ///<example>byte = 0x42 = string = "42"
-        ///</example>
-        ///
+
         string GetDisplayForByte(byte byData)
         {
             return string.Format("{0:X2}", byData);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: LoadData
-        */
-        ///<summary>
-        /// Load data into the Hex Box
-        ///</summary>
-        ///<param name="abyData" type="byte[]"></param>
-        ///<returns>void</returns>
-        ///
+
         public void LoadData(byte[] abyData)
         {
             m_abyData = new byte[abyData.Length];
@@ -897,48 +517,20 @@ namespace HexEdit
             UpdateDisplay();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: NewData
-        */
-        ///<summary>
-        ///Create a New Blank Display
-        ///</summary>
-        ///<param name="iSize" type="int"></param>
-        ///<returns>void</returns>
-        ///
+
         public void NewData(int iSize)
         {
             m_abyData = new byte[iSize];
             UpdateDisplay();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Property(byte[]): Array
-        */
-        ///<summary>
-        /// Get the Data that is the current buffer
-        ///</summary>
-        ///
+
         public byte[] ArrayData
         {
             get{return m_abyData;}
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: UpdateDisplay
-        */
-        ///<summary>
-        /// This updates the display with the data that is in abyData
-        /// Can sync up if data has changed in the buffer due to a paste or
-        /// like function
-        ///</summary>
-        ///
+
         public void UpdateDisplay()
         {
             /*
@@ -1032,22 +624,7 @@ namespace HexEdit
             return by1;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnSelectionChange
-        */
-        ///<summary>
-        ///This is our OnSelectionChange Listener
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///<remarks>
-        ///here we can get our current position from selection start
-        ///and if we are on a boundry (00^) then we skip one
-        ///</remarks>
-        ///
+
         protected void OnSelectionChange(object sender, System.EventArgs e)
         {
             if(!m_bSelChangeProcess)
@@ -1075,19 +652,7 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: UpdateChar
-        */
-        ///<summary>
-        /// Updates the character at the Position - Used to sync the
-        /// LinkedBox and this box
-        ///</summary>
-        ///<param name="iPosition" type="int">Position of the Data To Update</param>
-        ///<param name="cData" type="char">Data to Update with</param>
-        ///<returns>void</returns>
-        ///
+
         public void UpdateChar(int iPosition, char cData)
         {
             /*
@@ -1127,18 +692,6 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnResizeBox
-        */
-        ///<summary>
-        ///
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
         protected void OnResizeBox(object sender, System.EventArgs e)
         {
             if(null != m_abyData)
@@ -1147,19 +700,6 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnKeyPress
-        */
-        ///<summary>
-        /// KeyPress Listener Used to allow only the acceptable keys to be entered
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.Windows.Forms.KeyPressEventArgs"></param>
-        ///<returns>void</returns>
-        ///<exception cref="System.Exception">Thrown</exception>
-        ///
         private void OnKeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e)
         {
             /*
@@ -1219,25 +759,7 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnKeyDown
-        */
-        ///<summary>
-        /// KeyPress Listener Used to disallow special keys from working
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.Windows.Forms.KeyEventArgs"></param>
-        ///<returns>void</returns>
-        ///<exception cref="System.Exception">Thrown</exception>
-        ///<remarks>
-        ///</remarks>
-        ///<example>How to use this function
-        ///<code>
-        ///</code>
-        ///</example>
-        ///
+
         protected void OnKeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
             e.Handled = true;
@@ -1295,23 +817,8 @@ namespace HexEdit
         }
     }
 
-    /*
-    ***************************************************************************
-    **
-    ** Class: LinkedBox
-    **
-    */
-    ///<summary>
-    /// This is the Box that links with the hex edit box to show the ASCII
-    ///</summary>
-    ///<remarks>
-    ///</remarks>
-    ///
-    public class LinkedBox : HexEditBase
-    {
-        /*
-        ** Class Local Variables
-        */
+   public class LinkedBox : HexEditBase
+   {
         ///<summary>Length of the Data this box should allow</summary>
         protected int           m_iDataLength       = 0;
 
@@ -1325,16 +832,6 @@ namespace HexEdit
         protected MenuItem      m_miPaste           = null;
 
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: InitializeComponent
-        */
-        ///<summary>
-        /// The Component specific initialization
-        ///</summary>
-        ///<returns>void</returns>
-        ///
         override public void InitializeComponent()
         {
             /*
@@ -1381,35 +878,12 @@ namespace HexEdit
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.OnKeyDown);
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_Copy
-        */
-        ///<summary>
-        /// The Copy Menu Item
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void Menu_Copy(object sender, System.EventArgs e)
         {
             Copy();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: Menu_Paste
-        */
-        ///<summary>
-        /// The Paste Menu Item
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.EventArgs"></param>
-        ///<returns>void</returns>
-        ///
         protected void Menu_Paste(object sender, System.EventArgs e)
         {
             if(null != m_edtHex)
@@ -1433,33 +907,13 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: LinkHex
-        */
-        ///<summary>
-        /// Link the Hex box with this display
-        ///</summary>
-        ///<param name="HexEdit" type="HexEdit.HexEditBox"></param>
-        ///<returns>void</returns>
-        ///
+
         public void LinkHex(HexEditBox HexEdit)
         {
             m_edtHex = HexEdit;
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: UpdateDisplay
-        */
-        ///<summary>
-        /// Update the Box with the Bytes in abyData
-        ///</summary>
-        ///<param name="abyData" type="byte[]">Data to Display</param>
-        ///<returns>void</returns>
-        ///
+
         public void UpdateDisplay(byte[] abyData)
         {
             m_iDataLength = abyData.Length;
@@ -1479,18 +933,7 @@ namespace HexEdit
             Text = sbVar.ToString();
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: UpdateChar
-        */
-        ///<summary>
-        ///Used by the HexBox to update us on character changes
-        ///</summary>
-        ///<param name="iPosition" type="int">Position of Change</param>
-        ///<param name="cData" type="char">Character to Display</param>
-        ///<returns>void</returns>
-        ///
+
         public void UpdateChar(int iPosition, char cData)
         {
             /*
@@ -1510,18 +953,7 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnKeyPress
-        */
-        ///<summary>
-        ///Process the Key Presses, to keep in the window area
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.Windows.Forms.KeyPressEventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         private void OnKeyPress(object sender, System.Windows.Forms.KeyPressEventArgs e)
         {
             /*
@@ -1573,25 +1005,11 @@ namespace HexEdit
             }
         }
 
-        /*
-        ***************************************************************************
-        **
-        ** Function: OnKeyDown
-        */
-        ///<summary>
-        /// To Keep some special keys from being used
-        ///</summary>
-        ///<param name="sender" type="object"></param>
-        ///<param name="e" type="System.Windows.Forms.KeyEventArgs"></param>
-        ///<returns>void</returns>
-        ///
+
         protected void OnKeyDown(object sender, System.Windows.Forms.KeyEventArgs e)
         {
             e.Handled = true;
 
-            /*
-            ** This allows the back arrow to work
-            */
             switch(e.KeyCode)
             {
                 default:

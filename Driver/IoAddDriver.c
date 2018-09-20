@@ -26,14 +26,14 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	RtlInitUnicodeString(&UnicodeName, lpDriverName);
 
 	PDRIVER_OBJECT pDriver;
-	status = ObReferenceObjectByName( /* IN PUNICODE_STRING */ &UnicodeName,
-		/* IN ULONG */ OBJ_CASE_INSENSITIVE,
-		/* IN PACCESS_STATE */ NULL,
-		/* IN ACCESS_MASK */ 0,
-		/* IN POBJECT_TYPE */ *IoDriverObjectType,
-		/* IN KPROCESSOR_MODE */KernelMode,
-		/* IN OUT PVOID */ NULL,
-		/* OUT PVOID* */ (PVOID*)&pDriver);
+	status = ObReferenceObjectByName(/* IN PUNICODE_STRING */ &UnicodeName,
+									/* IN ULONG */ OBJ_CASE_INSENSITIVE,
+									/* IN PACCESS_STATE */ NULL,
+									/* IN ACCESS_MASK */ 0,
+									/* IN POBJECT_TYPE */ *IoDriverObjectType,
+									/* IN KPROCESSOR_MODE */KernelMode,
+									/* IN OUT PVOID */ NULL,
+									/* OUT PVOID* */ (PVOID*)&pDriver);
 
 	if (!NT_SUCCESS(status))
 	{

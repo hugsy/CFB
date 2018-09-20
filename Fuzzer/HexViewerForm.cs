@@ -32,7 +32,7 @@ namespace Fuzzer
         {
             InitializeComponent();
 
-            this.Text = String.Format("HexViewer for IRP #{0:d} (IoctlNumber={1:d})", Index, irp.Header.IoctlCode);
+            this.Text = $"HexViewer for IRP #{Index:d} (IoctlNumber={irp.Header.IoctlCode:d}) to {irp.DeviceName:s}";
             m_abyData = irp.Body;
         }
 
@@ -60,7 +60,7 @@ namespace Fuzzer
             this.m_edtASCII.Name = "m_edtASCII";
             this.m_edtASCII.Size = new System.Drawing.Size(320, 326);
             this.m_edtASCII.TabIndex = 1;
-            this.m_edtASCII.Text = "foo";
+            this.m_edtASCII.Text = "";
             //
             // splitter1
             //

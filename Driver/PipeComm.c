@@ -152,6 +152,8 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	(*pMessage)->Header = pMsgHeader;
 	(*pMessage)->Body = pBody;
 
+	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
+
 	Status = STATUS_SUCCESS;
 
 	return Status;
@@ -161,7 +163,7 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 /*++
 
 --*/
-VOID FreePipeMessage(PSNIFFED_DATA pMessage)
+VOID FreePipeMessage(IN PSNIFFED_DATA pMessage)
 {
 	ExFreePoolWithTag(pMessage->Header, CFB_DEVICE_TAG);
 	ExFreePoolWithTag(pMessage->Body, CFB_DEVICE_TAG);

@@ -168,6 +168,7 @@
     <ClInclude Include="IoctlCodes.h" />
     <ClInclude Include="IoGetDriverInfo.h" />
     <ClInclude Include="IoRemoveDriver.h" />
+    <ClInclude Include="IoSetEventPointer.h" />
     <ClInclude Include="PipeComm.h" />
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Utils.h" />
@@ -178,6 +179,7 @@
     <ClCompile Include="IoAddDriver.c" />
     <ClCompile Include="IoGetDriverInfo.c" />
     <ClCompile Include="IoRemoveDriver.c" />
+    <ClCompile Include="IoSetEventPointer.c" />
     <ClCompile Include="PipeComm.c" />
     <ClCompile Include="Queue.c" />
     <ClCompile Include="Utils.c" />

@@ -5,6 +5,7 @@
 #include "Utils.h"
 #include "Queue.h"
 #include "HookedDrivers.h"
+#include "IoSetEventPointer.h"
 
 
 extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
