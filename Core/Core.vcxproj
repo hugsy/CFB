@@ -153,7 +153,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="client.h" />
     <ClInclude Include="device.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -161,7 +160,6 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="client.c" />
     <ClCompile Include="device.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="stdafx.c" />
