@@ -293,11 +293,14 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 
 	CfbDbgPrint(L"Unloading %s\n", CFB_PROGRAM_NAME_SHORT);
 
+
 	//
 	// Disable events
 	//
+
 	if ( g_EventNotificationPointer )
 	{
+		KeClearEvent( g_EventNotificationPointer );
 		ObDereferenceObject( g_EventNotificationPointer );
 		g_EventNotificationPointer = NULL;
 	}

@@ -25,16 +25,20 @@ namespace Fuzzer
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
-            IrpDataView.DataSource = CfbReader.Messages;
             ldForm = new LoadDriverForm(this);
         }
 
         public void Log(string message)
         {
-            string line = String.Format("[TID={0:d}] {1:s}\n", Thread.CurrentThread.ManagedThreadId, message);
-            LogMutex.WaitOne();
-            LogTextBox.AppendText(line);
-            LogMutex.ReleaseMutex();
+            var thread = new Thread(() =>
+            {
+                string line = String.Format("[TID={0:d}] {1:s}\n", Thread.CurrentThread.ManagedThreadId, message);
+                LogMutex.WaitOne();
+                LogTextBox.AppendText(line);
+                LogMutex.ReleaseMutex();
+            });
+            thread.Start();
+            thread.Join();
         }
 
         private void StartListening()
@@ -108,6 +112,7 @@ namespace Fuzzer
             LoadDriverBtn.Enabled = false;
             StartMonitorBtn.Enabled = true;
             UnloadDriverBtn.Enabled = true;
+       
         }
 
 
@@ -136,7 +141,7 @@ namespace Fuzzer
             StartMonitorBtn.Enabled = false;
             StopMonitorBtn.Enabled = false;
             UnloadDriverBtn.Enabled = false;
-
+            FuzzIrpBtn.Enabled = false;
         }
 
 
@@ -268,6 +273,14 @@ namespace Fuzzer
             return;
         }
 
+
+        private void IrpDataView_Scroll(Object sender, ScrollEventArgs e)
+        {
+        }
+
+
+
+
         private void SaveForReplayBtn_Click(object sender, EventArgs e)
         {
             Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
@@ -313,7 +326,7 @@ def KdPrint(message):
     return
 
 def Trigger():
-    lpIrpData = '{IrpDataStr:s}'
+    lpIrpData = bytearray(b'{IrpDataStr:s}')
     dwBytesReturned = c_uint32()
     hDriver = kernel32.CreateFileA(r'''{DeviceName:s}''', GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None)
     KdPrint(r'Opened handle to device {DeviceName:s}')
@@ -331,6 +344,11 @@ if __name__ == '__main__':
                     Log($"Saved as '{saveFileDialog.FileName:s}'");
                 }
             }
+        }
+
+        private void FuzzIrpBtn_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

@@ -124,7 +124,7 @@ BOOL GetHookedDriverInfo(DWORD dwDriverIndex, PHOOKED_DRIVER_INFO hDrvInfo)
 Send the IO request to add a driver to the hooked list.
 
 --*/
-__declspec(dllexport) BOOL HookDriver(LPWSTR lpDriverName)
+__declspec(dllexport) BOOL HookDriver(IN LPWSTR lpDriverName)
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverNameLen = (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
@@ -148,7 +148,7 @@ __declspec(dllexport) BOOL HookDriver(LPWSTR lpDriverName)
 Send the IO request to remove a driver to the hooked list.
 
 --*/
-__declspec(dllexport) BOOL UnhookDriver(LPWSTR lpDriverName )
+__declspec(dllexport) BOOL UnhookDriver(IN LPWSTR lpDriverName )
 {
 	DWORD dwBytesReturned;
 	DWORD dwDriverNameLen= (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
@@ -161,6 +161,29 @@ __declspec(dllexport) BOOL UnhookDriver(LPWSTR lpDriverName )
 		0,
 		&dwBytesReturned,
 		(LPOVERLAPPED)NULL);
+
+	return bResult;
+}
+
+
+/*++
+
+Send the IO request to send shared event handle to the driver to receive notification
+of new messages.
+
+--*/
+__declspec(dllexport) BOOL SetEventNotificationHandle( IN HANDLE hEvent )
+{
+	DWORD dwBytesReturned;
+
+	BOOL bResult = DeviceIoControl( g_hDevice,
+		IOCTL_SetEventPointer,
+		&hEvent,
+		sizeof(HANDLE),
+		NULL,
+		0,
+		&dwBytesReturned,
+		(LPOVERLAPPED)NULL );
 
 	return bResult;
 }

@@ -45,5 +45,9 @@ namespace Fuzzer
 
         [DllImport(@"Core.dll", SetLastError = true)]
         public static extern bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
+
+        [DllImport(@"Core.dll", SetLastError = true)]
+        public static extern bool SetEventNotificationHandle(IntPtr hEvent);
+
     }
 }

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Data;
+using System.Windows;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 
@@ -36,7 +37,9 @@ namespace Fuzzer
         private bool doLoop;
         private Form1 RootForm;
         public List<Irp> Irps;
-
+        private AutoResetEvent NewMessageEvent;
+        private IntPtr NewMessageEventHandler;
+        private BindingSource bs;
 
         public bool IsThreadRunning
         {
@@ -65,9 +68,17 @@ namespace Fuzzer
             Messages.Columns.Add("Buffer", typeof(string));
 
             RootForm = f;
+
+            bs = new BindingSource();
+            RootForm.IrpDataView.DataSource = bs;
+            bs.DataSource = Messages;
+            bs.ResetBindings(false);
+
             doLoop = false;
             Irps = new List<Irp>();
             NewIrpQueue = new BlockingCollection<Irp>();
+            NewMessageEvent = new AutoResetEvent(false);
+            NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
         }
 
 
@@ -76,22 +87,43 @@ namespace Fuzzer
         /// </summary>
         public void StartClientThread()
         {
-            RootForm.Log("Starting threads...");
+            //
+            // Pass the handler to the C# event to our driver
+            // src: http://www.yoda.arachsys.com/csharp/threads/waithandles.shtml
+            // 
+            
+            RootForm.Log($"Sending {NewMessageEventHandler:x} to driver...");
+            
+            if (Core.SetEventNotificationHandle(NewMessageEventHandler) == false)
+            {
+                int ErrNo = Marshal.GetLastWin32Error();
+                RootForm.Log($"Failed to pass the event handle to the driver, cannot pursue: GetLastError()=0x{ErrNo:x}");
+                return;
+            }
 
-            doLoop = true;
-
+                       
             MessageDisplayThread = new Thread(DisplayMessagesThreadRoutine)
             {
-                Name = "MessageDisplayThread"
+                Name = "MessageDisplayThread",
+                Priority = ThreadPriority.BelowNormal,
+                IsBackground = true
             };
 
             MessageCollectorThread = new Thread(PopMessagesFromDriverThreadRoutine)
             {
-                Name = "MessageCollectorThread"
+                Name = "MessageCollectorThread",
+                Priority = ThreadPriority.BelowNormal,
+                IsBackground = true
             };
-  
+
+
+            RootForm.Log("Starting threads...");
+
             MessageDisplayThread.Start();
             MessageCollectorThread.Start();
+
+            doLoop = true;
+
             RootForm.Log("Threads started!");
         }
 
@@ -114,7 +146,7 @@ namespace Fuzzer
         {
             doLoop = false;
 
-            if (!t.IsAlive || t==null)
+            if (t == null || !t.IsAlive)
                 return;
 
             RootForm.Log($"Ending thread '{t.Name:s}'...");
@@ -156,6 +188,8 @@ namespace Fuzzer
             int dwNumberOfByteRead;
             IntPtr lpdwNumberOfByteRead;
 
+            var handles = new WaitHandle[] { NewMessageEvent, };
+
             //
             // Read the raw header 
             //
@@ -167,9 +201,16 @@ namespace Fuzzer
             //
 
             lpdwNumberOfByteRead =  Marshal.AllocHGlobal(sizeof(int));
-            
-            while(true)
-            { 
+
+
+            //
+            // Wait for and pop one new message
+            //
+            while (true)
+            {
+                WaitHandle.WaitAny(handles);
+                NewMessageEvent.Reset();
+
                 bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
 
                 if (!bResult)
@@ -179,23 +220,18 @@ namespace Fuzzer
                 }
 
                 dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
-                
+
                 if (dwNumberOfByteRead == 0)
-                {
-                    // replace w/ event
-                    System.Threading.Thread.Sleep(5000);
                     continue;
-                }
 
                 RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
 
+                if (dwNumberOfByteRead < HeaderSize)
+                {
+                    throw new Exception($"ReadMessage() - announced size of {dwNumberOfByteRead:x} B is too small");
+                }
+
                 break;
-            }
-
-
-            if (dwNumberOfByteRead < HeaderSize)
-            {
-                throw new Exception($"ReadMessage() - announced size of {dwNumberOfByteRead:x} B is too small");
             }
 
 
@@ -276,8 +312,7 @@ namespace Fuzzer
             }
             catch (Exception Ex)
             {
-                //RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
-                MessageBox.Show(Ex.Message + "\n" + Ex.StackTrace);
+                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
             }
         }
 
@@ -306,6 +341,9 @@ namespace Fuzzer
                         irp.DeviceName,
                         BitConverter.ToString(irp.Body)
                         );
+
+                    RefreshData();
+
                 }
             }
             catch (Exception Ex)
@@ -364,6 +402,14 @@ namespace Fuzzer
 
             return Res;
         }
+
+        private void RefreshData()
+        {
+            bs.ResetBindings(false);
+            RootForm.IrpDataView.FirstDisplayedScrollingRowIndex = RootForm.IrpDataView.RowCount - 1;
+            RootForm.IrpDataView.Refresh();
+        }
+
 
     }
 }

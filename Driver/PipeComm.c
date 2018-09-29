@@ -152,7 +152,10 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	(*pMessage)->Header = pMsgHeader;
 	(*pMessage)->Body = pBody;
 
-	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
+	if ( g_EventNotificationPointer )
+	{
+		KeSetEvent( g_EventNotificationPointer, 2, FALSE );
+	}
 
 	Status = STATUS_SUCCESS;
 

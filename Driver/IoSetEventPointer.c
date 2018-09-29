@@ -23,8 +23,11 @@ NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack )
 		return STATUS_BUFFER_TOO_SMALL;
 	}
 
-	HANDLE hEvent = (HANDLE)Irp->AssociatedIrp.SystemBuffer;
+	PHANDLE pHandle = (PHANDLE)Irp->AssociatedIrp.SystemBuffer;
+	HANDLE hEvent = *pHandle;
 	PKEVENT pKernelNotifEvent;
+
+	CfbDbgPrintInfo( L"HandleIoSetEventPointer() - look up for handle %x\n", hEvent );
 
 	status = ObReferenceObjectByHandle(
 		hEvent,
@@ -49,3 +52,5 @@ NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack )
 	
 	return status;
 }
+
+#pragma auto_inline()

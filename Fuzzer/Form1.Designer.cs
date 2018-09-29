@@ -53,6 +53,7 @@
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
             this.SaveForReplayBtn = new System.Windows.Forms.Button();
+            this.FuzzIrpBtn = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -136,6 +137,7 @@
             this.IrpDataView.Size = new System.Drawing.Size(745, 377);
             this.IrpDataView.TabIndex = 3;
             this.IrpDataView.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.IrpDataView_CellContentClick);
+            
             // 
             // IrpTimeStamp
             // 
@@ -260,7 +262,7 @@
             this.ShowIrpBtn.Location = new System.Drawing.Point(792, 177);
             this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2);
             this.ShowIrpBtn.Name = "ShowIrpBtn";
-            this.ShowIrpBtn.Size = new System.Drawing.Size(95, 36);
+            this.ShowIrpBtn.Size = new System.Drawing.Size(111, 36);
             this.ShowIrpBtn.TabIndex = 10;
             this.ShowIrpBtn.Text = "Show IRP";
             this.ShowIrpBtn.UseVisualStyleBackColor = true;
@@ -272,7 +274,7 @@
             this.DumpToFileBtn.Location = new System.Drawing.Point(792, 224);
             this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2);
             this.DumpToFileBtn.Name = "DumpToFileBtn";
-            this.DumpToFileBtn.Size = new System.Drawing.Size(95, 36);
+            this.DumpToFileBtn.Size = new System.Drawing.Size(111, 36);
             this.DumpToFileBtn.TabIndex = 11;
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
@@ -284,11 +286,23 @@
             this.SaveForReplayBtn.Location = new System.Drawing.Point(792, 274);
             this.SaveForReplayBtn.Margin = new System.Windows.Forms.Padding(2);
             this.SaveForReplayBtn.Name = "SaveForReplayBtn";
-            this.SaveForReplayBtn.Size = new System.Drawing.Size(95, 36);
+            this.SaveForReplayBtn.Size = new System.Drawing.Size(111, 36);
             this.SaveForReplayBtn.TabIndex = 12;
             this.SaveForReplayBtn.Text = "Save for Replay";
             this.SaveForReplayBtn.UseVisualStyleBackColor = true;
             this.SaveForReplayBtn.Click += new System.EventHandler(this.SaveForReplayBtn_Click);
+            // 
+            // FuzzIrpBtn
+            // 
+            this.FuzzIrpBtn.Enabled = false;
+            this.FuzzIrpBtn.Location = new System.Drawing.Point(792, 325);
+            this.FuzzIrpBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.FuzzIrpBtn.Name = "FuzzIrpBtn";
+            this.FuzzIrpBtn.Size = new System.Drawing.Size(111, 36);
+            this.FuzzIrpBtn.TabIndex = 13;
+            this.FuzzIrpBtn.Text = "Fuzz Selected IRP";
+            this.FuzzIrpBtn.UseVisualStyleBackColor = true;
+            this.FuzzIrpBtn.Click += new System.EventHandler(this.FuzzIrpBtn_Click);
             // 
             // Form1
             // 
@@ -296,6 +310,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(914, 603);
+            this.Controls.Add(this.FuzzIrpBtn);
             this.Controls.Add(this.SaveForReplayBtn);
             this.Controls.Add(this.DumpToFileBtn);
             this.Controls.Add(this.ShowIrpBtn);
@@ -331,7 +346,7 @@
         private System.Windows.Forms.Button StopMonitorBtn;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.TextBox LogTextBox;
-        private System.Windows.Forms.DataGridView IrpDataView;
+        public System.Windows.Forms.DataGridView IrpDataView;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpTimeStamp;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpProcessId;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpIoctlCode;
@@ -351,6 +366,7 @@
         private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem hookUnhookDriverFromNameToolStripMenuItem;
         private System.Windows.Forms.Button SaveForReplayBtn;
+        private System.Windows.Forms.Button FuzzIrpBtn;
     }
 }
 
