@@ -326,7 +326,7 @@ def KdPrint(message):
     return
 
 def Trigger():
-    lpIrpData = bytearray(b'{IrpDataStr:s}')
+    lpIrpData = b'{IrpDataStr:s}'
     dwBytesReturned = c_uint32()
     hDriver = kernel32.CreateFileA(r'''{DeviceName:s}''', GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None)
     KdPrint(r'Opened handle to device {DeviceName:s}')
