@@ -15,6 +15,8 @@ typedef struct __hooked_driver
 	UNICODE_STRING UnicodeName;
 	PDRIVER_OBJECT DriverObject;
 	PVOID OldDeviceControlRoutine;
+	PVOID OldReadRoutine;
+	PVOID OldWriteRoutine;
 	struct __hooked_driver *Next;
 }
 HOOKED_DRIVER, *PHOOKED_DRIVER;

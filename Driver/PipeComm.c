@@ -103,7 +103,7 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Buff
 
 
 --*/
-NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, IN WCHAR* lpDriverName, IN WCHAR* lpDeviceName, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, IN PVOID pBody, IN ULONG BodyLen, IN WCHAR* lpDriverName, IN WCHAR* lpDeviceName, IN UINT32 Type, OUT PSNIFFED_DATA *pMessage)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -136,9 +136,11 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	KeQuerySystemTime( &pMsgHeader->TimeStamp );
 	pMsgHeader->Pid = Pid;
 	pMsgHeader->Tid = Tid;
+	pMsgHeader->Type = Type;
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->BufferLength = BodyLen;
 	pMsgHeader->IoctlCode = IoctlCode;
+
 
 	wcscpy_s( pMsgHeader->DriverName, szDriverNameLength, lpDriverName );
 	wcscpy_s( pMsgHeader->DeviceName, szDeviceNameLength, lpDeviceName );
@@ -220,7 +222,9 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 		CfbDbgPrintWarn( L"GetDeviceName() failed, Status=0x%#x... Using empty string\n", Status );
 	}
 
-	IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+	if ( Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL )
+		IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+
 	Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
 	Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
 
@@ -233,6 +237,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 		IrpExtractedDataLength, 
 		Driver->Name,
 		DeviceName,
+		(UINT32)Stack->MajorFunction,
 		&pMessage
 	);
 

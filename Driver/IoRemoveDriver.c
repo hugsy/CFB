@@ -28,6 +28,8 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	PHOOKED_DRIVER pPrevDriverToRemove = GetPreviousHookedDriver(pDriverToRemove);
 
 
+	pDriverToRemove->Enabled = FALSE;
+
 	//
 	// restore the former device control function pointer
 	//
@@ -35,12 +37,27 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 
 	CfbDbgPrintInfo(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
 
-	pDriverToRemove->Enabled = FALSE;
-
 	InterlockedExchangePointer(
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
 		(PVOID)pDriverToRemove->OldDeviceControlRoutine
 	);
+
+
+	CfbDbgPrintInfo( L"RemoveDriverByName('%s'): restoring IRP_MJ_READ to %p\n", lpDriverName, pDriverToRemove->OldReadRoutine );
+
+	InterlockedExchangePointer(
+		(PVOID)&pDriver->MajorFunction[IRP_MJ_READ],
+		(PVOID)pDriverToRemove->OldReadRoutine
+	);
+
+
+	CfbDbgPrintInfo( L"RemoveDriverByName('%s'): restoring IRP_MJ_WRITE to %p\n", lpDriverName, pDriverToRemove->OldWriteRoutine );
+
+	InterlockedExchangePointer(
+		(PVOID)&pDriver->MajorFunction[IRP_MJ_WRITE],
+		(PVOID)pDriverToRemove->OldWriteRoutine
+	);
+
 
 	//
 	// fix the chain

@@ -9,5 +9,4 @@
 #include <wdm.h>
 #include <ntddk.h>
 
-
 #endif /* __COMMON_H__ */

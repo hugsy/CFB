@@ -68,10 +68,22 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 		(PVOID)InterceptedDispatchRoutine
 	);
 
+	PVOID OldReadRoutine = InterlockedExchangePointer(
+		(PVOID*)&pDriver->MajorFunction[IRP_MJ_READ],
+		(PVOID)InterceptedReadRoutine
+	);
+
+	PVOID OldWriteRoutine = InterlockedExchangePointer(
+		(PVOID*)&pDriver->MajorFunction[IRP_MJ_WRITE],
+		(PVOID)InterceptedWriteRoutine
+	);
+
 	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpDriverName);
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
 	NewDriver->DriverObject = pDriver;
 	NewDriver->OldDeviceControlRoutine = OldDeviceControlRoutine;
+	NewDriver->OldReadRoutine = OldReadRoutine;
+	NewDriver->OldWriteRoutine = OldWriteRoutine;
 	NewDriver->Enabled = TRUE;
 	NewDriver->Next = NULL;
 

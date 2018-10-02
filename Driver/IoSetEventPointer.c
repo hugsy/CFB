@@ -33,7 +33,7 @@ NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack )
 		hEvent,
 		EVENT_ALL_ACCESS,
 		*ExEventObjectType,
-		KernelMode,
+		UserMode,
 		&pKernelNotifEvent,
 		NULL
 	);
@@ -45,7 +45,7 @@ NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack )
 
 	PKEVENT pOldEvent = InterlockedExchangePointer((PVOID*)&g_EventNotificationPointer, pKernelNotifEvent );
 
-	if ( pOldEvent != NULL )
+	if ( pOldEvent )
 	{
 		ObDereferenceObject( pOldEvent );
 	}
