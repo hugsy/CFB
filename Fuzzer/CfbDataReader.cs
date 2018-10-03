@@ -28,6 +28,7 @@ namespace Fuzzer
             public UInt32 ProcessId;
             public UInt32 ThreadId;
             public UInt32 BufferLength;
+            public UInt32 Type;
         }
 
 
@@ -58,6 +59,7 @@ namespace Fuzzer
             Messages = new DataTable("IrpData");
             Messages.Columns.Add("TimeStamp", typeof(DateTime));
             Messages.Columns.Add("IrqLevel", typeof(string));
+            Messages.Columns.Add("Type", typeof(string));
             Messages.Columns.Add("IoctlCode", typeof(string));
             Messages.Columns.Add("ProcessId", typeof(UInt32));
             Messages.Columns.Add("ProcessName", typeof(string));
@@ -331,8 +333,9 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        IrlqToHuman(irp.Header.Irql),
+                        IrlqAsString(irp.Header.Irql),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
+                        TypeAsString(irp.Header.Type),
                         irp.Header.ProcessId,
                         GetProcessById(irp.Header.ProcessId),
                         irp.Header.ThreadId,
@@ -353,39 +356,47 @@ namespace Fuzzer
 
         }
 
-        private string IrlqToHuman(byte irql)
-        {
-            string hexvalue = "0x" + irql.ToString("x2");
-            string strvalue = "";
 
+        private string IrlqAsString(byte irql)
+        {
             switch (irql)
             {
                 case 0:
-                    strvalue = "PASSIVE_LEVEL";
-                    break;
+                    return "PASSIVE_LEVEL";
 
                 case 1:
-                    strvalue = "APC_LEVEL";
-                    break;
+                    return "APC_LEVEL";
 
                 case 2:
-                    strvalue = "DPC_LEVEL";
-                    break;
-
-                default:
-                    strvalue = "??";
-                    break;   
+                    return "DPC_LEVEL";
             }
 
-            return $"{strvalue:s} ({hexvalue:s})" ;
+            return "<unknown>";
         }
 
 
-        /// <summary>
-        /// Simple wrapper around Process.GetProcessById
-        /// </summary>
-        /// <param name="ProcessId"></param>
-        /// <returns></returns>
+        private string TypeAsString(UInt32 type)
+        {
+            switch (type)
+            {
+                case 0x03: // IRP_MJ_READ
+                    return "READ";
+
+                case 0x04: // IRP_MJ_WRITE
+                    return "WRITE";
+
+                case 0x0e: // IRP_MJ_DEVICE_CONTROL
+                    return "DEVICE_CONTROL";
+            }
+
+            return "<unknown>";
+        }
+
+            /// <summary>
+            /// Simple wrapper around Process.GetProcessById
+            /// </summary>
+            /// <param name="ProcessId"></param>
+            /// <returns></returns>
         private string GetProcessById(uint ProcessId)
         {
             string Res = "";

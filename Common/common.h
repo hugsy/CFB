@@ -78,6 +78,7 @@ typedef struct __sniffed_data_header_t
 	UINT32 Pid;
 	UINT32 Tid;
 	UINT32 BufferLength;
+	UINT32 Type;
 	WCHAR DriverName[MAX_PATH];
 	WCHAR DeviceName[MAX_PATH];
 }

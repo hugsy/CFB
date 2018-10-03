@@ -166,6 +166,7 @@
     <ClInclude Include="HookedDrivers.h" />
     <ClInclude Include="IoAddDriver.h" />
     <ClInclude Include="IoctlCodes.h" />
+    <ClInclude Include="IoEnableDisableMonitoring.h" />
     <ClInclude Include="IoGetDriverInfo.h" />
     <ClInclude Include="IoRemoveDriver.h" />
     <ClInclude Include="IoSetEventPointer.h" />
@@ -177,6 +178,7 @@
     <ClCompile Include="Driver.c" />
     <ClCompile Include="HookedDrivers.c" />
     <ClCompile Include="IoAddDriver.c" />
+    <ClCompile Include="IoEnableDisableMonitoring.c" />
     <ClCompile Include="IoGetDriverInfo.c" />
     <ClCompile Include="IoRemoveDriver.c" />
     <ClCompile Include="IoSetEventPointer.c" />

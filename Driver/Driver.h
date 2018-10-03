@@ -12,6 +12,8 @@
 #include "IoAddDriver.h"
 #include "IoRemoveDriver.h"
 #include "IoGetDriverInfo.h"
+#include "IoEnableDisableMonitoring.h"
+
 
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
@@ -39,4 +41,11 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	OUT PVOID *ObjectPtr
 );
 
+
 NTSTATUS InterceptedDispatchRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
+NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
+
+NTSTATUS EnableMonitoring();
+NTSTATUS DisableMonitoring();
+BOOLEAN IsMonitoringEnabled();

@@ -187,3 +187,35 @@ __declspec(dllexport) BOOL SetEventNotificationHandle( IN HANDLE hEvent )
 
 	return bResult;
 }
+
+
+/*++
+
+Enable / Disable the monitoring.
+
+--*/
+ static BOOL ChangeMonitoringStatus(IN BOOL Status)
+{
+	DWORD dwBytesReturned;
+
+	BOOL bResult = DeviceIoControl( g_hDevice,
+		Status ? IOCTL_EnableMonitoring : IOCTL_DisableMonitoring,
+		NULL,
+		0,
+		NULL,
+		0,
+		&dwBytesReturned,
+		(LPOVERLAPPED)NULL );
+
+	return bResult;
+}
+
+ __declspec(dllexport) BOOL EnableMonitoring()
+ {
+	 return ChangeMonitoringStatus( 1 );
+ }
+
+ __declspec(dllexport) BOOL DisableMonitoring()
+ {
+	 return ChangeMonitoringStatus( 0 );
+ }
