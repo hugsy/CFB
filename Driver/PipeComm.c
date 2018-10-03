@@ -1,5 +1,6 @@
 #include "PipeComm.h"
 
+
 /*++
 
 Reference:
@@ -154,11 +155,13 @@ NTSTATUS PreparePipeMessage(IN UINT32 Pid, IN UINT32 Tid, IN UINT32 IoctlCode, I
 	(*pMessage)->Header = pMsgHeader;
 	(*pMessage)->Body = pBody;
 
-	if ( g_EventNotificationPointer )
-	{
-		KeSetEvent( g_EventNotificationPointer, 2, FALSE );
-	}
 
+	//
+	// notify the client in userland of the new message posted
+	//
+	NotifyClient();
+
+	
 	Status = STATUS_SUCCESS;
 
 	return Status;

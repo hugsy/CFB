@@ -333,7 +333,7 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        IrlqToHuman(irp.Header.Irql),
+                        IrlqAsString(irp.Header.Irql),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
                         TypeAsString(irp.Header.Type),
                         irp.Header.ProcessId,
@@ -356,32 +356,24 @@ namespace Fuzzer
 
         }
 
-        private string IrlqToHuman(byte irql)
-        {
-            string hexvalue = "0x" + irql.ToString("x2");
-            string strvalue = "";
 
+        private string IrlqAsString(byte irql)
+        {
             switch (irql)
             {
                 case 0:
-                    strvalue = "PASSIVE_LEVEL";
-                    break;
+                    return "PASSIVE_LEVEL";
 
                 case 1:
-                    strvalue = "APC_LEVEL";
-                    break;
+                    return "APC_LEVEL";
 
                 case 2:
-                    strvalue = "DPC_LEVEL";
-                    break;
-
-                default:
-                    strvalue = "??";
-                    break;   
+                    return "DPC_LEVEL";
             }
 
-            return $"{strvalue:s} ({hexvalue:s})" ;
+            return "<unknown>";
         }
+
 
         private string TypeAsString(UInt32 type)
         {
@@ -405,7 +397,7 @@ namespace Fuzzer
             /// </summary>
             /// <param name="ProcessId"></param>
             /// <returns></returns>
-            private string GetProcessById(uint ProcessId)
+        private string GetProcessById(uint ProcessId)
         {
             string Res = "";
 

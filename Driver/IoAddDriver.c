@@ -1,12 +1,6 @@
 #include "IoAddDriver.h"
 
 
-#ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, HandleIoAddDriver)
-#endif
-
-#pragma auto_inline(off)
-
 
 /*++/
 
@@ -63,15 +57,23 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
 
+	CfbDbgPrintInfo( L"AddDriverByName('%s'): switching IRP_MJ_DEVICE_CONTROL with %p\n", lpDriverName, InterceptedDispatchRoutine );
+
 	PVOID OldDeviceControlRoutine = InterlockedExchangePointer(
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
 		(PVOID)InterceptedDispatchRoutine
 	);
 
+
+	CfbDbgPrintInfo( L"AddDriverByName('%s'): switching IRP_MJ_READ with %p\n", lpDriverName, InterceptedReadRoutine );
+
 	PVOID OldReadRoutine = InterlockedExchangePointer(
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_READ],
 		(PVOID)InterceptedReadRoutine
 	);
+
+
+	CfbDbgPrintInfo( L"AddDriverByName('%s'): switching IRP_MJ_WRITE with %p\n", lpDriverName, InterceptedWriteRoutine );
 
 	PVOID OldWriteRoutine = InterlockedExchangePointer(
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_WRITE],
@@ -158,4 +160,4 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 	return Status;
 }
 
-#pragma auto_inline()
+

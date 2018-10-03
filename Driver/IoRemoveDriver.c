@@ -1,11 +1,6 @@
 #include "IoRemoveDriver.h"
 
 
-#ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, HandleIoRemoveDriver)
-#endif
-
-#pragma auto_inline(off)
 
 
 /*++
@@ -178,4 +173,3 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 	return Status;
 }
 
-#pragma auto_inline()

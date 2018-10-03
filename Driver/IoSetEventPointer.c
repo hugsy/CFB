@@ -1,10 +1,43 @@
 #include "IoSetEventPointer.h"
 
-#ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, HandleIoSetEventPointer)
-#endif
 
-#pragma auto_inline(off)
+
+
+static PKEVENT g_EventNotificationPointer;
+
+
+/*++
+
+--*/
+VOID NotifyClient()
+{
+	if ( !g_EventNotificationPointer )
+	{
+		return;
+	}
+
+	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
+
+	return;
+}
+
+
+/*++
+
+--*/
+VOID ClearNotificationPointer()
+{
+	if ( !g_EventNotificationPointer )
+	{
+		return;
+	}
+
+	KeClearEvent( g_EventNotificationPointer );
+	ObDereferenceObject( g_EventNotificationPointer );
+	g_EventNotificationPointer = NULL;
+	
+	return;
+}
 
 
 /*++
@@ -13,7 +46,7 @@ This function sets the event pointer that is used to notify of new activity (i.e
 to the queue). It reads from the IRP the handle from usermode, and performs the adequate checks.
 
 --*/
-NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack ) 
+NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack ) 
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
@@ -53,4 +86,3 @@ NTSTATUS HandleIoSetEventPointer( PIRP Irp, PIO_STACK_LOCATION Stack )
 	return status;
 }
 
-#pragma auto_inline()

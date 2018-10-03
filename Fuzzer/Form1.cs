@@ -30,15 +30,14 @@ namespace Fuzzer
 
         public void Log(string message)
         {
-            var thread = new Thread(() =>
+            var t = new Thread(() =>
             {
-                string line = String.Format("[TID={0:d}] {1:s}\n", Thread.CurrentThread.ManagedThreadId, message);
                 LogMutex.WaitOne();
-                LogTextBox.AppendText(line);
+                LogTextBox.AppendText( $"{message:s}\n" );
                 LogMutex.ReleaseMutex();
             });
-            thread.Start();
-            thread.Join();
+            t.Start();
+            t.Join();
         }
 
         private void StartListening()
@@ -53,6 +52,8 @@ namespace Fuzzer
 
         private void OnProcessExit(object sender, EventArgs e)
         {
+            Core.DisableMonitoring();
+
             if (CfbReader.IsThreadRunning)
                 StopListening();
 
@@ -147,8 +148,9 @@ namespace Fuzzer
 
         private void StartMonitorBtn_Click(object sender, EventArgs e)
         {
-            Log("Starting monitoring");
+            Log("Starting monitoring");           
             StartListening();
+            Core.EnableMonitoring();
             StartMonitorBtn.Enabled = false;
             StopMonitorBtn.Enabled = true;
         }
@@ -158,6 +160,7 @@ namespace Fuzzer
         {
             Log("Stopping monitoring");
             StopListening();
+            Core.DisableMonitoring();
             StartMonitorBtn.Enabled = true;
             StopMonitorBtn.Enabled = false;
         }

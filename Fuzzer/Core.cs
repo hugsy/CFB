@@ -49,5 +49,10 @@ namespace Fuzzer
         [DllImport(@"Core.dll", SetLastError = true)]
         public static extern bool SetEventNotificationHandle(IntPtr hEvent);
 
+        [DllImport(@"Core.dll")]
+        public static extern bool EnableMonitoring();
+
+        [DllImport(@"Core.dll")]
+        public static extern bool DisableMonitoring();
     }
 }
