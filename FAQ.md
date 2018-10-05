@@ -10,3 +10,8 @@ Install x68 or x64 version from :
 https://support.microsoft.com/en-ca/help/2977003/the-latest-supported-visual-c-downloads
 
 (or better using Visual Studio Installer)
+
+
+## Where did you get those cool icons ?
+
+Over there : http://freeiconshop.com/ 
