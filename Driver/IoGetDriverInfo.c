@@ -26,7 +26,7 @@ NTSTATUS GetDriverInfo(UINT32 dwIndex, PHOOKED_DRIVER_INFO pDrvInfo)
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		status = GetExceptionCode();
-		CfbDbgPrint(L"[-] Exception Code: 0x%X\n", status);
+		CfbDbgPrintErr(L"[-] Exception Code: 0x%X\n", status);
 	}
 
 	return status;

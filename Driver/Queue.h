@@ -11,7 +11,6 @@
 NTSTATUS InitializeQueue();
 NTSTATUS FreeQueue();
 NTSTATUS FlushQueue();
-UINT32 GetQueueNextFreeSlotIndex();
 PVOID PopFromQueue();
-NTSTATUS PushToQueue( PVOID pData, PUINT32 lpdwIndex );
-PVOID GetItemInQueue( UINT32 Index );
+NTSTATUS PushToQueue( IN PVOID pData, OUT PUINT32 lpdwIndex );
+PVOID GetItemInQueue( IN UINT32 Index );

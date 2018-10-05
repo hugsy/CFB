@@ -20,15 +20,12 @@ namespace Fuzzer
         public struct CfbMessageHeader
         {
             public ulong TimeStamp;
-            public byte Irql;
-            public byte Padding0;
-            public byte Padding1;
-            public byte Padding2;
+            public UInt32 Irql;
+            public UInt32 Type;
             public UInt32 IoctlCode;
             public UInt32 ProcessId;
             public UInt32 ThreadId;
             public UInt32 BufferLength;
-            public UInt32 Type;
         }
 
 
@@ -308,7 +305,7 @@ namespace Fuzzer
                     Irps.Add(irp);
 
                     int NbItems = Irps.Count;
-                    RootForm.Log($"Pushing IRP #{NbItems:d}");
+                    RootForm.Log($"Poping IRP #{NbItems:d}");
                     NewIrpQueue.Add(irp);
                 }
             }
@@ -333,9 +330,9 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        IrlqAsString(irp.Header.Irql),
-                        "0x" + irp.Header.IoctlCode.ToString("x8"),
+                        IrlqAsString(irp.Header.Irql),                       
                         TypeAsString(irp.Header.Type),
+                        "0x" + irp.Header.IoctlCode.ToString("x8"),
                         irp.Header.ProcessId,
                         GetProcessById(irp.Header.ProcessId),
                         irp.Header.ThreadId,
@@ -357,7 +354,7 @@ namespace Fuzzer
         }
 
 
-        private string IrlqAsString(byte irql)
+        private string IrlqAsString(UInt32 irql)
         {
             switch (irql)
             {

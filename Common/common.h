@@ -19,10 +19,6 @@
 #define CFB_DRIVER_NAME				L"IrpDumper.sys"
 #define CFB_SERVICE_NAME			L"IrpDumper"
 #define CFB_SERVICE_DESCRIPTION		L"CFB IRP Dumper Driver"
-#define CFB_PIPE_NAME				L"\\??\\pipe\\CFB"
-#define CFB_PIPE_MAXCLIENTS			5
-#define CFB_PIPE_INBUFLEN			4096  //TODO : adjust
-#define CFB_PIPE_OUTBUFLEN			4096  //TODO : adjust
 
 #ifndef MAX_PATH
 #define MAX_PATH                    0x104
@@ -69,20 +65,21 @@ typedef struct __hooked_driver_info
 }
 HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
 
-
+# pragma pack (1)
 typedef struct __sniffed_data_header_t
 {
 	LARGE_INTEGER TimeStamp;
-	UCHAR Irql;
+	UINT32 Irql;
+	UINT32 Type;
 	UINT32 IoctlCode;
 	UINT32 Pid;
 	UINT32 Tid;
 	UINT32 BufferLength;
-	UINT32 Type;
 	WCHAR DriverName[MAX_PATH];
 	WCHAR DeviceName[MAX_PATH];
 }
 SNIFFED_DATA_HEADER, *PSNIFFED_DATA_HEADER;
+# pragma pack ()
 
 typedef PVOID PSNIFFED_DATA_BODY;
 

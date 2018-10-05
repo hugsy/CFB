@@ -11,9 +11,8 @@
 #endif
 
 static FAST_MUTEX g_InterceptFastMutex;
+static IO_REMOVE_LOCK g_RemoveLockDriver;
 static BOOLEAN g_IsInterceptEnabled;
-
-static VOID GenericCancelRoutine( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp );
 
 
 /*++
@@ -29,7 +28,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 
 	if ( !pStack )
 	{
-		CfbDbgPrintErr( L"DriverReadRoutine() - Failed to get a pointer to the stack of IRP %p\n", pIrp );
+		CfbDbgPrintErr( L"IoGetCurrentIrpStackLocation() failed (IRP %p)\n", pIrp );
 		CompleteRequest( pIrp, STATUS_UNSUCCESSFUL, 0 );
 		return STATUS_UNSUCCESSFUL;
 	}
@@ -40,7 +39,6 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 	PSNIFFED_DATA pData = (PSNIFFED_DATA)GetItemInQueue(0);
 	if ( !pData )
 	{
-		CfbDbgPrintOk( L"DriverReadRoutine() - No message\n" );
 		CompleteRequest( pIrp, STATUS_SUCCESS, 0 );
 		return STATUS_SUCCESS;
 	}
@@ -50,14 +48,14 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 
 	if ( BufferSize == 0 )
 	{
-		CfbDbgPrintOk( L"DriverReadRoutine() - Sending expected size=%dB\n", dwExpectedSize );
+		CfbDbgPrintOk( L"Sending expected input buffer size=%dB\n", dwExpectedSize );
 		CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
 		return STATUS_SUCCESS;
 	}
 
 	if ( BufferSize < dwExpectedSize )
 	{
-		CfbDbgPrintErr( L"DriverReadRoutine() - Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
+		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
 		CompleteRequest( pIrp, STATUS_BUFFER_TOO_SMALL, 0 );
 		return STATUS_BUFFER_TOO_SMALL;
 	}
@@ -67,21 +65,18 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 
 	if ( !Buffer )
 	{
-		CfbDbgPrintErr( L"DriverReadRoutine() - Input buffer is NULL\n" );
+		CfbDbgPrintErr( L"Input buffer is NULL\n" );
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
 
-	CfbDbgPrintInfo( L"DriverReadRoutine() - Trying to read %ld bytes at %p\n", BufferSize, Buffer );
-
 	pData = PopFromQueue();
 	if ( !pData )
 	{
-		CfbDbgPrintOk( L"DriverReadRoutine() - No message\n" );
 		return STATUS_SUCCESS;
 	}
 
-	CfbDbgPrintInfo(L"DriverReadRoutine() - Poped message %p\n", pData);
+	CfbDbgPrintOk(L"Poped message %p\n", pData);
 
 
 	//
@@ -89,7 +84,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 	//
 	PSNIFFED_DATA_HEADER pHeader = pData->Header;
 	RtlCopyMemory( Buffer, pHeader, sizeof( SNIFFED_DATA_HEADER ) );
-
+	
 	//
 	// Copy body (if any)
 	//
@@ -98,7 +93,6 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 		RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pHeader->BufferLength );
 	}
 
-	CfbDbgPrintInfo( L"DriverReadRoutine() - Freeing message %p\n", pData );
 	FreePipeMessage( pData );
 
 	CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
@@ -120,11 +114,53 @@ NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 #ifdef _DEBUG
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
-	CfbDbgPrintInfo(L"In IrpNotImplementedHandler(Major=%x)\n", Stack->MajorFunction);
+	CfbDbgPrintInfo(L"Major = 0x%x\n", Stack->MajorFunction);
 #endif
 
 	CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0);
 	return STATUS_NOT_IMPLEMENTED;
+}
+
+
+/*++
+
+--*/
+NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+{
+	UNREFERENCED_PARAMETER( DeviceObject );
+
+	PAGED_CODE();
+
+	
+	//
+	// Stop the monitoring
+	//
+
+	DisableMonitoring();
+
+	   
+	//
+	// Unswap all hooked drivers left to avoid new IRPs to be handled by us
+	//
+	KeEnterCriticalRegion();
+	RemoveAllDrivers();
+	IoReleaseRemoveLockAndWait( &g_RemoveLockDriver, NULL );
+	KeLeaveCriticalRegion();
+
+	FlushQueue();
+
+
+	//
+	// Disable events and clear the queue
+	//
+
+	ClearNotificationPointer();
+
+	FreeQueue();
+
+	CompleteRequest( Irp, STATUS_SUCCESS, 0 );
+
+	return STATUS_SUCCESS;
 }
 
 
@@ -140,7 +176,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	PAGED_CODE();
 
 	CfbDbgPrintInfo(L"-----------------------------------------\n");
-	CfbDbgPrintInfo(L"     Loading driver IrpDumper\n");
+	CfbDbgPrintInfo(L"     Loading driver IrpDumper            \n");
 	CfbDbgPrintInfo(L"-----------------------------------------\n");
 
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
@@ -197,6 +233,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
 	DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
+	DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
 	DriverObject->DriverUnload = DriverUnloadRoutine;
 	
 	CfbDbgPrintOk( L"Driver object '%s' routines populated\n", CFB_DEVICE_NAME );
@@ -221,7 +258,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
 
 	ExInitializeFastMutex( &g_InterceptFastMutex );
-	EnableMonitoring();
+
+	IoInitializeRemoveLock( &g_RemoveLockDriver, 0, 0x7FFFFFFF, 0x7FFFFFFF );
 
 	return status;
 }
@@ -239,14 +277,18 @@ Links:
 --*/
 typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
-static NTSTATUS InterceptedGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	NTSTATUS Status;
+
+
+	IoAcquireRemoveLock( &g_RemoveLockDriver, NULL );
 
 
 	//
 	// Find the original function for the driver
 	//
+
 	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
 	BOOLEAN Found = FALSE;
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
@@ -277,17 +319,6 @@ static NTSTATUS InterceptedGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	else
 	{
 
-		// 
-		// Define a cancellation routine if we abort unload the driver when an IRP is being 
-		// processed
-		//
-		/*
-		KIRQL Irql;
-		IoAcquireCancelSpinLock( &Irql );
-		IoSetCancelRoutine(Irp, GenericCancelRoutine);
-		IoReleaseCancelSpinLock( Irql );
-		*/
-
 		//
 		// Push the message to the named pipe
 		//
@@ -295,7 +326,8 @@ static NTSTATUS InterceptedGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE )
 		{
 			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
-			CfbDbgPrintOk( L"HandleInterceptedIrp() returned 0x%X\n", Status );
+			if( !NT_SUCCESS(Status) )
+				CfbDbgPrintWarn( L"HandleInterceptedIrp() returned 0x%X\n", Status );
 		}
 
 
@@ -308,29 +340,33 @@ static NTSTATUS InterceptedGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		switch ( Stack->MajorFunction )
 		{
 		case IRP_MJ_READ:
-			CfbDbgPrintInfo( L"Fallback to IRP_MJ_READ routine at %p for '%s'\n", curDriver->OldReadRoutine, curDriver->Name );
+			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_READ routine at %p for '%s'\n", curDriver->OldReadRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldReadRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;
 
 		case IRP_MJ_WRITE:
-			CfbDbgPrintInfo( L"Fallback to IRP_MJ_WRITE routine at %p for '%s'\n", curDriver->OldWriteRoutine, curDriver->Name );
+			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_WRITE routine at %p for '%s'\n", curDriver->OldWriteRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldWriteRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;
 
 		case IRP_MJ_DEVICE_CONTROL:
-			CfbDbgPrintInfo( L"Fallback to IRP_MJ_DEVICE_CONTROL routine at %p for '%s'\n", curDriver->OldDeviceControlRoutine, curDriver->Name );
+			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_DEVICE_CONTROL routine at %p for '%s'\n", curDriver->OldDeviceControlRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;
 
 		default:
-			Status = CompleteRequest( Irp, STATUS_NOT_IMPLEMENTED, 0 );
+			CfbDbgPrintErr( L"Fail to fallback to the IRP MAJOR routine %x in '%s'\n", Stack->MajorFunction, curDriver->Name );
+			Status = STATUS_NOT_IMPLEMENTED;
+			CompleteRequest( Irp, STATUS_NOT_IMPLEMENTED, 0 );
 			break;
 		}
-		
+
 	}	
+
+	IoReleaseRemoveLock( &g_RemoveLockDriver, NULL );
 
 	return Status;
 }
@@ -338,36 +374,11 @@ static NTSTATUS InterceptedGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 /*++
 
+Unload routine for CFB IrpDumper.
+
 --*/
 VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
-{
-	PAGED_CODE();
-
-	CfbDbgPrint(L"Unloading %s\n", CFB_PROGRAM_NAME_SHORT);
-
-	DisableMonitoring();
-	ExAcquireFastMutex( &g_InterceptFastMutex );
-
-
-	//
-	// Unlink all HookedDrivers left
-	//
-
-	FlushQueue();
-
-	RemoveAllDrivers();
-
-
-	//
-	// Disable events and clear the queue
-	//
-
-	ClearNotificationPointer();
-
-	FreeQueue();
-	
-	ExReleaseFastMutex( &g_InterceptFastMutex );
-
+{  
 
 	//
 	// Delete the device object
@@ -379,7 +390,8 @@ VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 	IoDeleteSymbolicLink(&symLink);
 	IoDeleteDevice(DriverObject->DeviceObject);
 
-	CfbDbgPrint(L"Success unloading %s\n", CFB_PROGRAM_NAME_SHORT);
+
+	CfbDbgPrintOk(L"Success unloading '%s'\n", CFB_PROGRAM_NAME_SHORT);
 
 	return;
 }
@@ -491,25 +503,9 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 /*++
 
 --*/
-static VOID GenericCancelRoutine( IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp )
+NTSTATUS InterceptedDeviceControlRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 {
-	UNREFERENCED_PARAMETER( DeviceObject );
-
-	PAGED_CODE();
-
-	CfbDbgPrintInfo( L"In GenericCancelRoutine(%p, %p)\n", DeviceObject, Irp );
-		
-	CompleteRequest( Irp, STATUS_CANCELLED, 0 );
-}
-
-
-/*++
-
---*/
-NTSTATUS InterceptedDispatchRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
-{
-	CfbDbgPrintInfo( L"In InterceptedDispatchRoutine(%p, %p)\n", DeviceObject, Irp );
-	return InterceptedGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine( DeviceObject, Irp );
 }
 
 
@@ -518,8 +514,7 @@ NTSTATUS InterceptedDispatchRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 --*/
 NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 {
-	CfbDbgPrintInfo( L"In InterceptedReadRoutine(%p, %p)\n", DeviceObject, Irp );
-	return InterceptedGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine( DeviceObject, Irp );
 }
 	
 
@@ -528,8 +523,7 @@ NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 --*/
 NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 {
-	CfbDbgPrintInfo( L"In InterceptedWriteRoutine(%p, %p)\n", DeviceObject, Irp );
-	return InterceptedGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine( DeviceObject, Irp );
 }
 
 

@@ -57,11 +57,11 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
 
-	CfbDbgPrintInfo( L"AddDriverByName('%s'): switching IRP_MJ_DEVICE_CONTROL with %p\n", lpDriverName, InterceptedDispatchRoutine );
+	CfbDbgPrintInfo( L"AddDriverByName('%s'): switching IRP_MJ_DEVICE_CONTROL with %p\n", lpDriverName, InterceptedDeviceControlRoutine );
 
 	PVOID OldDeviceControlRoutine = InterlockedExchangePointer(
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
-		(PVOID)InterceptedDispatchRoutine
+		(PVOID)InterceptedDeviceControlRoutine
 	);
 
 
@@ -114,9 +114,8 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 {
 	UNREFERENCED_PARAMETER(Irp);
-	PAGED_CODE();
-
-	CfbDbgPrint(L"Received 'IoctlAddDriver'\n");
+	
+	CfbDbgPrintInfo(L"Received 'IoctlAddDriver'\n");
 
 	NTSTATUS Status = STATUS_SUCCESS;
 	LPWSTR lpDriverName;
@@ -141,7 +140,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
 		{
-			CfbDbgPrint(L"Input buffer too large\n");
+			CfbDbgPrintErr(L"Input buffer too large\n");
 			Status = STATUS_BUFFER_OVERFLOW;
 			break;
 		}
@@ -152,7 +151,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		//
 		Status = AddDriverByName(lpDriverName);
 
-		CfbDbgPrint(L"AddDriverByName('%s') returned %#x\n", lpDriverName, Status);
+		CfbDbgPrintOk(L"AddDriverByName('%s') returned %#x\n", lpDriverName, Status);
 
 	}
 	while(0);

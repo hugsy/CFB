@@ -6,6 +6,8 @@ static PVOID* g_CfbQueue = NULL;
 
 /*++
 
+Initialize the structure of the queue.
+
 --*/
 NTSTATUS InitializeQueue() 
 {
@@ -26,11 +28,14 @@ NTSTATUS InitializeQueue()
 
 /*++
 
+Free the structure of the queue.
+
 --*/
 NTSTATUS FreeQueue()
 {
 	ExFreePoolWithTag( g_CfbQueue, CFB_DEVICE_TAG );
 	CfbDbgPrintOk( L"Message queue %p freeed\n", g_CfbQueue );
+	g_CfbQueue = NULL;
 	return STATUS_SUCCESS;
 }
 
@@ -38,7 +43,7 @@ NTSTATUS FreeQueue()
 /*++
 
 --*/
-UINT32 GetQueueNextFreeSlotIndex()
+static inline UINT32 GetQueueNextFreeSlotIndex()
 {
 	UINT32 dwResult = 0;
 
@@ -56,57 +61,69 @@ UINT32 GetQueueNextFreeSlotIndex()
 
 /*++
 
---*/
-NTSTATUS PushToQueue(PVOID pData, PUINT32 lpdwIndex)
-{
-	// todo: this could be raced, protect section
-	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
+Push a new item at the end of the queue.
+On success, `lpdwIndex` holds a pointer to the index the newly pushed item.
 
+--*/
+NTSTATUS PushToQueue(IN PVOID pData, OUT PUINT32 lpdwIndex)
+{
+	NTSTATUS Status;
+
+	KeEnterCriticalRegion();
+
+	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
 	if ( dwIndex == (UINT32)-1 )
 	{
 		CfbDbgPrintErr( L"The queue is full, discarding the message...\n" );
-		return STATUS_INSUFFICIENT_RESOURCES;
+		Status = STATUS_INSUFFICIENT_RESOURCES;
+	} 
+	else
+	{
+		g_CfbQueue[dwIndex]=pData;
+		*lpdwIndex = dwIndex;
+		Status = STATUS_SUCCESS;
 	}
+	
+	KeLeaveCriticalRegion();
 
-	g_CfbQueue[dwIndex] = pData;
-	*lpdwIndex = dwIndex;
-
-	CfbDbgPrintOk( L"PushToQueue(%p, %d) ok...\n", g_CfbQueue, dwIndex );
-	return STATUS_SUCCESS;
+	return Status;
 }
 
+
 /*++
+
+Pops the first element out of the queue.
 
 --*/
 PVOID PopFromQueue()
 {
-	// todo: this could be raced, protect section
+	PVOID pData = NULL;
+
+	KeEnterCriticalRegion();
+
 	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
 
-	if ( dwIndex == (UINT32)-1 || dwIndex == 0 )
+	if ( dwIndex > 0 )
 	{
-		// empty list
-		CfbDbgPrintErr( L"The queue is empty, cannot pop...\n" );
-		return NULL;
+		pData = (PVOID)g_CfbQueue[0];
+
+		for ( UINT32 i=0; i < dwIndex; i++ )
+		{
+			g_CfbQueue[i] = g_CfbQueue[i + 1];
+		}
+
+		g_CfbQueue[dwIndex] = NULL;
 	}
 
-	PVOID pData = (PVOID)g_CfbQueue[0];
-
-	// reorder the pointers
-	for ( UINT32 i=0; i < dwIndex; i++ )
-	{
-		g_CfbQueue[i] = g_CfbQueue[i + 1];
-	}
-
-	g_CfbQueue[dwIndex] = NULL;
-
-	CfbDbgPrintOk( L"PopFromQueue() = %p ok...\n", pData );
+	KeLeaveCriticalRegion();
 
 	return pData;
 }
 
 
 /*++
+
+Empty the entire queue.
 
 --*/
 NTSTATUS FlushQueue()
@@ -138,8 +155,10 @@ NTSTATUS FlushQueue()
 
 /*++
 
+Get a pointer to the `Index` element of the queue, or NULL if the index doesn't exist.
+
 --*/
-PVOID GetItemInQueue( UINT32 Index )
+PVOID GetItemInQueue( IN UINT32 Index )
 {
 	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
 

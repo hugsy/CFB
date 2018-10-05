@@ -4,7 +4,7 @@
 /*++
 
 --*/
-VOID CfbDbgPrint(const WCHAR* lpFormatString, ...)
+VOID CfbDbgPrint(IN const WCHAR* lpFormatString, ...)
 {
 #ifdef _DEBUG
 	va_list args;
@@ -13,8 +13,7 @@ VOID CfbDbgPrint(const WCHAR* lpFormatString, ...)
 	vswprintf_s(buffer, sizeof(buffer) / sizeof(WCHAR), lpFormatString, args);
 	va_end(args);
 
-	// todo add timestamp
-	KdPrint(("[CFB] %S", buffer));
+	KdPrint(("[%S] %S", CFB_PROGRAM_NAME_SHORT, buffer));
 #else
 	UNREFERENCED_PARAMETER( lpFormatString );
 #endif
@@ -26,7 +25,7 @@ VOID CfbDbgPrint(const WCHAR* lpFormatString, ...)
 Simple hexdumping function.
 
 --*/
-VOID CfbHexDump(PUCHAR Buffer, ULONG Length)
+VOID CfbHexDump(IN PUCHAR Buffer, IN ULONG Length)
 {
 #ifdef _DEBUG
 	for (ULONG i = 0; i < Length; i++)
@@ -44,30 +43,32 @@ VOID CfbHexDump(PUCHAR Buffer, ULONG Length)
 
 /*++
 
+Convenience function to retrieve the name of a device directly from the device object.
+
 --*/
 NTSTATUS GetDeviceNameFromDeviceObject( IN PVOID pDeviceObject, OUT WCHAR* DeviceNameBuffer, IN ULONG DeviceNameBufferSize )
 {
 	NTSTATUS Status;
-	CHAR Buffer[0x400] = { 0, };
+	UCHAR Buffer[0x400] = { 0, };
 	ULONG ReturnLength;
 	POBJECT_NAME_INFORMATION pDeviceNameInfo = (POBJECT_NAME_INFORMATION)Buffer;
 
 	Status = ObQueryNameString(
-		pDeviceObject,
-		pDeviceNameInfo,
-		sizeof( Buffer ),
-		&ReturnLength
+								pDeviceObject,
+								pDeviceNameInfo,
+								sizeof( Buffer ),
+								&ReturnLength
 	);
 
 	if ( !NT_SUCCESS( Status ) )
 	{
-		CfbDbgPrintErr( L"GetDeviceName() - ObQueryNameString() failed\n" );
+		CfbDbgPrintErr( L"ObQueryNameString() failed: Status=%x\n", Status );
 		return Status;
 	}
 
 	if ( DeviceNameBufferSize < (ULONG)(2*(pDeviceNameInfo->Name.Length+1)) )
 	{
-		CfbDbgPrintErr( L"GetDeviceName() - Buffer is too small\n" );
+		CfbDbgPrintErr( L"Buffer is too small\n" );
 		return STATUS_BUFFER_TOO_SMALL;
 	}
 

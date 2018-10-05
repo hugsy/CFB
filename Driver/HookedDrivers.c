@@ -116,7 +116,7 @@ PHOOKED_DRIVER GetHookedDriverByIndex(UINT32 dwIndex)
 {
 	if (dwIndex >= GetNumberOfHookedDrivers())
 	{
-		CfbDbgPrint(L"Cannot reach index %ld\n", dwIndex);
+		CfbDbgPrintErr(L"Cannot reach index %ld\n", dwIndex);
 		return NULL;
 	}
 

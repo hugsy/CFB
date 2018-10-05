@@ -25,6 +25,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 
 	pDriverToRemove->Enabled = FALSE;
 
+
 	//
 	// restore the former device control function pointer
 	//

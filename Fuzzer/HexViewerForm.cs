@@ -32,7 +32,7 @@ namespace Fuzzer
         {
             InitializeComponent();
 
-            this.Text = $"HexViewer for IRP #{Index:d} (IoctlNumber={irp.Header.IoctlCode:d}) to {irp.DeviceName:s}";
+            this.Text = $"HexViewer for IRP #{Index:d} (IoctlNumber={irp.Header.IoctlCode:x}) to {irp.DeviceName:s}";
             m_abyData = irp.Body;
         }
 

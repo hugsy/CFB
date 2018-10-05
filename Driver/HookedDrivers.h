@@ -1,6 +1,3 @@
-#ifndef __HOOKED_DRIVERS_H__
-#define __HOOKED_DRIVERS_H__
-
 #include "Common.h"
 #include "../Common/common.h"
 #include "Utils.h"
@@ -32,5 +29,3 @@ BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj);
 PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName);
 PHOOKED_DRIVER GetHookedDriverByIndex(UINT32 dwIndex);
 
-
-#endif /* __HOOKED_DRIVERS_H__ */
