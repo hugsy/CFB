@@ -10,13 +10,13 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
-	CfbDbgPrintInfo(L"RemoveDriverByName('%s')\n", lpDriverName);
+	CfbDbgPrintInfo(L"Removing driver '%s'\n", lpDriverName);
 
 	PHOOKED_DRIVER pDriverToRemove = GetHookedDriverByName(lpDriverName);
 
 	if (!pDriverToRemove)
 	{
-		CfbDbgPrintErr(L"RemoveDriverByName(): no hooked driver found as '%s'\n", lpDriverName);
+		CfbDbgPrintErr(L"No hooked driver found as '%s'\n", lpDriverName);
 		return STATUS_INVALID_PARAMETER;
 	}
 
@@ -31,7 +31,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	//
 	PDRIVER_OBJECT pDriver = pDriverToRemove->DriverObject;
 
-	CfbDbgPrintInfo(L"RemoveDriverByName('%s'): restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
+	CfbDbgPrintInfo(L"- '%s' - restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
 
 	InterlockedExchangePointer(
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
@@ -39,7 +39,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	);
 
 
-	CfbDbgPrintInfo( L"RemoveDriverByName('%s'): restoring IRP_MJ_READ to %p\n", lpDriverName, pDriverToRemove->OldReadRoutine );
+	CfbDbgPrintInfo( L"- '%s' - restoring IRP_MJ_READ to %p\n", lpDriverName, pDriverToRemove->OldReadRoutine );
 
 	InterlockedExchangePointer(
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_READ],
@@ -47,7 +47,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	);
 
 
-	CfbDbgPrintInfo( L"RemoveDriverByName('%s'): restoring IRP_MJ_WRITE to %p\n", lpDriverName, pDriverToRemove->OldWriteRoutine );
+	CfbDbgPrintInfo( L"- '%s' - restoring IRP_MJ_WRITE to %p\n", lpDriverName, pDriverToRemove->OldWriteRoutine );
 
 	InterlockedExchangePointer(
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_WRITE],
@@ -59,7 +59,7 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	// fix the chain
 	//
 
-	CfbDbgPrintInfo(L"RemoveDriverByName('%s'): unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
+	CfbDbgPrintInfo(L"- '%s' - unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
 
 	if (pPrevDriverToRemove == NULL)
 	{

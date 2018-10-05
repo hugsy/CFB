@@ -140,15 +140,13 @@ NTSTATUS FlushQueue()
 		return STATUS_SUCCESS;
 	}
 
-	CfbDbgPrintInfo( L"In FlushQueue()...\n");
-
 	for ( UINT32 i=0; i < dwIndex; i++ )
 	{
 		FreePipeMessage( g_CfbQueue[i] );
 		g_CfbQueue[i] = NULL;
 	}
-
-
+	
+	CfbDbgPrintOk( L"Message queue flushed...\n" );
 	return STATUS_SUCCESS;
 }
 

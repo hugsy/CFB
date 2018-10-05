@@ -144,7 +144,8 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	//
 	KeEnterCriticalRegion();
 	RemoveAllDrivers();
-	IoReleaseRemoveLockAndWait( &g_RemoveLockDriver, NULL );
+	IoAcquireRemoveLock( &g_RemoveLockDriver, Irp );
+	IoReleaseRemoveLockAndWait( &g_RemoveLockDriver, Irp );
 	KeLeaveCriticalRegion();
 
 	FlushQueue();
@@ -259,7 +260,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	ExInitializeFastMutex( &g_InterceptFastMutex );
 
-	IoInitializeRemoveLock( &g_RemoveLockDriver, 0, 0x7FFFFFFF, 0x7FFFFFFF );
+	IoInitializeRemoveLock( &g_RemoveLockDriver, CFB_DEVICE_TAG, 0, 0 );
 
 	return status;
 }
@@ -282,7 +283,11 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	NTSTATUS Status;
 
 
-	IoAcquireRemoveLock( &g_RemoveLockDriver, NULL );
+	Status = IoAcquireRemoveLock( &g_RemoveLockDriver, Irp );
+	if ( !NT_SUCCESS( Status ) )
+	{
+		return Status;
+	}
 
 
 	//
@@ -366,7 +371,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 	}	
 
-	IoReleaseRemoveLock( &g_RemoveLockDriver, NULL );
+	IoReleaseRemoveLock( &g_RemoveLockDriver, Irp );
 
 	return Status;
 }
