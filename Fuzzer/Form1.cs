@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -18,10 +11,16 @@ namespace Fuzzer
         private LoadDriverForm ldForm;
         private static Mutex LogMutex;
 
+        private Boolean bIsDriverLoaded;
+        private Boolean bIsMonitoringEnabled;
+
+
 
         public Form1()
         {
             InitializeComponent();
+            bIsDriverLoaded = false;
+            bIsMonitoringEnabled = false;
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
@@ -71,10 +70,8 @@ namespace Fuzzer
         {
             Log("Initializing CFB...");
 
-            LoadDriverBtn.Enabled = true;
-            StartMonitorBtn.Enabled = false;
-            StopMonitorBtn.Enabled = false;
-            UnloadDriverBtn.Enabled = false;
+            bIsDriverLoaded = false;
+            bIsMonitoringEnabled = false;
 
             Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
@@ -83,7 +80,6 @@ namespace Fuzzer
                 Application.Exit();
             }
 
-
             Log("Running checks...");
             if (!Core.RunInitializationChecks())
             {
@@ -91,14 +87,12 @@ namespace Fuzzer
                 Application.Exit();
             }
 
-
             Log("Loading driver...");
             if (!Core.LoadDriver())
             {
                 MessageBox.Show("LoadDriver() failed");
                 Application.Exit();
             }
-
 
             Log("Initializing CFB context...");
             if (!Core.InitializeCfbContext())
@@ -108,12 +102,8 @@ namespace Fuzzer
                 Application.Exit();
             }
 
-
-            Log("All good, you can start monitoring...");
-            LoadDriverBtn.Enabled = false;
-            StartMonitorBtn.Enabled = true;
-            UnloadDriverBtn.Enabled = true;
-       
+            bIsDriverLoaded = true;
+            bIsMonitoringEnabled = false;
         }
 
 
@@ -126,9 +116,7 @@ namespace Fuzzer
         private void CleanupCfbContext()
         {
             Log("Cleaning up context...");
-
             Core.CleanupCfbContext();
-
 
             Log("Unloading service and driver...");
             if (!Core.UnloadDriver())
@@ -137,38 +125,8 @@ namespace Fuzzer
             }
 
             Log("Success...");
-
-            LoadDriverBtn.Enabled = true;
-            StartMonitorBtn.Enabled = false;
-            StopMonitorBtn.Enabled = false;
-            UnloadDriverBtn.Enabled = false;
-            FuzzIrpBtn.Enabled = false;
-        }
-
-
-        private void StartMonitorBtn_Click(object sender, EventArgs e)
-        {
-            Log("Starting monitoring");           
-            StartListening();
-            Core.EnableMonitoring();
-            StartMonitorBtn.Enabled = false;
-            StopMonitorBtn.Enabled = true;
-        }
-
-
-        private void StopMonitorBtn_Click(object sender, EventArgs e)
-        {
-            Log("Stopping monitoring");
-            StopListening();
-            Core.DisableMonitoring();
-            StartMonitorBtn.Enabled = true;
-            StopMonitorBtn.Enabled = false;
-        }
-
-
-        private void UnloadDriverBtn_Click(object sender, EventArgs e)
-        {
-            CleanupCfbContext();
+            bIsDriverLoaded = false;
+            bIsMonitoringEnabled = false;
         }
 
 
@@ -183,135 +141,86 @@ namespace Fuzzer
             }
         }
 
-        private void LoadDriverBtn_Click(object sender, EventArgs e)
-        {
-            InitCfbContext();
-        }
-
 
         private void ShowIrpBtn_Click(object sender, EventArgs e)
         {
-            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
-            if (selectedCellCount == 1)
-            {
-                var CurrentCell = IrpDataView.SelectedCells[0];
-                var Index = CurrentCell.RowIndex;
-                var Irp = CfbReader.Irps[Index];
-
-                HexViewerForm hvForm = new HexViewerForm(Index, Irp);
-                hvForm.Show();
-            }
+            DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
+            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            IrpViewerForm HexViewForm = new IrpViewerForm(SelectedRow.Index, SelectedIrp);
+            HexViewForm.Show();
         }
 
         private void DumpToFileBtn_Click(object sender, EventArgs e)
         {
-            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
-            if (selectedCellCount == 1)
+            DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
+            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                var CurrentCell = IrpDataView.SelectedCells[0];
-                var Irp = CfbReader.Irps[CurrentCell.RowIndex];
+                Filter = "Raw|*.raw",
+                Title = "Save IRP body to file"
+            };
+            saveFileDialog.ShowDialog();
 
-                SaveFileDialog saveFileDialog = new SaveFileDialog
-                {
-                    Filter = "Raw|*.raw",
-                    Title = "Save IRP body to file"
-                };
-                saveFileDialog.ShowDialog();
-
-                if (saveFileDialog.FileName != "")
-                {
-                    System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog.OpenFile();
-                    fs.Write(Irp.Body, 0, Irp.Body.Length);
-                    fs.Close();
-                    Log($"Saved as '{saveFileDialog.FileName:s}'");
-                }
+            if (saveFileDialog.FileName != "")
+            {
+                System.IO.FileStream fs = (System.IO.FileStream)saveFileDialog.OpenFile();
+                fs.Write(SelectedIrp.Body, 0, SelectedIrp.Body.Length);
+                fs.Close();
+                Log($"Saved as '{saveFileDialog.FileName:s}'");
             }
+ 
         }
 
 
-        private void hookUnhookDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        private void IrpDataView_SelectionChanged(object sender, EventArgs e)
         {
-            Form fc = Application.OpenForms["LoadDriverForm"];
+            
+            switch (IrpDataView.SelectedRows.Count)
+            {              
+                case 1:
+                    ShowIrpBtn.Enabled = true;
+                    DumpToFileBtn.Enabled = true;
+                    SaveForReplayBtn.Enabled = true;
+                    FuzzIrpBtn.Enabled = true;
+                    break;
 
-            if (fc == null || fc.Visible == false)
-            {
-                ldForm.RefreshDriverList();
-                ldForm.Show();
-            }
-        }
-
-
-        private void hookUnhookDriverFromNameToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Manual driver selection");
-            Log(String.Format("Trying to hook '{0:s}'", DriverName));
-
-            if (!Core.HookDriver(DriverName))
-            {
-                Log(String.Format("Failed to hook '{0:s}'", DriverName));
-                ldForm.LoadedDrivers.Add(DriverName);
-                return;
+                default:
+                    ShowIrpBtn.Enabled = false;
+                    DumpToFileBtn.Enabled = false;
+                    SaveForReplayBtn.Enabled = false;
+                    FuzzIrpBtn.Enabled = false;
+                    break;
             }
 
-            Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
-        }
-
-
-
-        private void IrpDataView_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
-            if (selectedCellCount == 1)
-            {
-                ShowIrpBtn.Enabled = true;
-                DumpToFileBtn.Enabled = true;
-                SaveForReplayBtn.Enabled = true;
-            }
-            else
-            {
-                ShowIrpBtn.Enabled = false;
-                DumpToFileBtn.Enabled = false;
-                SaveForReplayBtn.Enabled = false;
-            }
             return;
         }
-
-
-        private void IrpDataView_Scroll(Object sender, ScrollEventArgs e)
-        {
-        }
-
-
-
+        
 
         private void SaveForReplayBtn_Click(object sender, EventArgs e)
         {
-            Int32 selectedCellCount = IrpDataView.GetCellCount(DataGridViewElementStates.Selected);
-            if (selectedCellCount == 1)
+            DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
+            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index]; 
+                                 
+            SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                var CurrentCell = IrpDataView.SelectedCells[0];
-                var Irp = CfbReader.Irps[CurrentCell.RowIndex];
+                Filter = "Python|*.py",
+                Title = "Save IRP body to file"
+            };
+            saveFileDialog.ShowDialog();
 
-                SaveFileDialog saveFileDialog = new SaveFileDialog
+            if (saveFileDialog.FileName != "")
+            {
+                string IrpDataStr = "";
+                foreach( byte c in SelectedIrp.Body )
                 {
-                    Filter = "Python|*.py",
-                    Title = "Save IRP body to file"
-                };
-                saveFileDialog.ShowDialog();
+                    IrpDataStr += $"\\x{c:X2}";
+                }
 
-                if (saveFileDialog.FileName != "")
-                {
-                    string IrpDataStr = "";
-                    foreach( byte c in Irp.Body )
-                    {
-                        IrpDataStr += $"\\x{c:X2}";
-                    }
+                string DeviceName = SelectedIrp.DeviceName.Replace("\\Device", "\\\\.");
 
-                    string DeviceName = Irp.DeviceName.Replace("\\Device", "\\\\.");
-
-                    string PythonReplayTemplate = 
+                string PythonReplayTemplate = 
 $@"#
-# Replay IOCTL 0x{Irp.Header.IoctlCode:x} script to {Irp.DeviceName:s}
+# Replay IOCTL 0x{SelectedIrp.Header.IoctlCode:x} script to {SelectedIrp.DeviceName:s}
 # Auto-generated by CFB
 # 
 from ctypes import *
@@ -333,8 +242,8 @@ def Trigger():
     dwBytesReturned = c_uint32()
     hDriver = kernel32.CreateFileA(r'''{DeviceName:s}''', GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None)
     KdPrint(r'Opened handle to device {DeviceName:s}')
-    kernel32.DeviceIoControl(hDriver, 0x{Irp.Header.IoctlCode:x}, lpIrpData, len(lpIrpData), None, 0, byref(dwBytesReturned), None)
-    KdPrint('Sent {Irp.Header.BufferLength:d} Bytes to IOCTL #{Irp.Header.IoctlCode:x}')
+    kernel32.DeviceIoControl(hDriver, 0x{SelectedIrp.Header.IoctlCode:x}, lpIrpData, len(lpIrpData), None, 0, byref(dwBytesReturned), None)
+    KdPrint('Sent {SelectedIrp.Header.BufferLength:d} Bytes to IOCTL #{SelectedIrp.Header.IoctlCode:x}')
     kernel32.CloseHandle(hDriver)
     KdPrint(r'Closed handle to {DeviceName:s}')
     return 
@@ -342,16 +251,113 @@ def Trigger():
 if __name__ == '__main__':
     Trigger()
 ";
-                    System.IO.File.WriteAllText(saveFileDialog.FileName, PythonReplayTemplate);
+                System.IO.File.WriteAllText(saveFileDialog.FileName, PythonReplayTemplate);
 
-                    Log($"Saved as '{saveFileDialog.FileName:s}'");
-                }
+                Log($"Saved as '{saveFileDialog.FileName:s}'");
             }
+            
         }
+
 
         private void FuzzIrpBtn_Click(object sender, EventArgs e)
         {
-
+            DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
+            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            SimpleFuzzerForm fuzzer = new SimpleFuzzerForm(SelectedIrp);
+            fuzzer.Show();
         }
+
+        private void MenuBar_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            if (bIsDriverLoaded)
+            {
+                loadDriverToolStripMenuItem.Enabled = false;
+                unloadIrpDumperDriverToolStripMenuItem.Enabled = true;
+                monitoringToolStripMenuItem.Enabled = true;
+
+                // Cannot add driver when monitoring is ON
+                hookUnhookDriversToolStripMenuItem.Enabled = !bIsMonitoringEnabled;
+            }
+            else
+            {
+                loadDriverToolStripMenuItem.Enabled = true;
+                unloadIrpDumperDriverToolStripMenuItem.Enabled = false;
+                monitoringToolStripMenuItem.Enabled = false;
+                hookUnhookDriversToolStripMenuItem.Enabled = false;
+            }
+
+            // propagate
+            monitoringToolStripMenuItem_Click(sender, e);
+        }
+
+        
+        private void monitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (bIsMonitoringEnabled)
+            {
+                startMonitoringToolStripMenuItem.Enabled = false;
+                stopMonitoringToolStripMenuItem.Enabled = true;
+            }
+            else
+            {
+                startMonitoringToolStripMenuItem.Enabled = true;
+                stopMonitoringToolStripMenuItem.Enabled = false;
+            }
+        }
+
+        private void loadDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            InitCfbContext();
+            bIsDriverLoaded = true;
+        }
+
+        private void unloadIrpDumperDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            CleanupCfbContext();
+            bIsDriverLoaded = false;
+        }
+
+        private void startMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Log("Starting monitoring...");
+            StartListening();
+            Core.EnableMonitoring();
+            bIsMonitoringEnabled = true;
+        }
+
+        private void stopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Log("Stopping monitoring...");
+            StopListening();
+            Core.DisableMonitoring();
+            bIsMonitoringEnabled = false;
+        }
+
+        private void byPathToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Manual driver selection");
+            Log(String.Format("Trying to hook '{0:s}'", DriverName));
+
+            if (!Core.HookDriver(DriverName))
+            {
+                Log(String.Format("Failed to hook '{0:s}'", DriverName));
+                ldForm.LoadedDrivers.Add(DriverName);
+                return;
+            }
+
+            Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
+        }
+
+        private void fromListToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form fc = Application.OpenForms["LoadDriverForm"];
+
+            if (fc == null || fc.Visible == false)
+            {
+                ldForm.RefreshDriverList();
+                ldForm.Show();
+            }
+        }
+
     }
 }

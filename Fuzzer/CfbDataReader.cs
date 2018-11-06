@@ -330,7 +330,7 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        IrlqAsString(irp.Header.Irql),                       
+                        IrqlAsString(irp.Header.Irql),                       
                         TypeAsString(irp.Header.Type),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
                         irp.Header.ProcessId,
@@ -354,7 +354,7 @@ namespace Fuzzer
         }
 
 
-        private string IrlqAsString(UInt32 irql)
+        public static string IrqlAsString(UInt32 irql)
         {
             switch (irql)
             {
@@ -372,7 +372,7 @@ namespace Fuzzer
         }
 
 
-        private string TypeAsString(UInt32 type)
+        public static string TypeAsString(UInt32 type)
         {
             switch (type)
             {
@@ -389,12 +389,8 @@ namespace Fuzzer
             return "<unknown>";
         }
 
-            /// <summary>
-            /// Simple wrapper around Process.GetProcessById
-            /// </summary>
-            /// <param name="ProcessId"></param>
-            /// <returns></returns>
-        private string GetProcessById(uint ProcessId)
+   
+        public static string GetProcessById(uint ProcessId)
         {
             string Res = "";
 

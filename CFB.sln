@@ -22,6 +22,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GUI", "Fuzzer\GUI.csproj", "{866418E6-C56E-4E88-B46E-21B5A2A789B0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A1E1112D-966D-45EC-96DE-B84371E803EE} = {A1E1112D-966D-45EC-96DE-B84371E803EE}
+		{1599F8AA-9CDF-43A5-AEFA-174DB55A499C} = {1599F8AA-9CDF-43A5-AEFA-174DB55A499C}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -63,14 +63,11 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="CfbDataReader.cs" />
-    <Compile Include="HexEdit.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="HexViewerForm.cs">
+    <Compile Include="IrpViewerForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="HexViewerForm.Designer.cs">
-      <DependentUpon>HexViewerForm.cs</DependentUpon>
+    <Compile Include="IrpViewerForm.Designer.cs">
+      <DependentUpon>IrpViewerForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Irp.cs" />
     <Compile Include="LoadDriverForm.cs">
@@ -82,12 +79,15 @@
     <Compile Include="Program.cs" />
     <Compile Include="Prompt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleFuzzerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Win32.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="HexViewerForm.resx">
-      <DependentUpon>HexViewerForm.cs</DependentUpon>
+    <EmbeddedResource Include="IrpViewerForm.resx">
+      <DependentUpon>IrpViewerForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="LoadDriverForm.resx">
       <DependentUpon>LoadDriverForm.cs</DependentUpon>
@@ -102,6 +102,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="SimpleFuzzerForm.resx">
+      <DependentUpon>SimpleFuzzerForm.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

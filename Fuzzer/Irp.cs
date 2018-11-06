@@ -11,6 +11,9 @@
         {
         }
 
-
+        public override string ToString()
+        {
+            return $"IRP{{#{DeviceName},IOCTL:#{Header.IoctlCode},PID:#{Header.ProcessId} }}";
+        }
     }
 }
