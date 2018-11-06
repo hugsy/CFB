@@ -123,6 +123,7 @@ namespace Fuzzer
             this.IrpDataView.Size = new System.Drawing.Size(900, 424);
             this.IrpDataView.TabIndex = 3;
             this.IrpDataView.SelectionChanged += new System.EventHandler(this.IrpDataView_SelectionChanged);
+            this.IrpDataView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.IrpDataView_MouseDoubleClick);
             // 
             // IrpTimeStamp
             // 
@@ -170,13 +171,13 @@ namespace Fuzzer
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.settingsToolStripMenuItem.Text = "Global Settings";
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
             // 
@@ -254,7 +255,7 @@ namespace Fuzzer
             // 
             this.byPathToolStripMenuItem.Name = "byPathToolStripMenuItem";
             this.byPathToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.P)));
-            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
             this.byPathToolStripMenuItem.Text = "By Path";
             this.byPathToolStripMenuItem.Click += new System.EventHandler(this.byPathToolStripMenuItem_Click);
             // 
@@ -262,7 +263,7 @@ namespace Fuzzer
             // 
             this.fromListToolStripMenuItem.Name = "fromListToolStripMenuItem";
             this.fromListToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
             this.fromListToolStripMenuItem.Text = "From List";
             this.fromListToolStripMenuItem.Click += new System.EventHandler(this.fromListToolStripMenuItem_Click);
             // 

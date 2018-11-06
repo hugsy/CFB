@@ -27,7 +27,7 @@ namespace Fuzzer
             IrpDriverNameTextBox.Text = this.Irp.DriverName;
             IrpDeviceNameTextBox.Text = this.Irp.DeviceName;
             IrpTimestampTextBox.Text = DateTime.FromFileTime((long)this.Irp.Header.TimeStamp).ToString();
-            IrpProcessNameTextBox.Text = CfbDataReader.GetProcessById(this.Irp.Header.ProcessId) + $" ({this.Irp.Header.ProcessId})";
+            IrpProcessNameTextBox.Text = $"{this.Irp.ProcessName} ({this.Irp.Header.ProcessId})";
             IrpIoctlCodeTextBox.Text = $"0x{this.Irp.Header.IoctlCode:x8}";
             IrpIrqlTextBox.Text = CfbDataReader.IrqlAsString(this.Irp.Header.Irql) + $" (0x{this.Irp.Header.Irql})";
         }

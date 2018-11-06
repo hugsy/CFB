@@ -285,6 +285,7 @@ namespace Fuzzer
                 Header = Header,
                 DriverName = DriverName,
                 DeviceName = DeviceName,
+                ProcessName = GetProcessById(Header.ProcessId),
                 Body = Body
             };
         }
@@ -334,7 +335,7 @@ namespace Fuzzer
                         TypeAsString(irp.Header.Type),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
                         irp.Header.ProcessId,
-                        GetProcessById(irp.Header.ProcessId),
+                        irp.ProcessName,
                         irp.Header.ThreadId,
                         irp.Header.BufferLength,
                         irp.DriverName,
