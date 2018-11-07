@@ -331,8 +331,8 @@ namespace Fuzzer
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        IrqlAsString(irp.Header.Irql),                       
-                        TypeAsString(irp.Header.Type),
+                        irp.IrqlAsString(),
+                        irp.TypeAsString(),
                         "0x" + irp.Header.IoctlCode.ToString("x8"),
                         irp.Header.ProcessId,
                         irp.ProcessName,
@@ -353,43 +353,7 @@ namespace Fuzzer
             }
 
         }
-
-
-        public static string IrqlAsString(UInt32 irql)
-        {
-            switch (irql)
-            {
-                case 0:
-                    return "PASSIVE_LEVEL";
-
-                case 1:
-                    return "APC_LEVEL";
-
-                case 2:
-                    return "DPC_LEVEL";
-            }
-
-            return "<unknown>";
-        }
-
-
-        public static string TypeAsString(UInt32 type)
-        {
-            switch (type)
-            {
-                case 0x03: // IRP_MJ_READ
-                    return "READ";
-
-                case 0x04: // IRP_MJ_WRITE
-                    return "WRITE";
-
-                case 0x0e: // IRP_MJ_DEVICE_CONTROL
-                    return "DEVICE_CONTROL";
-            }
-
-            return "<unknown>";
-        }
-
+                                          
    
         public static string GetProcessById(uint ProcessId)
         {

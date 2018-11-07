@@ -17,7 +17,7 @@ namespace Fuzzer
             this.Irp = irp;
             this.Index = Index;
 
-            UpdateIrpDetailFields();
+             UpdateIrpDetailFields();
             UpdateIrpBodyTextBox();
         }
 
@@ -28,8 +28,17 @@ namespace Fuzzer
             IrpDeviceNameTextBox.Text = this.Irp.DeviceName;
             IrpTimestampTextBox.Text = DateTime.FromFileTime((long)this.Irp.Header.TimeStamp).ToString();
             IrpProcessNameTextBox.Text = $"{this.Irp.ProcessName} ({this.Irp.Header.ProcessId})";
-            IrpIoctlCodeTextBox.Text = $"0x{this.Irp.Header.IoctlCode:x8}";
-            IrpIrqlTextBox.Text = CfbDataReader.IrqlAsString(this.Irp.Header.Irql) + $" (0x{this.Irp.Header.Irql})";
+            IrpIrqlTextBox.Text = $"{this.Irp.IrqlAsString()} (0x{this.Irp.Header.Irql})";
+
+            if (this.Irp.Header.Type == (UInt32)Irp.IrpMajorType.READ || this.Irp.Header.Type == (UInt32)Irp.IrpMajorType.WRITE)
+            {
+                label6.Text =  "IRP Type..................................................";
+                IrpIoctlCodeTextBox.Text = this.Irp.TypeAsString();
+            }
+            else
+            {
+                IrpIoctlCodeTextBox.Text = $"0x{this.Irp.Header.IoctlCode:x8}";
+            }
         }
 
         private void UpdateIrpBodyTextBox()

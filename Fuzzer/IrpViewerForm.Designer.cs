@@ -65,96 +65,109 @@
             this.IrpDetails.Controls.Add(this.label2);
             this.IrpDetails.Controls.Add(this.label1);
             this.IrpDetails.Controls.Add(this.label5);
-            this.IrpDetails.Location = new System.Drawing.Point(12, 12);
+            this.IrpDetails.Location = new System.Drawing.Point(18, 18);
+            this.IrpDetails.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpDetails.Name = "IrpDetails";
-            this.IrpDetails.Size = new System.Drawing.Size(566, 186);
+            this.IrpDetails.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.IrpDetails.Size = new System.Drawing.Size(849, 286);
             this.IrpDetails.TabIndex = 0;
             this.IrpDetails.TabStop = false;
             this.IrpDetails.Text = "Details";
             // 
             // IrpIrqlTextBox
             // 
-            this.IrpIrqlTextBox.Location = new System.Drawing.Point(251, 159);
+            this.IrpIrqlTextBox.Location = new System.Drawing.Point(376, 245);
+            this.IrpIrqlTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpIrqlTextBox.Name = "IrpIrqlTextBox";
             this.IrpIrqlTextBox.ReadOnly = true;
-            this.IrpIrqlTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpIrqlTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpIrqlTextBox.TabIndex = 13;
             // 
             // label7
             // 
             this.label7.AutoSize = true;
             this.label7.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label7.Location = new System.Drawing.Point(34, 159);
+            this.label7.Location = new System.Drawing.Point(51, 245);
+            this.label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(211, 13);
+            this.label7.Size = new System.Drawing.Size(315, 20);
             this.label7.TabIndex = 12;
             this.label7.Text = "IRQ Level.........................";
             // 
             // IrpIoctlCodeTextBox
             // 
-            this.IrpIoctlCodeTextBox.Location = new System.Drawing.Point(251, 136);
+            this.IrpIoctlCodeTextBox.Location = new System.Drawing.Point(376, 209);
+            this.IrpIoctlCodeTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpIoctlCodeTextBox.Name = "IrpIoctlCodeTextBox";
             this.IrpIoctlCodeTextBox.ReadOnly = true;
-            this.IrpIoctlCodeTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpIoctlCodeTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpIoctlCodeTextBox.TabIndex = 11;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label6.Location = new System.Drawing.Point(34, 136);
+            this.label6.Location = new System.Drawing.Point(51, 209);
+            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(211, 13);
+            this.label6.Size = new System.Drawing.Size(315, 20);
             this.label6.TabIndex = 10;
             this.label6.Text = "IOCTL Code........................";
+            this.label6.UseWaitCursor = true;
             // 
             // IrpProcessNameTextBox
             // 
-            this.IrpProcessNameTextBox.Location = new System.Drawing.Point(251, 113);
+            this.IrpProcessNameTextBox.Location = new System.Drawing.Point(376, 174);
+            this.IrpProcessNameTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpProcessNameTextBox.Name = "IrpProcessNameTextBox";
             this.IrpProcessNameTextBox.ReadOnly = true;
-            this.IrpProcessNameTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpProcessNameTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpProcessNameTextBox.TabIndex = 9;
             // 
             // IrpTimestampTextBox
             // 
-            this.IrpTimestampTextBox.Location = new System.Drawing.Point(251, 88);
+            this.IrpTimestampTextBox.Location = new System.Drawing.Point(376, 135);
+            this.IrpTimestampTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpTimestampTextBox.Name = "IrpTimestampTextBox";
             this.IrpTimestampTextBox.ReadOnly = true;
-            this.IrpTimestampTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpTimestampTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpTimestampTextBox.TabIndex = 8;
             // 
             // IrpDeviceNameTextBox
             // 
-            this.IrpDeviceNameTextBox.Location = new System.Drawing.Point(251, 65);
+            this.IrpDeviceNameTextBox.Location = new System.Drawing.Point(376, 100);
+            this.IrpDeviceNameTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpDeviceNameTextBox.Name = "IrpDeviceNameTextBox";
             this.IrpDeviceNameTextBox.ReadOnly = true;
-            this.IrpDeviceNameTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpDeviceNameTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpDeviceNameTextBox.TabIndex = 7;
             // 
             // IrpDriverNameTextBox
             // 
-            this.IrpDriverNameTextBox.Location = new System.Drawing.Point(251, 41);
+            this.IrpDriverNameTextBox.Location = new System.Drawing.Point(376, 63);
+            this.IrpDriverNameTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpDriverNameTextBox.Name = "IrpDriverNameTextBox";
             this.IrpDriverNameTextBox.ReadOnly = true;
-            this.IrpDriverNameTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpDriverNameTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpDriverNameTextBox.TabIndex = 6;
             // 
             // IrpIndexTextBox
             // 
-            this.IrpIndexTextBox.Location = new System.Drawing.Point(251, 19);
+            this.IrpIndexTextBox.Location = new System.Drawing.Point(376, 29);
+            this.IrpIndexTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpIndexTextBox.Name = "IrpIndexTextBox";
             this.IrpIndexTextBox.ReadOnly = true;
-            this.IrpIndexTextBox.Size = new System.Drawing.Size(285, 20);
+            this.IrpIndexTextBox.Size = new System.Drawing.Size(426, 26);
             this.IrpIndexTextBox.TabIndex = 5;
             // 
             // label4
             // 
             this.label4.AutoSize = true;
             this.label4.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label4.Location = new System.Drawing.Point(34, 113);
+            this.label4.Location = new System.Drawing.Point(51, 174);
+            this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(211, 13);
+            this.label4.Size = new System.Drawing.Size(315, 20);
             this.label4.TabIndex = 4;
             this.label4.Text = "Process...........................";
             // 
@@ -162,9 +175,10 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(34, 88);
+            this.label3.Location = new System.Drawing.Point(51, 135);
+            this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(211, 13);
+            this.label3.Size = new System.Drawing.Size(315, 20);
             this.label3.TabIndex = 3;
             this.label3.Text = "Timestamp.........................";
             // 
@@ -172,9 +186,10 @@
             // 
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label2.Location = new System.Drawing.Point(34, 64);
+            this.label2.Location = new System.Drawing.Point(51, 98);
+            this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(211, 13);
+            this.label2.Size = new System.Drawing.Size(315, 20);
             this.label2.TabIndex = 2;
             this.label2.Text = "Device............................";
             // 
@@ -182,9 +197,10 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(34, 41);
+            this.label1.Location = new System.Drawing.Point(51, 63);
+            this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(211, 13);
+            this.label1.Size = new System.Drawing.Size(315, 20);
             this.label1.TabIndex = 1;
             this.label1.Text = "Driver............................";
             // 
@@ -192,18 +208,21 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(34, 19);
+            this.label5.Location = new System.Drawing.Point(51, 29);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(211, 13);
+            this.label5.Size = new System.Drawing.Size(315, 20);
             this.label5.TabIndex = 0;
             this.label5.Text = "Index ............................";
             // 
             // IrpHexdump
             // 
             this.IrpHexdump.Controls.Add(this.IrpBodyHexdumpTextBox);
-            this.IrpHexdump.Location = new System.Drawing.Point(12, 204);
+            this.IrpHexdump.Location = new System.Drawing.Point(18, 314);
+            this.IrpHexdump.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpHexdump.Name = "IrpHexdump";
-            this.IrpHexdump.Size = new System.Drawing.Size(566, 277);
+            this.IrpHexdump.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.IrpHexdump.Size = new System.Drawing.Size(849, 426);
             this.IrpHexdump.TabIndex = 1;
             this.IrpHexdump.TabStop = false;
             this.IrpHexdump.Text = "Hexdump";
@@ -211,21 +230,21 @@
             // IrpBodyHexdumpTextBox
             // 
             this.IrpBodyHexdumpTextBox.Font = new System.Drawing.Font("Consolas", 8F);
-            this.IrpBodyHexdumpTextBox.Location = new System.Drawing.Point(3, 16);
+            this.IrpBodyHexdumpTextBox.Location = new System.Drawing.Point(4, 25);
+            this.IrpBodyHexdumpTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.IrpBodyHexdumpTextBox.Name = "IrpBodyHexdumpTextBox";
             this.IrpBodyHexdumpTextBox.ReadOnly = true;
-            this.IrpBodyHexdumpTextBox.Size = new System.Drawing.Size(557, 255);
+            this.IrpBodyHexdumpTextBox.Size = new System.Drawing.Size(834, 390);
             this.IrpBodyHexdumpTextBox.TabIndex = 0;
             this.IrpBodyHexdumpTextBox.Text = "";
             // 
             // IrpViewerForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(583, 493);
+            this.ClientSize = new System.Drawing.Size(874, 758);
             this.Controls.Add(this.IrpHexdump);
             this.Controls.Add(this.IrpDetails);
-            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "IrpViewerForm";
             this.Text = "Details for IRP";
             this.IrpDetails.ResumeLayout(false);
