@@ -13,21 +13,6 @@ namespace Fuzzer
 {
     public class CfbDataReader
     {
-        /// <summary>
-        /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential, Pack = 1)]
-        public struct CfbMessageHeader
-        {
-            public ulong TimeStamp;
-            public UInt32 Irql;
-            public UInt32 Type;
-            public UInt32 IoctlCode;
-            public UInt32 ProcessId;
-            public UInt32 ThreadId;
-            public UInt32 BufferLength;
-        }
-
 
         public DataTable Messages;
         private Thread MessageCollectorThread, MessageDisplayThread;
@@ -257,16 +242,16 @@ namespace Fuzzer
             char[] charsToTrim = { '\0' };
 
             // header
-            CfbMessageHeader Header = (CfbMessageHeader)Marshal.PtrToStructure(RawMessage, typeof(CfbMessageHeader));
+            IrpHeader Header = (IrpHeader)Marshal.PtrToStructure(RawMessage, typeof(IrpHeader));
 
             // driver name
             byte[] DriverNameBytes = new byte[2*0x104];
-            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(CfbMessageHeader)), DriverNameBytes, 0, DriverNameBytes.Length);
+            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(IrpHeader)), DriverNameBytes, 0, DriverNameBytes.Length);
             string DriverName = System.Text.Encoding.Unicode.GetString(DriverNameBytes).Trim(charsToTrim);
 
             // driver name
             byte[] DeviceNameBytes = new byte[2*0x104];
-            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(CfbMessageHeader)) + DriverNameBytes.Length, DeviceNameBytes, 0, DeviceNameBytes.Length);
+            Marshal.Copy(RawMessage + Marshal.SizeOf(typeof(IrpHeader)) + DriverNameBytes.Length, DeviceNameBytes, 0, DeviceNameBytes.Length);
             string DeviceName = System.Text.Encoding.Unicode.GetString(DeviceNameBytes).Trim(charsToTrim);
 
             // body          

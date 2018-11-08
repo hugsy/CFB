@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 
 /// <summary>
 /// Stuff shamelessly copy-pasted from Pinvoke.net
+/// Interaction class for Win32k
 /// </summary>
 namespace Fuzzer
 {

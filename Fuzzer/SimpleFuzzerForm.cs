@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace Fuzzer
@@ -30,7 +31,7 @@ namespace Fuzzer
             worker.ProgressChanged += new ProgressChangedEventHandler(OnProgressChange);
         }
 
-        private void startAsyncButton_Click(System.Object sender, System.EventArgs e)
+        private void StartAsyncButton_Click(System.Object sender, System.EventArgs e)
         {
             resultLabel.Text = String.Empty;
             this.startAsyncButton.Enabled = false;
@@ -38,7 +39,7 @@ namespace Fuzzer
             worker.RunWorkerAsync();
         }
 
-        private void cancelAsyncButton_Click(System.Object sender, System.EventArgs e)
+        private void CancelAsyncButton_Click(System.Object sender, System.EventArgs e)
         {
             this.worker.CancelAsync();
             resultLabel.Text = "Cancelling...";
@@ -122,6 +123,47 @@ namespace Fuzzer
         }
 
 
+        private void FuzzOne()
+        {
+            IntPtr hDriver = Kernel32.CreateFile(
+                this.Irp.DeviceName,
+                Kernel32.GENERIC_READ | Kernel32.GENERIC_WRITE,
+                0,
+                IntPtr.Zero,
+                Kernel32.OPEN_EXISTING,
+                0,
+                IntPtr.Zero
+                );
+
+            if (hDriver == IntPtr.Zero)
+            {
+                resultLabel.Text = "failed to open";
+                return;
+            }
+
+            Irp FuzzedIrp = this.Irp.Clone();
+            FuzzedIrp.FuzzBody();
+
+            IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
+
+            Kernel32.DeviceIoControl(
+                hDriver,
+                FuzzedIrp.Header.IoctlCode,
+                FuzzedIrp.Body,
+                FuzzedIrp.Header.BufferLength,
+                IntPtr.Zero,
+                0,
+                pdwBytesReturned,
+                IntPtr.Zero
+                );
+
+            Marshal.FreeHGlobal(pdwBytesReturned);
+
+            Kernel32.CloseHandle(hDriver);
+        }
+
+
+
         #region Windows Form Designer generated code
         private void InitializeComponent()
         {
@@ -135,29 +177,29 @@ namespace Fuzzer
             // 
             // startAsyncButton
             // 
-            this.startAsyncButton.Location = new System.Drawing.Point(16, 72);
+            this.startAsyncButton.Location = new System.Drawing.Point(18, 87);
             this.startAsyncButton.Name = "startAsyncButton";
-            this.startAsyncButton.Size = new System.Drawing.Size(120, 23);
+            this.startAsyncButton.Size = new System.Drawing.Size(120, 30);
             this.startAsyncButton.TabIndex = 1;
             this.startAsyncButton.Text = "Start Run";
-            this.startAsyncButton.Click += new System.EventHandler(this.startAsyncButton_Click);
+            this.startAsyncButton.Click += new System.EventHandler(this.StartAsyncButton_Click);
             // 
             // cancelAsyncButton
             // 
             this.cancelAsyncButton.Enabled = false;
-            this.cancelAsyncButton.Location = new System.Drawing.Point(153, 72);
+            this.cancelAsyncButton.Location = new System.Drawing.Point(317, 87);
             this.cancelAsyncButton.Name = "cancelAsyncButton";
-            this.cancelAsyncButton.Size = new System.Drawing.Size(119, 23);
+            this.cancelAsyncButton.Size = new System.Drawing.Size(119, 30);
             this.cancelAsyncButton.TabIndex = 2;
             this.cancelAsyncButton.Text = "Cancel Run";
-            this.cancelAsyncButton.Click += new System.EventHandler(this.cancelAsyncButton_Click);
+            this.cancelAsyncButton.Click += new System.EventHandler(this.CancelAsyncButton_Click);
             // 
             // resultLabel
             // 
             this.resultLabel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.resultLabel.Location = new System.Drawing.Point(112, 16);
+            this.resultLabel.Location = new System.Drawing.Point(181, 16);
             this.resultLabel.Name = "resultLabel";
-            this.resultLabel.Size = new System.Drawing.Size(160, 23);
+            this.resultLabel.Size = new System.Drawing.Size(255, 23);
             this.resultLabel.TabIndex = 3;
             this.resultLabel.Text = "Not started";
             this.resultLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -175,7 +217,7 @@ namespace Fuzzer
             // 
             this.progressBar1.Location = new System.Drawing.Point(18, 48);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(256, 8);
+            this.progressBar1.Size = new System.Drawing.Size(420, 10);
             this.progressBar1.Step = 2;
             this.progressBar1.TabIndex = 4;
             // 
@@ -186,7 +228,7 @@ namespace Fuzzer
             // 
             // SimpleFuzzerForm
             // 
-            this.ClientSize = new System.Drawing.Size(292, 118);
+            this.ClientSize = new System.Drawing.Size(448, 141);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.resultLabel);

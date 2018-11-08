@@ -34,12 +34,11 @@ namespace Fuzzer
             long arraySize;
             UInt32 arraySizeBytes;
             UIntPtr[] ddAddresses;
-            UInt32 bytesNeeded;
             bool success;
 
             List<Tuple<UIntPtr, String>> Result = new List<Tuple<UIntPtr, String>>();
                 
-            success = EnumDeviceDrivers(null, 0, out bytesNeeded);
+            success = EnumDeviceDrivers(null, 0, out uint bytesNeeded);
 
             if (!success || bytesNeeded == 0)
             {

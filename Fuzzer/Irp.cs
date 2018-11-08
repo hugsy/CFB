@@ -1,7 +1,25 @@
 ﻿using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Fuzzer
 {
+    /// <summary>
+    /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct IrpHeader
+    {
+        public ulong TimeStamp;
+        public UInt32 Irql;
+        public UInt32 Type;
+        public UInt32 IoctlCode;
+        public UInt32 ProcessId;
+        public UInt32 ThreadId;
+        public UInt32 BufferLength;
+    }
+
+
     public class Irp
     {
         public enum IrpMajorType : UInt32
@@ -11,7 +29,7 @@ namespace Fuzzer
             DEVICE_CONTROL = 0x0e
         };
 
-        public CfbDataReader.CfbMessageHeader Header;
+        public IrpHeader Header;
         public string DriverName;
         public string DeviceName;
         public string ProcessName;
@@ -20,6 +38,23 @@ namespace Fuzzer
         public Irp()
         {
         }
+
+
+        protected Irp(Irp another)
+        {
+            Header = another.Header;
+            DriverName = another.DriverName;
+            DeviceName = another.DeviceName;
+            ProcessName = another.ProcessName;
+            Body = another.Body.ToArray();
+        }
+
+
+        public Irp Clone()
+        {
+            return new Irp(this);
+        }
+
 
         public override string ToString()
         {
@@ -68,6 +103,13 @@ namespace Fuzzer
         public string IrqlAsString()
         {
             return IrqlAsString(this.Header.Irql);
+        }
+
+        public void FuzzBody()
+        {
+            Random rand = new Random();
+            rand.NextBytes(this.Body);
+            return;
         }
     }
 }
