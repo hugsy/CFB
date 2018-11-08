@@ -28,9 +28,7 @@ namespace Fuzzer
 
         public static string TypeAsString(UInt32 type)
         {
-            IrpMajorType _t = (Irp.IrpMajorType)type;
-
-            switch (_t)
+            switch ((Irp.IrpMajorType)type)
             {
                 case IrpMajorType.READ:
                     return "READ";

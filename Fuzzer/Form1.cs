@@ -250,16 +250,41 @@ kernel32    = windll.kernel32
 KdPrint     = lambda x:  kernel32.OutputDebugStringA(x + '\n')
 
 
-def Hexdump(src, length=16):    FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])    lines = []    for c in range(0, len(src), length):        chars = src[c:c+length]        hex = ' '.join(['%02x' % ord(x) for x in chars])        printable = ''.join(['%s' % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
-        lines.append('%04x  %-*s  %s\n' % (c, length * 3, hex, printable))    return ''.join(lines)
+def Hexdump(src, length=16):
+    FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
+    lines = []
+    for c in range(0, len(src), length):
+        chars = src[c:c+length]
+        hex = ' '.join(['%02x' % ord(x) for x in chars])
+        printable = ''.join(['%s' % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
+        lines.append('%04x  %-*s  %s\n' % (c, length * 3, hex, printable))
+    return ''.join(lines)
 
 
-@contextmanagerdef GetDeviceHandle(DeviceName, *args, **kwargs):    Access = kwargs.get('dwDesiredAccess', win32con.GENERIC_READ | win32con.GENERIC_WRITE)    handle = kernel32.CreateFileA(DeviceName, Access, 0, None, win32con.OPEN_EXISTING, 0, None)    if handle == -1: raise IOError('Cannot get handle to %s' % DeviceName)    try: yield handle    finally: kernel32.CloseHandle(handle)
+@contextmanager
+def GetDeviceHandle(DeviceName, *args, **kwargs):
+    Access = kwargs.get('dwDesiredAccess', win32con.GENERIC_READ | win32con.GENERIC_WRITE)
+    handle = kernel32.CreateFileA(DeviceName, Access, 0, None, win32con.OPEN_EXISTING, 0, None)
+    if handle == -1: raise IOError('Cannot get handle to %s' % DeviceName)
+    try: yield handle
+    finally: kernel32.CloseHandle(handle)
 
 
-def DeviceIoctlControl(DeviceName, IoctlCode, _in='', _out='', *args, **kwargs):    dwBytesReturned = c_uint32()    InputBufferSize = kwargs.get('_inlen', len(_in))    OutputBufferSize = kwargs.get('_outlen', len(_out))    InputBuffer = create_string_buffer(InputBufferSize)    OutputBuffer = create_string_buffer(OutputBufferSize)
-    InputBuffer.value = _in    OutputBuffer.value = _out    res = -1
-    with GetDeviceHandle(DeviceName) as hDriver:        KdPrint('Sending inbuflen=%dB to %s with ioctl=%#x (outbuflen=%dB)' % (InputBufferSize, DeviceName, IoctlCode, OutputBufferSize))        res = kernel32.DeviceIoControl(hDriver, IoctlCode, InputBuffer, InputBufferSize, OutputBuffer, OutputBufferSize, byref(dwBytesReturned), None)        KdPrint('Sent %dB to %s with IoctlCode %#x' % (InputBufferSize, DeviceName, IoctlCode ))        if res and dwBytesReturned: print(Hexdump(OutputBuffer))    return res
+def DeviceIoctlControl(DeviceName, IoctlCode, _in='', _out='', *args, **kwargs):
+    dwBytesReturned = c_uint32()
+    InputBufferSize = kwargs.get('_inlen', len(_in))
+    OutputBufferSize = kwargs.get('_outlen', len(_out))
+    InputBuffer = create_string_buffer(InputBufferSize)
+    OutputBuffer = create_string_buffer(OutputBufferSize)
+    InputBuffer.value = _in
+    OutputBuffer.value = _out
+    res = -1
+    with GetDeviceHandle(DeviceName) as hDriver:
+        KdPrint('Sending inbuflen=%dB to %s with ioctl=%#x (outbuflen=%dB)' % (InputBufferSize, DeviceName, IoctlCode, OutputBufferSize))
+        res = kernel32.DeviceIoControl(hDriver, IoctlCode, InputBuffer, InputBufferSize, OutputBuffer, OutputBufferSize, byref(dwBytesReturned), None)
+        KdPrint('Sent %dB to %s with IoctlCode %#x' % (InputBufferSize, DeviceName, IoctlCode ))
+        if res and dwBytesReturned: print(Hexdump(OutputBuffer))
+    return res
 
 
 def Trigger():
@@ -379,7 +404,6 @@ if __name__ == '__main__':
                 ldForm.Show();
             }
         }
-
 
     }
 }
