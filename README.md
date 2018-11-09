@@ -26,11 +26,4 @@ Clone the repository and in a VS prompt run
 ```
 
 
-## TODO
-
- 
- - [ ] Fix dangling threads that make Fuzzer hangs after exit
- - [ ] Fix C# exception when exiting without driver hooked
- 
-
 -- hugsy

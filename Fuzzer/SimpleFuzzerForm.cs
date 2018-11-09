@@ -150,7 +150,7 @@ namespace Fuzzer
                 hDriver,
                 FuzzedIrp.Header.IoctlCode,
                 FuzzedIrp.Body,
-                FuzzedIrp.Header.BufferLength,
+                FuzzedIrp.Header.InputBufferLength,
                 IntPtr.Zero,
                 0,
                 pdwBytesReturned,

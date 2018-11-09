@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Data;
-using System.Windows;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 
@@ -46,7 +44,8 @@ namespace Fuzzer
             Messages.Columns.Add("ProcessId", typeof(UInt32));
             Messages.Columns.Add("ProcessName", typeof(string));
             Messages.Columns.Add("ThreadId", typeof(UInt32));
-            Messages.Columns.Add("BufferLength", typeof(UInt32));
+            Messages.Columns.Add("InputBufferLength", typeof(UInt32));
+            Messages.Columns.Add("OutputBufferLength", typeof(UInt32));
             Messages.Columns.Add("DriverName", typeof(string));
             Messages.Columns.Add("DeviceName", typeof(string));
             Messages.Columns.Add("Buffer", typeof(string));
@@ -255,22 +254,22 @@ namespace Fuzzer
             string DeviceName = System.Text.Encoding.Unicode.GetString(DeviceNameBytes).Trim(charsToTrim);
 
             // body          
-            byte[] Body = new byte[Header.BufferLength];
-            Marshal.Copy(RawMessage + HeaderSize, Body, 0, Convert.ToInt32(Header.BufferLength));
+            byte[] Body = new byte[Header.InputBufferLength];
+            Marshal.Copy(RawMessage + HeaderSize, Body, 0, Convert.ToInt32(Header.InputBufferLength));
 
 
             Marshal.FreeHGlobal(lpdwNumberOfByteRead);
             Marshal.FreeHGlobal(RawMessage);
 
 
-            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} by '{DriverName:s}' from (PID={Header.ProcessId:d},TID={Header.ThreadId:d}), BodyLen={Header.BufferLength:d}B");
+            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} by '{DriverName:s}' from (PID={Header.ProcessId:d},TID={Header.ThreadId:d}), BodyLen={Header.InputBufferLength:d}B");
 
             return new Irp
             {
                 Header = Header,
                 DriverName = DriverName,
                 DeviceName = DeviceName,
-                ProcessName = GetProcessById(Header.ProcessId),
+                ProcessName = Utils.GetProcessById(Header.ProcessId),
                 Body = Body
             };
         }
@@ -322,7 +321,8 @@ namespace Fuzzer
                         irp.Header.ProcessId,
                         irp.ProcessName,
                         irp.Header.ThreadId,
-                        irp.Header.BufferLength,
+                        irp.Header.InputBufferLength,
+                        irp.Header.OutputBufferLength,
                         irp.DriverName,
                         irp.DeviceName,
                         BitConverter.ToString(irp.Body)
@@ -338,24 +338,7 @@ namespace Fuzzer
             }
 
         }
-                                          
-   
-        public static string GetProcessById(uint ProcessId)
-        {
-            string Res = "";
-
-            try
-            {
-                Process p = Process.GetProcessById((int)ProcessId);
-                Res = p.ProcessName;
-            }
-            catch
-            {
-                Res = "";
-            }
-
-            return Res;
-        }
+                               
 
         private void RefreshData()
         {

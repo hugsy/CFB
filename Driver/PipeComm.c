@@ -8,17 +8,13 @@ https://www.codeproject.com/Articles/9504/Driver-Development-Part-1-Introduction
 https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-development
 
 --*/
-NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *InputBuffer, OUT PULONG InputBufferLength)
+static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBufferLength, OUT PVOID *InputBuffer)
 {
 	NTSTATUS Status;
 
-	*InputBuffer = NULL;
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
-	*InputBufferLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
-	if ( *InputBufferLength == 0 )
-		return STATUS_SUCCESS;
-
-	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, *InputBufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, InputBufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;
@@ -30,13 +26,11 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Inpu
 
 		do
 		{
-			ULONG IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-			if (METHOD_FROM_CTL_CODE(IoctlCode) == METHOD_NEITHER)
+			if (Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL && Method == METHOD_NEITHER)
 			{
-				CfbDbgPrintInfo(L"GetDataFromIrp() - Using METHOD_NEITHER for IoctlCode=%#x\n", IoctlCode);
 				if (Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16))
 				{
-					RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, *InputBufferLength);
+					RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, InputBufferLength);
 				}
 				else
 				{
@@ -46,38 +40,39 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Inpu
 				break;
 			}
 
-			if (METHOD_FROM_CTL_CODE(IoctlCode) == METHOD_BUFFERED)
+			if (Method == METHOD_BUFFERED)
 			{
-				CfbDbgPrintInfo(L"GetDataFromIrp() - Using METHOD_BUFFERED for IoctlCode=%#x\n", IoctlCode);
 				if (!Irp->AssociatedIrp.SystemBuffer)
 				{
 					Status = STATUS_INVALID_PARAMETER;
 				}
 				else
 				{
-					RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, *InputBufferLength );
+					RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, InputBufferLength );
 				}
 
 				break;
 			}
 
-			CfbDbgPrintInfo(L"GetDataFromIrp() - Using METHOD_IN_DIRECT for IoctlCode=%#x\n", IoctlCode);
-			if (!Irp->MdlAddress)
-			{
-				Status = STATUS_INVALID_PARAMETER;
-				break;
-			}
+            if(Method == METHOD_IN_DIRECT)
+            {
+			    if (!Irp->MdlAddress)
+			    {
+				    Status = STATUS_INVALID_PARAMETER;
+				    break;
+			    }
 
-			PVOID pDataAddr = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-			if (!pDataAddr)
-			{
-				Status = STATUS_INVALID_PARAMETER;
-				break;
-			}
-			else
-			{
-				RtlCopyMemory(Buffer, pDataAddr, *InputBufferLength );
-			}
+			    PVOID pDataAddr = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+			    if (!pDataAddr)
+			    {
+				    Status = STATUS_INVALID_PARAMETER;
+				    break;
+			    }
+			    else
+			    {
+				    RtlCopyMemory(Buffer, pDataAddr, InputBufferLength );
+			    }
+            }
 
 		} while (0);
 	}
@@ -100,6 +95,67 @@ NTSTATUS GetDataFromIrp(IN PIRP Irp, IN PIO_STACK_LOCATION Stack, IN PVOID *Inpu
 
 	return Status;
 }
+
+
+
+NTSTATUS ExtractDeviceIoctlIrpData(IN PIRP Irp, OUT PVOID *InputBuffer, OUT PULONG InputBufferLength)
+{
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+
+    *InputBufferLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
+    if( *InputBufferLength == 0 )
+    {
+        return STATUS_SUCCESS;
+    }
+
+    ULONG IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+    ULONG Method = METHOD_FROM_CTL_CODE(IoctlCode);
+
+    return ExtractIrpData(Irp, Method, *InputBufferLength, InputBuffer);
+}
+
+
+/*++
+
+Extract the IRP data from a READ or WRITE.
+
+Ref: 
+- https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/irp-mj-write
+- https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/irp-mj-read
+
+--*/
+NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OUT PVOID *InputBuffer, OUT PULONG InputBufferLength)
+{
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+
+    if(Stack->MajorFunction == IRP_MJ_READ)
+        *InputBufferLength = Stack->Parameters.Read.Length;
+    else
+        *InputBufferLength = Stack->Parameters.Write.Length;
+
+    if(*InputBufferLength == 0)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    ULONG Method;
+
+    if(DeviceObject->Flags & DO_BUFFERED_IO)
+    {
+        Method = METHOD_BUFFERED;
+    }
+    else if(DeviceObject->Flags & DO_DIRECT_IO)
+    {
+        Method = METHOD_IN_DIRECT;
+    }
+    else
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    return ExtractIrpData(Irp, Method, *InputBufferLength, InputBuffer);
+}
+
 
 
 /*++
@@ -142,7 +198,8 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 	pMsgHeader->Tid = pIn->Tid;
 	pMsgHeader->Type = pIn->Type;
 	pMsgHeader->Irql = KeGetCurrentIrql();
-	pMsgHeader->BufferLength = pIn->BodyLen;
+	pMsgHeader->InputBufferLength = pIn->InputBufferLen;
+	pMsgHeader->InputBufferLength = pIn->OutputBufferLen;
 	pMsgHeader->IoctlCode = pIn->IoctlCode;
 
 
@@ -155,7 +212,7 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 	//
 
 	(*pMessage)->Header = pMsgHeader;
-	(*pMessage)->Body = pIn->Body;
+	(*pMessage)->Body = pIn->InputBuffer;
 
 
 	Status = STATUS_SUCCESS;
@@ -192,18 +249,10 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	PIPE_MESSAGE p = { 0, };
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
 
-	Status = GetDataFromIrp(Irp, Stack, &p.Body, &p.BodyLen);
-
-	if (!NT_SUCCESS(Status))
-	{
-		CfbDbgPrintErr(L"GetDataFromIrp() failed, Status=%#X\n", Status);
-		return Status;
-	}
-	
-
 	p.Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
 	p.Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
 	p.Type = (UINT32)Stack->MajorFunction;
+    p.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
 	wcsncpy( p.DriverName, Driver->Name, wcslen( Driver->Name ) );
 	Status = GetDeviceNameFromDeviceObject( pDeviceObject, p.DeviceName, MAX_PATH );
@@ -213,9 +262,26 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 		CfbDbgPrintWarn( L"GetDeviceName() failed, Status=0x%#x... Using empty string\n", Status );
 	}
 
-	if ( p.Type == IRP_MJ_DEVICE_CONTROL )
+	switch (p.Type)
 	{
-		p.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+        case IRP_MJ_DEVICE_CONTROL:
+		    p.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+            Status = ExtractDeviceIoctlIrpData(Irp, &p.InputBuffer, &p.InputBufferLen);
+            if(!NT_SUCCESS(Status))
+            {
+                CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() failed, Status=%#X\n", Status);
+                return Status;
+            }
+            break;
+
+        case IRP_MJ_READ:
+        case IRP_MJ_WRITE:
+            Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &p.InputBuffer, &p.InputBufferLen);
+            break;
+
+        default:
+            CfbDbgPrintErr(L"Incorrect IRP type %x\n", p.Type);
+            return STATUS_UNSUCCESSFUL;
 	}
 
 
@@ -224,8 +290,8 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	if (!NT_SUCCESS(Status) || pMessage == NULL)
 	{
 		CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
-		if ( p.Body )
-			ExFreePoolWithTag(p.Body, CFB_DEVICE_TAG);
+		if ( p.InputBuffer)
+			ExFreePoolWithTag(p.InputBuffer, CFB_DEVICE_TAG);
 		return Status;
 	}
 
@@ -238,15 +304,15 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 
 	if ( !NT_SUCCESS( Status ) )
 	{
-		CfbDbgPrintErr( L"PushToQueue() failed, discarding message\n" );
+		CfbDbgPrintErr( L"PushToQueue(%x) failed, discarding message\n", Status );
 		FreePipeMessage( pMessage );
 	}
 	else
 	{
-		CfbDbgPrintOk( L"Message #%d (%dB) pushed to queue...\n", dwIndex, pMessage->Header->BufferLength );
+		CfbDbgPrintOk( L"Message #%d (%dB) pushed to queue...\n", dwIndex, pMessage->Header->InputBufferLength);
 	}
 
-
+    
 	//
 	// and last, notify the client in UM of the new message posted
 	//

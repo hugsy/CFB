@@ -16,7 +16,8 @@ namespace Fuzzer
         public UInt32 IoctlCode;
         public UInt32 ProcessId;
         public UInt32 ThreadId;
-        public UInt32 BufferLength;
+        public UInt32 InputBufferLength;
+        public UInt32 OutputBufferLength;
     }
 
 

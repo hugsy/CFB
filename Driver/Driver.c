@@ -44,7 +44,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 	}
 
 
-	UINT32 dwExpectedSize = sizeof( SNIFFED_DATA_HEADER ) + pData->Header->BufferLength;
+	UINT32 dwExpectedSize = sizeof( SNIFFED_DATA_HEADER ) + pData->Header->InputBufferLength;
 
 	if ( BufferSize == 0 )
 	{
@@ -88,9 +88,9 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 	//
 	// Copy body (if any)
 	//
-	if( pHeader->BufferLength && pData->Body )
+	if( pHeader->InputBufferLength && pData->Body )
 	{
-		RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pHeader->BufferLength );
+		RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pHeader->InputBufferLength);
 	}
 
 	FreePipeMessage( pData );
@@ -176,9 +176,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	PAGED_CODE();
 
-	CfbDbgPrintInfo(L"-----------------------------------------\n");
-	CfbDbgPrintInfo(L"     Loading driver IrpDumper            \n");
-	CfbDbgPrintInfo(L"-----------------------------------------\n");
+	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
 
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	PDEVICE_OBJECT DeviceObject;
@@ -254,7 +252,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		CfbDbgPrintOk( L"Symlink '%s' to driver object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 	}
 
-	DeviceObject->Flags |= DO_DIRECT_IO;
+	DeviceObject->Flags |= DO_DIRECT_IO; // TODO: use DO_BUFFERED_IO instead ?
 
 	DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
 
