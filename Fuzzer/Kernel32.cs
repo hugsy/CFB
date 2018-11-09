@@ -48,10 +48,10 @@ namespace Fuzzer
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
 
-        internal static void DeviceIoControl(IntPtr hDriver, uint ioctlCode, byte[] body, uint bufferLength, IntPtr zero1, int v, IntPtr pdwBytesReturned, IntPtr zero2)
-        {
-            throw new NotImplementedException();
-        }
+
+        [DllImport("kernel32.dll")]
+        public static extern uint GetLastError();
+
     }
 
 }

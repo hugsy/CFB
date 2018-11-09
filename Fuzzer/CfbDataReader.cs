@@ -312,12 +312,18 @@ namespace Fuzzer
                 while (doLoop)
                 {
                     Irp irp = NewIrpQueue.Take();
+                    string IoctlCodeIfPresent;
+
+                    if( (Irp.IrpMajorType) irp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL )
+                        IoctlCodeIfPresent = $"0x" + irp.Header.IoctlCode.ToString("x8");
+                    else
+                        IoctlCodeIfPresent = "N/A";
 
                     Messages.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
                         irp.IrqlAsString(),
                         irp.TypeAsString(),
-                        "0x" + irp.Header.IoctlCode.ToString("x8"),
+                        IoctlCodeIfPresent,
                         irp.Header.ProcessId,
                         irp.ProcessName,
                         irp.Header.ThreadId,

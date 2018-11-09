@@ -93,7 +93,7 @@ namespace Fuzzer
                 return;
             }
 
-            int NbCases = 100;
+            uint NbCases = 1000; // TODO: make this a global config setting
 
             for(var i = 0; i < NbCases; i++)
             {
@@ -111,6 +111,7 @@ namespace Fuzzer
             return;
         }
 
+
         private void RunTestCase(int TestCaseIndex, BackgroundWorker worker, DoWorkEventArgs e)
         {
             if (worker.CancellationPending)
@@ -119,11 +120,13 @@ namespace Fuzzer
                 return;
             }
 
-            System.Threading.Thread.Sleep(500);
+            FuzzOne(TestCaseIndex);
+
+            System.Threading.Thread.Sleep(500); // remove this when done
         }
 
 
-        private void FuzzOne()
+        private bool FuzzOne(int Index)
         {
             IntPtr hDriver = Kernel32.CreateFile(
                 this.Irp.DeviceName,
@@ -137,29 +140,55 @@ namespace Fuzzer
 
             if (hDriver == IntPtr.Zero)
             {
-                resultLabel.Text = "failed to open";
-                return;
+                resultLabel.Text = $"[{Index}] failed to open device";
+                return false;
             }
 
             Irp FuzzedIrp = this.Irp.Clone();
             FuzzedIrp.FuzzBody();
 
+            IntPtr InputBuffer = Marshal.AllocHGlobal((int)FuzzedIrp.Header.InputBufferLength);
+            Marshal.Copy(FuzzedIrp.Body, 0, InputBuffer, (int)FuzzedIrp.Header.InputBufferLength);
+
             IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
 
-            Kernel32.DeviceIoControl(
+            IntPtr lpOutBuffer = IntPtr.Zero;
+            int dwOutBufferLen = 0;
+
+            if( FuzzedIrp.Header.OutputBufferLength > 0 )
+            {
+                dwOutBufferLen = ( int )FuzzedIrp.Header.OutputBufferLength;
+                lpOutBuffer = Marshal.AllocHGlobal(dwOutBufferLen);
+            }
+
+            bool res = Kernel32.DeviceIoControl(
                 hDriver,
                 FuzzedIrp.Header.IoctlCode,
-                FuzzedIrp.Body,
+                InputBuffer,
                 FuzzedIrp.Header.InputBufferLength,
-                IntPtr.Zero,
-                0,
+                lpOutBuffer,
+                (uint)dwOutBufferLen,
                 pdwBytesReturned,
                 IntPtr.Zero
                 );
 
             Marshal.FreeHGlobal(pdwBytesReturned);
+            Marshal.FreeHGlobal(InputBuffer);
+
+            if( dwOutBufferLen > 0 )
+            {
+                Marshal.FreeHGlobal(lpOutBuffer);
+            }
 
             Kernel32.CloseHandle(hDriver);
+
+            resultLabel.Text = $"[{Index.ToString()}] Last request returned: {res.ToString()}";
+            if( res == false )
+            {
+                resultLabel.Text += $" - {Kernel32.GetLastError().ToString("x8")}";
+            }
+
+            return res;
         }
 
 

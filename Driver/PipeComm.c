@@ -199,7 +199,7 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 	pMsgHeader->Type = pIn->Type;
 	pMsgHeader->Irql = KeGetCurrentIrql();
 	pMsgHeader->InputBufferLength = pIn->InputBufferLen;
-	pMsgHeader->InputBufferLength = pIn->OutputBufferLen;
+	pMsgHeader->OutputBufferLength = pIn->OutputBufferLen;
 	pMsgHeader->IoctlCode = pIn->IoctlCode;
 
 
@@ -212,7 +212,7 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 	//
 
 	(*pMessage)->Header = pMsgHeader;
-	(*pMessage)->Body = pIn->InputBuffer;
+	(*pMessage)->InputBuffer = pIn->InputBuffer;
 
 
 	Status = STATUS_SUCCESS;
@@ -227,8 +227,8 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 VOID FreePipeMessage(IN PSNIFFED_DATA pMessage)
 {
 	ExFreePoolWithTag(pMessage->Header, CFB_DEVICE_TAG);
-	if (pMessage->Body) // can be NULL if pMessage->Body == 0
-		ExFreePoolWithTag(pMessage->Body, CFB_DEVICE_TAG);
+	if (pMessage->InputBuffer) // can be NULL if pMessage->Body == 0
+		ExFreePoolWithTag(pMessage->InputBuffer, CFB_DEVICE_TAG);
 	ExFreePoolWithTag(pMessage, CFB_DEVICE_TAG);
 	pMessage = NULL;
 	return;

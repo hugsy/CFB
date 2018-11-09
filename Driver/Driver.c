@@ -86,11 +86,12 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 	RtlCopyMemory( Buffer, pHeader, sizeof( SNIFFED_DATA_HEADER ) );
 	
 	//
-	// Copy body (if any)
+	// Copy the IRP input buffer (if any)
 	//
-	if( pHeader->InputBufferLength && pData->Body )
+	if( pHeader->InputBufferLength && pData->InputBuffer)
 	{
-		RtlCopyMemory( (PVOID)((ULONG_PTR)(Buffer) + sizeof( SNIFFED_DATA_HEADER )), pData->Body, pHeader->InputBufferLength);
+        PVOID InputBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(SNIFFED_DATA_HEADER) );
+		RtlCopyMemory(InputBuffer, pData->InputBuffer, pHeader->InputBufferLength);
 	}
 
 	FreePipeMessage( pData );

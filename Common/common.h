@@ -87,7 +87,7 @@ typedef PVOID PSNIFFED_DATA_BODY;
 typedef struct __sniffed_data_t
 {
 	PSNIFFED_DATA_HEADER Header;
-	PSNIFFED_DATA_BODY Body;
+	PSNIFFED_DATA_BODY InputBuffer;
 }
 SNIFFED_DATA, *PSNIFFED_DATA;
 

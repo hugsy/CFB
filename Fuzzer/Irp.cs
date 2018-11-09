@@ -23,7 +23,7 @@ namespace Fuzzer
 
     public class Irp
     {
-        public enum IrpMajorType : UInt32
+        public enum IrpMajorType : uint
         {
             READ = 0x03,
             WRITE = 0x04,
