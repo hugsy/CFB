@@ -13,39 +13,57 @@ namespace Fuzzer
 {
     public class Kernel32
     {
-        public const uint GENERIC_READ = 0x80000000;
-        public const uint GENERIC_WRITE = 0x40000000;
+        public const uint GENERIC_READ    = 0x80000000;
+        public const uint GENERIC_WRITE   = 0x40000000;
+        
+        public const uint CREATE_NEW      = 1;
+        public const uint CREATE_ALWAYS   = 2;
+        public const uint OPEN_EXISTING   = 3;
 
-        public const uint OPEN_EXISTING = 0x03;
+        public const short FILE_ATTRIBUTE_NORMAL = 0x80;
+        public const short INVALID_HANDLE_VALUE = -1;
 
-
+        /*
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr CreateFile(
                                                      [MarshalAs(UnmanagedType.LPTStr)] string filename,
                                                      [MarshalAs(UnmanagedType.U4)] uint access,
                                                      [MarshalAs(UnmanagedType.U4)] uint share,
-                                                     IntPtr securityAttributes, // optional SECURITY_ATTRIBUTES struct or IntPtr.Zero
+                                                     IntPtr securityAttributes,
                                                      [MarshalAs(UnmanagedType.U4)] uint creationDisposition,
                                                      [MarshalAs(UnmanagedType.U4)] uint flagsAndAttributes,
-                                                     IntPtr templateFile);
+                                                     IntPtr templateFile
+            );
+        */
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr CreateFile(
+                                                string lpFileName, 
+                                                uint dwDesiredAccess,
+                                                uint dwShareMode, 
+                                                IntPtr lpSecurityAttributes, 
+                                                uint dwCreationDisposition,
+                                                uint dwFlagsAndAttributes, 
+                                                IntPtr hTemplateFile
+            );
 
 
         [DllImport("Kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool DeviceIoControl(  IntPtr hDevice,
+        public static extern bool DeviceIoControl( 
+                                                    IntPtr hDevice,
                                                     uint dwIoControlCode,
                                                     IntPtr InBuffer,
                                                     uint nInBufferSize,
                                                     IntPtr OutBuffer,
                                                     uint nOutBufferSize,
                                                     IntPtr pdwBytesReturned,
-                                                    IntPtr lpOverlapped);
+                                                    IntPtr lpOverlapped
+            );
 
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         [SuppressUnmanagedCodeSecurity]
-        [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
 
 

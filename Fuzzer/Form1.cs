@@ -73,28 +73,28 @@ namespace Fuzzer
             bIsDriverLoaded = false;
             bIsMonitoringEnabled = false;
 
-            Log("Checking Windows version support...");
+            //Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
             {
                 MessageBox.Show("CheckWindowsVersion() failed");
                 Application.Exit();
             }
 
-            Log("Running checks...");
+            //Log("Running checks...");
             if (!Core.RunInitializationChecks())
             {
                 MessageBox.Show("RunInitializationChecks() failed");
                 Application.Exit();
             }
 
-            Log("Loading driver...");
+            //Log("Loading driver...");
             if (!Core.LoadDriver())
             {
                 MessageBox.Show("LoadDriver() failed");
                 Application.Exit();
             }
 
-            Log("Initializing CFB context...");
+            //Log("Initializing CFB context...");
             if (!Core.InitializeCfbContext())
             {
                 MessageBox.Show("InitializeCfbContext() failed");
@@ -102,6 +102,7 @@ namespace Fuzzer
                 Application.Exit();
             }
 
+            Log("Successful initialization, you can start monitoring...");
             bIsDriverLoaded = true;
             bIsMonitoringEnabled = false;
         }
@@ -382,16 +383,16 @@ if __name__ == '__main__':
         private void byPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Manual driver selection");
-            Log(String.Format("Trying to hook '{0:s}'", DriverName));
+            Log( $"Trying to hook '{DriverName}'" );
 
             if (!Core.HookDriver(DriverName))
             {
-                Log(String.Format("Failed to hook '{0:s}'", DriverName));
+                Log($"Failed to hook '{DriverName}'");
                 ldForm.LoadedDrivers.Add(DriverName);
                 return;
             }
 
-            Log(String.Format("Driver object '{0:s}' is now hooked.", DriverName));
+            Log($"Driver object '{DriverName}' is now hooked.");
         }
 
         private void fromListToolStripMenuItem_Click(object sender, EventArgs e)
