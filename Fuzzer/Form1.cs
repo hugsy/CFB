@@ -116,7 +116,7 @@ namespace Fuzzer
 
         private void CleanupCfbContext()
         {
-            Log("Cleaning up context...");
+            Log("Cleaning up context (may take a bit, be patient)...");
             Core.CleanupCfbContext();
 
             Log("Unloading service and driver...");

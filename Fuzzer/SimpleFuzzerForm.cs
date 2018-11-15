@@ -54,9 +54,11 @@ namespace Fuzzer
             BackgroundWorker worker = sender as BackgroundWorker;
 
             // Generate all test cases
+            resultLabel.Text = $"Initiating test cases...";
             // TODO
 
             // Run the tests
+            resultLabel.Text = $"Fuzzing...";
             RunTestCases(worker, e);
         }
 
@@ -83,8 +85,8 @@ namespace Fuzzer
 
         private void OnProgressChange(object sender, ProgressChangedEventArgs e)
         {
-            this.progressBar1.Value = e.ProgressPercentage;
-            resultLabel.Text = this.progressBar1.Value.ToString() + "% done";
+            //this.progressBar1.Value = e.ProgressPercentage;
+            //resultLabel.Text = this.progressBar1.Value.ToString() + "% done";
         }
 
         private void RunTestCases(BackgroundWorker worker, DoWorkEventArgs e)
@@ -95,9 +97,11 @@ namespace Fuzzer
                 return;
             }
 
-            uint NbCases = 100000; // TODO: make this a global config setting
+            int NbCases = -1; // TODO: make this a global config setting
+            int percentComplete = 0;
+                
 
-            for(var i = 0; i < NbCases; i++)
+            for(var i = 0; i != NbCases; i++)
             {
                 RunTestCase(i, worker, e);
 
@@ -106,8 +110,12 @@ namespace Fuzzer
                     break;
                 }
 
-                int percentComplete = (int)((float)i / (float)NbCases * 100);
-                worker.ReportProgress(percentComplete);
+                if( NbCases != -1 )
+                {
+                    percentComplete = ( int )( ( float )i / ( float )NbCases * 100 );
+                    worker.ReportProgress(percentComplete);
+                }
+
             }
 
             return;
@@ -189,11 +197,11 @@ namespace Fuzzer
             Kernel32.CloseHandle(hDriver);
 
             
-            if( res == false )
-            {
-                label1.Text = $"[{Index.ToString()}] Last request returned: {res.ToString()}";
-                label1.Text+= $" - {Kernel32.GetLastError().ToString("x8")}";
-            }
+            //if( res == false )
+            //{
+            //    label1.Text = $"[{Index.ToString()}] Last request returned: {res.ToString()}";
+            //    label1.Text+= $" - {Kernel32.GetLastError().ToString("x8")}";
+            //}
 
             return true;
         }
