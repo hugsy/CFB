@@ -114,5 +114,12 @@ namespace Fuzzer
         {
            this.Rnd.NextBytes(this.Body);
         }
+
+        public void FuzzBody(int IndexStart, int IndexEnd)
+        {
+            Byte[] b = this.Body.Skip(IndexStart).Take(IndexEnd-IndexStart).ToArray();
+            this.Rnd.NextBytes(b);
+            Array.Copy(b, 0, this.Body, IndexStart, b.Length);
+        }
     }
 }

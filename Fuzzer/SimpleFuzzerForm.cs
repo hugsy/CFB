@@ -16,7 +16,16 @@ namespace Fuzzer
         private System.Windows.Forms.Label resultLabel;
         private Label label1;
         private Label label2;
+        private Label label3;
+        private Label label4;
+        private TextBox FuzzByteStartIndexTextbox;
+        private TextBox FuzzByteEndIndexTextbox;
+        private Label label5;
+        private TextBox MaxTestCaseTextbox;
         private System.ComponentModel.BackgroundWorker worker;
+
+        private int StartByteIndex;
+        private int EndByteIndex;
 
         public SimpleFuzzerForm(Irp irp)
         {
@@ -97,9 +106,18 @@ namespace Fuzzer
                 return;
             }
 
-            int NbCases = -1; // TODO: make this a global config setting
+            bool res;
             int percentComplete = 0;
-                
+
+            StartByteIndex = 0;
+            res = Int32.TryParse(FuzzByteStartIndexTextbox.Text, out StartByteIndex);
+
+            EndByteIndex = this.Irp.Body.Length;
+            res = Int32.TryParse(FuzzByteEndIndexTextbox.Text, out EndByteIndex);
+
+            int NbCases = -1;
+            res = Int32.TryParse(MaxTestCaseTextbox.Text, out NbCases);
+
 
             for(var i = 0; i != NbCases; i++)
             {
@@ -138,7 +156,7 @@ namespace Fuzzer
         }
 
 
-        private bool FuzzOne(int Index)
+        private bool FuzzOne(int IrpFuzzSessionIndex)
         {
             IntPtr hDriver = Kernel32.CreateFile(
                 this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\"),
@@ -158,7 +176,7 @@ namespace Fuzzer
             }
 
             Irp FuzzedIrp = this.Irp.Clone();
-            FuzzedIrp.FuzzBody();
+            FuzzedIrp.FuzzBody(this.StartByteIndex, this.EndByteIndex);
 
             IntPtr InputBuffer = Marshal.AllocHGlobal((int)FuzzedIrp.Header.InputBufferLength);
             Marshal.Copy(FuzzedIrp.Body, 0, InputBuffer, (int)FuzzedIrp.Header.InputBufferLength);
@@ -219,11 +237,17 @@ namespace Fuzzer
             this.worker = new System.ComponentModel.BackgroundWorker();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.FuzzByteStartIndexTextbox = new System.Windows.Forms.TextBox();
+            this.FuzzByteEndIndexTextbox = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.MaxTestCaseTextbox = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // startAsyncButton
             // 
-            this.startAsyncButton.Location = new System.Drawing.Point(37, 137);
+            this.startAsyncButton.Location = new System.Drawing.Point(37, 203);
             this.startAsyncButton.Name = "startAsyncButton";
             this.startAsyncButton.Size = new System.Drawing.Size(120, 30);
             this.startAsyncButton.TabIndex = 1;
@@ -233,7 +257,7 @@ namespace Fuzzer
             // cancelAsyncButton
             // 
             this.cancelAsyncButton.Enabled = false;
-            this.cancelAsyncButton.Location = new System.Drawing.Point(445, 137);
+            this.cancelAsyncButton.Location = new System.Drawing.Point(445, 203);
             this.cancelAsyncButton.Name = "cancelAsyncButton";
             this.cancelAsyncButton.Size = new System.Drawing.Size(119, 30);
             this.cancelAsyncButton.TabIndex = 2;
@@ -261,9 +285,9 @@ namespace Fuzzer
             // 
             // progressBar1
             // 
-            this.progressBar1.Location = new System.Drawing.Point(37, 97);
+            this.progressBar1.Location = new System.Drawing.Point(37, 180);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(527, 25);
+            this.progressBar1.Size = new System.Drawing.Size(527, 17);
             this.progressBar1.Step = 2;
             this.progressBar1.TabIndex = 4;
             // 
@@ -275,7 +299,7 @@ namespace Fuzzer
             // label1
             // 
             this.label1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.label1.Location = new System.Drawing.Point(192, 59);
+            this.label1.Location = new System.Drawing.Point(192, 51);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(372, 23);
             this.label1.TabIndex = 5;
@@ -283,16 +307,71 @@ namespace Fuzzer
             // 
             // label2
             // 
-            this.label2.Location = new System.Drawing.Point(44, 59);
+            this.label2.Location = new System.Drawing.Point(44, 51);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(79, 23);
             this.label2.TabIndex = 6;
             this.label2.Text = "GetLastError()";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // label3
+            // 
+            this.label3.Location = new System.Drawing.Point(44, 86);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(79, 23);
+            this.label3.TabIndex = 7;
+            this.label3.Text = "From (optional)";
+            this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label4
+            // 
+            this.label4.Location = new System.Drawing.Point(44, 115);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(79, 23);
+            this.label4.TabIndex = 8;
+            this.label4.Text = "To (optional)";
+            this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // FuzzByteStartIndexTextbox
+            // 
+            this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
+            this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteStartIndexTextbox.TabIndex = 9;
+            // 
+            // FuzzByteEndIndexTextbox
+            // 
+            this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
+            this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteEndIndexTextbox.TabIndex = 10;
+            // 
+            // label5
+            // 
+            this.label5.Location = new System.Drawing.Point(44, 143);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(113, 23);
+            this.label5.TabIndex = 11;
+            this.label5.Text = "Maximum test cases";
+            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // MaxTestCaseTextbox
+            // 
+            this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
+            this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
+            this.MaxTestCaseTextbox.TabIndex = 12;
+            this.MaxTestCaseTextbox.Text = "-1";
+            // 
             // SimpleFuzzerForm
             // 
-            this.ClientSize = new System.Drawing.Size(599, 182);
+            this.ClientSize = new System.Drawing.Size(599, 243);
+            this.Controls.Add(this.MaxTestCaseTextbox);
+            this.Controls.Add(this.label5);
+            this.Controls.Add(this.FuzzByteEndIndexTextbox);
+            this.Controls.Add(this.FuzzByteStartIndexTextbox);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.progressBar1);
@@ -303,6 +382,7 @@ namespace Fuzzer
             this.Name = "SimpleFuzzerForm";
             this.Text = "Simple IRP Fuzzer";
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
         #endregion
