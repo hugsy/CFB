@@ -119,7 +119,12 @@ namespace Fuzzer
             this.IrpDataView.ReadOnly = true;
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.AutoSizeToAllHeaders;
             this.IrpDataView.RowTemplate.Height = 28;
+            this.IrpDataView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.IrpDataView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.IrpDataView.ShowCellErrors = false;
+            this.IrpDataView.ShowCellToolTips = false;
+            this.IrpDataView.ShowEditingIcon = false;
+            this.IrpDataView.ShowRowErrors = false;
             this.IrpDataView.Size = new System.Drawing.Size(900, 424);
             this.IrpDataView.TabIndex = 3;
             this.IrpDataView.SelectionChanged += new System.EventHandler(this.IrpDataView_SelectionChanged);
@@ -382,7 +387,6 @@ namespace Fuzzer
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.TextBox LogTextBox;
-        public System.Windows.Forms.DataGridView IrpDataView;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpTimeStamp;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpProcessId;
         private System.Windows.Forms.DataGridViewTextBoxColumn IrpIoctlCode;
@@ -410,6 +414,7 @@ namespace Fuzzer
         private System.Windows.Forms.ToolStripMenuItem byPathToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromListToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
+        public DataGridView IrpDataView;
     }
 }
 
