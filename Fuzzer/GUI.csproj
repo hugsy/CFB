@@ -78,7 +78,7 @@
       <DependentUpon>LoadDriverForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
-    <Compile Include="Prompt.cs" />
+    <Compile Include="SimplePromptPopup.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleFuzzerForm.cs">
       <SubType>Form</SubType>

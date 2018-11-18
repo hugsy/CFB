@@ -382,16 +382,20 @@ if __name__ == '__main__':
 
         private void byPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string DriverName = Prompt.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Manual driver selection");
-            Log( $"Trying to hook '{DriverName}'" );
+            string DriverName = SimplePromptPopup.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Driver full path");
 
-            if (!Core.HookDriver(DriverName))
+            if (DriverName.Length == 0)
             {
-                Log($"Failed to hook '{DriverName}'");
-                ldForm.LoadedDrivers.Add(DriverName);
                 return;
             }
 
+            if (!Core.HookDriver(DriverName))
+            {
+                Log($"Failed to hook '{DriverName}'");               
+                return;
+            }
+
+            ldForm.LoadedDrivers.Add(DriverName);
             Log($"Driver object '{DriverName}' is now hooked.");
         }
 
