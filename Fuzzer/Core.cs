@@ -16,7 +16,7 @@ namespace Fuzzer
         [DllImport(@"Core.dll")]
         public static extern bool RunInitializationChecks();
 
-        [DllImport("Core.dll")]
+        [DllImport("Core.dll", SetLastError = true)]
         public static extern bool LoadDriver();
 
         [DllImport(@"Core.dll")]
@@ -25,7 +25,7 @@ namespace Fuzzer
         [DllImport(@"Core.dll")]
         public static extern void CleanupCfbContext();
 
-        [DllImport(@"Core.dll")]
+        [DllImport(@"Core.dll", SetLastError = true)]
         public static extern bool UnloadDriver();
 
 

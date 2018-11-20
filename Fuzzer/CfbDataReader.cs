@@ -12,15 +12,15 @@ namespace Fuzzer
     public class CfbDataReader
     {
 
-        public DataTable Messages;
+        public DataTable IrpDataTableEntries;
         private Thread MessageCollectorThread, MessageDisplayThread;
         private BlockingCollection<Irp> NewIrpQueue;
         private bool doLoop;
         private Form1 RootForm;
         public List<Irp> Irps;
         private AutoResetEvent NewMessageEvent;
-        private IntPtr NewMessageEventHandler;
-        private BindingSource bs;
+        private readonly IntPtr NewMessageEventHandler;
+        private BindingSource DataBinder;
 
         public bool IsThreadRunning
         {
@@ -36,39 +36,45 @@ namespace Fuzzer
         /// </summary>
         public CfbDataReader(Form1 f)
         {
-            Messages = new DataTable("IrpData");
-            Messages.Columns.Add("TimeStamp", typeof(DateTime));
-            Messages.Columns.Add("IrqLevel", typeof(string));
-            Messages.Columns.Add("Type", typeof(string));
-            Messages.Columns.Add("IoctlCode", typeof(string));
-            Messages.Columns.Add("ProcessId", typeof(UInt32));
-            Messages.Columns.Add("ProcessName", typeof(string));
-            Messages.Columns.Add("ThreadId", typeof(UInt32));
-            Messages.Columns.Add("InputBufferLength", typeof(UInt32));
-            Messages.Columns.Add("OutputBufferLength", typeof(UInt32));
-            Messages.Columns.Add("DriverName", typeof(string));
-            Messages.Columns.Add("DeviceName", typeof(string));
-            Messages.Columns.Add("Buffer", typeof(string));
-
             RootForm = f;
-
-            bs = new BindingSource();
-            RootForm.IrpDataView.DataSource = bs;
-            bs.DataSource = Messages;
-            bs.ResetBindings(false);
-
             doLoop = false;
+
             Irps = new List<Irp>();
             NewIrpQueue = new BlockingCollection<Irp>();
             NewMessageEvent = new AutoResetEvent(false);
+            DataBinder = new BindingSource();
+
+            InitializeIrpDataTable();
+            
+            RootForm.IrpDataView.DataSource = DataBinder;
+            DataBinder.DataSource = IrpDataTableEntries;
+            DataBinder.ResetBindings(false);
             NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
+        }
+
+
+        private void InitializeIrpDataTable()
+        {
+            IrpDataTableEntries = new DataTable("IrpData");
+            IrpDataTableEntries.Columns.Add("TimeStamp", typeof(DateTime));
+            IrpDataTableEntries.Columns.Add("IrqLevel", typeof(string));
+            IrpDataTableEntries.Columns.Add("Type", typeof(string));
+            IrpDataTableEntries.Columns.Add("IoctlCode", typeof(string));
+            IrpDataTableEntries.Columns.Add("ProcessId", typeof(UInt32));
+            IrpDataTableEntries.Columns.Add("ProcessName", typeof(string));
+            IrpDataTableEntries.Columns.Add("ThreadId", typeof(UInt32));
+            IrpDataTableEntries.Columns.Add("InputBufferLength", typeof(UInt32));
+            IrpDataTableEntries.Columns.Add("OutputBufferLength", typeof(UInt32));
+            IrpDataTableEntries.Columns.Add("DriverName", typeof(string));
+            IrpDataTableEntries.Columns.Add("DeviceName", typeof(string));
+            IrpDataTableEntries.Columns.Add("Buffer", typeof(string));
         }
 
 
         /// <summary>
         /// Starts a dedicated thread to pop out messages from the named pipe.
         /// </summary>
-        public void StartClientThread()
+        public void StartThreads()
         {
             //
             // Pass the handler to the C# event to our driver
@@ -114,7 +120,7 @@ namespace Fuzzer
         /// <summary>
         /// Tries to end cleanly all the threads.
         /// </summary>
-        public void EndClientThreads()
+        public void JoinThreads()
         {
             JoinThread(MessageCollectorThread);
             JoinThread(MessageDisplayThread);
@@ -319,7 +325,7 @@ namespace Fuzzer
                     else
                         IoctlCodeIfPresent = "N/A";
 
-                    Messages.Rows.Add(
+                    IrpDataTableEntries.Rows.Add(
                         DateTime.FromFileTime((long)irp.Header.TimeStamp),
                         irp.IrqlAsString(),
                         irp.TypeAsString(),
@@ -334,7 +340,7 @@ namespace Fuzzer
                         BitConverter.ToString(irp.Body)
                         );
 
-                    RefreshData();
+                    RootForm.IrpDataView.Refresh();
 
                 }
             }
@@ -344,15 +350,5 @@ namespace Fuzzer
             }
 
         }
-                               
-
-        private void RefreshData()
-        {
-            bs.ResetBindings(false);
-            RootForm.IrpDataView.FirstDisplayedScrollingRowIndex = RootForm.IrpDataView.RowCount - 1;
-            RootForm.IrpDataView.Refresh();
-        }
-
-
     }
 }

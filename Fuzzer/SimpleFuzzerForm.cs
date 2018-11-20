@@ -7,7 +7,7 @@ namespace Fuzzer
 {
     public class SimpleFuzzerForm : System.Windows.Forms.Form
     {
-        private Irp Irp;
+        private readonly Irp Irp;
 
         private System.Windows.Forms.Button startAsyncButton;
         private System.Windows.Forms.Button cancelAsyncButton;
@@ -336,14 +336,14 @@ namespace Fuzzer
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -359,7 +359,7 @@ namespace Fuzzer
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
             // 

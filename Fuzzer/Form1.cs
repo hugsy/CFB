@@ -41,12 +41,12 @@ namespace Fuzzer
 
         private void StartListening()
         {
-            CfbReader.StartClientThread();
+            CfbReader.StartThreads();
         }
 
         private void StopListening()
         {
-            CfbReader.EndClientThreads();
+            CfbReader.JoinThreads();
         }
 
         private void OnProcessExit(object sender, EventArgs e)
@@ -90,7 +90,7 @@ namespace Fuzzer
             //Log("Loading driver...");
             if (!Core.LoadDriver())
             {
-                MessageBox.Show("LoadDriver() failed");
+                MessageBox.Show("LoadDriver() failed: " + Kernel32.GetLastError());
                 Application.Exit();
             }
 

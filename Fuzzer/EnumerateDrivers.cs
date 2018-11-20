@@ -70,7 +70,9 @@ namespace Fuzzer
 
         public static List<String> EnumerateDirectoryObjects(string RootPath)
         {
+#pragma warning disable IDE0018 // Inline variable declaration
             SafeFileHandle Handle;
+#pragma warning restore IDE0018 // Inline variable declaration
             List<String> Res = new List<String>();
 
             var ObjAttr = new Win32.OBJECT_ATTRIBUTES(RootPath, Win32.OBJ_CASE_INSENSITIVE);
