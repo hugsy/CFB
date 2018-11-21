@@ -25,11 +25,16 @@ namespace Fuzzer
         private System.ComponentModel.BackgroundWorker worker;
 
         private int StartByteIndex;
+        private ComboBox StrategyComboBox;
+        private Label label6;
         private int EndByteIndex;
+        private string[] Strategies;
 
+        
         public SimpleFuzzerForm(Irp irp)
         {
             InitializeComponent();
+            InitializeFuzzingStrategies();
             this.Irp = irp;
             this.Text = "Fuzzing " + this.Irp.ToString();
             InitializeWorker();
@@ -41,6 +46,18 @@ namespace Fuzzer
             worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(OnComplete);
             worker.ProgressChanged += new ProgressChangedEventHandler(OnProgressChange);
         }
+
+        private void InitializeFuzzingStrategies()
+        {
+            Strategies = new string[]
+            {
+                "Random",
+                "Bitflit",
+            };
+
+            StrategyComboBox.Items.AddRange(Strategies);
+        }
+
 
         private void StartAsyncButton_Click(System.Object sender, System.EventArgs e)
         {
@@ -64,11 +81,23 @@ namespace Fuzzer
 
             // Generate all test cases
             resultLabel.Text = $"Initiating test cases...";
-            // TODO
+            string SelectedStrategy = (string)StrategyComboBox.SelectedItem;
 
             // Run the tests
-            resultLabel.Text = $"Fuzzing...";
-            RunTestCases(worker, e);
+            switch(SelectedStrategy)
+            {
+                case "Random":
+                    resultLabel.Text = $"Random Fuzzing...";
+                    RunRandomFuzzing(worker, e);
+                    break;
+
+                // TODO : add more
+
+                default:   
+                    MessageBox.Show($"Strategy '{SelectedStrategy}' does not exist", "UnimplementedStrategy");
+                    return;
+            }
+
         }
 
 
@@ -92,13 +121,14 @@ namespace Fuzzer
             cancelAsyncButton.Enabled = false;
         }
 
+
         private void OnProgressChange(object sender, ProgressChangedEventArgs e)
         {
-            //this.progressBar1.Value = e.ProgressPercentage;
-            //resultLabel.Text = this.progressBar1.Value.ToString() + "% done";
+            this.progressBar1.Value = e.ProgressPercentage;
         }
 
-        private void RunTestCases(BackgroundWorker worker, DoWorkEventArgs e)
+
+        private void RunRandomFuzzing(BackgroundWorker worker, DoWorkEventArgs e)
         {
             if (worker.CancellationPending)
             {
@@ -243,6 +273,8 @@ namespace Fuzzer
             this.FuzzByteEndIndexTextbox = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.MaxTestCaseTextbox = new System.Windows.Forms.TextBox();
+            this.StrategyComboBox = new System.Windows.Forms.ComboBox();
+            this.label6 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // startAsyncButton
@@ -309,7 +341,7 @@ namespace Fuzzer
             // 
             this.label2.Location = new System.Drawing.Point(44, 51);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(79, 23);
+            this.label2.Size = new System.Drawing.Size(113, 23);
             this.label2.TabIndex = 6;
             this.label2.Text = "GetLastError()";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -318,32 +350,32 @@ namespace Fuzzer
             // 
             this.label3.Location = new System.Drawing.Point(44, 86);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(79, 23);
+            this.label3.Size = new System.Drawing.Size(113, 23);
             this.label3.TabIndex = 7;
-            this.label3.Text = "From (optional)";
+            this.label3.Text = "From Index (optional)";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // label4
             // 
             this.label4.Location = new System.Drawing.Point(44, 115);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(79, 23);
+            this.label4.Size = new System.Drawing.Size(113, 23);
             this.label4.TabIndex = 8;
-            this.label4.Text = "To (optional)";
+            this.label4.Text = "To Index (optional)";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // FuzzByteStartIndexTextbox
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -352,20 +384,41 @@ namespace Fuzzer
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(113, 23);
             this.label5.TabIndex = 11;
-            this.label5.Text = "Maximum test cases";
+            this.label5.Text = "Maximum Test Cases";
             this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // MaxTestCaseTextbox
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
+            // 
+            // StrategyComboBox
+            // 
+            this.StrategyComboBox.FormattingEnabled = true;
+            this.StrategyComboBox.Location = new System.Drawing.Point(443, 88);
+            this.StrategyComboBox.Name = "StrategyComboBox";
+            this.StrategyComboBox.Size = new System.Drawing.Size(121, 21);
+            this.StrategyComboBox.TabIndex = 13;
+            this.StrategyComboBox.TabStop = false;
+            
+            // 
+            // label6
+            // 
+            this.label6.Location = new System.Drawing.Point(345, 88);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(96, 23);
+            this.label6.TabIndex = 14;
+            this.label6.Text = "Fuzzing Strategy";
+            this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // SimpleFuzzerForm
             // 
             this.ClientSize = new System.Drawing.Size(599, 243);
+            this.Controls.Add(this.label6);
+            this.Controls.Add(this.StrategyComboBox);
             this.Controls.Add(this.MaxTestCaseTextbox);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.FuzzByteEndIndexTextbox);

@@ -11,10 +11,9 @@ namespace Fuzzer
 {
     public class CfbDataReader
     {
-
         public DataTable IrpDataTableEntries;
         private Thread MessageCollectorThread, MessageDisplayThread;
-        private BlockingCollection<Irp> NewIrpQueue;
+        private Queue<Irp> NewItems;
         private bool doLoop;
         private Form1 RootForm;
         public List<Irp> Irps;
@@ -40,7 +39,7 @@ namespace Fuzzer
             doLoop = false;
 
             Irps = new List<Irp>();
-            NewIrpQueue = new BlockingCollection<Irp>();
+            NewItems = new Queue<Irp>();
             NewMessageEvent = new AutoResetEvent(false);
             DataBinder = new BindingSource();
 
@@ -94,14 +93,14 @@ namespace Fuzzer
             MessageDisplayThread = new Thread(DisplayMessagesThreadRoutine)
             {
                 Name = "MessageDisplayThread",
-                Priority = ThreadPriority.BelowNormal,
+                Priority = ThreadPriority.AboveNormal,
                 IsBackground = true
             };
 
             MessageCollectorThread = new Thread(PopMessagesFromDriverThreadRoutine)
             {
                 Name = "MessageCollectorThread",
-                Priority = ThreadPriority.BelowNormal,
+                Priority = ThreadPriority.AboveNormal,
                 IsBackground = true
             };
 
@@ -169,7 +168,7 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
-        private Irp ReadMessage()
+        private Irp PopIrpFromDriver()
         {
             int HeaderSize;
             int ErrNo;
@@ -281,6 +280,31 @@ namespace Fuzzer
         }
 
 
+        private void PushNewIrp(Irp irp)
+        {
+            lock( NewItems )
+            {
+                NewItems.Enqueue(irp);
+                Monitor.PulseAll(NewItems);
+            }
+        }
+
+        private Irp PopNewIrp()
+        {
+            lock( NewItems )
+            {
+                while( NewItems.Count == 0 )
+                {
+                    Monitor.Wait(NewItems);
+                }
+
+                Monitor.PulseAll(NewItems);
+
+                return NewItems.Dequeue();
+            }
+        }
+
+
         /// <summary>
         /// Threaded function that'll open a handle to named pipe, and pop out structured messages
         /// </summary>
@@ -292,12 +316,15 @@ namespace Fuzzer
             {
                 while (doLoop)
                 {
-                    var irp = ReadMessage();
+                    var irp = PopIrpFromDriver();
                     Irps.Add(irp);
 
-                    int NbItems = Irps.Count;
-                    RootForm.Log($"Poping IRP #{NbItems:d}");
-                    NewIrpQueue.Add(irp);
+                    //if(cfg.LogLevel > 1)
+                    //{
+                    //    int NbItems = Irps.Count;
+                    //    RootForm.Log($"Poping IRP #{NbItems:d}");
+                    //}
+                    PushNewIrp(irp);
                 }
             }
             catch (Exception Ex)
@@ -317,7 +344,8 @@ namespace Fuzzer
             {
                 while (doLoop)
                 {
-                    Irp irp = NewIrpQueue.Take();
+                    Irp irp = PopNewIrp();
+
                     string IoctlCodeIfPresent;
 
                     if( (Irp.IrpMajorType) irp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL )
@@ -338,10 +366,9 @@ namespace Fuzzer
                         irp.DriverName,
                         irp.DeviceName,
                         BitConverter.ToString(irp.Body)
-                        );
+                    );
 
                     RootForm.IrpDataView.Refresh();
-
                 }
             }
             catch (Exception Ex)
