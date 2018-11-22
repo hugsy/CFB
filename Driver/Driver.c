@@ -14,6 +14,9 @@ static FAST_MUTEX g_InterceptFastMutex;
 static IO_REMOVE_LOCK g_RemoveLockDriver;
 static BOOLEAN g_IsInterceptEnabled;
 
+static KSPIN_LOCK g_SpinLock;
+static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
+
 
 /*++
 
@@ -48,7 +51,6 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
 
 	if ( BufferSize == 0 )
 	{
-		CfbDbgPrintOk( L"Sending expected input buffer size=%dB\n", dwExpectedSize );
 		CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
 		return STATUS_SUCCESS;
 	}
@@ -143,11 +145,17 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	//
 	// Unswap all hooked drivers left to avoid new IRPs to be handled by us
 	//
+
 	KeEnterCriticalRegion();
-	RemoveAllDrivers();
-	IoAcquireRemoveLock( &g_RemoveLockDriver, Irp );
-	IoReleaseRemoveLockAndWait( &g_RemoveLockDriver, Irp );
-	KeLeaveCriticalRegion();
+
+    {
+        RemoveAllDrivers();
+        IoAcquireRemoveLock(&g_RemoveLockDriver, Irp);
+        IoReleaseRemoveLockAndWait(&g_RemoveLockDriver, Irp);
+
+    }
+
+    KeLeaveCriticalRegion();
 
 	FlushQueue();
 
@@ -255,7 +263,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	DeviceObject->Flags |= DO_DIRECT_IO; // TODO: use DO_BUFFERED_IO instead ?
 
-	DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
+	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
 	ExInitializeFastMutex( &g_InterceptFastMutex );
 

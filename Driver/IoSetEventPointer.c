@@ -32,7 +32,7 @@ VOID ClearNotificationPointer()
 		return;
 	}
 
-	KeClearEvent( g_EventNotificationPointer );
+	KeResetEvent( g_EventNotificationPointer );
 	ObDereferenceObject( g_EventNotificationPointer );
 	g_EventNotificationPointer = NULL;
 	
@@ -60,7 +60,7 @@ NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack )
 	HANDLE hEvent = *pHandle;
 	PKEVENT pKernelNotifEvent;
 
-	CfbDbgPrintInfo( L"HandleIoSetEventPointer() - look up for handle %x\n", hEvent );
+	CfbDbgPrintInfo( L"Lookup for handle %x\n", hEvent );
 
 	status = ObReferenceObjectByHandle(
 		hEvent,

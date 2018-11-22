@@ -53,7 +53,7 @@ namespace Fuzzer
         {
             Core.DisableMonitoring();
 
-            if (CfbReader.IsThreadRunning)
+            if (CfbReader.AreThreadsRunning )
                 StopListening();
 
             CleanupCfbContext();

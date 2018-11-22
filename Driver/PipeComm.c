@@ -309,7 +309,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	}
 	else
 	{
-		CfbDbgPrintOk( L"Message #%d (%dB) pushed to queue...\n", dwIndex, pMessage->Header->InputBufferLength);
+		CfbDbgPrintOk( L"Message #%d (%p) pushed to queue...\n", dwIndex,  pMessage);
 	}
 
     

@@ -11,21 +11,22 @@ namespace Fuzzer
 {
     public class CfbDataReader
     {
-        public DataTable IrpDataTableEntries;
-        private Thread MessageCollectorThread, MessageDisplayThread;
-        private Queue<Irp> NewItems;
-        private bool doLoop;
+        
+        private Thread FetchIrpsFromDriverThread, UpdateDisplayThread;
+        private BlockingQueue<Irp> NewItems;
+        private bool CollectIrp;
         private Form1 RootForm;
         public List<Irp> Irps;
-        private AutoResetEvent NewMessageEvent;
+        private ManualResetEvent NewMessageEvent;
         private readonly IntPtr NewMessageEventHandler;
+        public DataTable IrpDataTable;
         private BindingSource DataBinder;
 
-        public bool IsThreadRunning
+        public bool AreThreadsRunning
         {
             get
             {
-                return !doLoop;
+                return UpdateDisplayThread.IsAlive || FetchIrpsFromDriverThread.IsAlive;
             }
         }
 
@@ -36,17 +37,17 @@ namespace Fuzzer
         public CfbDataReader(Form1 f)
         {
             RootForm = f;
-            doLoop = false;
+            CollectIrp = false;
 
             Irps = new List<Irp>();
-            NewItems = new Queue<Irp>();
-            NewMessageEvent = new AutoResetEvent(false);
+            NewItems = new BlockingQueue<Irp>(1000);
+            NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
 
             InitializeIrpDataTable();
             
             RootForm.IrpDataView.DataSource = DataBinder;
-            DataBinder.DataSource = IrpDataTableEntries;
+            DataBinder.DataSource = IrpDataTable;
             DataBinder.ResetBindings(false);
             NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
         }
@@ -54,19 +55,19 @@ namespace Fuzzer
 
         private void InitializeIrpDataTable()
         {
-            IrpDataTableEntries = new DataTable("IrpData");
-            IrpDataTableEntries.Columns.Add("TimeStamp", typeof(DateTime));
-            IrpDataTableEntries.Columns.Add("IrqLevel", typeof(string));
-            IrpDataTableEntries.Columns.Add("Type", typeof(string));
-            IrpDataTableEntries.Columns.Add("IoctlCode", typeof(string));
-            IrpDataTableEntries.Columns.Add("ProcessId", typeof(UInt32));
-            IrpDataTableEntries.Columns.Add("ProcessName", typeof(string));
-            IrpDataTableEntries.Columns.Add("ThreadId", typeof(UInt32));
-            IrpDataTableEntries.Columns.Add("InputBufferLength", typeof(UInt32));
-            IrpDataTableEntries.Columns.Add("OutputBufferLength", typeof(UInt32));
-            IrpDataTableEntries.Columns.Add("DriverName", typeof(string));
-            IrpDataTableEntries.Columns.Add("DeviceName", typeof(string));
-            IrpDataTableEntries.Columns.Add("Buffer", typeof(string));
+            IrpDataTable = new DataTable("IrpData");
+            IrpDataTable.Columns.Add("TimeStamp", typeof(DateTime));
+            IrpDataTable.Columns.Add("IrqLevel", typeof(string));
+            IrpDataTable.Columns.Add("Type", typeof(string));
+            IrpDataTable.Columns.Add("IoctlCode", typeof(string));
+            IrpDataTable.Columns.Add("ProcessId", typeof(UInt32));
+            IrpDataTable.Columns.Add("ProcessName", typeof(string));
+            IrpDataTable.Columns.Add("ThreadId", typeof(UInt32));
+            IrpDataTable.Columns.Add("InputBufferLength", typeof(UInt32));
+            IrpDataTable.Columns.Add("OutputBufferLength", typeof(UInt32));
+            IrpDataTable.Columns.Add("DriverName", typeof(string));
+            IrpDataTable.Columns.Add("DeviceName", typeof(string));
+            IrpDataTable.Columns.Add("Buffer", typeof(string));
         }
 
 
@@ -90,27 +91,28 @@ namespace Fuzzer
             }
 
                        
-            MessageDisplayThread = new Thread(DisplayMessagesThreadRoutine)
+            UpdateDisplayThread = new Thread(RefreshDataGridViewThreadRoutine)
             {
-                Name = "MessageDisplayThread",
-                Priority = ThreadPriority.AboveNormal,
-                IsBackground = true
-            };
-
-            MessageCollectorThread = new Thread(PopMessagesFromDriverThreadRoutine)
-            {
-                Name = "MessageCollectorThread",
-                Priority = ThreadPriority.AboveNormal,
+                Name = "UpdateDisplayThread",
+                Priority = ThreadPriority.Normal,
                 IsBackground = true
             };
 
 
-            RootForm.Log("Starting threads...");
+            FetchIrpsFromDriverThread = new Thread(PopIrpsFromDriverThreadRoutine)
+            {
+                Name = "FetchIrpsFromDriverThread",
+                Priority = ThreadPriority.Normal,
+                IsBackground = true
+            };
 
-            MessageDisplayThread.Start();
-            MessageCollectorThread.Start();
 
-            doLoop = true;
+            // RootForm.Log("Starting threads...");
+
+            UpdateDisplayThread.Start();
+            FetchIrpsFromDriverThread.Start();
+
+            CollectIrp = true;
 
             RootForm.Log("Threads started!");
         }
@@ -121,8 +123,8 @@ namespace Fuzzer
         /// </summary>
         public void JoinThreads()
         {
-            JoinThread(MessageCollectorThread);
-            JoinThread(MessageDisplayThread);
+            JoinThread(FetchIrpsFromDriverThread);
+            JoinThread(UpdateDisplayThread);
         }
 
 
@@ -132,7 +134,7 @@ namespace Fuzzer
         /// <param name="t"></param>
         private void JoinThread(Thread t)
         {
-            doLoop = false;
+            CollectIrp = false;
 
             if (t == null || !t.IsAlive)
                 return;
@@ -155,7 +157,7 @@ namespace Fuzzer
             RootForm.Log("Failed to kill gracefully, forcing thread termination!");
             try
             {
-                MessageCollectorThread.Abort();
+                FetchIrpsFromDriverThread.Abort();
             }
             catch (ThreadAbortException TaEx)
             {
@@ -176,7 +178,6 @@ namespace Fuzzer
             int dwNumberOfByteRead;
             IntPtr lpdwNumberOfByteRead;
 
-            var handles = new WaitHandle[] { NewMessageEvent, };
 
             //
             // Read the raw header 
@@ -190,21 +191,19 @@ namespace Fuzzer
 
             lpdwNumberOfByteRead =  Marshal.AllocHGlobal(sizeof(int));
 
-
             //
             // Wait for and pop one new message
             //
             while (true)
             {
-                WaitHandle.WaitAny(handles);
-                NewMessageEvent.Reset();
+                //NewMessageEvent.WaitOne();
 
                 bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
 
                 if (!bResult)
                 {
                     ErrNo = Marshal.GetLastWin32Error();
-                    throw new Exception($"ReadMessage() - ReadCfbDevice(HEADER) while querying message: GetLastError()=0x{ErrNo:x}");
+                    throw new Exception($"ReadCfbDevice(HEADER) while querying message: GetLastError()=0x{ErrNo:x}");
                 }
 
                 dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
@@ -212,9 +211,12 @@ namespace Fuzzer
                 if (dwNumberOfByteRead == 0)
                     continue;
 
-                RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
+                //if(cfg.LogLevel > 2)
+                //{
+                //   RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
+                //}
 
-                if (dwNumberOfByteRead < HeaderSize)
+                if( dwNumberOfByteRead < HeaderSize)
                 {
                     throw new Exception($"ReadMessage() - announced size of {dwNumberOfByteRead:x} B is too small");
                 }
@@ -266,8 +268,10 @@ namespace Fuzzer
             Marshal.FreeHGlobal(lpdwNumberOfByteRead);
             Marshal.FreeHGlobal(RawMessage);
 
-
-            RootForm.Log($"Read Ioctl {Header.IoctlCode:x} by '{DriverName:s}' from (PID={Header.ProcessId:d},TID={Header.ThreadId:d}), BodyLen={Header.InputBufferLength:d}B");
+            //if(cfg.LogLevel > 2)
+            //{
+                RootForm.Log($"Dumped IRP #{Header.IoctlCode:x} to '{DriverName:s}' from PID={Header.ProcessId:d}, InBodyLen={Header.InputBufferLength:d}B");
+            //}
 
             return new Irp
             {
@@ -280,51 +284,37 @@ namespace Fuzzer
         }
 
 
-        private void PushNewIrp(Irp irp)
-        {
-            lock( NewItems )
-            {
-                NewItems.Enqueue(irp);
-                Monitor.PulseAll(NewItems);
-            }
-        }
-
-        private Irp PopNewIrp()
-        {
-            lock( NewItems )
-            {
-                while( NewItems.Count == 0 )
-                {
-                    Monitor.Wait(NewItems);
-                }
-
-                Monitor.PulseAll(NewItems);
-
-                return NewItems.Dequeue();
-            }
-        }
-
-
         /// <summary>
         /// Threaded function that'll open a handle to named pipe, and pop out structured messages
         /// </summary>
-        private void PopMessagesFromDriverThreadRoutine()
+        private void PopIrpsFromDriverThreadRoutine()
         {
-            RootForm.Log("Starting PopMessagesFromDriverThreadRoutine");
+            RootForm.Log("Starting PopIrpsFromDriverThreadRoutine");
 
             try
             {
-                while (doLoop)
+                while (CollectIrp)
                 {
-                    var irp = PopIrpFromDriver();
-                    Irps.Add(irp);
+                    // 
+                    // Wait at least one
+                    //
+                    NewMessageEvent.WaitOne(-1);
 
-                    //if(cfg.LogLevel > 1)
-                    //{
-                    //    int NbItems = Irps.Count;
-                    //    RootForm.Log($"Poping IRP #{NbItems:d}");
-                    //}
-                    PushNewIrp(irp);
+                    do
+                    {
+                        var irp = PopIrpFromDriver();
+                        Irps.Add(irp);
+
+                        //if(cfg.LogLevel > 1)
+                        //{
+                        //    int NbItems = Irps.Count;
+                        //    RootForm.Log($"Poping IRP #{NbItems:d}");
+                        //}
+                        NewItems.Enqueue(irp);
+                    }
+                    while( NewMessageEvent.WaitOne(0) );
+
+                    NewMessageEvent.Reset();
                 }
             }
             catch (Exception Ex)
@@ -337,37 +327,15 @@ namespace Fuzzer
         /// <summary>
         /// Pops new IRPs from the queue and display them in the DataGridView
         /// </summary>
-        private void DisplayMessagesThreadRoutine()
+        private void RefreshDataGridViewThreadRoutine()
         {
-            RootForm.Log("Starting DisplayMessagesThreadRoutine");
+            RootForm.Log("Starting RefreshDataGridViewThreadRoutine");
+
             try
             {
-                while (doLoop)
+                while (CollectIrp)
                 {
-                    Irp irp = PopNewIrp();
-
-                    string IoctlCodeIfPresent;
-
-                    if( (Irp.IrpMajorType) irp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL )
-                        IoctlCodeIfPresent = $"0x" + irp.Header.IoctlCode.ToString("x8");
-                    else
-                        IoctlCodeIfPresent = "N/A";
-
-                    IrpDataTableEntries.Rows.Add(
-                        DateTime.FromFileTime((long)irp.Header.TimeStamp),
-                        irp.IrqlAsString(),
-                        irp.TypeAsString(),
-                        IoctlCodeIfPresent,
-                        irp.Header.ProcessId,
-                        irp.ProcessName,
-                        irp.Header.ThreadId,
-                        irp.Header.InputBufferLength,
-                        irp.Header.OutputBufferLength,
-                        irp.DriverName,
-                        irp.DeviceName,
-                        BitConverter.ToString(irp.Body)
-                    );
-
+                    AddIrpToDataTable( NewItems.Dequeue() );
                     RootForm.IrpDataView.Refresh();
                 }
             }
@@ -376,6 +344,37 @@ namespace Fuzzer
                 RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
             }
 
+        }
+
+        private void AddIrpToDataTable(Irp irp)
+        {
+            string IoctlCodeStr;
+
+            if( ( Irp.IrpMajorType )irp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL )
+            {
+                IoctlCodeStr = $"0x" + irp.Header.IoctlCode.ToString("x8");
+            }
+            else
+            {
+                IoctlCodeStr = "N/A";
+            }
+            
+            IrpDataTable.Rows.Add(
+                DateTime.FromFileTime(( long )irp.Header.TimeStamp),
+                irp.IrqlAsString(),
+                irp.TypeAsString(),
+                IoctlCodeStr,
+                irp.Header.ProcessId,
+                irp.ProcessName,
+                irp.Header.ThreadId,
+                irp.Header.InputBufferLength,
+                irp.Header.OutputBufferLength,
+                irp.DriverName,
+                irp.DeviceName,
+                BitConverter.ToString(irp.Body)
+            );
+
+            return;
         }
     }
 }

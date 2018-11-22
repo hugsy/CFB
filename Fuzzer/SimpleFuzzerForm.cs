@@ -397,13 +397,13 @@ namespace Fuzzer
             // 
             // StrategyComboBox
             // 
+            this.StrategyComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.StrategyComboBox.FormattingEnabled = true;
             this.StrategyComboBox.Location = new System.Drawing.Point(443, 88);
             this.StrategyComboBox.Name = "StrategyComboBox";
             this.StrategyComboBox.Size = new System.Drawing.Size(121, 21);
             this.StrategyComboBox.TabIndex = 13;
             this.StrategyComboBox.TabStop = false;
-            
             // 
             // label6
             // 

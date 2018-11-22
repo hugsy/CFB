@@ -79,7 +79,7 @@ NTSTATUS PushToQueue(IN PVOID pData, OUT PUINT32 lpdwIndex)
 	} 
 	else
 	{
-		g_CfbQueue[dwIndex]=pData;
+		g_CfbQueue[dwIndex] = pData;
 		*lpdwIndex = dwIndex;
 		Status = STATUS_SUCCESS;
 	}

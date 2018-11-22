@@ -54,6 +54,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BlockingQueue.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="EnumerateDrivers.cs" />
     <Compile Include="Form1.cs">

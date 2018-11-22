@@ -151,16 +151,18 @@ Send the IO request to remove a driver to the hooked list.
 __declspec(dllexport) BOOL UnhookDriver(IN LPWSTR lpDriverName )
 {
 	DWORD dwBytesReturned;
-	DWORD dwDriverNameLen= (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
+	DWORD dwDriverNameLen = (DWORD)(wcslen( lpDriverName ) * sizeof(WCHAR))+2;
 
-	BOOL bResult = DeviceIoControl(g_hDevice,
+	BOOL bResult = DeviceIoControl(
+        g_hDevice,
 		IOCTL_RemoveDriver,
 		lpDriverName,
 		dwDriverNameLen,
 		NULL,
 		0,
 		&dwBytesReturned,
-		(LPOVERLAPPED)NULL);
+		(LPOVERLAPPED)NULL
+    );
 
 	return bResult;
 }
@@ -176,14 +178,16 @@ __declspec(dllexport) BOOL SetEventNotificationHandle( IN HANDLE hEvent )
 {
 	DWORD dwBytesReturned;
 
-	BOOL bResult = DeviceIoControl( g_hDevice,
+	BOOL bResult = DeviceIoControl( 
+        g_hDevice,
 		IOCTL_SetEventPointer,
 		&hEvent,
 		sizeof(HANDLE),
 		NULL,
 		0,
 		&dwBytesReturned,
-		(LPOVERLAPPED)NULL );
+		(LPOVERLAPPED)NULL 
+    );
 
 	return bResult;
 }
@@ -198,24 +202,26 @@ Enable / Disable the monitoring.
 {
 	DWORD dwBytesReturned;
 
-	BOOL bResult = DeviceIoControl( g_hDevice,
+	BOOL bResult = DeviceIoControl( 
+        g_hDevice,
 		Status ? IOCTL_EnableMonitoring : IOCTL_DisableMonitoring,
 		NULL,
 		0,
 		NULL,
 		0,
 		&dwBytesReturned,
-		(LPOVERLAPPED)NULL );
+		(LPOVERLAPPED)NULL 
+    );
 
 	return bResult;
 }
 
  __declspec(dllexport) BOOL EnableMonitoring()
  {
-	 return ChangeMonitoringStatus( 1 );
+	 return ChangeMonitoringStatus( 1 /* Monitoring On */ );
  }
 
  __declspec(dllexport) BOOL DisableMonitoring()
  {
-	 return ChangeMonitoringStatus( 0 );
+	 return ChangeMonitoringStatus( 0 /* Monitoring Off */);
  }
