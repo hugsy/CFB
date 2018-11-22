@@ -1,12 +1,6 @@
-#include <Windows.h>
-#include <wchar.h>
+#include "device.h"
 
 #include "stdafx.h"
-
-#include "../Common/common.h"
-#include "../Driver/IoctlCodes.h"
-
-
 
 
 static HANDLE g_hDevice = INVALID_HANDLE_VALUE;

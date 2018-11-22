@@ -104,7 +104,7 @@ static inline void __hexdump_thread_safe(PVOID data, SIZE_T size)
 		BYTE c = *((PCHAR)data + i);
 
 		if (!ascii[0])
-			wprintf(L"%llx   ", i);
+			wprintf(L"%Ix   ", i);
 
 		wprintf(L"%02X ", c);
 
