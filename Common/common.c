@@ -64,6 +64,8 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 
 	fmt_len = wcslen(format) + wcslen(prio) + 4;
 	fmt = LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, fmt_len*sizeof(wchar_t));
+	if (!fmt)
+		return;
 
 	va_start(args, format);
 	swprintf(fmt, fmt_len, L"%s %s", prio, format);

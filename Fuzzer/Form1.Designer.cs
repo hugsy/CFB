@@ -184,7 +184,7 @@ namespace Fuzzer
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
             this.quitToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
             this.quitToolStripMenuItem.Text = "Quit";
-            this.quitToolStripMenuItem.Click += new System.EventHandler(this.quitToolStripMenuItem_Click);
+            this.quitToolStripMenuItem.Click += new System.EventHandler(this.QuitToolStripMenuItem_Click);
             // 
             // controlToolStripMenuItem
             // 
@@ -211,7 +211,7 @@ namespace Fuzzer
             this.loadDriverToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
             this.loadDriverToolStripMenuItem.Size = new System.Drawing.Size(247, 22);
             this.loadDriverToolStripMenuItem.Text = "Load IrpDumper driver";
-            this.loadDriverToolStripMenuItem.Click += new System.EventHandler(this.loadDriverToolStripMenuItem_Click);
+            this.loadDriverToolStripMenuItem.Click += new System.EventHandler(this.LoadDriverToolStripMenuItem_Click);
             // 
             // unloadIrpDumperDriverToolStripMenuItem
             // 
@@ -219,7 +219,7 @@ namespace Fuzzer
             this.unloadIrpDumperDriverToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
             this.unloadIrpDumperDriverToolStripMenuItem.Size = new System.Drawing.Size(247, 22);
             this.unloadIrpDumperDriverToolStripMenuItem.Text = "Unload IrpDumper driver";
-            this.unloadIrpDumperDriverToolStripMenuItem.Click += new System.EventHandler(this.unloadIrpDumperDriverToolStripMenuItem_Click);
+            this.unloadIrpDumperDriverToolStripMenuItem.Click += new System.EventHandler(this.UnloadIrpDumperDriverToolStripMenuItem_Click);
             // 
             // monitoringToolStripMenuItem
             // 
@@ -229,7 +229,7 @@ namespace Fuzzer
             this.monitoringToolStripMenuItem.Name = "monitoringToolStripMenuItem";
             this.monitoringToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
             this.monitoringToolStripMenuItem.Text = "Monitoring";
-            this.monitoringToolStripMenuItem.Click += new System.EventHandler(this.monitoringToolStripMenuItem_Click);
+            this.monitoringToolStripMenuItem.Click += new System.EventHandler(this.MonitoringToolStripMenuItem_Click);
             // 
             // startMonitoringToolStripMenuItem
             // 
@@ -237,7 +237,7 @@ namespace Fuzzer
             this.startMonitoringToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
             this.startMonitoringToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
             this.startMonitoringToolStripMenuItem.Text = "Start monitoring";
-            this.startMonitoringToolStripMenuItem.Click += new System.EventHandler(this.startMonitoringToolStripMenuItem_Click);
+            this.startMonitoringToolStripMenuItem.Click += new System.EventHandler(this.StartMonitoringToolStripMenuItem_Click);
             // 
             // stopMonitoringToolStripMenuItem
             // 
@@ -245,7 +245,7 @@ namespace Fuzzer
             this.stopMonitoringToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
             this.stopMonitoringToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
             this.stopMonitoringToolStripMenuItem.Text = "Stop monitoring";
-            this.stopMonitoringToolStripMenuItem.Click += new System.EventHandler(this.stopMonitoringToolStripMenuItem_Click);
+            this.stopMonitoringToolStripMenuItem.Click += new System.EventHandler(this.StopMonitoringToolStripMenuItem_Click);
             // 
             // hookUnhookDriversToolStripMenuItem
             // 
@@ -262,7 +262,7 @@ namespace Fuzzer
             this.byPathToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.P)));
             this.byPathToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
             this.byPathToolStripMenuItem.Text = "By Path";
-            this.byPathToolStripMenuItem.Click += new System.EventHandler(this.byPathToolStripMenuItem_Click);
+            this.byPathToolStripMenuItem.Click += new System.EventHandler(this.ByPathToolStripMenuItem_Click);
             // 
             // fromListToolStripMenuItem
             // 
@@ -270,7 +270,7 @@ namespace Fuzzer
             this.fromListToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
             this.fromListToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
             this.fromListToolStripMenuItem.Text = "From List";
-            this.fromListToolStripMenuItem.Click += new System.EventHandler(this.fromListToolStripMenuItem_Click);
+            this.fromListToolStripMenuItem.Click += new System.EventHandler(this.FromListToolStripMenuItem_Click);
             // 
             // helpToolStripMenuItem
             // 

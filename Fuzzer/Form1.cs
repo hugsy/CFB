@@ -131,7 +131,7 @@ namespace Fuzzer
         }
 
 
-        private void quitToolStripMenuItem_Click(object sender, EventArgs e)
+        private void QuitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DialogResult dialogResult = MessageBox.Show("Are you sure you want to leave CFB ?", "Leave CFB", MessageBoxButtons.YesNo);
             if (dialogResult == DialogResult.Yes)
@@ -334,11 +334,11 @@ if __name__ == '__main__':
             }
 
             // propagate
-            monitoringToolStripMenuItem_Click(sender, e);
+            MonitoringToolStripMenuItem_Click(sender, e);
         }
 
         
-        private void monitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        private void MonitoringToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (bIsMonitoringEnabled)
             {
@@ -352,19 +352,19 @@ if __name__ == '__main__':
             }
         }
 
-        private void loadDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        private void LoadDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
             InitCfbContext();
             bIsDriverLoaded = true;
         }
 
-        private void unloadIrpDumperDriverToolStripMenuItem_Click(object sender, EventArgs e)
+        private void UnloadIrpDumperDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CleanupCfbContext();
             bIsDriverLoaded = false;
         }
 
-        private void startMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        private void StartMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Log("Starting monitoring...");
             StartListening();
@@ -372,7 +372,7 @@ if __name__ == '__main__':
             bIsMonitoringEnabled = true;
         }
 
-        private void stopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
+        private void StopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Log("Stopping monitoring...");
             StopListening();
@@ -380,7 +380,7 @@ if __name__ == '__main__':
             bIsMonitoringEnabled = false;
         }
 
-        private void byPathToolStripMenuItem_Click(object sender, EventArgs e)
+        private void ByPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
             string DriverName = SimplePromptPopup.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Driver full path");
 
@@ -399,7 +399,7 @@ if __name__ == '__main__':
             Log($"Driver object '{DriverName}' is now hooked.");
         }
 
-        private void fromListToolStripMenuItem_Click(object sender, EventArgs e)
+        private void FromListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Form fc = Application.OpenForms["LoadDriverForm"];
 
