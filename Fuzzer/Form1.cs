@@ -370,6 +370,7 @@ if __name__ == '__main__':
             StartListening();
             Core.EnableMonitoring();
             bIsMonitoringEnabled = true;
+            CleanIrpDataGridButton.Enabled = true;
         }
 
         private void StopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
@@ -410,5 +411,12 @@ if __name__ == '__main__':
             }
         }
 
+        private void CleanIrpDataGridButton_Click(object sender, EventArgs e)
+        {
+            CfbReader.DataBinder.ResetBindings(false);
+            IrpDataView.Rows.Clear();
+            IrpDataView.Refresh();
+            CleanIrpDataGridButton.Enabled = false;
+        }
     }
 }

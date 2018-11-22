@@ -20,7 +20,7 @@ namespace Fuzzer
         private ManualResetEvent NewMessageEvent;
         private readonly IntPtr NewMessageEventHandler;
         public DataTable IrpDataTable;
-        private BindingSource DataBinder;
+        public BindingSource DataBinder;
 
         public bool AreThreadsRunning
         {
