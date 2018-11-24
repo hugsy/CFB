@@ -156,16 +156,9 @@ namespace Fuzzer
 
             RootForm.Log($"Ending thread '{t.Name:s}'...");
 
-            /*
-            t.Join();
-            RootForm.Log($"Thread '{t.Name:s}' ended!");
-            */
-
-            Int32 waitFor = 1*1000; // 1 second
-
             for (int i = 0; i < 5; i++)
             {
-                if (t.Join(waitFor) == false)
+                if (t.Join(1000) == false)
                 {
                     continue;
                 }

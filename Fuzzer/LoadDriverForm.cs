@@ -41,9 +41,7 @@ namespace Fuzzer
         {
             DriverDataTable.Clear();
 
-            string RootPath = "\\driver";
-
-            foreach (var DevicePath in EnumerateDrivers.EnumerateDirectoryObjects(RootPath))
+            foreach (string DevicePath in EnumerateDrivers.EnumerateDriverObjects())
             {
                 // create a blacklist of drivers to never hook
                 if (DevicePath == "IrpDumper")
@@ -52,7 +50,7 @@ namespace Fuzzer
                 }
 
                 DataRow row = DriverDataTable.NewRow();
-                row["DriverPath"] = RootPath + "\\" + DevicePath;
+                row["DriverPath"] = $"\\driver\\{DevicePath:s}";
                 DriverDataTable.Rows.Add(row);
             }
 
