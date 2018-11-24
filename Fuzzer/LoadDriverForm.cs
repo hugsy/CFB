@@ -33,6 +33,7 @@ namespace Fuzzer
 
             LoadedDriverGridView.Columns.Insert(0, CheckboxColumn);
             LoadedDriverGridView.Columns["DriverPath"].ReadOnly = true;
+            
 
             RefreshDriverList();
         }
@@ -43,6 +44,7 @@ namespace Fuzzer
 
             foreach (string DevicePath in EnumerateDrivers.EnumerateDriverObjects())
             {
+               
                 // create a blacklist of drivers to never hook
                 if (DevicePath == "IrpDumper")
                 {
@@ -56,9 +58,12 @@ namespace Fuzzer
 
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {
-                row.Cells[0].Value = LoadedDrivers.Contains(row.Cells[1].Value.ToString());
+                string DriverName = row.Cells[1].Value.ToString().ToLower();
+                bool IsLoaded = LoadedDrivers.Contains(DriverName);
+                row.Cells[0].Value = IsLoaded;
             }
 
+            LoadedDriverGridView.Refresh();
         }
 
 
@@ -68,10 +73,11 @@ namespace Fuzzer
             // check for changes
             //
             List<DataGridViewRow> rows_with_checked_column = new List<DataGridViewRow>();
+
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {
                 var IsTicked = Convert.ToBoolean(row.Cells[0].Value);
-                var DriverName = row.Cells[1].Value.ToString();
+                var DriverName = row.Cells[1].Value.ToString().ToLower();
 
                 //
                 // unhook driver ?

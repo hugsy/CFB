@@ -1,4 +1,6 @@
-﻿namespace Fuzzer
+﻿using System.Windows.Forms;
+
+namespace Fuzzer
 {
     partial class LoadDriverForm
     {
@@ -49,6 +51,8 @@
             this.LoadedDriverGridView.RowTemplate.Height = 28;
             this.LoadedDriverGridView.Size = new System.Drawing.Size(570, 314);
             this.LoadedDriverGridView.TabIndex = 0;
+            this.LoadedDriverGridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+
             // 
             // groupBox1
             // 

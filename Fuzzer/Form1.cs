@@ -414,6 +414,8 @@ if __name__ == '__main__':
                 return;
             }
 
+            DriverName = DriverName.ToLower();
+
             if (!Core.HookDriver(DriverName))
             {
                 Log($"Failed to hook '{DriverName}'");               
