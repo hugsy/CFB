@@ -36,11 +36,9 @@ namespace Fuzzer
         public string ProcessName;
         public byte[] Body;
 
-        private Random Rnd;
-
         public Irp()
         {
-            this.Rnd = new Random();
+            //this.Rnd = new Random();
         }
 
 
@@ -51,7 +49,6 @@ namespace Fuzzer
             DeviceName = another.DeviceName;
             ProcessName = another.ProcessName;
             Body = another.Body.ToArray();
-            Rnd = new Random();
         }
 
 
@@ -110,16 +107,5 @@ namespace Fuzzer
             return IrqlAsString(this.Header.Irql);
         }
 
-        public void FuzzBody()
-        {
-           this.Rnd.NextBytes(this.Body);
-        }
-
-        public void FuzzBody(int IndexStart, int IndexEnd)
-        {
-            Byte[] b = this.Body.Skip(IndexStart).Take(IndexEnd-IndexStart).ToArray();
-            this.Rnd.NextBytes(b);
-            Array.Copy(b, 0, this.Body, IndexStart, b.Length);
-        }
     }
 }

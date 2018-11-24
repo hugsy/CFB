@@ -15,6 +15,7 @@ namespace Fuzzer
         private Thread FetchIrpsFromDriverThread, UpdateDisplayThread;
         private BlockingQueue<Irp> NewItems;
         private bool CollectIrp;
+        private bool UpdateIrpDataView;
         private Form1 RootForm;
         public List<Irp> Irps;
         private ManualResetEvent NewMessageEvent;
@@ -38,17 +39,16 @@ namespace Fuzzer
         {
             RootForm = f;
             CollectIrp = false;
+            UpdateIrpDataView = false;
 
             Irps = new List<Irp>();
-            NewItems = new BlockingQueue<Irp>(1000);
+            NewItems = new BlockingQueue<Irp>(100);
             NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
 
             InitializeIrpDataTable();
-            
-            RootForm.IrpDataView.DataSource = DataBinder;
-            DataBinder.DataSource = IrpDataTable;
-            DataBinder.ResetBindings(false);
+            ResetDataBinder();
+
             NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
         }
 
@@ -68,6 +68,18 @@ namespace Fuzzer
             IrpDataTable.Columns.Add("DriverName", typeof(string));
             IrpDataTable.Columns.Add("DeviceName", typeof(string));
             IrpDataTable.Columns.Add("Buffer", typeof(string));
+        }
+
+
+        public void ResetDataBinder()
+        {
+            RootForm.IrpDataView.DataSource = null;
+            DataBinder.DataSource = null;
+            RootForm.IrpDataView.DataSource = DataBinder;
+            DataBinder.DataSource = IrpDataTable;
+            IrpDataTable.Clear();
+            RootForm.IrpDataView.Refresh();
+            DataBinder.ResetBindings(false);
         }
 
 
@@ -109,10 +121,11 @@ namespace Fuzzer
 
             // RootForm.Log("Starting threads...");
 
+            CollectIrp = true;
+            UpdateIrpDataView = true;
+
             UpdateDisplayThread.Start();
             FetchIrpsFromDriverThread.Start();
-
-            CollectIrp = true;
 
             RootForm.Log("Threads started!");
         }
@@ -123,7 +136,10 @@ namespace Fuzzer
         /// </summary>
         public void JoinThreads()
         {
+            CollectIrp = false;
             JoinThread(FetchIrpsFromDriverThread);
+
+            UpdateIrpDataView = false;
             JoinThread(UpdateDisplayThread);
         }
 
@@ -134,12 +150,16 @@ namespace Fuzzer
         /// <param name="t"></param>
         private void JoinThread(Thread t)
         {
-            CollectIrp = false;
 
             if (t == null || !t.IsAlive)
                 return;
 
             RootForm.Log($"Ending thread '{t.Name:s}'...");
+
+            /*
+            t.Join();
+            RootForm.Log($"Thread '{t.Name:s}' ended!");
+            */
 
             Int32 waitFor = 1*1000; // 1 second
 
@@ -157,12 +177,13 @@ namespace Fuzzer
             RootForm.Log("Failed to kill gracefully, forcing thread termination!");
             try
             {
-                FetchIrpsFromDriverThread.Abort();
+                t.Abort();
             }
-            catch (ThreadAbortException TaEx)
+            catch (Exception Ex)
             {
-                RootForm.Log($"Thread '{t.Name:s}' killed: {TaEx.Message:s}");
+                RootForm.Log($"Thread '{t.Name:s}' killed: {Ex.Message:s}");
             }
+
         }
 
 
@@ -310,6 +331,7 @@ namespace Fuzzer
                         //    int NbItems = Irps.Count;
                         //    RootForm.Log($"Poping IRP #{NbItems:d}");
                         //}
+
                         NewItems.Enqueue(irp);
                     }
                     while( NewMessageEvent.WaitOne(0) );
@@ -321,6 +343,7 @@ namespace Fuzzer
             {
                 RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
             }
+
         }
 
 
@@ -333,7 +356,7 @@ namespace Fuzzer
 
             try
             {
-                while (CollectIrp)
+                while (UpdateIrpDataView)
                 {
                     AddIrpToDataTable( NewItems.Dequeue() );
                     RootForm.IrpDataView.Refresh();

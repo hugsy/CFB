@@ -69,6 +69,8 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="CfbDataReader.cs" />
+    <Compile Include="FuzzingSession.cs" />
+    <Compile Include="FuzzingStrategy.cs" />
     <Compile Include="IrpViewerForm.cs">
       <SubType>Form</SubType>
     </Compile>

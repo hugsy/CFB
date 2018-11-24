@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -18,48 +19,52 @@ namespace Fuzzer
         private Label label2;
         private Label label3;
         private Label label4;
+        private Label label5;
+        private Label label6;
         private TextBox FuzzByteStartIndexTextbox;
         private TextBox FuzzByteEndIndexTextbox;
-        private Label label5;
         private TextBox MaxTestCaseTextbox;
         private System.ComponentModel.BackgroundWorker worker;
-
-        private int StartByteIndex;
         private ComboBox StrategyComboBox;
-        private Label label6;
-        private int EndByteIndex;
-        private string[] Strategies;
+
+        private FuzzingStrategy[] Strategies;
+        private FuzzingSession Session;
 
         
         public SimpleFuzzerForm(Irp irp)
         {
             InitializeComponent();
-            InitializeFuzzingStrategies();
+            InitializeFuzzingObjects();
             this.Irp = irp;
-            this.Text = "Fuzzing " + this.Irp.ToString();
+            this.Text = $"Fuzzing {Irp.ToString()}";
             InitializeWorker();
         }
 
         private void InitializeWorker()
         {
-            worker.DoWork += new DoWorkEventHandler(BackgroundWorkRoutine);
-            worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(OnComplete);
-            worker.ProgressChanged += new ProgressChangedEventHandler(OnProgressChange);
+            worker.DoWork                += new DoWorkEventHandler(BackgroundWorkRoutine);
+            worker.RunWorkerCompleted    += new RunWorkerCompletedEventHandler(OnComplete);
+            worker.ProgressChanged       += new ProgressChangedEventHandler(OnProgressChange);
         }
 
-        private void InitializeFuzzingStrategies()
+
+        private void InitializeFuzzingObjects()
         {
-            Strategies = new string[]
+            Session = new FuzzingSession();
+
+            Strategies = new FuzzingStrategy[]
             {
-                "Random",
-                "Bitflit",
+                new RandomFuzzingStrategy(),
             };
 
-            StrategyComboBox.Items.AddRange(Strategies);
+            foreach (FuzzingStrategy s in Strategies)
+            {
+                StrategyComboBox.Items.Add(s);
+            }
         }
 
 
-        private void StartAsyncButton_Click(System.Object sender, System.EventArgs e)
+        private void StartAsyncButton_Click(Object sender, EventArgs e)
         {
             resultLabel.Text = String.Empty;
             this.startAsyncButton.Enabled = false;
@@ -67,7 +72,7 @@ namespace Fuzzer
             worker.RunWorkerAsync();
         }
 
-        private void CancelAsyncButton_Click(System.Object sender, System.EventArgs e)
+        private void CancelAsyncButton_Click(Object sender, EventArgs e)
         {
             this.worker.CancelAsync();
             resultLabel.Text = "Cancelling...";
@@ -75,29 +80,39 @@ namespace Fuzzer
         }
 
 
-        private void BackgroundWorkRoutine(object sender, DoWorkEventArgs e)
+        private void BackgroundWorkRoutine(object sender, DoWorkEventArgs evt)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
 
-            // Generate all test cases
-            resultLabel.Text = $"Initiating test cases...";
-            string SelectedStrategy = (string)StrategyComboBox.SelectedItem;
+            resultLabel.Text = $"Defining strategy...";
+            FuzzingStrategy SelectedStrategy = (FuzzingStrategy)StrategyComboBox.SelectedItem;
 
-            // Run the tests
-            switch(SelectedStrategy)
+            if (SelectedStrategy == null)
             {
-                case "Random":
-                    resultLabel.Text = $"Random Fuzzing...";
-                    RunRandomFuzzing(worker, e);
-                    break;
-
-                // TODO : add more
-
-                default:   
-                    MessageBox.Show($"Strategy '{SelectedStrategy}' does not exist", "UnimplementedStrategy");
-                    return;
+                MessageBox.Show($"Strategy '{SelectedStrategy}' does not exist", "UnimplementedStrategy");
+                return;
             }
 
+
+            resultLabel.Text = $"Validating session parameters...";
+
+            bool res = System.Int32.TryParse(FuzzByteStartIndexTextbox.Text, out int StartByteIndex);
+            if(!res || StartByteIndex < 0 || StartByteIndex > this.Irp.Body.Length-1)
+                StartByteIndex = 0;
+
+            res = System.Int32.TryParse(FuzzByteEndIndexTextbox.Text, out int EndByteIndex);
+            if (!res || EndByteIndex < 0 || EndByteIndex > this.Irp.Body.Length-1)
+                EndByteIndex = this.Irp.Body.Length-1;
+
+            if (StartByteIndex > EndByteIndex)
+            {
+                StartByteIndex = 0;
+                EndByteIndex = this.Irp.Body.Length - 1;
+            }
+
+
+            resultLabel.Text = $"Initiating fuzzing with strategy '{SelectedStrategy}'...";
+            Session.Start(SelectedStrategy, Irp, worker, evt, StartByteIndex, EndByteIndex);
         }
 
 
@@ -126,135 +141,7 @@ namespace Fuzzer
         {
             this.progressBar1.Value = e.ProgressPercentage;
         }
-
-
-        private void RunRandomFuzzing(BackgroundWorker worker, DoWorkEventArgs e)
-        {
-            if (worker.CancellationPending)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            bool res;
-            int percentComplete = 0;
-
-            StartByteIndex = 0;
-            res = Int32.TryParse(FuzzByteStartIndexTextbox.Text, out StartByteIndex);
-
-            EndByteIndex = this.Irp.Body.Length;
-            res = Int32.TryParse(FuzzByteEndIndexTextbox.Text, out EndByteIndex);
-
-            int NbCases = -1;
-            res = Int32.TryParse(MaxTestCaseTextbox.Text, out NbCases);
-
-
-            for(var i = 0; i != NbCases; i++)
-            {
-                RunTestCase(i, worker, e);
-
-                if (worker.CancellationPending)
-                {
-                    break;
-                }
-
-                if( NbCases != -1 )
-                {
-                    percentComplete = ( int )( ( float )i / ( float )NbCases * 100 );
-                    worker.ReportProgress(percentComplete);
-                }
-
-            }
-
-            return;
-        }
-
-
-        private void RunTestCase(int TestCaseIndex, BackgroundWorker worker, DoWorkEventArgs e)
-        {
-            if (worker.CancellationPending)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            if( FuzzOne(TestCaseIndex) == false )
-            {
-                e.Cancel = true;
-                return;
-            }
-        }
-
-
-        private bool FuzzOne(int IrpFuzzSessionIndex)
-        {
-            IntPtr hDriver = Kernel32.CreateFile(
-                this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\"),
-                Kernel32.GENERIC_READ | Kernel32.GENERIC_WRITE,
-                0,
-                IntPtr.Zero,
-                Kernel32.OPEN_EXISTING,
-                0,
-                IntPtr.Zero
-                );
-
-            if (hDriver.ToInt32() == Kernel32.INVALID_HANDLE_VALUE )
-            {
-                resultLabel.Text = $"Cannot open device '{this.Irp.DeviceName}'";
-                label1.Text = $" CreateFile() failed: {Kernel32.GetLastError().ToString("x8")}";
-                return false;
-            }
-
-            Irp FuzzedIrp = this.Irp.Clone();
-            FuzzedIrp.FuzzBody(this.StartByteIndex, this.EndByteIndex);
-
-            IntPtr InputBuffer = Marshal.AllocHGlobal((int)FuzzedIrp.Header.InputBufferLength);
-            Marshal.Copy(FuzzedIrp.Body, 0, InputBuffer, (int)FuzzedIrp.Header.InputBufferLength);
-
-            IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
-
-            IntPtr lpOutBuffer = IntPtr.Zero;
-            int dwOutBufferLen = 0;
-
-            if( FuzzedIrp.Header.OutputBufferLength > 0 )
-            {
-                dwOutBufferLen = ( int )FuzzedIrp.Header.OutputBufferLength;
-                lpOutBuffer = Marshal.AllocHGlobal(dwOutBufferLen);
-                // todo : add some checks after the devioctl for some memleaks
-            }
-
-            bool res = Kernel32.DeviceIoControl(
-                hDriver,
-                FuzzedIrp.Header.IoctlCode,
-                InputBuffer,
-                FuzzedIrp.Header.InputBufferLength,
-                lpOutBuffer,
-                (uint)dwOutBufferLen,
-                pdwBytesReturned,
-                IntPtr.Zero
-                );
-
-            Marshal.FreeHGlobal(pdwBytesReturned);
-            Marshal.FreeHGlobal(InputBuffer);
-
-            if( dwOutBufferLen > 0 )
-            {
-                Marshal.FreeHGlobal(lpOutBuffer);
-            }
-
-            Kernel32.CloseHandle(hDriver);
-
-            
-            //if( res == false )
-            //{
-            //    label1.Text = $"[{Index.ToString()}] Last request returned: {res.ToString()}";
-            //    label1.Text+= $" - {Kernel32.GetLastError().ToString("x8")}";
-            //}
-
-            return true;
-        }
-
-
+                     
 
         #region Windows Form Designer generated code
         private void InitializeComponent()

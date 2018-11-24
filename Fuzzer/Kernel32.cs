@@ -23,18 +23,6 @@ namespace Fuzzer
         public const short FILE_ATTRIBUTE_NORMAL = 0x80;
         public const short INVALID_HANDLE_VALUE = -1;
 
-        /*
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern IntPtr CreateFile(
-                                                     [MarshalAs(UnmanagedType.LPTStr)] string filename,
-                                                     [MarshalAs(UnmanagedType.U4)] uint access,
-                                                     [MarshalAs(UnmanagedType.U4)] uint share,
-                                                     IntPtr securityAttributes,
-                                                     [MarshalAs(UnmanagedType.U4)] uint creationDisposition,
-                                                     [MarshalAs(UnmanagedType.U4)] uint flagsAndAttributes,
-                                                     IntPtr templateFile
-            );
-        */
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr CreateFile(

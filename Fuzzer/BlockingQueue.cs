@@ -21,11 +21,7 @@ namespace Fuzzer
                     Monitor.Wait(queue);
                 }
                 queue.Enqueue(item);
-                if( queue.Count == 1 )
-                {
-                    // wake up any blocked dequeue
-                    Monitor.PulseAll(queue);
-                }
+                Monitor.PulseAll(queue);
             }
         }
 
@@ -38,14 +34,9 @@ namespace Fuzzer
                     Monitor.Wait(queue);
                 }
                 T item = queue.Dequeue();
-                if( queue.Count == maxSize - 1 )
-                {
-                    // wake up any blocked enqueue
-                    Monitor.PulseAll(queue);
-                }
+                Monitor.PulseAll(queue);
                 return item;
             }
         }
-
     }
 }

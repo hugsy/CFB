@@ -10,17 +10,16 @@ namespace Fuzzer
         private CfbDataReader CfbReader;
         private LoadDriverForm ldForm;
         private static Mutex LogMutex;
-
-        private Boolean bIsDriverLoaded;
-        private Boolean bIsMonitoringEnabled;
-
+        private bool bIsDriverLoaded;
+        private bool bIsMonitoringEnabled;
 
 
         public Form1()
         {
             InitializeComponent();
-            bIsDriverLoaded = false;
-            bIsMonitoringEnabled = false;
+            SetLoadedDriverStatus(false);
+            SetMonitoringStatus(false);
+
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             CfbReader = new CfbDataReader(this);
@@ -68,10 +67,10 @@ namespace Fuzzer
 
         private void InitCfbContext()
         {
-            Log("Initializing CFB...");
+            if (bIsDriverLoaded)
+                return;
 
-            bIsDriverLoaded = false;
-            bIsMonitoringEnabled = false;
+            Log("Initializing CFB...");
 
             //Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
@@ -102,9 +101,8 @@ namespace Fuzzer
                 Application.Exit();
             }
 
-            Log("Successful initialization, you can start monitoring...");
-            bIsDriverLoaded = true;
-            bIsMonitoringEnabled = false;
+            Log("Successful initialization, hook some drivers and start monitoring...");
+            SetLoadedDriverStatus(true);
         }
 
 
@@ -116,6 +114,9 @@ namespace Fuzzer
 
         private void CleanupCfbContext()
         {
+            if (!bIsDriverLoaded)
+                return;
+
             Log("Cleaning up context (may take a bit, be patient)...");
             Core.CleanupCfbContext();
 
@@ -126,8 +127,8 @@ namespace Fuzzer
             }
 
             Log("Success...");
-            bIsDriverLoaded = false;
-            bIsMonitoringEnabled = false;
+            SetLoadedDriverStatus(false);
+            SetMonitoringStatus(false);
         }
 
 
@@ -314,8 +315,14 @@ if __name__ == '__main__':
             fuzzer.Show();
         }
 
-        private void MenuBar_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+
+        private void SetLoadedDriverStatus(bool NewValue, bool UpdateGui = true)
         {
+            bIsDriverLoaded = NewValue;
+
+            if (!UpdateGui)
+                return;
+
             if (bIsDriverLoaded)
             {
                 loadDriverToolStripMenuItem.Enabled = false;
@@ -333,35 +340,43 @@ if __name__ == '__main__':
                 hookUnhookDriversToolStripMenuItem.Enabled = false;
             }
 
-            // propagate
-            MonitoringToolStripMenuItem_Click(sender, e);
+            // Refresh monitoring button settings
+            SetMonitoringStatus(bIsMonitoringEnabled, UpdateGui);
         }
 
-        
-        private void MonitoringToolStripMenuItem_Click(object sender, EventArgs e)
+
+        private void SetMonitoringStatus(bool NewValue, bool UpdateGui = true)
         {
+            bIsMonitoringEnabled = NewValue;
+
+            if (!UpdateGui)
+                return;
+
             if (bIsMonitoringEnabled)
             {
                 startMonitoringToolStripMenuItem.Enabled = false;
                 stopMonitoringToolStripMenuItem.Enabled = true;
+                CleanIrpDataGridButton.Enabled = false;
             }
             else
             {
                 startMonitoringToolStripMenuItem.Enabled = true;
                 stopMonitoringToolStripMenuItem.Enabled = false;
+                CleanIrpDataGridButton.Enabled = true;
             }
         }
 
         private void LoadDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
             InitCfbContext();
-            bIsDriverLoaded = true;
+            SetLoadedDriverStatus(true);
         }
+
 
         private void UnloadIrpDumperDriverToolStripMenuItem_Click(object sender, EventArgs e)
         {
             CleanupCfbContext();
-            bIsDriverLoaded = false;
+            SetLoadedDriverStatus(false, true);
         }
 
         private void StartMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
@@ -369,21 +384,22 @@ if __name__ == '__main__':
             Log("Starting monitoring...");
             StartListening();
             Core.EnableMonitoring();
-            bIsMonitoringEnabled = true;
-            CleanIrpDataGridButton.Enabled = true;
+            SetMonitoringStatus(true);
         }
+
 
         private void StopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Log("Stopping monitoring...");
             StopListening();
             Core.DisableMonitoring();
-            bIsMonitoringEnabled = false;
+            SetMonitoringStatus(false);
         }
+
 
         private void ByPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string DriverName = SimplePromptPopup.ShowDialog("Enter the complete path to the driver object (example '\\driver\\http'):", "Driver full path");
+            string DriverName = SimplePromptPopup.ShowDialog("Enter the complete path to the driver object (example '\\driver\\fvevol'):", "Driver full path");
 
             if (DriverName.Length == 0)
             {
@@ -413,10 +429,7 @@ if __name__ == '__main__':
 
         private void CleanIrpDataGridButton_Click(object sender, EventArgs e)
         {
-            CfbReader.DataBinder.ResetBindings(false);
-            IrpDataView.Rows.Clear();
-            IrpDataView.Refresh();
-            CleanIrpDataGridButton.Enabled = false;
+            CfbReader.ResetDataBinder();            
         }
     }
 }
