@@ -64,7 +64,7 @@ namespace Fuzzer
                 Rng.NextBytes(FuzzedBuffer);
                 Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, IndexStart, FuzzedBuffer.Length);
 
-                yield return FuzzedBuffer;
+                yield return ClonedBuffer;
 
                 if (ForceDelayBetweenCases > 0)
                     Thread.Sleep(ForceDelayBetweenCases);
