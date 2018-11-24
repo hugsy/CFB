@@ -221,10 +221,17 @@ namespace Fuzzer
 
             if (saveFileDialog.FileName != "")
             {
-                string IrpDataStr = "";
-                foreach( byte c in SelectedIrp.Body )
+                string IrpDataInStr = "";
+                string IrpDataOutStr = "";
+
+                foreach ( byte c in SelectedIrp.Body )
                 {
-                    IrpDataStr += $"\\x{c:X2}";
+                    IrpDataInStr += $"\\x{c:X2}";
+                }
+
+                if (SelectedIrp.Header.OutputBufferLength > 0)
+                {
+                    IrpDataOutStr += $"b'\x00'*{SelectedIrp.Header.OutputBufferLength:d}";
                 }
 
                 string DeviceName = SelectedIrp.DeviceName.Replace("\\Device", "\\\\.");
@@ -292,7 +299,8 @@ def DeviceIoctlControl(DeviceName, IoctlCode, _in='', _out='', *args, **kwargs):
 def Trigger():
     DeviceName = r'''{DeviceName:s}'''
     IoctlCode = 0x{SelectedIrp.Header.IoctlCode:x}
-    lpIrpData = b'{IrpDataStr:s}'
+    lpIrpDataIn = b'{IrpDataInStr:s}'
+    lpIrpDataOut = {IrpDataOutStr:s}
     return DeviceIoctlControl(DeviceName, IoctlCode, lpIrpData)
 
 
