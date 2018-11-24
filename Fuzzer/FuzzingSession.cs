@@ -33,7 +33,7 @@ namespace Fuzzer
             this.Strategy.IndexStart = FuzzStartIndex;
             this.Strategy.IndexEnd = FuzzEndIndex;
 
-            //MessageBox.Show($"Starting fuzz from {FuzzStartIndex:d} to {FuzzEndIndex:d}");
+            Strategy.Data = Utils.CloneByteArray(Irp.Body);
 
             Start();
         }
@@ -41,16 +41,16 @@ namespace Fuzzer
 
         private void Start()
         {
-            Strategy.Data = Irp.Body;
 
             foreach (byte[] TestCase in Strategy)
             {
-                MessageBox.Show($"{BitConverter.ToString(TestCase)}");
+                //MessageBox.Show($"{BitConverter.ToString(TestCase)}");
 
                 if (Worker.CancellationPending)
                 {
+                    Strategy.ContinueGeneratingCases = false;
                     WorkEvent.Cancel = true;
-                    return;
+                    break;
                 }
 
                 string DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
@@ -69,7 +69,6 @@ namespace Fuzzer
                 {
                     Strategy.ContinueGeneratingCases = false;
                     WorkEvent.Cancel = true;
-                    return;
                 }
             }
         }
@@ -116,7 +115,7 @@ namespace Fuzzer
                 (uint)OutputData.Length,
                 pdwBytesReturned,
                 IntPtr.Zero
-                );
+            );
 
             int dwBytesReturned = (int)Marshal.PtrToStructure(pdwBytesReturned, typeof(int));
 

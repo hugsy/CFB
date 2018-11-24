@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Fuzzer
 {
@@ -32,6 +33,7 @@ namespace Fuzzer
 
             return Res;
         }
+
 
         /// <summary>
         /// From https://www.codeproject.com/Articles/36747/Quick-and-Dirty-HexDump-of-a-Byte-Array
@@ -107,6 +109,32 @@ namespace Fuzzer
             }
 
             return result.ToString();
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="Src"></param>
+        /// <returns></returns>
+        public static byte[] CloneByteArray(byte[] Src)
+        {
+            Byte[] ClonedBuffer = new byte[Src.Length];
+            Buffer.BlockCopy(Src, 0, ClonedBuffer, 0, Src.Length);
+            return ClonedBuffer;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="Src"></param>
+        /// <param name="IndexStart"></param>
+        /// <param name="IndexEnd"></param>
+        /// <returns></returns>
+        public static byte[] SliceByteArray(byte[] Src, int IndexStart, int IndexEnd)
+        {
+            return Src.ToArray().Skip(IndexStart).Take(IndexEnd - IndexStart).ToArray();
         }
     }
 }

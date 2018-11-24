@@ -57,10 +57,8 @@ namespace Fuzzer
                 if (ContinueGeneratingCases == false)
                     yield break;
 
-                Byte[] ClonedBuffer = new byte[Data.Length];
-                Buffer.BlockCopy(Data, 0, ClonedBuffer, 0, Data.Length);
-
-                Byte[] FuzzedBuffer = ClonedBuffer.ToArray().Skip(IndexStart).Take(IndexEnd - IndexStart).ToArray();
+                Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
+                Byte[] FuzzedBuffer = Utils.SliceByteArray(ClonedBuffer, IndexStart, IndexEnd);
                 Rng.NextBytes(FuzzedBuffer);
                 Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, IndexStart, FuzzedBuffer.Length);
 
