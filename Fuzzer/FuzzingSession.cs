@@ -46,7 +46,7 @@ namespace Fuzzer
             byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
 
 
-            foreach (byte[] FuzzedInputData in Strategy)
+            foreach (byte[] FuzzedInputData in Strategy.GenerateTestCases())
             {
                 //MessageBox.Show($"{BitConverter.ToString(TestCase)}");
 
