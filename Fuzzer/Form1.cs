@@ -365,12 +365,14 @@ if __name__ == '__main__':
                 startMonitoringToolStripMenuItem.Enabled = false;
                 stopMonitoringToolStripMenuItem.Enabled = true;
                 CleanIrpDataGridButton.Enabled = false;
+                StatusBar.Text = $"Monitoring for new IRPs on {ldForm.LoadedDrivers.Count} drivers...";
             }
             else
             {
                 startMonitoringToolStripMenuItem.Enabled = true;
                 stopMonitoringToolStripMenuItem.Enabled = false;
                 CleanIrpDataGridButton.Enabled = true;
+                StatusBar.Text = "Not Monitoring";
             }
         }
 
@@ -399,8 +401,8 @@ if __name__ == '__main__':
         private void StopMonitoringToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Log("Stopping monitoring...");
-            StopListening();
             Core.DisableMonitoring();
+            StopListening();
             SetMonitoringStatus(false);
         }
 

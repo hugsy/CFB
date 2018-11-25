@@ -28,6 +28,8 @@ namespace Fuzzer
         private ComboBox StrategyComboBox;
 
         private FuzzingStrategy[] Strategies;
+        private StatusStrip SimpleFuzzStatusBar;
+        private ToolStripStatusLabel SimpleFuzzStatusBarItem;
         private FuzzingSession Session;
 
         
@@ -55,6 +57,8 @@ namespace Fuzzer
             Strategies = new FuzzingStrategy[]
             {
                 new RandomFuzzingStrategy(),
+                new BitflipFuzzingStrategy(),
+                new BigintOverwriteFuzzingStrategy(),
             };
 
             foreach (FuzzingStrategy s in Strategies)
@@ -141,7 +145,27 @@ namespace Fuzzer
         {
             this.progressBar1.Value = e.ProgressPercentage;
         }
-                     
+        
+        
+        private void StrategyComboBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            FuzzingStrategy SelectedStrategy = (FuzzingStrategy)StrategyComboBox.SelectedItem;
+            SimpleFuzzStatusBarItem.Text = SelectedStrategy.Description;
+
+            if ( SelectedStrategy is RandomFuzzingStrategy )
+            {
+                FuzzByteStartIndexTextbox.Enabled = true;
+                FuzzByteEndIndexTextbox.Enabled = true;
+                MaxTestCaseTextbox.Enabled = true;
+            }
+            else
+            {
+                FuzzByteStartIndexTextbox.Enabled = false;
+                FuzzByteEndIndexTextbox.Enabled = false;
+                MaxTestCaseTextbox.Enabled = false;
+            }
+        }
+
 
         #region Windows Form Designer generated code
         private void InitializeComponent()
@@ -162,6 +186,9 @@ namespace Fuzzer
             this.MaxTestCaseTextbox = new System.Windows.Forms.TextBox();
             this.StrategyComboBox = new System.Windows.Forms.ComboBox();
             this.label6 = new System.Windows.Forms.Label();
+            this.SimpleFuzzStatusBar = new System.Windows.Forms.StatusStrip();
+            this.SimpleFuzzStatusBarItem = new System.Windows.Forms.ToolStripStatusLabel();
+            this.SimpleFuzzStatusBar.SuspendLayout();
             this.SuspendLayout();
             // 
             // startAsyncButton
@@ -255,14 +282,14 @@ namespace Fuzzer
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -278,7 +305,7 @@ namespace Fuzzer
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
             // 
@@ -288,9 +315,10 @@ namespace Fuzzer
             this.StrategyComboBox.FormattingEnabled = true;
             this.StrategyComboBox.Location = new System.Drawing.Point(443, 88);
             this.StrategyComboBox.Name = "StrategyComboBox";
-            this.StrategyComboBox.Size = new System.Drawing.Size(121, 21);
+            this.StrategyComboBox.Size = new System.Drawing.Size(121, 28);
             this.StrategyComboBox.TabIndex = 13;
             this.StrategyComboBox.TabStop = false;
+            this.StrategyComboBox.SelectedIndexChanged += new System.EventHandler(this.StrategyComboBox_SelectedIndexChanged);
             // 
             // label6
             // 
@@ -301,9 +329,27 @@ namespace Fuzzer
             this.label6.Text = "Fuzzing Strategy";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // SimpleFuzzStatusBar
+            // 
+            this.SimpleFuzzStatusBar.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.SimpleFuzzStatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.SimpleFuzzStatusBarItem});
+            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 244);
+            this.SimpleFuzzStatusBar.Name = "SimpleFuzzStatusBar";
+            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 30);
+            this.SimpleFuzzStatusBar.TabIndex = 15;
+            this.SimpleFuzzStatusBar.Text = "statusStrip1";
+            // 
+            // SimpleFuzzStatusBarItem
+            // 
+            this.SimpleFuzzStatusBarItem.Name = "SimpleFuzzStatusBarItem";
+            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(60, 25);
+            this.SimpleFuzzStatusBarItem.Text = "Status";
+            // 
             // SimpleFuzzerForm
             // 
-            this.ClientSize = new System.Drawing.Size(599, 243);
+            this.ClientSize = new System.Drawing.Size(607, 274);
+            this.Controls.Add(this.SimpleFuzzStatusBar);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.StrategyComboBox);
             this.Controls.Add(this.MaxTestCaseTextbox);
@@ -321,10 +367,14 @@ namespace Fuzzer
             this.Controls.Add(this.startAsyncButton);
             this.Name = "SimpleFuzzerForm";
             this.Text = "Simple IRP Fuzzer";
+            this.SimpleFuzzStatusBar.ResumeLayout(false);
+            this.SimpleFuzzStatusBar.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
         }
         #endregion
+
+
     }
 }

@@ -45,10 +45,11 @@ namespace Fuzzer
             uint IoctlCode = this.Irp.Header.IoctlCode;
             byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
 
+            Strategy.ContinueGeneratingCases = true;
 
             foreach (byte[] FuzzedInputData in Strategy.GenerateTestCases())
             {
-                //MessageBox.Show($"{BitConverter.ToString(TestCase)}");
+                //MessageBox.Show($"{BitConverter.ToString(FuzzedInputData)}");
 
                 if (Worker.CancellationPending)
                 {
