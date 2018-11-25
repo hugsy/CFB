@@ -43,11 +43,10 @@ namespace Fuzzer
         {
             string DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
             uint IoctlCode = this.Irp.Header.IoctlCode;
-            byte[] FuzzedInputData;
             byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
 
 
-            foreach (byte[] TestCase in Strategy)
+            foreach (byte[] FuzzedInputData in Strategy)
             {
                 //MessageBox.Show($"{BitConverter.ToString(TestCase)}");
 
@@ -57,8 +56,6 @@ namespace Fuzzer
                     WorkEvent.Cancel = true;
                     break;
                 }
-
-                FuzzedInputData = TestCase;
 
                 try
                 {
@@ -121,26 +118,22 @@ namespace Fuzzer
                 IntPtr.Zero
             );
 
-            int dwBytesReturned;
 
             if(res)
             {
-                dwBytesReturned = (int)Marshal.PtrToStructure(pdwBytesReturned, typeof(int));
-            }
-            else
-            {
-                dwBytesReturned = 0;
-            }
-                
+                int dwBytesReturned = (int)Marshal.PtrToStructure(pdwBytesReturned, typeof(int));
 
-            if (OutputData.Length > 0 && dwBytesReturned > 0)
-            {
-                if (dwBytesReturned < OutputData.Length)
+                if (OutputData.Length > 0 && dwBytesReturned > 0)
                 {
-                    Marshal.Copy(lpOutBuffer, OutputData, 0, OutputData.Length);
+                    if (dwBytesReturned < OutputData.Length)
+                    {
+                        Marshal.Copy(lpOutBuffer, OutputData, 0, OutputData.Length);
+                    }
+                    // TODO: signal possible overflow
                 }
-                // TODO: signal possible overflow
-            }
+
+            }              
+
 
             Marshal.FreeHGlobal(pdwBytesReturned);
             Marshal.FreeHGlobal(lpInBuffer);

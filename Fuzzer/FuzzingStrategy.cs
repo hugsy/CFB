@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
 namespace Fuzzer
 {
-    abstract public class FuzzingStrategy : IEnumerable
+    public abstract class FuzzingStrategy
     {
         protected string Name;
         public bool ContinueGeneratingCases;
@@ -27,7 +28,7 @@ namespace Fuzzer
             return this.Name;
         }
 
-        public virtual IEnumerator GetEnumerator()
+        public virtual IEnumerable<byte[]> GenerateTestCases()
         {
             throw new NotImplementedException();
         }
@@ -48,7 +49,7 @@ namespace Fuzzer
         }
 
 
-        public override IEnumerator GetEnumerator()
+        public override IEnumerable<byte[]> GenerateTestCases()
         {
             ContinueGeneratingCases = true;
 
