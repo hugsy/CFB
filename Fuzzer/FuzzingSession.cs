@@ -41,6 +41,11 @@ namespace Fuzzer
 
         private void Start()
         {
+            string DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
+            uint IoctlCode = this.Irp.Header.IoctlCode;
+            byte[] FuzzedInputData;
+            byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
+
 
             foreach (byte[] TestCase in Strategy)
             {
@@ -53,10 +58,7 @@ namespace Fuzzer
                     break;
                 }
 
-                string DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
-                uint IoctlCode = this.Irp.Header.IoctlCode;
-                byte[] FuzzedInputData = TestCase;
-                byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
+                FuzzedInputData = TestCase;
 
                 try
                 {
@@ -100,28 +102,44 @@ namespace Fuzzer
             IntPtr lpOutBuffer = IntPtr.Zero;
             int dwOutBufferLen = 0;
 
+            
             if (OutputData.Length > 0)
             {
+                dwOutBufferLen = OutputData.Length;
                 lpOutBuffer = Marshal.AllocHGlobal(dwOutBufferLen);
                 // todo : add some checks after the devioctl for some memleaks
             }
-
+            
             bool res = Kernel32.DeviceIoControl(
                 hDriver,
                 IoctlCode,
                 lpInBuffer,
                 (uint)InputData.Length,
                 lpOutBuffer,
-                (uint)OutputData.Length,
+                (uint)dwOutBufferLen,
                 pdwBytesReturned,
                 IntPtr.Zero
             );
 
-            int dwBytesReturned = (int)Marshal.PtrToStructure(pdwBytesReturned, typeof(int));
+            int dwBytesReturned;
+
+            if(res)
+            {
+                dwBytesReturned = (int)Marshal.PtrToStructure(pdwBytesReturned, typeof(int));
+            }
+            else
+            {
+                dwBytesReturned = 0;
+            }
+                
 
             if (OutputData.Length > 0 && dwBytesReturned > 0)
             {
-                Marshal.Copy(lpOutBuffer, OutputData, 0, OutputData.Length);
+                if (dwBytesReturned < OutputData.Length)
+                {
+                    Marshal.Copy(lpOutBuffer, OutputData, 0, OutputData.Length);
+                }
+                // TODO: signal possible overflow
             }
 
             Marshal.FreeHGlobal(pdwBytesReturned);
