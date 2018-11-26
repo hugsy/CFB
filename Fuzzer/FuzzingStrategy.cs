@@ -98,7 +98,7 @@ namespace Fuzzer
                 byte old = ClonedBuffer[i];
                 byte b = ClonedBuffer[i];
 
-                if ((b & 0b10000000) == 1)
+                if ((b & 0b10000000) != 0)
                 {
                     b &= 0b01111111;
                 }
@@ -177,9 +177,6 @@ namespace Fuzzer
                         ContinueGeneratingCases = false;
                         break;
                 }
-
-                
-
             }
         }
     }
@@ -190,7 +187,7 @@ namespace Fuzzer
         public BigintOverwriteFuzzingStrategy()
         {
             name = "BigInt Overwrite";
-            description = "Successively overwrite every QWORD, DWORD, WORD and BYTE with various combinations of large integers.";
+            description = "Successively overwrite every QWORD, DWORD, WORD and BYTE with large integers.";
         }
 
 
@@ -201,7 +198,19 @@ namespace Fuzzer
             {
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i+StepSize);
                 for (int j = 0; j < FuzzedBuffer.Length; j++)
-                    FuzzedBuffer[i] = 0xff;
+                    FuzzedBuffer[j] = 0xff;
+                Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
+                Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, i, FuzzedBuffer.Length);
+
+                yield return ClonedBuffer;
+            }
+
+            for (int i = 0; i < Data.Length; i += StepSize)
+            {
+                Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i + StepSize);
+                for (int j = 0; j < FuzzedBuffer.Length; j++)
+                    FuzzedBuffer[j] = 0xff;
+                FuzzedBuffer[FuzzedBuffer.Length - 1] = 0x7f;
                 Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
                 Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, i, FuzzedBuffer.Length);
 
@@ -255,7 +264,6 @@ namespace Fuzzer
                         ContinueGeneratingCases = false;
                         break;
                 }
-
             }
         }
     }
