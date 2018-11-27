@@ -34,6 +34,19 @@ namespace Fuzzer
 
         public static uint SERVICE_CONTROL_STOP = 0x00000001;
 
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct SERVICE_STATUS
+        {
+            UInt32 dwServiceType;
+            UInt32 dwCurrentState;
+            UInt32 dwControlsAccepted;
+            UInt32 dwWin32ExitCode;
+            UInt32 dwServiceSpecificExitCode;
+            UInt32 dwCheckPoint;
+            UInt32 dwWaitHint;
+        };
+        
+
 
         [DllImport("Advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr OpenSCManager(
@@ -53,10 +66,10 @@ namespace Fuzzer
             uint dwStartType,
             uint dwErrorControl,
             string lpBinaryPathName,
-            string lpLoadOrderGroup,
+            IntPtr lpLoadOrderGroup,
             IntPtr lpdwTagId,
-            string lpDependencies,
-            string lpServiceStartName,
+            IntPtr lpDependencies,
+            IntPtr lpServiceStartName,
             string lpPassword
         );
 
@@ -81,7 +94,7 @@ namespace Fuzzer
         public static extern bool ControlService(
           IntPtr hService,
           uint dwControl,
-          IntPtr lpServiceStatus
+          ref WinSvc.SERVICE_STATUS lpServiceStatus
         );
 
 

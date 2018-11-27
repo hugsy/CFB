@@ -2,6 +2,7 @@
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.ComponentModel;
 
 namespace Fuzzer
 {
@@ -38,6 +39,31 @@ namespace Fuzzer
             t.Join();
         }
 
+
+        public void LogErr(string title)
+        {
+            var gle = Kernel32.GetLastError();
+            var ex = new Win32Exception((int)gle);
+            var text = $"{title} \r\n\r\n {ex.Message}";
+            Log(text);
+        }
+
+
+        private static void PopupError(string v)
+        {
+            var gle = Kernel32.GetLastError();
+            var ex = new Win32Exception((int)gle);
+            var text = $"{v} \r\n\r\n {ex.Message}";
+            MessageBox.Show(
+                text,
+                $"CFB initialization failed (Error={gle})",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error,
+                MessageBoxDefaultButton.Button1
+            );
+        }
+
+
         private void StartListening()
         {
             CfbReader.StartThreads();
@@ -72,32 +98,16 @@ namespace Fuzzer
 
             Log("Initializing CFB...");
 
-            //Log("Checking Windows version support...");
-            if (!Core.CheckWindowsVersion())
+            try
             {
-                //MessageBox.Show("CheckWindowsVersion() failed");
-                Application.Exit();
+                Core.CheckWindowsVersion();
+                Core.RunInitializationChecks();
+                Core.LoadDriver();
+                Core.OpenDeviceHandle();
             }
-
-            //Log("Running checks...");
-            if (!Core.RunInitializationChecks())
+            catch(CoreInitializationException Ex)
             {
-                //MessageBox.Show("RunInitializationChecks() failed");
-                Application.Exit();
-            }
-
-            //Log("Loading driver...");
-            if (!Core.LoadDriver())
-            {
-                //MessageBox.Show($"LoadDriver() failed: {Kernel32.GetLastError()}");
-                Application.Exit();
-            }
-
-            //Log("Initializing CFB context...");
-            if (!Core.InitializeCfbContext())
-            {
-                //MessageBox.Show("InitializeCfbContext() failed");
-                Core.UnloadDriver();
+                PopupError(Ex.Message);
                 Application.Exit();
             }
 
@@ -118,17 +128,19 @@ namespace Fuzzer
                 return;
 
             Log("Cleaning up context (may take a bit, be patient)...");
-            Core.CleanupCfbContext();
-
-            Log("Unloading service and driver...");
-            if (!Core.UnloadDriver())
+            try
             {
-                Log("UnloadDriver() failed");
+                Core.CloseDeviceHandle();
+                Core.UnloadDriver();
+                Log("Success...");
+                SetLoadedDriverStatus(false);
+                SetMonitoringStatus(false);
             }
-
-            Log("Success...");
-            SetLoadedDriverStatus(false);
-            SetMonitoringStatus(false);
+            catch (CoreInitializationException Ex)
+            {               
+                LogErr(Ex.Message);
+                Log("An error occured during context cleanup. It is recommended to close the application.");
+            }
         }
 
 

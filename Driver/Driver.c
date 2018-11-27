@@ -457,7 +457,7 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 	{
 
 	case IOCTL_AddDriver:
-		CfbDbgPrintInfo(L"Received 'IoctlGetNumberOfDrivers'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlAddDrivers'\n");
 		Status = HandleIoAddDriver(Irp, CurrentStack);
 		break;
 

@@ -136,6 +136,8 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 			break;
 		}
 
+        CfbDbgPrintInfo(L"Adding AddDriverByName('%s') \n", lpDriverName);
+
 		InputBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
 
 		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)

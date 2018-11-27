@@ -8,9 +8,16 @@ using System.Windows.Forms;
 
 namespace Fuzzer
 {
-    /// <summary>
-    /// Abstraction class for interacting with the low-level functions from Core.dll
-    /// </summary>
+    public class CoreInitializationException : Exception
+    {
+        public CoreInitializationException() { }
+
+        public CoreInitializationException(string message) : base(message) { }
+
+        public CoreInitializationException(string message, Exception inner) : base(message, inner) { }
+    }
+
+
     class Core
     {
 
@@ -23,6 +30,9 @@ namespace Fuzzer
         private static IntPtr hSCManager;
         private static IntPtr hService;
 
+        //
+        // From Driver\IoctlCodes.h
+        //
         private static UInt32 IOCTL_AddDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x801, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
         private static UInt32 IOCTL_RemoveDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x802, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
         private static UInt32 IOCTL_GetNumberOfDrivers = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x803, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
@@ -33,42 +43,19 @@ namespace Fuzzer
         private static UInt32 IOCTL_DisableMonitoring = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x808, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
 
 
-        private static void PrintError(string v)
-        {
-            var gle = Kernel32.GetLastError();
-            var ex = new Win32Exception((int)gle);
-            var text = $"{v}: {ex.Message}";
-            MessageBox.Show(
-                text,
-                $"CFB initialization failed (Error={gle})", 
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error,
-                MessageBoxDefaultButton.Button1
-            );
-        }
-
-
-        // from main.c
-        //[DllImport(@"Core.dll")]
-        //public static extern bool CheckWindowsVersion();
-
         public static bool CheckWindowsVersion()
         {
             return Environment.OSVersion.Version.Major >= 6;
         }
 
-        //[DllImport(@"Core.dll")]
-        //public static extern bool RunInitializationChecks();
+
         public static bool RunInitializationChecks()
         {
-            WindowsIdentity identity = WindowsIdentity.GetCurrent();
-            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            WindowsPrincipal principal = new WindowsPrincipal(WindowsIdentity.GetCurrent());
             return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
-
-        //[DllImport("Core.dll", SetLastError = true)]
-        //public static extern bool LoadDriver();
+        
         public static bool LoadDriver()
         {
             bool res = true;
@@ -76,104 +63,85 @@ namespace Fuzzer
             //
             // open the service manager and create a new service
             //
-            hSCManager = WinSvc.OpenSCManager("", WinSvc.SERVICES_ACTIVE_DATABASE, WinSvc.SC_MANAGER_CREATE_SERVICE);
+            hSCManager = WinSvc.OpenSCManager(
+                "", 
+                WinSvc.SERVICES_ACTIVE_DATABASE, 
+                WinSvc.SC_MANAGER_ALL_ACCESS
+            );
 
             if (hSCManager == IntPtr.Zero)
             {
-                PrintError("OpenSCManager()");
-                return false;
+                throw new CoreInitializationException("OpenSCManager()");
             }
 
             do
             {
-                try
-                {
-                    string lpPath = $"{Directory.GetCurrentDirectory()}\\{CFB_DRIVER_NAME}";
 
-                    hService = WinSvc.CreateService(
+                string lpPath = $"{Directory.GetCurrentDirectory()}\\{CFB_DRIVER_NAME}";
+
+                hService = WinSvc.CreateService(
+                    hSCManager,
+                    CFB_SERVICE_NAME,
+                    CFB_SERVICE_DESCRIPTION,
+                    WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE,
+                    WinNt.SERVICE_KERNEL_DRIVER,
+                    WinNt.SERVICE_DEMAND_START,
+                    WinNt.SERVICE_ERROR_IGNORE,
+                    lpPath,
+                    IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, String.Empty
+                );
+
+                //
+                // if the service was already registered, just open it
+                //
+                if (hService == IntPtr.Zero)
+                {
+                    
+                    if (Kernel32.GetLastError() != WinNt.ERROR_SERVICE_EXISTS)
+                    {
+                        throw new CoreInitializationException("CreateService()");
+                    }
+
+                    hService = WinSvc.OpenService(
                         hSCManager,
                         CFB_SERVICE_NAME,
-                        CFB_SERVICE_DESCRIPTION,
-                        WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE,
-                        WinNt.SERVICE_KERNEL_DRIVER,
-                        WinNt.SERVICE_DEMAND_START,
-                        WinNt.SERVICE_ERROR_IGNORE,
-                        lpPath,
-                        "", IntPtr.Zero, "", "", ""
+                        WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE
                     );
 
-                    //
-                    // if the service was already registered, just open it
-                    //
                     if (hService == IntPtr.Zero)
                     {
-                    
-                        if (Kernel32.GetLastError() != WinNt.ERROR_SERVICE_EXISTS)
-                        {
-                            PrintError("CreateService()");
-                            res = false;
-                            break;
-                        }
-
-                        hService = WinSvc.OpenService(
-                            hSCManager,
-                            CFB_SERVICE_NAME,
-                            WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE
-                        );
-
-                        if (hService == IntPtr.Zero)
-                        {
-                            PrintError("OpenService()");
-                            res = false;
-                            break;
-                        }
+                        throw new CoreInitializationException("OpenService()");
                     }
-
-
-                    //
-                    // start the service
-                    //
-                    try
-                    {
-                        if (WinSvc.StartService(hService, 0, IntPtr.Zero) == false)
-                        {
-                            PrintError("StartService()");
-                            res = false;
-                            break;
-                        }
-                    }
-                    finally
-                    {
-                        if (!res)
-                        {
-                            WinSvc.CloseServiceHandle(hService);
-                        }
-                    }
-
-                    res = true;
                 }
-                finally
+
+
+                //
+                // start the service
+                //
+                if (WinSvc.StartService(hService, 0, IntPtr.Zero) == false)
                 {
-                    if(!res)
-                    {
-                        WinSvc.CloseServiceHandle(hSCManager);
-                    }
-                    
+                    throw new CoreInitializationException("StartService()");
                 }
+
+                res = true;
 
             }
             while (false);
 
+            if(!res)
+            {
+                if(hService != IntPtr.Zero)
+                    WinSvc.CloseServiceHandle(hService);
+
+                if (hSCManager != IntPtr.Zero)
+                    WinSvc.CloseServiceHandle(hSCManager);
+            }
        
             return res;
         }
 
 
-
-
-        //[DllImport(@"Core.dll")]
-        //public static extern bool InitializeCfbContext();
-        public static bool InitializeCfbContext()
+        public static bool OpenDeviceHandle()
         {
 
             hDriver = Kernel32.CreateFile(
@@ -188,49 +156,43 @@ namespace Fuzzer
 
             if (hDriver.ToInt32() == Kernel32.INVALID_HANDLE_VALUE)
             {
-                //var text = $"Cannot open device '{DeviceName}': {Kernel32.GetLastError().ToString("x8")}";
-                //MessageBox.Show(text);
-                return false;
+                throw new CoreInitializationException($"CreateFile('{CFB_DEVICE_NAME}')");
             }
 
             return true;
         }
-        
 
-        //[DllImport(@"Core.dll")]
-        //public static extern void CleanupCfbContext();
-        public static void CleanupCfbContext()
+        
+        public static bool CloseDeviceHandle()
         {
-            Kernel32.CloseHandle(hDriver);
+            return Kernel32.CloseHandle(hDriver);
         }
 
 
-        //[DllImport(@"Core.dll", SetLastError = true)]
-        //public static extern bool UnloadDriver();
         public static bool UnloadDriver()
         {
             bool res;
 
             do
             {
-                if (WinSvc.ControlService(hService, WinSvc.SERVICE_CONTROL_STOP, IntPtr.Zero) == false)
+                WinSvc.SERVICE_STATUS ServiceStatus = new WinSvc.SERVICE_STATUS();
+
+                if (WinSvc.ControlService(hService, WinSvc.SERVICE_CONTROL_STOP, ref ServiceStatus) == false)
                 {
-                    PrintError("ControlService");
-                    res = false;
-                    break;
+                    throw new CoreInitializationException("ControlService()");
                 }
 
                 if (WinSvc.DeleteService(hService) == false)
                 {
-                    PrintError("DeleteService");
-                    res = false;
-                    break;
+                    throw new CoreInitializationException("DeleteService()");
                 }
 
   
                 WinSvc.CloseServiceHandle(hService);
+                hService = IntPtr.Zero;
 
                 WinSvc.CloseServiceHandle(hSCManager);
+                hSCManager = IntPtr.Zero;
 
                 res = true;
             }
@@ -243,134 +205,77 @@ namespace Fuzzer
 
         private static bool GenericDeviceIoControl(uint IoctlCode, byte[] InBuf, byte[] OutBuf, out uint dwBytesReturned)
         {
-            int dwlpInBufferLen;
-            IntPtr lpInBuffer;
-            if (InBuf != null)
-            {
-                dwlpInBufferLen = OutBuf.Length;
-                lpInBuffer = Marshal.AllocHGlobal(dwlpInBufferLen);
-            }
-            else
-            {
-                dwlpInBufferLen = 0;
-                lpInBuffer = IntPtr.Zero;
-            }
-
-            int dwlpOutBufferLen;
-            IntPtr lpOutBuffer;
-
-            if (OutBuf != null)
-            {
-                dwlpOutBufferLen = OutBuf.Length;
-                lpOutBuffer = Marshal.AllocHGlobal(dwlpOutBufferLen);
-            }
-            else
-            {
-                dwlpOutBufferLen = 0;
-                lpOutBuffer = IntPtr.Zero;
-            }
-            
-            Marshal.Copy(InBuf, 0, lpInBuffer, InBuf.Length);
-            IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(uint));
+            dwBytesReturned = 0;
 
             bool res = Kernel32.DeviceIoControl(
                 hDriver,
                 IoctlCode,
-                lpInBuffer,
-                (uint)dwlpOutBufferLen,
-                lpOutBuffer,
-                (uint)dwlpOutBufferLen,
-                pdwBytesReturned,
-                IntPtr.Zero
+                InBuf,
+                InBuf.Length,
+                OutBuf,
+                OutBuf.Length,
+                ref dwBytesReturned,
+                0
             );
-
-            dwBytesReturned = (uint)Marshal.PtrToStructure(pdwBytesReturned, typeof(uint));
-            Marshal.FreeHGlobal(pdwBytesReturned);
-
-            if (dwlpInBufferLen != 0)
-            {
-                Marshal.FreeHGlobal(lpInBuffer);
-            }
-
-            if (dwlpOutBufferLen != 0)
-            {
-                Marshal.Copy(lpOutBuffer, OutBuf, 0, OutBuf.Length);
-                Marshal.FreeHGlobal(lpOutBuffer);
-            }
 
             return res;
         }
 
 
-        // from device.c
-        //[DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
-        //public static extern bool HookDriver(String DriverName);
-        public static bool HookDriver(String DeviceName)
+        public static bool HookDriver(String DriverName)
         {
-            bool res = GenericDeviceIoControl(
-                IOCTL_AddDriver, 
-                Encoding.ASCII.GetBytes(DeviceName), 
-                null, 
-                out uint dwBytesReturned
-            );
+            byte[] InBuf = Encoding.Unicode.GetBytes(DriverName + "\x00");
+            bool res = GenericDeviceIoControl(IOCTL_AddDriver, InBuf, new byte[0], out uint dwBytesReturned);
             return res && dwBytesReturned == 0;
         }
 
 
-        //[DllImport(@"Core.dll", CharSet = CharSet.Unicode)]
-        //public static extern bool UnhookDriver(String DriverName);
-        public static bool UnhookDriver(String DeviceName)
+        public static bool UnhookDriver(String DriverName)
         {
-            bool res = GenericDeviceIoControl(
-                IOCTL_RemoveDriver,
-                Encoding.ASCII.GetBytes(DeviceName),
-                null,
-                out uint dwBytesReturned
-            );
+            byte[] InBuf = Encoding.Unicode.GetBytes(DriverName + "\x00");
+            bool res = GenericDeviceIoControl(IOCTL_RemoveDriver, InBuf, new byte[0], out uint dwBytesReturned);
             return res && dwBytesReturned == 0;
         }
 
 
-        //[DllImport(@"Core.dll")]
-        //public static extern int GetCfbMessageHeaderSize();
         public static int GetCfbMessageHeaderSize()
         {
             // todo 
             return 1076;
         }
 
-
-        //[DllImport(@"Core.dll", SetLastError = true)]
-        //public static extern bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
-        
+       
         public static bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr dwNbBytesRead)
         {
             return Kernel32.ReadFile(hDriver, Buffer, BufSize, dwNbBytesRead, IntPtr.Zero);
         }
         
 
-        //[DllImport(@"Core.dll", SetLastError = true)]
-        //public static extern bool SetEventNotificationHandle(IntPtr hEvent);
         public static bool SetEventNotificationHandle(IntPtr hEvent)
         {
-            byte[] InBuf = Encoding.ASCII.GetBytes(hEvent.ToInt32().ToString());
-            return GenericDeviceIoControl(IOCTL_SetEventPointer, InBuf, null, out uint dwBytesReturned);
+            long value;
+            if (Environment.Is64BitProcess)
+            {
+                value = hEvent.ToInt64();
+            }
+            else
+            {
+                value = hEvent.ToInt32();
+            }
+            byte[] InBuf = BitConverter.GetBytes(value);
+            return GenericDeviceIoControl(IOCTL_SetEventPointer, InBuf, new byte[0], out uint dwBytesReturned);
         }
 
 
-        //[DllImport(@"Core.dll")]
-        //public static extern bool EnableMonitoring();
         public static bool EnableMonitoring()
         {
-            return GenericDeviceIoControl(IOCTL_EnableMonitoring, null, null, out uint dwBytesReturned);
+            return GenericDeviceIoControl(IOCTL_EnableMonitoring, new byte[0], new byte[0], out uint dwBytesReturned);
         }
 
 
-        //[DllImport(@"Core.dll")]
-        //public static extern bool DisableMonitoring();
         public static bool DisableMonitoring()
         {
-            return GenericDeviceIoControl(IOCTL_DisableMonitoring, null, null, out uint dwBytesReturned);
+            return GenericDeviceIoControl(IOCTL_DisableMonitoring, new byte[0], new byte[0], out uint dwBytesReturned);
         }
     }
 }

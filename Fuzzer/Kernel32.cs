@@ -35,23 +35,33 @@ namespace Fuzzer
                                                 IntPtr hTemplateFile
             );
 
-
+        
         [DllImport("Kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool DeviceIoControl( 
-                                                    IntPtr hDevice,
-                                                    uint dwIoControlCode,
-                                                    IntPtr InBuffer,
-                                                    uint nInBufferSize,
-                                                    IntPtr OutBuffer,
-                                                    uint nOutBufferSize,
-                                                    IntPtr pdwBytesReturned,
-                                                    IntPtr lpOverlapped
+                                            IntPtr hDevice,
+                                            uint dwIoControlCode,
+                                            IntPtr InBuffer,
+                                            uint nInBufferSize,
+                                            IntPtr OutBuffer,
+                                            uint nOutBufferSize,
+                                            IntPtr pdwBytesReturned,
+                                            IntPtr lpOverlapped
             );
+            
+        [DllImport("Kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool DeviceIoControl(
+            IntPtr hDevice,
+            uint dwIoControlCode,
+            byte[] InBuffer,
+            int nInBufferSize,
+            byte[] OutBuffer,
+            int nOutBufferSize,
+            ref uint pBytesReturned,
+            int pOverlapped
+        );
 
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-        [SuppressUnmanagedCodeSecurity]
         public static extern bool CloseHandle(IntPtr hObject);
 
 

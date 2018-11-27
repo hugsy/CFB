@@ -80,6 +80,7 @@ namespace Fuzzer
             IrpDataTable.Clear();
             RootForm.IrpDataView.Refresh();
             DataBinder.ResetBindings(false);
+            Irps.Clear();
         }
 
 
