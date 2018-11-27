@@ -21,10 +21,12 @@ namespace Fuzzer
         private Irp Irp;
         private BackgroundWorker Worker;
         private DoWorkEventArgs WorkEvent;
+        private string DeviceName;
 
 
-        public void Start(FuzzingStrategy Strategy, Irp Irp, BackgroundWorker worker, DoWorkEventArgs evt, int FuzzStartIndex, int FuzzEndIndex)
+        public void Start(string DeviceName, FuzzingStrategy Strategy, Irp Irp, BackgroundWorker worker, DoWorkEventArgs evt, int FuzzStartIndex, int FuzzEndIndex)
         {
+            this.DeviceName = DeviceName;
             this.Strategy = Strategy;
             this.Irp = Irp;
             this.Worker = worker;
@@ -35,13 +37,17 @@ namespace Fuzzer
 
             Strategy.Data = Utils.CloneByteArray(Irp.Body);
 
+            if (this.DeviceName.Length == 0)
+            {
+                this.DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
+            }
+
             Start();
         }
 
 
         private void Start()
         {
-            string DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
             uint IoctlCode = this.Irp.Header.IoctlCode;
             byte[] OutputData = new byte[this.Irp.Header.OutputBufferLength];
 
@@ -60,7 +66,7 @@ namespace Fuzzer
 
                 try
                 {
-                    if (SendFuzzedData(DeviceName, IoctlCode, FuzzedInputData, OutputData) == false)
+                    if (SendFuzzedData(this.DeviceName, IoctlCode, FuzzedInputData, OutputData) == false)
                     {
                         Strategy.ContinueGeneratingCases = false;
                     }

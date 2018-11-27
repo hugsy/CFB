@@ -30,6 +30,8 @@ namespace Fuzzer
         private FuzzingStrategy[] Strategies;
         private StatusStrip SimpleFuzzStatusBar;
         private ToolStripStatusLabel SimpleFuzzStatusBarItem;
+        private Label label7;
+        private TextBox DeviceObjectPathTextBox;
         private FuzzingSession Session;
 
         
@@ -39,6 +41,7 @@ namespace Fuzzer
             InitializeFuzzingObjects();
             this.Irp = irp;
             this.Text = $"Fuzzing {Irp.ToString()}";
+            this.DeviceObjectPathTextBox.Text = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
             InitializeWorker();
         }
 
@@ -114,9 +117,10 @@ namespace Fuzzer
                 EndByteIndex = this.Irp.Body.Length - 1;
             }
 
+            string DeviceName = this.DeviceObjectPathTextBox.Text;
 
             resultLabel.Text = $"Initiating fuzzing with strategy '{SelectedStrategy}'...";
-            Session.Start(SelectedStrategy, Irp, worker, evt, StartByteIndex, EndByteIndex);
+            Session.Start(DeviceName, SelectedStrategy, Irp, worker, evt, StartByteIndex, EndByteIndex);
         }
 
 
@@ -188,6 +192,8 @@ namespace Fuzzer
             this.label6 = new System.Windows.Forms.Label();
             this.SimpleFuzzStatusBar = new System.Windows.Forms.StatusStrip();
             this.SimpleFuzzStatusBarItem = new System.Windows.Forms.ToolStripStatusLabel();
+            this.label7 = new System.Windows.Forms.Label();
+            this.DeviceObjectPathTextBox = new System.Windows.Forms.TextBox();
             this.SimpleFuzzStatusBar.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -266,7 +272,7 @@ namespace Fuzzer
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(113, 23);
             this.label3.TabIndex = 7;
-            this.label3.Text = "From Index (optional)";
+            this.label3.Text = "From Index (opt.)";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // label4
@@ -275,21 +281,21 @@ namespace Fuzzer
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(113, 23);
             this.label4.TabIndex = 8;
-            this.label4.Text = "To Index (optional)";
+            this.label4.Text = "To Index (opt.)";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // FuzzByteStartIndexTextbox
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -305,7 +311,7 @@ namespace Fuzzer
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
             // 
@@ -313,16 +319,16 @@ namespace Fuzzer
             // 
             this.StrategyComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.StrategyComboBox.FormattingEnabled = true;
-            this.StrategyComboBox.Location = new System.Drawing.Point(443, 88);
+            this.StrategyComboBox.Location = new System.Drawing.Point(443, 117);
             this.StrategyComboBox.Name = "StrategyComboBox";
-            this.StrategyComboBox.Size = new System.Drawing.Size(121, 28);
+            this.StrategyComboBox.Size = new System.Drawing.Size(121, 21);
             this.StrategyComboBox.TabIndex = 13;
             this.StrategyComboBox.TabStop = false;
             this.StrategyComboBox.SelectedIndexChanged += new System.EventHandler(this.StrategyComboBox_SelectedIndexChanged);
             // 
             // label6
             // 
-            this.label6.Location = new System.Drawing.Point(345, 88);
+            this.label6.Location = new System.Drawing.Point(334, 115);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(96, 23);
             this.label6.TabIndex = 14;
@@ -334,21 +340,39 @@ namespace Fuzzer
             this.SimpleFuzzStatusBar.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.SimpleFuzzStatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.SimpleFuzzStatusBarItem});
-            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 244);
+            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 252);
             this.SimpleFuzzStatusBar.Name = "SimpleFuzzStatusBar";
-            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 30);
+            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 22);
             this.SimpleFuzzStatusBar.TabIndex = 15;
             this.SimpleFuzzStatusBar.Text = "statusStrip1";
             // 
             // SimpleFuzzStatusBarItem
             // 
             this.SimpleFuzzStatusBarItem.Name = "SimpleFuzzStatusBarItem";
-            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(60, 25);
+            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(39, 17);
             this.SimpleFuzzStatusBarItem.Text = "Status";
+            // 
+            // label7
+            // 
+            this.label7.Location = new System.Drawing.Point(334, 86);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(105, 23);
+            this.label7.TabIndex = 16;
+            this.label7.Text = "Device Object (opt.)";
+            this.label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // DeviceObjectPathTextBox
+            // 
+            this.DeviceObjectPathTextBox.Location = new System.Drawing.Point(445, 88);
+            this.DeviceObjectPathTextBox.Name = "DeviceObjectPathTextBox";
+            this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(119, 20);
+            this.DeviceObjectPathTextBox.TabIndex = 17;
             // 
             // SimpleFuzzerForm
             // 
             this.ClientSize = new System.Drawing.Size(607, 274);
+            this.Controls.Add(this.DeviceObjectPathTextBox);
+            this.Controls.Add(this.label7);
             this.Controls.Add(this.SimpleFuzzStatusBar);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.StrategyComboBox);
