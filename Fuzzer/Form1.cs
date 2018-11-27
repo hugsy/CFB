@@ -75,28 +75,28 @@ namespace Fuzzer
             //Log("Checking Windows version support...");
             if (!Core.CheckWindowsVersion())
             {
-                MessageBox.Show("CheckWindowsVersion() failed");
+                //MessageBox.Show("CheckWindowsVersion() failed");
                 Application.Exit();
             }
 
             //Log("Running checks...");
             if (!Core.RunInitializationChecks())
             {
-                MessageBox.Show("RunInitializationChecks() failed");
+                //MessageBox.Show("RunInitializationChecks() failed");
                 Application.Exit();
             }
 
             //Log("Loading driver...");
             if (!Core.LoadDriver())
             {
-                MessageBox.Show($"LoadDriver() failed: {Kernel32.GetLastError()}");
+                //MessageBox.Show($"LoadDriver() failed: {Kernel32.GetLastError()}");
                 Application.Exit();
             }
 
             //Log("Initializing CFB context...");
             if (!Core.InitializeCfbContext())
             {
-                MessageBox.Show("InitializeCfbContext() failed");
+                //MessageBox.Show("InitializeCfbContext() failed");
                 Core.UnloadDriver();
                 Application.Exit();
             }

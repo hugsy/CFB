@@ -61,10 +61,10 @@ namespace Fuzzer
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool ReadFile(
-            IntPtr hFile, 
-            [Out] byte[] lpBuffer,
-            uint nNumberOfBytesToRead, 
-            out uint lpNumberOfBytesRead, 
+            IntPtr hFile,
+            IntPtr lpBuffer,
+            int nNumberOfBytesToRead,
+            IntPtr lpNumberOfBytesRead, 
             IntPtr lpOverlapped
         );
 

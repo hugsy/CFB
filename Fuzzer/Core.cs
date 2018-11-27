@@ -1,6 +1,8 @@
 ﻿using System;
+using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 using System.Windows.Forms;
 
@@ -33,8 +35,16 @@ namespace Fuzzer
 
         private static void PrintError(string v)
         {
-            var text = $"{v}: {Kernel32.GetLastError()}";
-            MessageBox.Show(text);
+            var gle = Kernel32.GetLastError();
+            var ex = new Win32Exception((int)gle);
+            var text = $"{v}: {ex.Message}";
+            MessageBox.Show(
+                text,
+                $"CFB initialization failed (Error={gle})", 
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error,
+                MessageBoxDefaultButton.Button1
+            );
         }
 
 
@@ -51,8 +61,9 @@ namespace Fuzzer
         //public static extern bool RunInitializationChecks();
         public static bool RunInitializationChecks()
         {
-            // todo
-            return true;
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
         }
 
 
@@ -329,14 +340,14 @@ namespace Fuzzer
         }
 
 
-        [DllImport(@"Core.dll", SetLastError = true)]
-        public static extern bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
-        /*
-        public static bool ReadCfbDevice(IntPtr Buffer, int BufSize, out int dwNbBytesRead)
+        //[DllImport(@"Core.dll", SetLastError = true)]
+        //public static extern bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr lpNbBytesRead);
+        
+        public static bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr dwNbBytesRead)
         {
-            return Kernel32.ReadFile(hDriver, (byte[])Buffer, (uint)BufSize, out dwNbBytesRead, IntPtr.Zero);
+            return Kernel32.ReadFile(hDriver, Buffer, BufSize, dwNbBytesRead, IntPtr.Zero);
         }
-        */
+        
 
         //[DllImport(@"Core.dll", SetLastError = true)]
         //public static extern bool SetEventNotificationHandle(IntPtr hEvent);

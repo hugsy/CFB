@@ -35,7 +35,7 @@ namespace Fuzzer
         public static uint SERVICE_CONTROL_STOP = 0x00000001;
 
 
-        [DllImport(@"Advapi32.dll", EntryPoint = "OpenSCManagerW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("Advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr OpenSCManager(
             string lpMachineName,
             string lpDatabaseName,
@@ -43,7 +43,7 @@ namespace Fuzzer
         );
 
 
-        [DllImport(@"Advapi32.dll", SetLastError = true)] //EntryPoint = "CreateServiceW", ExactSpelling = true, CharSet = CharSet.Unicode, )]
+        [DllImport("Advapi32.dll", SetLastError = true, CharSet = CharSet.Auto )]
         public static extern IntPtr CreateService(
             IntPtr hSCManager,
             string lpServiceName,
@@ -61,7 +61,7 @@ namespace Fuzzer
         );
 
 
-        [DllImport(@"Advapi32.dll", EntryPoint = "OpenServiceW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport("Advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern IntPtr OpenService(
             IntPtr hSCManager,
             string lpServiceName,
@@ -69,7 +69,7 @@ namespace Fuzzer
         );
 
 
-        [DllImport(@"Advapi32.dll", SetLastError = true)]
+        [DllImport("Advapi32.dll", SetLastError = true)]
         public static extern bool StartService(
           IntPtr hService,
           uint dwNumServiceArgs,
@@ -77,7 +77,7 @@ namespace Fuzzer
         );
 
 
-        [DllImport(@"Advapi32.dll", SetLastError = true)]
+        [DllImport("Advapi32.dll", SetLastError = true)]
         public static extern bool ControlService(
           IntPtr hService,
           uint dwControl,
@@ -85,15 +85,15 @@ namespace Fuzzer
         );
 
 
-        [DllImport(@"Advapi32.dll", SetLastError = true)]
+        [DllImport("Advapi32.dll", SetLastError = true)]
         public static extern bool DeleteService(
             IntPtr hService
         );
 
 
-        [DllImport(@"Advapi32.dll", SetLastError = true)]
+        [DllImport("Advapi32.dll", SetLastError = true)]
         public static extern bool CloseServiceHandle(
-            IntPtr hSCObject
+            IntPtr hService
         );
 
     }
