@@ -313,7 +313,7 @@ def Trigger():
     IoctlCode = 0x{SelectedIrp.Header.IoctlCode:x}
     lpIrpDataIn = b'{IrpDataInStr:s}'
     lpIrpDataOut = {IrpDataOutStr:s}
-    return DeviceIoctlControl(DeviceName, IoctlCode, lpIrpData)
+    return DeviceIoctlControl(DeviceName, IoctlCode, lpIrpDataIn, lpIrpDataOut)
 
 
 if __name__ == '__main__':
