@@ -93,7 +93,10 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Utils.cs" />
+    <Compile Include="Wdm.cs" />
     <Compile Include="Win32.cs" />
+    <Compile Include="WinNt.cs" />
+    <Compile Include="WinSvc.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

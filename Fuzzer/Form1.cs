@@ -89,7 +89,7 @@ namespace Fuzzer
             //Log("Loading driver...");
             if (!Core.LoadDriver())
             {
-                MessageBox.Show("LoadDriver() failed: " + Kernel32.GetLastError());
+                MessageBox.Show($"LoadDriver() failed: {Kernel32.GetLastError()}");
                 Application.Exit();
             }
 
