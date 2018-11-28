@@ -49,7 +49,7 @@ namespace Fuzzer
         }
 
 
-        private static IEnumerable<string> EnumerateDirectoryObjects(string RootPath)
+        public static IEnumerable<string> EnumerateDirectoryObjects(string RootPath)
         {
 #pragma warning disable IDE0018 // Inline variable declaration
             SafeFileHandle Handle;
@@ -89,11 +89,18 @@ namespace Fuzzer
 
         }
 
-
+        /*
         public static IEnumerable<string> EnumerateDriverObjects()
         {
-            return EnumerateDirectoryObjects("\\driver");
+            return EnumerateDirectoryObjects("\\Driver");
         }
+
+
+        public static IEnumerable<string> EnumerateFileSystemObjects()
+        {
+            return EnumerateDirectoryObjects("\\FileSystem");
+        }
+        */
 
     }
 }

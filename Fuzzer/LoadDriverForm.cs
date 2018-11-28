@@ -3,6 +3,7 @@ using System.Management;
 using System.Data;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Fuzzer
 {
@@ -38,23 +39,30 @@ namespace Fuzzer
             RefreshDriverList();
         }
 
-        public void RefreshDriverList()
+        private void AddKernelObjectsToDataTable(string ObjectRootPath, string[] IgnoreObjectList = null)
         {
-            DriverDataTable.Clear();
-
-            foreach (string DevicePath in EnumerateDrivers.EnumerateDriverObjects())
+            foreach (string DriverName in EnumerateDrivers.EnumerateDirectoryObjects(ObjectRootPath))
             {
-               
                 // create a blacklist of drivers to never hook
-                if (DevicePath == "IrpDumper")
+                if (IgnoreObjectList != null && IgnoreObjectList.Contains( DriverName.ToLower() ))
                 {
                     continue;
                 }
 
+                string ObjectPath = $"{ObjectRootPath}\\{DriverName:s}";
                 DataRow row = DriverDataTable.NewRow();
-                row["DriverPath"] = $"\\driver\\{DevicePath:s}";
+                row["DriverPath"] = ObjectPath;
                 DriverDataTable.Rows.Add(row);
             }
+        }
+
+
+        public void RefreshDriverList()
+        {
+            DriverDataTable.Clear();
+
+            AddKernelObjectsToDataTable("\\Driver", new string[] { "IrpDumper" });
+            AddKernelObjectsToDataTable("\\FileSystem");
 
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {
