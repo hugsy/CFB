@@ -11,11 +11,17 @@
 #endif
 
 
-static IO_REMOVE_LOCK g_RemoveLockDriver;
-static BOOLEAN g_IsInterceptEnabled;
 
+static IO_REMOVE_LOCK DriverRemoveLock;
 static KSPIN_LOCK g_SpinLock;
 static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
+
+//
+// Not more than one process can interact with the device object
+//
+static PEPROCESS pCurrentOwnerProcess;
+static KSPIN_LOCK SpinLockOwner;
+static KLOCK_QUEUE_HANDLE SpinLockQueueOwner;
 
 extern PLIST_ENTRY g_HookedDriversHead;
 
@@ -146,8 +152,8 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
     {
         DisableMonitoring();
         RemoveAllDrivers();
-        IoAcquireRemoveLock(&g_RemoveLockDriver, Irp);
-        IoReleaseRemoveLockAndWait(&g_RemoveLockDriver, Irp);
+        IoAcquireRemoveLock(&DriverRemoveLock, Irp);
+        IoReleaseRemoveLockAndWait(&DriverRemoveLock, Irp);
     }
 
     KeLeaveCriticalRegion();
@@ -232,8 +238,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
 	}
 
-	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateCloseRoutine;
-	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateCloseRoutine;
+	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCloseRoutine;
+	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateRoutine;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
 	DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
@@ -262,7 +268,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
     InitializeMonitoringStructures();
 
-	IoInitializeRemoveLock( &g_RemoveLockDriver, CFB_DEVICE_TAG, 0, 0 );
+    KeInitializeSpinLock(&SpinLockOwner);
+	IoInitializeRemoveLock( &DriverRemoveLock, CFB_DEVICE_TAG, 0, 0 );
 
 	return status;
 }
@@ -286,7 +293,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
     BOOLEAN Found = FALSE;
     PHOOKED_DRIVER curDriver = NULL;
 
-	Status = IoAcquireRemoveLock( &g_RemoveLockDriver, Irp );
+	Status = IoAcquireRemoveLock( &DriverRemoveLock, Irp );
 	if ( !NT_SUCCESS( Status ) )
 	{
 		return Status;
@@ -379,7 +386,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 	}	
 
-	IoReleaseRemoveLock( &g_RemoveLockDriver, Irp );
+	IoReleaseRemoveLock( &DriverRemoveLock, Irp );
 
 	return Status;
 }
@@ -429,13 +436,53 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 /*++
 
 --*/
-NTSTATUS DriverCreateCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 
 	PAGED_CODE();
 
+    KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
+
+    if (pCurrentOwnerProcess != NULL)
+    {
+        pCurrentOwnerProcess = NULL;
+        CfbDbgPrintOk(L"Unlocked device...\n");
+    }
+
+    KeReleaseInStackQueuedSpinLock(&SpinLockQueueOwner);
+
 	return CompleteRequest(Irp, STATUS_SUCCESS, 0);
+}
+
+
+/*++
+
+--*/
+NTSTATUS DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+{
+    UNREFERENCED_PARAMETER(pObject);
+
+    PAGED_CODE();
+
+    NTSTATUS Status;
+
+    KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
+    
+    if (pCurrentOwnerProcess == NULL)
+    {
+        pCurrentOwnerProcess = PsGetCurrentProcess();
+        CfbDbgPrintOk(L"Locked device to process %p...\n", pCurrentOwnerProcess);
+        Status = STATUS_SUCCESS;
+    }   
+    else
+    {
+        Status = STATUS_DEVICE_ALREADY_ATTACHED;
+    }
+
+    KeReleaseInStackQueuedSpinLock(&SpinLockQueueOwner);
+
+    return CompleteRequest(Irp, Status, 0);
 }
 
 
@@ -448,9 +495,17 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
 	PAGED_CODE();
 
-	NTSTATUS Status = STATUS_SUCCESS;
-	ULONG_PTR Information = 0;
+    NTSTATUS Status = STATUS_SUCCESS;
+    ULONG_PTR Information = 0;
 
+
+    if ( pCurrentOwnerProcess != PsGetCurrentProcess() )
+    {
+        Status = STATUS_DEVICE_ALREADY_ATTACHED;
+        CompleteRequest(Irp, Status, Information);
+        return Status;
+    }
+	
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
 

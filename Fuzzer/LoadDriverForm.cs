@@ -41,7 +41,7 @@ namespace Fuzzer
 
         private void AddKernelObjectsToDataTable(string ObjectRootPath, string[] IgnoreObjectList = null)
         {
-            foreach (string DriverName in EnumerateDrivers.EnumerateDirectoryObjects(ObjectRootPath))
+            foreach (string DriverName in EnumerateObjects.EnumerateDirectoryObjects(ObjectRootPath))
             {
                 // create a blacklist of drivers to never hook
                 if (IgnoreObjectList != null && IgnoreObjectList.Contains( DriverName.ToLower() ))
