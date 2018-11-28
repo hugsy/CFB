@@ -304,7 +304,11 @@ def DeviceIoctlControl(DeviceName, IoctlCode, _in='', _out='', *args, **kwargs):
         KdPrint('Sending inbuflen=%dB to %s with ioctl=%#x (outbuflen=%dB)' % (InputBufferSize, DeviceName, IoctlCode, OutputBufferSize))
         res = kernel32.DeviceIoControl(hDriver, IoctlCode, InputBuffer, InputBufferSize, OutputBuffer, OutputBufferSize, byref(dwBytesReturned), None)
         KdPrint('Sent %dB to %s with IoctlCode %#x' % (InputBufferSize, DeviceName, IoctlCode ))
-        if res and dwBytesReturned: print(Hexdump(OutputBuffer))
+        if res:
+            if dwBytesReturned: 
+                print(Hexdump(OutputBuffer))
+        else:
+            print( GetLastError(), FormatError(GetLastError()) )
     return res
 
 

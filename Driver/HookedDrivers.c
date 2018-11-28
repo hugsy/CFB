@@ -9,6 +9,8 @@ static KLOCK_QUEUE_HANDLE HookedDriverSpinLockQueue;
 
 /*++
 
+Initialize the structures used as part of the driver hooking.
+
 --*/
 void InitializeHookedDriverStructures()
 {
