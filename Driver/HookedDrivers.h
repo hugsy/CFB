@@ -21,7 +21,7 @@ HOOKED_DRIVER, *PHOOKED_DRIVER;
 
 
 
-
+void InitializeHookedDriverStructures();
 UINT32 GetNumberOfHookedDrivers();
 BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj);
 PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName);

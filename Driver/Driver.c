@@ -266,9 +266,14 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
-    InitializeMonitoringStructures();
-
+    
+    //
+    // Initializing the locks and structures
+    //
     KeInitializeSpinLock(&SpinLockOwner);
+    InitializeMonitoringStructures();
+    InitializeHookedDriverStructures();
+
 	IoInitializeRemoveLock( &DriverRemoveLock, CFB_DEVICE_TAG, 0, 0 );
 
 	return status;
