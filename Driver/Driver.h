@@ -16,6 +16,7 @@
 
 
 
+
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
 NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject);

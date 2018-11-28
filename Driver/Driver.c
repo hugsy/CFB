@@ -10,12 +10,14 @@
 
 #endif
 
-static FAST_MUTEX g_InterceptFastMutex;
+
 static IO_REMOVE_LOCK g_RemoveLockDriver;
 static BOOLEAN g_IsInterceptEnabled;
 
 static KSPIN_LOCK g_SpinLock;
 static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
+
+extern PLIST_ENTRY g_HookedDriversHead;
 
 
 /*++
@@ -134,13 +136,6 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 
 	PAGED_CODE();
 
-	
-	//
-	// Stop the monitoring
-	//
-
-	DisableMonitoring();
-
 	   
 	//
 	// Unswap all hooked drivers left to avoid new IRPs to be handled by us
@@ -149,10 +144,10 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	KeEnterCriticalRegion();
 
     {
+        DisableMonitoring();
         RemoveAllDrivers();
         IoAcquireRemoveLock(&g_RemoveLockDriver, Irp);
         IoReleaseRemoveLockAndWait(&g_RemoveLockDriver, Irp);
-
     }
 
     KeLeaveCriticalRegion();
@@ -196,7 +191,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		return STATUS_UNSUCCESSFUL;
 	}
 
-	g_HookedDriversHead = NULL;
+    InitializeListHead(g_HookedDriversHead);
 
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
@@ -265,7 +260,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
 	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
-	ExInitializeFastMutex( &g_InterceptFastMutex );
+    InitializeMonitoringStructures();
 
 	IoInitializeRemoveLock( &g_RemoveLockDriver, CFB_DEVICE_TAG, 0, 0 );
 
@@ -288,7 +283,8 @@ typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	NTSTATUS Status;
-
+    BOOLEAN Found = FALSE;
+    PHOOKED_DRIVER curDriver = NULL;
 
 	Status = IoAcquireRemoveLock( &g_RemoveLockDriver, Irp );
 	if ( !NT_SUCCESS( Status ) )
@@ -296,26 +292,31 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		return Status;
 	}
 
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
 	//
 	// Find the original function for the driver
 	//
 
-	PHOOKED_DRIVER curDriver = g_HookedDriversHead;
-	BOOLEAN Found = FALSE;
-	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
+    if( !IsListEmpty(g_HookedDriversHead) )
+    {
+	    
+        PLIST_ENTRY Entry = g_HookedDriversHead;
 
+	    do 
+	    {
+            curDriver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
-	while (curDriver)
-	{
-		if (curDriver->DriverObject == DeviceObject->DriverObject)
-		{
-			Found = TRUE;
-			break;
-		}
+		    if (curDriver->DriverObject == DeviceObject->DriverObject)
+		    {
+			    Found = TRUE;
+			    break;
+		    }
 
-		curDriver = curDriver->Next;
-	}
+            Entry = Entry->Flink;
+        } while (Entry != g_HookedDriversHead);
+    }
+
 
 	if (!Found)
 	{
@@ -538,42 +539,3 @@ NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	return InterceptGenericRoutine( DeviceObject, Irp );
 }
 
-
-/*++
-
---*/
-static inline NTSTATUS ChangeMonitoringStatus(BOOLEAN NewStatus)
-{
-	ExAcquireFastMutex( &g_InterceptFastMutex );
-	g_IsInterceptEnabled = NewStatus;
-	ExReleaseFastMutex( &g_InterceptFastMutex );
-
-	return STATUS_SUCCESS;
-}
-
-
-/*++
-
---*/
-NTSTATUS EnableMonitoring()
-{
-	return ChangeMonitoringStatus( TRUE );
-}
-
-
-/*++
-
---*/
-NTSTATUS DisableMonitoring()
-{
-	return ChangeMonitoringStatus( FALSE );
-}
-
-
-/*++
-
---*/
-BOOLEAN IsMonitoringEnabled()
-{
-	return g_IsInterceptEnabled != 0;
-}

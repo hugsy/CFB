@@ -6,11 +6,11 @@
 
 
 --*/
-NTSTATUS GetDriverInfo(UINT32 dwIndex, PHOOKED_DRIVER_INFO pDrvInfo)
+static NTSTATUS GetDriverInfo(LPWSTR lpDriverName, PHOOKED_DRIVER_INFO pDrvInfo)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
-	PHOOKED_DRIVER pDriver = GetHookedDriverByIndex(dwIndex);
+	PHOOKED_DRIVER pDriver = GetHookedDriverByName(lpDriverName);
 
 	if (!pDriver)
 	{
@@ -46,24 +46,25 @@ NTSTATUS HandleIoGetDriverInfo(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 	do
 	{
-		ULONG InputBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
-
-		if (InputBufferLen > sizeof(UINT32))
-		{
-			Status = STATUS_BUFFER_OVERFLOW;
-			break;
-		}
-
 		ULONG OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		if (OutputBufferLen < sizeof(HOOKED_DRIVER_INFO))
 		{
 			Status = STATUS_BUFFER_TOO_SMALL;
 			break;
 		}
+        PHOOKED_DRIVER_INFO lpDriverInfo = (PHOOKED_DRIVER_INFO)Irp->AssociatedIrp.SystemBuffer;
 
-		UINT32* pdwDriverIndex = (UINT32*)Irp->AssociatedIrp.SystemBuffer;
+        LPWSTR lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
 
-		Status = GetDriverInfo(*pdwDriverIndex, (PHOOKED_DRIVER_INFO)Irp->AssociatedIrp.SystemBuffer);
+        if (!lpDriverName)
+        {
+            Status = STATUS_UNSUCCESSFUL;
+            break;
+        }
+
+		
+
+		Status = GetDriverInfo(lpDriverName, lpDriverInfo);
 
 	}
 	while (0);

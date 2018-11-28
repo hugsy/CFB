@@ -1,6 +1,7 @@
 #include "IoRemoveDriver.h"
 
 
+extern PLIST_ENTRY g_HookedDriversHead;
 
 
 /*++
@@ -19,8 +20,6 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 		CfbDbgPrintErr(L"No hooked driver found as '%s'\n", lpDriverName);
 		return STATUS_INVALID_PARAMETER;
 	}
-
-	PHOOKED_DRIVER pPrevDriverToRemove = GetPreviousHookedDriver(pDriverToRemove);
 
 
 	pDriverToRemove->Enabled = FALSE;
@@ -59,22 +58,15 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	// fix the chain
 	//
 
-	CfbDbgPrintInfo(L"- '%s' - unlink %p with %p\n", lpDriverName, pDriverToRemove, pPrevDriverToRemove);
-
-	if (pPrevDriverToRemove == NULL)
-	{
-		g_HookedDriversHead = pDriverToRemove->Next;  // trying to remove 1st element
-	}
-	else
-	{
-		pPrevDriverToRemove->Next = pDriverToRemove->Next;
-	}
+    RemoveEntryList(&(pDriverToRemove->ListEntry));
+        
 
 
 	//
 	// free the driver pool and its reference
 	//
 	ObDereferenceObject(pDriverToRemove->DriverObject);
+
 	ExFreePoolWithTag(pDriverToRemove, CFB_DEVICE_TAG);
 
 	return status;
@@ -88,11 +80,20 @@ NTSTATUS RemoveAllDrivers()
 {
 	NTSTATUS Status = STATUS_SUCCESS;
 
-	PHOOKED_DRIVER Driver;
-	UINT32 dwNbRemoved = 0, dwNbLoaded = GetNumberOfHookedDrivers();
+    if (IsListEmpty(g_HookedDriversHead))
+    {
+        return Status;
+    }
+    
+    UINT32 dwNbRemoved = 0;
+    BOOLEAN bIsLast;
+    PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
 
-	while ((Driver = GetLastHookedDriver()) != NULL)
+    do
 	{
+        bIsLast = Entry->Flink == g_HookedDriversHead;
+
+        PHOOKED_DRIVER Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
 		WCHAR OldDriverName[HOOKED_DRIVER_MAX_NAME_LEN]={ 0, };
 		wcscpy( OldDriverName, Driver->Name );
@@ -108,16 +109,17 @@ NTSTATUS RemoveAllDrivers()
 			CfbDbgPrintOk(L"Driver %s removed\n", OldDriverName );
 			dwNbRemoved++;
 		}
-	}
 
-	CfbDbgPrintOk(L"Removed %lu/%lu drivers\n", dwNbRemoved, dwNbLoaded);
+        if (bIsLast)
+        {
+            break;
+        }
 
-	if (dwNbRemoved != dwNbLoaded)
-	{
-		CfbDbgPrintErr(L"Not all hooked structures were successfully deallocated, the system might be unstable. It is recommended to reboot.\n");
-	}
+        Entry = Entry->Flink;
 
-	g_HookedDriversHead = NULL;
+    } while ( TRUE );
+
+	CfbDbgPrintOk(L"Removed %lu drivers\n", dwNbRemoved);
 
 	return Status;
 }
@@ -130,8 +132,6 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 {
 	UNREFERENCED_PARAMETER(Irp);
 	PAGED_CODE();
-
-	CfbDbgPrintInfo(L"In 'HandleIoRemoveDriver'\n");
 
 	NTSTATUS Status = STATUS_SUCCESS;
 	LPWSTR lpDriverName;
@@ -163,7 +163,7 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 
 		//
-		// Add the driver
+		// Remove the driver
 		//
 		Status = RemoveDriverByName(lpDriverName);
 

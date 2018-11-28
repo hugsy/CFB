@@ -1,6 +1,7 @@
 #include "IoAddDriver.h"
 
 
+extern PLIST_ENTRY g_HookedDriversHead;
 
 /*++/
 
@@ -87,22 +88,13 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	NewDriver->OldReadRoutine = OldReadRoutine;
 	NewDriver->OldWriteRoutine = OldWriteRoutine;
 	NewDriver->Enabled = TRUE;
-	NewDriver->Next = NULL;
-
+	
 
 	//
 	// add it to the list
 	//
-	PHOOKED_DRIVER LastDriver = GetLastHookedDriver();
-	if (LastDriver == NULL)
-	{
-		g_HookedDriversHead = NewDriver; // 1st element
-	}
-	else
-	{
-		LastDriver->Next = NewDriver;
-	}
 
+    InsertTailList(g_HookedDriversHead, &(NewDriver->ListEntry));
 
 	return status;
 }
@@ -115,8 +107,6 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 {
 	UNREFERENCED_PARAMETER(Irp);
 	
-	CfbDbgPrintInfo(L"Received 'IoctlAddDriver'\n");
-
 	NTSTATUS Status = STATUS_SUCCESS;
 	LPWSTR lpDriverName;
 	ULONG InputBufferLen;
@@ -151,6 +141,8 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		//
 		// Add the driver
 		//
+
+        // TODO add mutex
 		Status = AddDriverByName(lpDriverName);
 
 		CfbDbgPrintOk(L"AddDriverByName('%s') returned %#x\n", lpDriverName, Status);

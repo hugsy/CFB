@@ -1,9 +1,10 @@
+#pragma once
+
 #include "Common.h"
 #include "../Common/common.h"
 #include "Utils.h"
 
 
-#pragma once
 
 typedef struct __hooked_driver
 {
@@ -14,18 +15,13 @@ typedef struct __hooked_driver
 	PVOID OldDeviceControlRoutine;
 	PVOID OldReadRoutine;
 	PVOID OldWriteRoutine;
-	struct __hooked_driver *Next;
+	LIST_ENTRY ListEntry;
 }
 HOOKED_DRIVER, *PHOOKED_DRIVER;
 
-PHOOKED_DRIVER g_HookedDriversHead;
+
 
 
 UINT32 GetNumberOfHookedDrivers();
-PHOOKED_DRIVER GetLastHookedDriver();
-PHOOKED_DRIVER GetPreviousHookedDriver(PHOOKED_DRIVER pDriver);
-PHOOKED_DRIVER GetNextHookedDriver(PHOOKED_DRIVER pDriver);
 BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj);
 PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName);
-PHOOKED_DRIVER GetHookedDriverByIndex(UINT32 dwIndex);
-

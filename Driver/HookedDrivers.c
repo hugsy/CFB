@@ -1,91 +1,55 @@
 #include "HookedDrivers.h"
 
+static LIST_ENTRY HookedDriversHead;
+PLIST_ENTRY g_HookedDriversHead = &HookedDriversHead;
+
 
 /*++
+
+Return the number of the hooked drivers
 
 --*/
 UINT32 GetNumberOfHookedDrivers()
 {
+    if (IsListEmpty(g_HookedDriversHead))
+        return 0;
+
 	UINT32 i;
-	PHOOKED_DRIVER ptr;
-	for (i = 0, ptr = g_HookedDriversHead; ptr; ptr = ptr->Next, i++);
+    PLIST_ENTRY Entry;
+
+    for (i = 0, Entry = g_HookedDriversHead->Flink; Entry != g_HookedDriversHead; Entry = Entry->Flink, i++);
 	return i;
 }
 
 
-/*++
-
---*/
-PHOOKED_DRIVER GetLastHookedDriver()
-{
-	if (!g_HookedDriversHead )
-		return NULL;
-
-	PHOOKED_DRIVER lastDriver;
-	for ( lastDriver=g_HookedDriversHead; lastDriver->Next; lastDriver=lastDriver->Next );
-	return lastDriver;
-}
-
 
 /*++
 
---*/
-PHOOKED_DRIVER GetPreviousHookedDriver(PHOOKED_DRIVER pDriver)
-{
-	if (!g_HookedDriversHead)
-		return NULL;
-
-	PHOOKED_DRIVER pCurDriver = g_HookedDriversHead->Next;
-	PHOOKED_DRIVER pPrevDriver = g_HookedDriversHead;
-	BOOLEAN Found = FALSE;
-
-	while (pCurDriver)
-	{
-		if (pCurDriver == pDriver)
-		{
-			Found = TRUE;
-			break;
-		}
-
-		pPrevDriver = pCurDriver;
-		pCurDriver = pCurDriver->Next;
-	}
-
-	//
-	// if not found
-	//
-	if (!Found)
-		return NULL;
-
-	return pPrevDriver;
-}
-
-
-/*++
+Determines whether a specific Driver Object is already in the hooked driver list.
 
 --*/
-PHOOKED_DRIVER GetNextHookedDriver(PHOOKED_DRIVER pDriver)
+BOOLEAN IsDriverHooked(PDRIVER_OBJECT pDO)
 {
-	if (!pDriver)
-		return NULL;
+    if (IsListEmpty(g_HookedDriversHead))
+    {
+        return FALSE;
+    }
 
-	return pDriver->Next;
-}
+    PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+	
+    do
+    {
+        PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
+        if (CurDrv->DriverObject == pDO)
+        {
+            return TRUE;
+        }
 
-/*++
+        Entry = Entry->Flink;
 
---*/
-BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj)
-{
-	PHOOKED_DRIVER ptr;
-	for (ptr = g_HookedDriversHead; ptr; ptr = ptr->Next)
-	{
-		if (ptr->DriverObject == pObj)
-		{
-			return TRUE;
-		}
-	}
+    } while (Entry != g_HookedDriversHead);
+
 	return FALSE;
 }
 
@@ -95,34 +59,27 @@ BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj)
 --*/
 PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName)
 {
-	PHOOKED_DRIVER Driver = g_HookedDriversHead;
+    if (IsListEmpty(g_HookedDriversHead))
+    {
+        return NULL;
+    }
 
-	while (Driver)
-	{
-		if (wcscmp(Driver->Name, lpDriverName) == 0)
-			return Driver;
+    PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
 
-		Driver = Driver->Next;
-	}
+    do
+    {
+        PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
+        
+        if (wcscmp(CurDrv->Name, lpDriverName) == 0)
+        {
+            return CurDrv;
+        }
+            
+        Entry = Entry->Flink;
 
-	return NULL;
+    } while (Entry != g_HookedDriversHead);
+
+    return NULL;
 }
 
 
-/*++
-
---*/
-PHOOKED_DRIVER GetHookedDriverByIndex(UINT32 dwIndex)
-{
-	if (dwIndex >= GetNumberOfHookedDrivers())
-	{
-		CfbDbgPrintErr(L"Cannot reach index %ld\n", dwIndex);
-		return NULL;
-	}
-
-	PHOOKED_DRIVER Driver = g_HookedDriversHead;
-
-	for (; dwIndex; dwIndex--, Driver = Driver->Next);
-
-	return Driver;
-}
