@@ -1,4 +1,21 @@
-#include "PipeComm.h"
+#include "InterceptedIrpHandler.h"
+
+///
+/// This is an internal structure to PipeComm. Don't use elsewhere.
+///
+typedef struct
+{
+	UINT32 Pid;
+	UINT32 Tid;
+	UINT32 IoctlCode;
+	UINT32 Type;
+	WCHAR DriverName[MAX_PATH];
+	WCHAR DeviceName[MAX_PATH];
+	PVOID InputBuffer;
+	ULONG InputBufferLen;
+	ULONG OutputBufferLen;
+}
+IRP_DATA_ENTRY, *PIRP_DATA_ENTRY;
 
 
 /*++
@@ -163,56 +180,65 @@ NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OU
 Move the message from the stack to kernel pool.
 
 --*/
-NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
+NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
-	*pMessage = (PSNIFFED_DATA)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA ), CFB_DEVICE_TAG );
-	if ( !*pMessage )
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
+	if ( !*pIrp)
 	{
 		return Status;
 	}
 
-	PSNIFFED_DATA_HEADER pMsgHeader = (PSNIFFED_DATA_HEADER)ExAllocatePoolWithTag( NonPagedPool, sizeof( SNIFFED_DATA_HEADER ), CFB_DEVICE_TAG );
-	if ( !pMsgHeader )
+
+	//
+	// Allocate the intercepted IRP header...
+	//
+	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)ExAllocatePoolWithTag( 
+		NonPagedPool, 
+		sizeof( INTERCEPTED_IRP_HEADER ), 
+		CFB_DEVICE_TAG 
+	);
+
+	if ( !pIrpHeader)
 	{
-		ExFreePoolWithTag( *pMessage, CFB_DEVICE_TAG );
+		ExFreePoolWithTag( *pIrp, CFB_DEVICE_TAG );
 		return Status;
 	}
 
-	RtlSecureZeroMemory( pMsgHeader, sizeof( SNIFFED_DATA_HEADER ) );
+	RtlSecureZeroMemory(pIrpHeader, sizeof(INTERCEPTED_IRP_HEADER) );
 
 	size_t szDriverNameLength = wcslen( pIn->DriverName );
-	szDriverNameLength=szDriverNameLength > MAX_PATH ? MAX_PATH : szDriverNameLength + 1;
+	szDriverNameLength = szDriverNameLength > MAX_PATH ? MAX_PATH : szDriverNameLength + 1;
 	
 	size_t szDeviceNameLength = wcslen( pIn->DeviceName );
 	szDeviceNameLength = szDeviceNameLength > MAX_PATH ? MAX_PATH : szDeviceNameLength + 1;
 
 
 	//
-	// create and fill the header structure
+	// ... and fill it up
 	//
 
-	KeQuerySystemTime( &pMsgHeader->TimeStamp );
-	pMsgHeader->Pid = pIn->Pid;
-	pMsgHeader->Tid = pIn->Tid;
-	pMsgHeader->Type = pIn->Type;
-	pMsgHeader->Irql = KeGetCurrentIrql();
-	pMsgHeader->InputBufferLength = pIn->InputBufferLen;
-	pMsgHeader->OutputBufferLength = pIn->OutputBufferLen;
-	pMsgHeader->IoctlCode = pIn->IoctlCode;
+	KeQuerySystemTime( &pIrpHeader->TimeStamp );
+	pIrpHeader->Pid = pIn->Pid;
+	pIrpHeader->Tid = pIn->Tid;
+	pIrpHeader->Type = pIn->Type;
+	pIrpHeader->Irql = KeGetCurrentIrql();
+	pIrpHeader->InputBufferLength = pIn->InputBufferLen;
+	pIrpHeader->OutputBufferLength = pIn->OutputBufferLen;
+	pIrpHeader->IoctlCode = pIn->IoctlCode;
 
 
-	wcscpy_s( pMsgHeader->DriverName, szDriverNameLength, pIn->DriverName );
-	wcscpy_s( pMsgHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
+	wcscpy_s(pIrpHeader->DriverName, szDriverNameLength, pIn->DriverName );
+	wcscpy_s(pIrpHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
 
 
 	//
 	// fill up the message structure
 	//
 
-	(*pMessage)->Header = pMsgHeader;
-	(*pMessage)->InputBuffer = pIn->InputBuffer;
+	(*pIrp)->Header = pIrpHeader;
+	(*pIrp)->RawBuffer = pIn->InputBuffer;
 
 
 	Status = STATUS_SUCCESS;
@@ -224,13 +250,19 @@ NTSTATUS PreparePipeMessage(IN PPIPE_MESSAGE pIn, OUT PSNIFFED_DATA *pMessage)
 /*++
 
 --*/
-VOID FreePipeMessage(IN PSNIFFED_DATA pMessage)
+VOID FreePipeMessage(IN PINTERCEPTED_IRP pIrp)
 {
-	ExFreePoolWithTag(pMessage->Header, CFB_DEVICE_TAG);
-	if (pMessage->InputBuffer) // can be NULL if pMessage->Body == 0
-		ExFreePoolWithTag(pMessage->InputBuffer, CFB_DEVICE_TAG);
-	ExFreePoolWithTag(pMessage, CFB_DEVICE_TAG);
-	pMessage = NULL;
+	ExFreePoolWithTag(pIrp->Header, CFB_DEVICE_TAG);
+	if (pIrp->RawBuffer)
+	{
+		//
+		// We need to check because RawBuffer can be NULL
+		//
+		ExFreePoolWithTag(pIrp->RawBuffer, CFB_DEVICE_TAG);
+	}
+	ExFreePoolWithTag(pIrp, CFB_DEVICE_TAG);
+	RtlSecureZeroMemory(pIrp, sizeof(INTERCEPTED_IRP));
+	pIrp = NULL;
 	return;
 }
 
@@ -245,28 +277,28 @@ written back to the userland client.
 NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	PSNIFFED_DATA pMessage = NULL;
-	PIPE_MESSAGE p = { 0, };
+	PINTERCEPTED_IRP pIrp = NULL;
+	IRP_DATA_ENTRY temp = { 0, };
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
 
-	p.Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
-	p.Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
-	p.Type = (UINT32)Stack->MajorFunction;
-    p.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
+	temp.Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
+	temp.Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
+	temp.Type = (UINT32)Stack->MajorFunction;
+    temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
-	wcsncpy( p.DriverName, Driver->Name, wcslen( Driver->Name ) );
-	Status = GetDeviceNameFromDeviceObject( pDeviceObject, p.DeviceName, MAX_PATH );
+	wcsncpy( temp.DriverName, Driver->Name, wcslen( Driver->Name ) );
+	Status = GetDeviceNameFromDeviceObject( pDeviceObject, temp.DeviceName, MAX_PATH );
 
 	if ( !NT_SUCCESS( Status ) )
 	{
-		CfbDbgPrintWarn( L"GetDeviceName() failed, Status=0x%#x... Using empty string\n", Status );
+		CfbDbgPrintWarn( L"Cannot get device name, using empty string (Status=0x%#x)\n", Status );
 	}
 
-	switch (p.Type)
+	switch (temp.Type)
 	{
         case IRP_MJ_DEVICE_CONTROL:
-		    p.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-            Status = ExtractDeviceIoctlIrpData(Irp, &p.InputBuffer, &p.InputBufferLen);
+		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
+            Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
             if(!NT_SUCCESS(Status))
             {
                 CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() failed, Status=%#X\n", Status);
@@ -276,22 +308,25 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 
         case IRP_MJ_READ:
         case IRP_MJ_WRITE:
-            Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &p.InputBuffer, &p.InputBufferLen);
+            Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &temp.InputBuffer, &temp.InputBufferLen);
             break;
 
         default:
-            CfbDbgPrintErr(L"Incorrect IRP type %x\n", p.Type);
+            CfbDbgPrintErr(L"Incorrect IRP type %x\n", temp.Type);
             return STATUS_UNSUCCESSFUL;
 	}
 
 
-	Status = PreparePipeMessage(&p, &pMessage);
+	Status = PreparePipeMessage(&temp, &pIrp);
 
-	if (!NT_SUCCESS(Status) || pMessage == NULL)
+	if (!NT_SUCCESS(Status) || pIrp == NULL)
 	{
 		CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
-		if ( p.InputBuffer)
-			ExFreePoolWithTag(p.InputBuffer, CFB_DEVICE_TAG);
+		if (temp.InputBuffer)
+		{
+			ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
+		}
+			
 		return Status;
 	}
 
@@ -299,17 +334,12 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	//
 	// push the new message with dumped IRP to the queue
 	//
-	UINT32 dwIndex;
-	Status = PushToQueue( pMessage, &dwIndex );
+	Status = PushToQueue( pIrp );
 
 	if ( !NT_SUCCESS( Status ) )
 	{
-		CfbDbgPrintErr( L"PushToQueue(%x) failed, discarding message\n", Status );
-		FreePipeMessage( pMessage );
-	}
-	else
-	{
-		CfbDbgPrintOk( L"Message #%d (%p) pushed to queue...\n", dwIndex,  pMessage);
+		CfbDbgPrintErr( L"PushToQueue(%p) failed, discarding message = %x\n", pIrp, Status );
+		FreePipeMessage( pIrp );
 	}
 
     

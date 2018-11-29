@@ -6,7 +6,7 @@
 
 
 
-typedef struct __hooked_driver
+typedef struct 
 {
 	BOOLEAN Enabled;
 	WCHAR Name[HOOKED_DRIVER_MAX_NAME_LEN];
@@ -23,5 +23,5 @@ HOOKED_DRIVER, *PHOOKED_DRIVER;
 
 void InitializeHookedDriverStructures();
 UINT32 GetNumberOfHookedDrivers();
-BOOLEAN IsDriverHooked(PDRIVER_OBJECT pObj);
-PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName);
+BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverName);
+NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHookedDriver);

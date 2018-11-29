@@ -29,84 +29,103 @@ extern PLIST_ENTRY g_HookedDriversHead;
 /*++
 
 --*/
-NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP pIrp )
+NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( pDeviceObject );
 
 	PAGED_CODE();
 
-	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( pIrp );
+	NTSTATUS Status;
+
+	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( Irp );
 
 	if ( !pStack )
 	{
-		CfbDbgPrintErr( L"IoGetCurrentIrpStackLocation() failed (IRP %p)\n", pIrp );
-		CompleteRequest( pIrp, STATUS_UNSUCCESSFUL, 0 );
+		CfbDbgPrintErr( L"IoGetCurrentIrpStackLocation() failed (IRP %p)\n", Irp );
+		CompleteRequest( Irp, STATUS_UNSUCCESSFUL, 0 );
 		return STATUS_UNSUCCESSFUL;
 	}
 
 
 	ULONG BufferSize = pStack->Parameters.Read.Length;
 
-	PSNIFFED_DATA pData = (PSNIFFED_DATA)GetItemInQueue(0);
-	if ( !pData )
+	PINTERCEPTED_IRP pData = NULL;
+	UINT32 dwExpectedSize;
+
+	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
+
+	if (!NT_SUCCESS(Status))
 	{
-		CompleteRequest( pIrp, STATUS_SUCCESS, 0 );
-		return STATUS_SUCCESS;
+		if (Status == STATUS_NO_MORE_ENTRIES)
+		{
+			CompleteRequest(Irp, STATUS_SUCCESS, 0);
+			return STATUS_SUCCESS;
+		}
+
+		CompleteRequest(Irp, Status, 0);
+		return Status;
 	}
 
-
-	UINT32 dwExpectedSize = sizeof( SNIFFED_DATA_HEADER ) + pData->Header->InputBufferLength;
 
 	if ( BufferSize == 0 )
 	{
-		CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
+		//
+		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate
+		// We end the IRP and announce the expected size
+		//
+		CompleteRequest( Irp, STATUS_SUCCESS, dwExpectedSize );
 		return STATUS_SUCCESS;
 	}
+
 
 	if ( BufferSize < dwExpectedSize )
 	{
 		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-		CompleteRequest( pIrp, STATUS_BUFFER_TOO_SMALL, 0 );
-		return STATUS_BUFFER_TOO_SMALL;
+		Status = STATUS_BUFFER_TOO_SMALL;
+		CompleteRequest(Irp, Status, 0);
+		return Status;
 	}
 
 
-	PVOID Buffer = MmGetSystemAddressForMdlSafe( pIrp->MdlAddress, HighPagePriority );
+	PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, HighPagePriority );
 
 	if ( !Buffer )
 	{
-		CfbDbgPrintErr( L"Input buffer is NULL\n" );
-		return STATUS_INSUFFICIENT_RESOURCES;
+		Status = STATUS_INSUFFICIENT_RESOURCES;
+		CompleteRequest(Irp, Status, 0);
+		return Status;
 	}
 
 
-	pData = PopFromQueue();
-	if ( !pData )
+	Status = PopFromQueue(&pData);
+
+	if ( !NT_SUCCESS(Status) )
 	{
-		return STATUS_SUCCESS;
+		Status = STATUS_INSUFFICIENT_RESOURCES;
+		CompleteRequest(Irp, Status, 0);
+		return Status;
 	}
-
-	CfbDbgPrintOk(L"Poped message %p\n", pData);
 
 
 	//
 	// Copy header
 	//
-	PSNIFFED_DATA_HEADER pHeader = pData->Header;
-	RtlCopyMemory( Buffer, pHeader, sizeof( SNIFFED_DATA_HEADER ) );
+	PINTERCEPTED_IRP_HEADER pHeader = pData->Header;
+	RtlCopyMemory( Buffer, pHeader, sizeof(INTERCEPTED_IRP_HEADER) );
 	
+
 	//
 	// Copy the IRP input buffer (if any)
 	//
-	if( pHeader->InputBufferLength && pData->InputBuffer)
+	if( pHeader->InputBufferLength && pData->RawBuffer)
 	{
-        PVOID InputBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(SNIFFED_DATA_HEADER) );
-		RtlCopyMemory(InputBuffer, pData->InputBuffer, pHeader->InputBufferLength);
+        PVOID RawBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(INTERCEPTED_IRP_HEADER) );
+		RtlCopyMemory(RawBuffer, pData->RawBuffer, pHeader->InputBufferLength);
 	}
 
 	FreePipeMessage( pData );
 
-	CompleteRequest( pIrp, STATUS_SUCCESS, dwExpectedSize );
+	CompleteRequest( Irp, STATUS_SUCCESS, dwExpectedSize );
 
 	return STATUS_SUCCESS;
 }
@@ -124,8 +143,7 @@ NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	PAGED_CODE();
 
 #ifdef _DEBUG
-	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
-	CfbDbgPrintInfo(L"Major = 0x%x\n", Stack->MajorFunction);
+	CfbDbgPrintInfo(L"Major = 0x%x\n", IoGetCurrentIrpStackLocation(Irp)->MajorFunction);
 #endif
 
 	CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0);
@@ -167,7 +185,6 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 
 	ClearNotificationPointer();
 
-	FreeQueue();
 
 	CompleteRequest( Irp, STATUS_SUCCESS, 0 );
 
@@ -192,12 +209,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	PDEVICE_OBJECT DeviceObject;
 	UNICODE_STRING name, symLink;
 
-	if ( !NT_SUCCESS( InitializeQueue() ) )
-	{
-		return STATUS_UNSUCCESSFUL;
-	}
-
-    InitializeListHead(g_HookedDriversHead);
 
 	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
 	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
@@ -207,13 +218,15 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	// Create the device
 	//
 
-	status = IoCreateDevice(DriverObject,
-							0,
-							&name,
-							FILE_DEVICE_UNKNOWN,
-							FILE_DEVICE_SECURE_OPEN,
-							TRUE,
-							&DeviceObject);
+	status = IoCreateDevice(
+		DriverObject,
+		0,
+		&name,
+		FILE_DEVICE_UNKNOWN,
+		FILE_DEVICE_SECURE_OPEN,
+		TRUE,
+		&DeviceObject
+	);
 
 	if( !NT_SUCCESS(status) )
 	{
@@ -245,7 +258,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
 	DriverObject->DriverUnload = DriverUnloadRoutine;
 	
-	CfbDbgPrintOk( L"Driver object '%s' routines populated\n", CFB_DEVICE_NAME );
 
 
 	//
@@ -262,7 +274,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		CfbDbgPrintOk( L"Symlink '%s' to driver object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 	}
 
-	DeviceObject->Flags |= DO_DIRECT_IO; // TODO: use DO_BUFFERED_IO instead ?
+	DeviceObject->Flags |= DO_DIRECT_IO; 
 
 	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
@@ -270,12 +282,13 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     //
     // Initializing the locks and structures
     //
+	IoInitializeRemoveLock(&DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
+	InitializeListHead(g_HookedDriversHead);
     KeInitializeSpinLock(&SpinLockOwner);
     InitializeMonitoringStructures();
     InitializeHookedDriverStructures();
-
-	IoInitializeRemoveLock( &DriverRemoveLock, CFB_DEVICE_TAG, 0, 0 );
-
+	InitializeQueueStructures();
+	
 	return status;
 }
 
@@ -365,19 +378,16 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		switch ( Stack->MajorFunction )
 		{
 		case IRP_MJ_READ:
-			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_READ routine at %p for '%s'\n", curDriver->OldReadRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldReadRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;
 
 		case IRP_MJ_WRITE:
-			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_WRITE routine at %p for '%s'\n", curDriver->OldWriteRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldWriteRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;
 
 		case IRP_MJ_DEVICE_CONTROL:
-			//CfbDbgPrintInfo( L"Fallback to IRP_MJ_DEVICE_CONTROL routine at %p for '%s'\n", curDriver->OldDeviceControlRoutine, curDriver->Name );
 			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
 			Status = OldRoutine( DeviceObject, Irp );
 			break;

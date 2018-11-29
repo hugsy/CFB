@@ -6,7 +6,7 @@
 #include "IoctlCodes.h"
 #include "Utils.h"
 #include "HookedDrivers.h"
-#include "PipeComm.h"
+#include "InterceptedIrpHandler.h"
 #include "Queue.h"
 
 #include "IoAddDriver.h"

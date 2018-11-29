@@ -8,28 +8,35 @@
 --*/
 static NTSTATUS GetDriverInfo(LPWSTR lpDriverName, PHOOKED_DRIVER_INFO pDrvInfo)
 {
-	NTSTATUS status = STATUS_SUCCESS;
-
-	PHOOKED_DRIVER pDriver = GetHookedDriverByName(lpDriverName);
-
-	if (!pDriver)
+	
+	if (!lpDriverName)
 	{
 		return STATUS_INVALID_PARAMETER;
 	}
 
+	PHOOKED_DRIVER pHookedDriver;
+
+	NTSTATUS Status = GetHookedDriverByName(lpDriverName, &pHookedDriver);
+
+	if (!NT_SUCCESS(Status))
+	{
+		return Status;
+	}
+
+
 	__try
 	{
 		RtlSecureZeroMemory(pDrvInfo, sizeof(HOOKED_DRIVER_INFO));
-		RtlCopyMemory((PVOID)pDrvInfo->Enabled, (PVOID)pDriver->Enabled, sizeof(BOOLEAN));
-		RtlCopyMemory((PVOID)pDrvInfo->Name, (PVOID)pDriver->Name, HOOKED_DRIVER_MAX_NAME_LEN * sizeof(WCHAR));
+		RtlCopyMemory((PVOID)pDrvInfo->Enabled, (PVOID) pHookedDriver->Enabled, sizeof(BOOLEAN));
+		RtlCopyMemory((PVOID)pDrvInfo->Name, (PVOID) pHookedDriver->Name, HOOKED_DRIVER_MAX_NAME_LEN * sizeof(WCHAR));
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		status = GetExceptionCode();
-		CfbDbgPrintErr(L"[-] Exception Code: 0x%X\n", status);
+		Status = GetExceptionCode();
+		CfbDbgPrintErr(L"[-] Exception Code: 0x%X\n", Status);
 	}
 
-	return status;
+	return Status;
 }
 
 

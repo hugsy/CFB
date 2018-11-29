@@ -1,7 +1,13 @@
 #include "Queue.h"
 
 
-static PVOID* g_CfbQueue = NULL;
+static KSPIN_LOCK IrpQueueSpinLock;
+static KLOCK_QUEUE_HANDLE IrpQueueSpinLockQueue;
+
+static LIST_ENTRY InterceptedIrpHead;
+LIST_ENTRY* g_InterceptedIrpHead = &InterceptedIrpHead;
+static UINT32 InterceptedIrpListSize;
+static FAST_MUTEX FlushQueueMutex;
 
 
 /*++
@@ -9,82 +15,50 @@ static PVOID* g_CfbQueue = NULL;
 Initialize the structure of the queue.
 
 --*/
-NTSTATUS InitializeQueue() 
+void InitializeQueueStructures()
 {
-	g_CfbQueue = (PVOID*)ExAllocatePoolWithTag( NonPagedPool, CFB_QUEUE_SIZE*sizeof( PVOID ), CFB_DEVICE_TAG );
-	
-	if ( !g_CfbQueue )
-	{
-		CfbDbgPrintErr( L"Failed to allocate queue: insufficient memory in the free pool\n" );
-		return STATUS_UNSUCCESSFUL;
-	}
-
-	RtlSecureZeroMemory( g_CfbQueue, CFB_QUEUE_SIZE * sizeof( PVOID ) );
-
-	CfbDbgPrintOk( L"Message queue initialized at %p\n", g_CfbQueue );
-	return STATUS_SUCCESS;
+	KeInitializeSpinLock(&IrpQueueSpinLock);
+	ExInitializeFastMutex(&FlushQueueMutex);
+	InitializeListHead(g_InterceptedIrpHead); 
+	InterceptedIrpListSize = 0;
+	return;
 }
 
 
 /*++
 
-Free the structure of the queue.
+Return the current number of IRP data stored in memory.
 
 --*/
-NTSTATUS FreeQueue()
+UINT32 GetIrpListSize()
 {
-	ExFreePoolWithTag( g_CfbQueue, CFB_DEVICE_TAG );
-	CfbDbgPrintOk( L"Message queue %p freeed\n", g_CfbQueue );
-	g_CfbQueue = NULL;
-	return STATUS_SUCCESS;
-}
-
-
-/*++
-
---*/
-static inline UINT32 GetQueueNextFreeSlotIndex()
-{
-	UINT32 dwResult = 0;
-
-	while ( g_CfbQueue[dwResult] != NULL )
-	{
-		if ( dwResult == CFB_QUEUE_SIZE-1 )
-			return (UINT32)-1;
-
-		dwResult++;
-	}
-
-	return dwResult;
+	return InterceptedIrpListSize;
 }
 
 
 /*++
 
 Push a new item at the end of the queue.
-On success, `lpdwIndex` holds a pointer to the index the newly pushed item.
 
 --*/
-NTSTATUS PushToQueue(IN PVOID pData, OUT PUINT32 lpdwIndex)
+NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData)
 {
 	NTSTATUS Status;
 
-	KeEnterCriticalRegion();
+	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
 
-	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
-	if ( dwIndex == (UINT32)-1 )
+	if (InterceptedIrpListSize + 1 > CFB_QUEUE_SIZE)
 	{
-		CfbDbgPrintErr( L"The queue is full, discarding the message...\n" );
-		Status = STATUS_INSUFFICIENT_RESOURCES;
-	} 
-	else
-	{
-		g_CfbQueue[dwIndex] = pData;
-		*lpdwIndex = dwIndex;
+		InsertTailList(g_InterceptedIrpHead, &(pData->ListEntry));
+		InterceptedIrpListSize++;
 		Status = STATUS_SUCCESS;
 	}
-	
-	KeLeaveCriticalRegion();
+	else
+	{
+		Status = STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
 
 	return Status;
 }
@@ -92,32 +66,61 @@ NTSTATUS PushToQueue(IN PVOID pData, OUT PUINT32 lpdwIndex)
 
 /*++
 
-Pops the first element out of the queue.
+Peek into the first item of the hooked driver linked list (if any), to determine the 
+total size of the intercepted IRP (header + body).
 
 --*/
-PVOID PopFromQueue()
+NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 {
-	PVOID pData = NULL;
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
+	
+	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
 
-	KeEnterCriticalRegion();
-
-	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
-
-	if ( dwIndex > 0 )
+	if (IsListEmpty(g_InterceptedIrpHead))
 	{
-		pData = (PVOID)g_CfbQueue[0];
-
-		for ( UINT32 i=0; i < dwIndex; i++ )
-		{
-			g_CfbQueue[i] = g_CfbQueue[i + 1];
-		}
-
-		g_CfbQueue[dwIndex] = NULL;
+		*pdwExpectedSize = 0;
+		Status = STATUS_NO_MORE_ENTRIES;
+	}
+	else
+	{
+		PINTERCEPTED_IRP pFirstIrp = CONTAINING_RECORD(g_InterceptedIrpHead->Flink, INTERCEPTED_IRP, ListEntry);
+		*pdwExpectedSize = sizeof(INTERCEPTED_IRP_HEADER) + pFirstIrp->Header->InputBufferLength;
+		Status = STATUS_SUCCESS;
 	}
 
-	KeLeaveCriticalRegion();
+	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
 
-	return pData;
+	return Status;
+}
+
+
+/*++
+
+Pops the heading item out of the queue.
+
+--*/
+NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData)
+{
+	NTSTATUS Status;
+
+	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
+
+	if (!IsListEmpty(g_InterceptedIrpHead))
+	{
+		PLIST_ENTRY pListHead = RemoveHeadList(g_InterceptedIrpHead);
+		*pData = CONTAINING_RECORD(pListHead, INTERCEPTED_IRP, ListEntry);
+		InterceptedIrpListSize--;
+		Status = STATUS_SUCCESS;
+	}
+	else
+	{
+		*pData = NULL;
+		Status = STATUS_NO_MORE_ENTRIES;
+	}
+
+	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
+
+	return Status;
 }
 
 
@@ -128,42 +131,30 @@ Empty the entire queue.
 --*/
 NTSTATUS FlushQueue()
 {
-	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
+	NTSTATUS Status = STATUS_SUCCESS; 
 
-	if ( dwIndex == (UINT32)-1)
+	ExAcquireFastMutex(&FlushQueueMutex);
+
+	while (!IsListEmpty(g_InterceptedIrpHead))
 	{
-		return STATUS_BUFFER_OVERFLOW;
+		PINTERCEPTED_IRP pIrpDummy;
+
+		Status = PopFromQueue(&pIrpDummy);
+		if (!NT_SUCCESS(Status))
+		{
+			if (Status == STATUS_NO_MORE_ENTRIES)
+			{
+				Status = STATUS_SUCCESS;
+				break;
+			}
+
+			CfbDbgPrintErr(L"An error occured : status=0x%x\n", Status);
+		}
 	}
 
-	if ( dwIndex == 0 )
-	{
-		return STATUS_SUCCESS;
-	}
-
-	for ( UINT32 i=0; i < dwIndex; i++ )
-	{
-		FreePipeMessage( g_CfbQueue[i] );
-		g_CfbQueue[i] = NULL;
-	}
+	ExReleaseFastMutex(&FlushQueueMutex);
 	
 	CfbDbgPrintOk( L"Message queue flushed...\n" );
+
 	return STATUS_SUCCESS;
-}
-
-
-/*++
-
-Get a pointer to the `Index` element of the queue, or NULL if the index doesn't exist.
-
---*/
-PVOID GetItemInQueue( IN UINT32 Index )
-{
-	UINT32 dwIndex = GetQueueNextFreeSlotIndex();
-
-	if ( dwIndex == (UINT32)-1 || Index >= dwIndex )
-	{
-		return NULL;
-	}
-
-	return g_CfbQueue[Index];
 }

@@ -39,7 +39,7 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	// check if driver is already hooked
 	//
 
-	if (IsDriverHooked(pDriver) || GetHookedDriverByName(lpDriverName))
+	if ( IsDriverHooked(pDriver) )
 	{
 		return STATUS_ALREADY_REGISTERED;
 	}
@@ -122,7 +122,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 		if (!lpDriverName)
 		{
-			Status = STATUS_UNSUCCESSFUL;
+			Status = STATUS_INVALID_PARAMETER;
 			break;
 		}
 

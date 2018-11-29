@@ -13,11 +13,12 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 
 	CfbDbgPrintInfo(L"Removing driver '%s'\n", lpDriverName);
 
-	PHOOKED_DRIVER pDriverToRemove = GetHookedDriverByName(lpDriverName);
+	PHOOKED_DRIVER pDriverToRemove;
+	NTSTATUS Status = GetHookedDriverByName(lpDriverName, &pDriverToRemove);
 
-	if (!pDriverToRemove)
+	if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrintErr(L"No hooked driver found as '%s'\n", lpDriverName);
+		CfbDbgPrintErr(L"No hooked driver found as '%s': Status=0x%x\n", lpDriverName, Status);
 		return STATUS_INVALID_PARAMETER;
 	}
 
@@ -82,6 +83,7 @@ NTSTATUS RemoveAllDrivers()
 
     if (IsListEmpty(g_HookedDriversHead))
     {
+		CfbDbgPrintInfo(L"Hooked driver list is empty, nothing to do\n");
         return Status;
     }
     
@@ -98,11 +100,10 @@ NTSTATUS RemoveAllDrivers()
 		WCHAR OldDriverName[HOOKED_DRIVER_MAX_NAME_LEN]={ 0, };
 		wcscpy( OldDriverName, Driver->Name );
 
-		NTSTATUS status = RemoveDriverByName( Driver->Name );
-		if (!NT_SUCCESS(status))
+		Status = RemoveDriverByName( Driver->Name );
+		if (!NT_SUCCESS(Status))
 		{
 			CfbDbgPrintErr(L"Failed to remove driver %s\n", OldDriverName );
-			Status = status;
 		}
 		else
 		{
@@ -117,7 +118,8 @@ NTSTATUS RemoveAllDrivers()
 
         Entry = Entry->Flink;
 
-    } while ( TRUE );
+    } 
+	while ( !IsListEmpty(g_HookedDriversHead) );
 
 	CfbDbgPrintOk(L"Removed %lu drivers\n", dwNbRemoved);
 
@@ -148,7 +150,7 @@ NTSTATUS HandleIoRemoveDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 
 		if (!lpDriverName)
 		{
-			Status = STATUS_UNSUCCESSFUL;
+			Status = STATUS_INVALID_PARAMETER;
 			break;
 		}
 

@@ -7,24 +7,11 @@
 #include "HookedDrivers.h"
 #include "IoSetEventPointer.h"
 
-typedef struct 
-{
-	UINT32 Pid;
-	UINT32 Tid;
-	UINT32 IoctlCode;
-	UINT32 Type;
-	WCHAR DriverName[MAX_PATH];
-	WCHAR DeviceName[MAX_PATH];
-	PVOID InputBuffer;
-	ULONG InputBufferLen;
-    ULONG OutputBufferLen;
-} 
-PIPE_MESSAGE, *PPIPE_MESSAGE;
+
 
 extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
 extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
 
 NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp);
 
-
-VOID FreePipeMessage( IN PSNIFFED_DATA pMessage );
+VOID FreePipeMessage( IN PINTERCEPTED_IRP pMessage );

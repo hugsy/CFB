@@ -3,14 +3,16 @@
 #include "Common.h"
 #include "../Common/common.h"
 #include "Utils.h"
-#include "PipeComm.h"
+#include "InterceptedIrpHandler.h"
+
 
 #define CFB_QUEUE_SIZE 1024
 
 
-NTSTATUS InitializeQueue();
-NTSTATUS FreeQueue();
+void InitializeQueueStructures();
+
+NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData);
+NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData);
 NTSTATUS FlushQueue();
-PVOID PopFromQueue();
-NTSTATUS PushToQueue( IN PVOID pData, OUT PUINT32 lpdwIndex );
-PVOID GetItemInQueue( IN UINT32 Index );
+NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize);
+UINT32 GetIrpListSize();

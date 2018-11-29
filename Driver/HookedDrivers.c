@@ -31,7 +31,7 @@ UINT32 GetNumberOfHookedDrivers()
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
-    if (IsListEmpty(g_HookedDriversHead))
+    if (!IsListEmpty(g_HookedDriversHead))
     {
         PLIST_ENTRY Entry;
         for (i = 0, Entry = g_HookedDriversHead->Flink; Entry != g_HookedDriversHead; Entry = Entry->Flink, i++);
@@ -49,7 +49,7 @@ UINT32 GetNumberOfHookedDrivers()
 Determines whether a specific Driver Object is already in the hooked driver list.
 
 --*/
-BOOLEAN IsDriverHooked(PDRIVER_OBJECT pDO)
+BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
 {
     BOOLEAN bRes = FALSE;
 
@@ -64,7 +64,7 @@ BOOLEAN IsDriverHooked(PDRIVER_OBJECT pDO)
         {
             PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
-            if (CurDrv->DriverObject == pDO)
+            if (CurDrv->DriverObject == pDriverObject)
             {
                 bRes = TRUE;
                 break;
@@ -72,7 +72,8 @@ BOOLEAN IsDriverHooked(PDRIVER_OBJECT pDO)
 
             Entry = Entry->Flink;
 
-        } while (Entry != g_HookedDriversHead);
+        } 
+		while (Entry != g_HookedDriversHead);
 
     }
 
@@ -84,36 +85,42 @@ BOOLEAN IsDriverHooked(PDRIVER_OBJECT pDO)
 
 /*++
 
+Returns a pointer to a HOOKED_DRIVER object if its name is found in the list of hooked
+drivers.
+
 --*/
-PHOOKED_DRIVER GetHookedDriverByName(LPWSTR lpDriverName)
+NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHookedDrv)
 {
-    PHOOKED_DRIVER Res = NULL;
+	NTSTATUS Status = STATUS_OBJECT_NAME_NOT_FOUND;
+
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
-    if (IsListEmpty(g_HookedDriversHead))
+    if (!IsListEmpty(g_HookedDriversHead))
     {
         PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
 
         do
         {
             PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
-
-            if (wcscmp(CurDrv->Name, lpDriverName) == 0)
+			CfbDbgPrintInfo(L"trying to remove %p (%s)\n", CurDrv, CurDrv->Name);
+            if (_wcsicmp(CurDrv->Name, lpDriverName) == 0)
             {
-                Res = CurDrv;
+				*pHookedDrv = CurDrv;
+				Status = STATUS_SUCCESS;
                 break;
             }
 
             Entry = Entry->Flink;
 
-        } while (Entry != g_HookedDriversHead);
+        } 
+		while (Entry != g_HookedDriversHead);
 
     }
 
     KeReleaseInStackQueuedSpinLock(&HookedDriverSpinLockQueue);
 
-    return Res;
+    return Status;
 }
 
 

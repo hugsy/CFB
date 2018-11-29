@@ -58,7 +58,7 @@ typedef enum
 } log_level_t;
 
 
-typedef struct __hooked_driver_info
+typedef struct 
 {
 	BOOLEAN Enabled;
 	WCHAR Name[MAX_PATH];
@@ -66,7 +66,7 @@ typedef struct __hooked_driver_info
 HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
 
 # pragma pack (1)
-typedef struct __sniffed_data_header_t
+typedef struct
 {
 	LARGE_INTEGER TimeStamp;
 	UINT32 Irql;
@@ -79,17 +79,18 @@ typedef struct __sniffed_data_header_t
 	WCHAR DriverName[MAX_PATH];
 	WCHAR DeviceName[MAX_PATH];
 }
-SNIFFED_DATA_HEADER, *PSNIFFED_DATA_HEADER;
+INTERCEPTED_IRP_HEADER, *PINTERCEPTED_IRP_HEADER;
 # pragma pack ()
 
-typedef PVOID PSNIFFED_DATA_BODY;
+typedef PVOID PINTERCEPTED_IRP_BODY;
 
-typedef struct __sniffed_data_t
+typedef struct 
 {
-	PSNIFFED_DATA_HEADER Header;
-	PSNIFFED_DATA_BODY InputBuffer;
+	PINTERCEPTED_IRP_HEADER Header;
+	PINTERCEPTED_IRP_BODY RawBuffer;
+	LIST_ENTRY ListEntry;
 }
-SNIFFED_DATA, *PSNIFFED_DATA;
+INTERCEPTED_IRP, *PINTERCEPTED_IRP;
 
 
 __declspec(dllexport) void _xlog(log_level_t level, const wchar_t* format, ...);
