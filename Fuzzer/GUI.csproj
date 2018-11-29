@@ -39,7 +39,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>32x32.ico</ApplicationIcon>
+    <ApplicationIcon>bear.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>Fuzzer.Program</StartupObject>
@@ -135,6 +135,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="32x32.ico" />
+    <Content Include="bear.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

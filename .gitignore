@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 
 .vscode
+/Assets/img/logo/bear.png
