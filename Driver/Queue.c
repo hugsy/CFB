@@ -47,7 +47,7 @@ NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData)
 
 	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
 
-	if (InterceptedIrpListSize + 1 > CFB_QUEUE_SIZE)
+	if (InterceptedIrpListSize < CFB_QUEUE_SIZE)
 	{
 		InsertTailList(g_InterceptedIrpHead, &(pData->ListEntry));
 		InterceptedIrpListSize++;
