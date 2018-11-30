@@ -2,7 +2,7 @@
 
 namespace Fuzzer
 {
-    partial class Form1
+    partial class IrpMonitorForm
     {
         /// <summary>
         /// Required designer variable.

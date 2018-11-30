@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Data;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
-
+using System.ComponentModel;
 
 namespace Fuzzer
 {
@@ -13,11 +13,10 @@ namespace Fuzzer
     {
         
         private Thread FetchIrpsFromDriverThread, UpdateDisplayThread;
-        //private BlockingQueue<Irp> NewItems;
         private BlockingCollection<Irp> NewItems;
         private bool CollectIrp;
         private bool UpdateIrpDataView;
-        private Form1 RootForm;
+        private IrpMonitorForm RootForm;
         public List<Irp> Irps;
         private ManualResetEvent NewMessageEvent;
         private readonly IntPtr NewMessageEventHandler;
@@ -36,14 +35,13 @@ namespace Fuzzer
         /// <summary>
         /// Constructor
         /// </summary>
-        public IrpDataReader(Form1 f)
+        public IrpDataReader(IrpMonitorForm f)
         {
             RootForm = f;
             CollectIrp = false;
             UpdateIrpDataView = false;
 
             Irps = new List<Irp>();
-            //NewItems = new BlockingQueue<Irp>(100);
             NewItems = new BlockingCollection<Irp>();
             NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
@@ -185,10 +183,11 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
-        private Irp PopIrpFromDriver()
+        private bool PopIrpFromDriver(out Irp irp)
         {
             int HeaderSize;
-            int ErrNo;
+            uint ErrNo;
+            string ErrMsg;
             bool bResult;
             int dwNumberOfByteRead;
             IntPtr lpdwNumberOfByteRead;
@@ -216,8 +215,11 @@ namespace Fuzzer
 
                 if (!bResult)
                 {
-                    ErrNo = Marshal.GetLastWin32Error();
-                    throw new Exception($"ReadCfbDevice(HEADER) while querying message: GetLastError()=0x{ErrNo:x}");
+                    ErrNo = Kernel32.GetLastError();
+                    ErrMsg = new Win32Exception(Marshal.GetLastWin32Error()).Message;
+                    RootForm.Log($"ReadCfbDevice failed ({ErrNo:x}): {ErrMsg:s}");
+                    irp = default(Irp);
+                    return false;
                 }
 
                 dwNumberOfByteRead = (int)Marshal.PtrToStructure(lpdwNumberOfByteRead, typeof(int));
@@ -249,8 +251,11 @@ namespace Fuzzer
 
             if (!bResult)
             {
-                ErrNo = Marshal.GetLastWin32Error();
-                throw new Exception($"ReadMessage() - ReadCfbDevice() failed while reading message: GetLastError()=0x{ErrNo:x}");
+                ErrNo = Kernel32.GetLastError();
+                ErrMsg = new Win32Exception(Marshal.GetLastWin32Error()).Message;
+                RootForm.Log($"ReadCfbDevice failed ({ErrNo:x}): {ErrMsg:s}");
+                irp = default(Irp);
+                return false;
             }
 
 
@@ -287,7 +292,7 @@ namespace Fuzzer
                 RootForm.Log($"Dumped IRP #{Header.IoctlCode:x} to '{DriverName:s}' from PID={Header.ProcessId:d}, InBodyLen={Header.InputBufferLength:d}B");
             //}
 
-            return new Irp
+            irp = new Irp
             {
                 Header = Header,
                 DriverName = DriverName,
@@ -295,6 +300,8 @@ namespace Fuzzer
                 ProcessName = Utils.GetProcessById(Header.ProcessId),
                 Body = Body
             };
+
+            return true;
         }
 
 
@@ -316,15 +323,22 @@ namespace Fuzzer
 
                     do
                     {
-                        var irp = PopIrpFromDriver();
-                        Irps.Add(irp);
+                        if( PopIrpFromDriver(out Irp irp) )
+                        {
+                            Irps.Add(irp);
 
-                        //if(cfg.LogLevel > 1)
-                        //{
-                        //    RootForm.Log($"Poping IRP #{Irps.Count:d}");
-                        //}
+                            //if(cfg.LogLevel > 1)
+                            //{
+                            //    RootForm.Log($"Poping IRP #{Irps.Count:d}");
+                            //}
 
-                        NewItems.Add(irp);
+                            NewItems.Add(irp);
+                        }
+                        else
+                        {
+                            break;
+                        }
+
                     }
                     while( NewMessageEvent.WaitOne(0) );
 
@@ -332,6 +346,8 @@ namespace Fuzzer
                     // Clear the event for the driver to re-notify
                     //
                     NewMessageEvent.Reset();
+
+                    Thread.Sleep(250);
                 }
             }
             catch (Exception Ex)
@@ -361,10 +377,10 @@ namespace Fuzzer
                     if ( NewItems.TryTake(out Irp irp) )
                     {
                         AddIrpToDataTable(irp);
-                        RootForm.IrpDataView.Refresh();
                     }
                     else
                     {
+                        RootForm.IrpDataView.Refresh();
                         Thread.Sleep(500);
                     }
                 }

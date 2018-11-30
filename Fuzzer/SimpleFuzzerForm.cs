@@ -288,14 +288,14 @@ namespace Fuzzer
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(192, 88);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(192, 117);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -311,7 +311,7 @@ namespace Fuzzer
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(192, 145);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
             // 
@@ -321,7 +321,7 @@ namespace Fuzzer
             this.StrategyComboBox.FormattingEnabled = true;
             this.StrategyComboBox.Location = new System.Drawing.Point(443, 117);
             this.StrategyComboBox.Name = "StrategyComboBox";
-            this.StrategyComboBox.Size = new System.Drawing.Size(121, 21);
+            this.StrategyComboBox.Size = new System.Drawing.Size(121, 28);
             this.StrategyComboBox.TabIndex = 13;
             this.StrategyComboBox.TabStop = false;
             this.StrategyComboBox.SelectedIndexChanged += new System.EventHandler(this.StrategyComboBox_SelectedIndexChanged);
@@ -332,7 +332,7 @@ namespace Fuzzer
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(96, 23);
             this.label6.TabIndex = 14;
-            this.label6.Text = "Fuzzing Strategy";
+            this.label6.Text = "Strategy";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // SimpleFuzzStatusBar
@@ -340,16 +340,16 @@ namespace Fuzzer
             this.SimpleFuzzStatusBar.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.SimpleFuzzStatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.SimpleFuzzStatusBarItem});
-            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 252);
+            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 244);
             this.SimpleFuzzStatusBar.Name = "SimpleFuzzStatusBar";
-            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 22);
+            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 30);
             this.SimpleFuzzStatusBar.TabIndex = 15;
             this.SimpleFuzzStatusBar.Text = "statusStrip1";
             // 
             // SimpleFuzzStatusBarItem
             // 
             this.SimpleFuzzStatusBarItem.Name = "SimpleFuzzStatusBarItem";
-            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(39, 17);
+            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(60, 25);
             this.SimpleFuzzStatusBarItem.Text = "Status";
             // 
             // label7
@@ -365,7 +365,7 @@ namespace Fuzzer
             // 
             this.DeviceObjectPathTextBox.Location = new System.Drawing.Point(445, 88);
             this.DeviceObjectPathTextBox.Name = "DeviceObjectPathTextBox";
-            this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(119, 20);
+            this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(119, 26);
             this.DeviceObjectPathTextBox.TabIndex = 17;
             // 
             // SimpleFuzzerForm

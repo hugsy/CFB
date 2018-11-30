@@ -348,15 +348,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	    //
 	    NotifyClient();
 
-        CfbDbgPrintOk(
-            L"IRP %p (ioCode=%x dev=%s inbuflen=%d outbuflen=%d) queued, current queue size=%d\n", 
-            pIrp, 
-            pIrp->Header->IoctlCode,
-            pIrp->Header->DeviceName,
-            pIrp->Header->InputBufferLength,
-            pIrp->Header->OutputBufferLength,
-            GetIrpListSize()
-            );
+        CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrp, GetIrpListSize());
     }
 
 	return Status;

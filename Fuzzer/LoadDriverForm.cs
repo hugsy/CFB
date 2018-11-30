@@ -11,9 +11,9 @@ namespace Fuzzer
     {
         private DataTable DriverDataTable;
         public List<String> LoadedDrivers;
-        private Form1 RootForm;
+        private IrpMonitorForm RootForm;
 
-        public LoadDriverForm(Form1 f)
+        public LoadDriverForm(IrpMonitorForm f)
         {
             InitializeComponent();
 

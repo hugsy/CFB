@@ -38,7 +38,6 @@ namespace Fuzzer
 
         public Irp()
         {
-            //this.Rnd = new Random();
         }
 
 

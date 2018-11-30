@@ -6,7 +6,7 @@ using System.ComponentModel;
 
 namespace Fuzzer
 {
-    public partial class Form1 : Form
+    public partial class IrpMonitorForm : Form
     {
         private IrpDataReader CfbReader;
         private LoadDriverForm ldForm;
@@ -15,7 +15,7 @@ namespace Fuzzer
         private bool bIsMonitoringEnabled;
 
 
-        public Form1()
+        public IrpMonitorForm()
         {
             InitializeComponent();
             SetLoadedDriverStatus(false);
