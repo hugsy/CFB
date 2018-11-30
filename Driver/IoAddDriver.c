@@ -11,24 +11,27 @@ NTSTATUS AddDriverByName(LPWSTR lpDriverName)
 	NTSTATUS status = STATUS_SUCCESS;
 
 	/* make sure the list is not full */
-	if (GetNumberOfHookedDrivers() == CFB_MAX_DEVICES)
+	if (GetNumberOfHookedDrivers() == CFB_MAX_HOOKED_DRIVERS)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
 	/* lookup the driver by name, and swap it if found */
 	UNICODE_STRING UnicodeName;
-	RtlInitUnicodeString(&UnicodeName, lpDriverName);
+    PDRIVER_OBJECT pDriver;
 
-	PDRIVER_OBJECT pDriver;
-	status = ObReferenceObjectByName(/* IN PUNICODE_STRING */ &UnicodeName,
-									/* IN ULONG */ OBJ_CASE_INSENSITIVE,
-									/* IN PACCESS_STATE */ NULL,
-									/* IN ACCESS_MASK */ 0,
-									/* IN POBJECT_TYPE */ *IoDriverObjectType,
-									/* IN KPROCESSOR_MODE */KernelMode,
-									/* IN OUT PVOID */ NULL,
-									/* OUT PVOID* */ (PVOID*)&pDriver);
+	RtlInitUnicodeString(&UnicodeName, lpDriverName);
+    
+    status = ObReferenceObjectByName(
+        /* IN PUNICODE_STRING */ &UnicodeName,
+        /* IN ULONG */ OBJ_CASE_INSENSITIVE,
+        /* IN PACCESS_STATE */ NULL,
+        /* IN ACCESS_MASK */ 0,
+        /* IN POBJECT_TYPE */ *IoDriverObjectType,
+        /* IN KPROCESSOR_MODE */KernelMode,
+        /* IN OUT PVOID */ NULL,
+        /* OUT PVOID* */ (PVOID*)&pDriver
+    );
 
 	if (!NT_SUCCESS(status))
 	{

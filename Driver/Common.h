@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define CFB_MAX_DEVICES		32
+#define CFB_MAX_HOOKED_DRIVERS		32
 #define CFB_DEVICE_TAG		0x20424643 // " BFC" -> "CFB "
 
 #include <wdm.h>

@@ -341,12 +341,23 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 		CfbDbgPrintErr( L"PushToQueue(%p) failed, discarding message = %x\n", pIrp, Status );
 		FreePipeMessage( pIrp );
 	}
+    else
+    {
+	    //
+	    // and last, notify the client in UM of the new message posted
+	    //
+	    NotifyClient();
 
-    
-	//
-	// and last, notify the client in UM of the new message posted
-	//
-	NotifyClient();
+        CfbDbgPrintOk(
+            L"IRP %p (ioCode=%x dev=%s inbuflen=%d outbuflen=%d) queued, current queue size=%d\n", 
+            pIrp, 
+            pIrp->Header->IoctlCode,
+            pIrp->Header->DeviceName,
+            pIrp->Header->InputBufferLength,
+            pIrp->Header->OutputBufferLength,
+            GetIrpListSize()
+            );
+    }
 
 	return Status;
 }

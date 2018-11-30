@@ -9,11 +9,12 @@ using System.Collections.Concurrent;
 
 namespace Fuzzer
 {
-    public class CfbDataReader
+    public class IrpDataReader
     {
         
         private Thread FetchIrpsFromDriverThread, UpdateDisplayThread;
-        private BlockingQueue<Irp> NewItems;
+        //private BlockingQueue<Irp> NewItems;
+        private BlockingCollection<Irp> NewItems;
         private bool CollectIrp;
         private bool UpdateIrpDataView;
         private Form1 RootForm;
@@ -35,14 +36,15 @@ namespace Fuzzer
         /// <summary>
         /// Constructor
         /// </summary>
-        public CfbDataReader(Form1 f)
+        public IrpDataReader(Form1 f)
         {
             RootForm = f;
             CollectIrp = false;
             UpdateIrpDataView = false;
 
             Irps = new List<Irp>();
-            NewItems = new BlockingQueue<Irp>(100);
+            //NewItems = new BlockingQueue<Irp>(100);
+            NewItems = new BlockingCollection<Irp>();
             NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
 
@@ -119,8 +121,6 @@ namespace Fuzzer
                 IsBackground = true
             };
 
-
-            // RootForm.Log("Starting threads...");
 
             CollectIrp = true;
             UpdateIrpDataView = true;
@@ -211,7 +211,6 @@ namespace Fuzzer
             //
             while (true)
             {
-                //NewMessageEvent.WaitOne();
 
                 bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
 
@@ -311,7 +310,7 @@ namespace Fuzzer
                 while (CollectIrp)
                 {
                     // 
-                    // Wait at least one
+                    // Block on signaled event from the driver
                     //
                     NewMessageEvent.WaitOne(-1);
 
@@ -322,20 +321,27 @@ namespace Fuzzer
 
                         //if(cfg.LogLevel > 1)
                         //{
-                        //    int NbItems = Irps.Count;
-                        //    RootForm.Log($"Poping IRP #{NbItems:d}");
+                        //    RootForm.Log($"Poping IRP #{Irps.Count:d}");
                         //}
 
-                        NewItems.Enqueue(irp);
+                        NewItems.Add(irp);
                     }
                     while( NewMessageEvent.WaitOne(0) );
 
+                    //
+                    // Clear the event for the driver to re-notify
+                    //
                     NewMessageEvent.Reset();
                 }
             }
             catch (Exception Ex)
             {
-                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
+                RootForm.Log(Ex.Message);
+
+                //if(cfg.LogLevel > 1)
+                //{
+                //    RootForm.Log("\r\n" + Ex.StackTrace);
+                //}
             }
 
         }
@@ -352,13 +358,25 @@ namespace Fuzzer
             {
                 while (UpdateIrpDataView)
                 {
-                    AddIrpToDataTable( NewItems.Dequeue() );
-                    RootForm.IrpDataView.Refresh();
+                    if ( NewItems.TryTake(out Irp irp) )
+                    {
+                        AddIrpToDataTable(irp);
+                        RootForm.IrpDataView.Refresh();
+                    }
+                    else
+                    {
+                        Thread.Sleep(500);
+                    }
                 }
             }
             catch (Exception Ex)
             {
-                RootForm.Log(Ex.Message + "\n" + Ex.StackTrace);
+                RootForm.Log(Ex.Message);
+
+                //if(cfg.LogLevel > 1)
+                //{
+                //    RootForm.Log("\r\n" + Ex.StackTrace);
+                //}
             }
 
         }

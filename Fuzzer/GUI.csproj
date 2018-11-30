@@ -68,7 +68,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
-    <Compile Include="CfbDataReader.cs" />
+    <Compile Include="IrpDataReader.cs" />
     <Compile Include="FuzzingSession.cs" />
     <Compile Include="FuzzingStrategy.cs" />
     <Compile Include="IrpViewerForm.cs">
@@ -134,7 +134,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="32x32.ico" />
     <Content Include="bear.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

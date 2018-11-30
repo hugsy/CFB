@@ -8,7 +8,7 @@ namespace Fuzzer
 {
     public partial class Form1 : Form
     {
-        private CfbDataReader CfbReader;
+        private IrpDataReader CfbReader;
         private LoadDriverForm ldForm;
         private static Mutex LogMutex;
         private bool bIsDriverLoaded;
@@ -23,7 +23,7 @@ namespace Fuzzer
 
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
-            CfbReader = new CfbDataReader(this);
+            CfbReader = new IrpDataReader(this);
             ldForm = new LoadDriverForm(this);
         }
 
