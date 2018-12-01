@@ -53,7 +53,6 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 	UINT32 dwExpectedSize;
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
-    CfbDbgPrintInfo(L"PeekHeadEntryExpectedSize(): Status=0x%x\n", Status);
 
 	if (!NT_SUCCESS(Status))
 	{
