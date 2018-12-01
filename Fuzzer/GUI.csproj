@@ -78,11 +78,11 @@
     </Compile>
     <Compile Include="Irp.cs" />
     <Compile Include="Kernel32.cs" />
-    <Compile Include="LoadDriverForm.cs">
+    <Compile Include="SelectDriverForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="LoadDriverForm.Designer.cs">
-      <DependentUpon>LoadDriverForm.cs</DependentUpon>
+    <Compile Include="SelectDriverForm.Designer.cs">
+      <DependentUpon>SelectDriverForm.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="PsApi.cs" />
@@ -102,8 +102,8 @@
     <EmbeddedResource Include="IrpViewerForm.resx">
       <DependentUpon>IrpViewerForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="LoadDriverForm.resx">
-      <DependentUpon>LoadDriverForm.cs</DependentUpon>
+    <EmbeddedResource Include="SelectDriverForm.resx">
+      <DependentUpon>SelectDriverForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

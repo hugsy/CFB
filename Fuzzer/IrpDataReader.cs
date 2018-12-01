@@ -156,7 +156,7 @@ namespace Fuzzer
 
             RootForm.Log($"Ending thread '{t.Name:s}'...");
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 10; i++)
             {
                 if (t.Join(1000) == false)
                 {

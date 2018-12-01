@@ -31,6 +31,7 @@ NTSTATUS IrpNotImplementedHandler( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 // See https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/
 //
 extern POBJECT_TYPE* IoDriverObjectType;
+extern POBJECT_TYPE* IoDeviceObjectType;
 
 extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	IN PUNICODE_STRING ObjectPath,

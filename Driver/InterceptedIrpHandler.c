@@ -28,7 +28,7 @@ https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-developme
 static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBufferLength, OUT PVOID *InputBuffer)
 {
 
-	PVOID Buffer = ExAllocatePoolWithTag(PagedPool, InputBufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, InputBufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;
@@ -183,7 +183,7 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
-	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( PagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
 	if ( !*pIrp)
 	{
 		return Status;
@@ -194,7 +194,7 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 	// Allocate the intercepted IRP header...
 	//
 	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)ExAllocatePoolWithTag( 
-        PagedPool,
+        NonPagedPool,
 		sizeof( INTERCEPTED_IRP_HEADER ), 
 		CFB_DEVICE_TAG 
 	);

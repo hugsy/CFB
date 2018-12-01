@@ -54,6 +54,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
 
+
 	if (!NT_SUCCESS(Status))
 	{
 		if (Status == STATUS_NO_MORE_ENTRIES)

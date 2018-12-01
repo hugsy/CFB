@@ -121,7 +121,7 @@ namespace Fuzzer
             this.IrpDataView.RowHeadersVisible = false;
             this.IrpDataView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             this.IrpDataView.RowTemplate.Height = 28;
-            this.IrpDataView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.IrpDataView.ScrollBars = System.Windows.Forms.ScrollBars.None;
             this.IrpDataView.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.IrpDataView.ShowCellErrors = false;
             this.IrpDataView.ShowCellToolTips = false;
