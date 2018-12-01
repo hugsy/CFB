@@ -79,6 +79,7 @@ namespace Fuzzer
             DataBinder.DataSource = IrpDataTable;
             IrpDataTable.Clear();
             RootForm.IrpDataView.Refresh();
+            RootForm.IrpDataView.PerformLayout();
             DataBinder.ResetBindings(false);
             Irps.Clear();
         }

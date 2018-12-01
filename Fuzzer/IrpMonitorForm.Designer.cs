@@ -73,9 +73,9 @@ namespace Fuzzer
             // 
             this.groupBox1.Controls.Add(this.LogTextBox);
             this.groupBox1.Location = new System.Drawing.Point(0, 497);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
             this.groupBox1.Size = new System.Drawing.Size(914, 82);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
@@ -97,9 +97,9 @@ namespace Fuzzer
             // 
             this.groupBox2.Controls.Add(this.IrpDataView);
             this.groupBox2.Location = new System.Drawing.Point(5, 52);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
             this.groupBox2.Size = new System.Drawing.Size(904, 441);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
@@ -114,7 +114,7 @@ namespace Fuzzer
             this.IrpDataView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.IrpDataView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.IrpDataView.Location = new System.Drawing.Point(2, 15);
-            this.IrpDataView.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.IrpDataView.Margin = new System.Windows.Forms.Padding(2);
             this.IrpDataView.MultiSelect = false;
             this.IrpDataView.Name = "IrpDataView";
             this.IrpDataView.ReadOnly = true;
@@ -307,7 +307,7 @@ namespace Fuzzer
             // 
             this.ShowIrpBtn.Enabled = false;
             this.ShowIrpBtn.Location = new System.Drawing.Point(11, 26);
-            this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2);
             this.ShowIrpBtn.Name = "ShowIrpBtn";
             this.ShowIrpBtn.Size = new System.Drawing.Size(81, 22);
             this.ShowIrpBtn.TabIndex = 10;
@@ -319,7 +319,7 @@ namespace Fuzzer
             // 
             this.DumpToFileBtn.Enabled = false;
             this.DumpToFileBtn.Location = new System.Drawing.Point(96, 26);
-            this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2);
             this.DumpToFileBtn.Name = "DumpToFileBtn";
             this.DumpToFileBtn.Size = new System.Drawing.Size(91, 22);
             this.DumpToFileBtn.TabIndex = 11;
@@ -331,7 +331,7 @@ namespace Fuzzer
             // 
             this.SaveForReplayBtn.Enabled = false;
             this.SaveForReplayBtn.Location = new System.Drawing.Point(191, 26);
-            this.SaveForReplayBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.SaveForReplayBtn.Margin = new System.Windows.Forms.Padding(2);
             this.SaveForReplayBtn.Name = "SaveForReplayBtn";
             this.SaveForReplayBtn.Size = new System.Drawing.Size(97, 22);
             this.SaveForReplayBtn.TabIndex = 12;
@@ -343,7 +343,7 @@ namespace Fuzzer
             // 
             this.FuzzIrpBtn.Enabled = false;
             this.FuzzIrpBtn.Location = new System.Drawing.Point(292, 26);
-            this.FuzzIrpBtn.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.FuzzIrpBtn.Margin = new System.Windows.Forms.Padding(2);
             this.FuzzIrpBtn.Name = "FuzzIrpBtn";
             this.FuzzIrpBtn.Size = new System.Drawing.Size(89, 22);
             this.FuzzIrpBtn.TabIndex = 13;
@@ -355,7 +355,7 @@ namespace Fuzzer
             // 
             this.CleanIrpDataGridButton.Enabled = false;
             this.CleanIrpDataGridButton.Location = new System.Drawing.Point(817, 26);
-            this.CleanIrpDataGridButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this.CleanIrpDataGridButton.Margin = new System.Windows.Forms.Padding(2);
             this.CleanIrpDataGridButton.Name = "CleanIrpDataGridButton";
             this.CleanIrpDataGridButton.Size = new System.Drawing.Size(89, 22);
             this.CleanIrpDataGridButton.TabIndex = 14;
@@ -363,7 +363,7 @@ namespace Fuzzer
             this.CleanIrpDataGridButton.UseVisualStyleBackColor = true;
             this.CleanIrpDataGridButton.Click += new System.EventHandler(this.CleanIrpDataGridButton_Click);
             // 
-            // Form1
+            // IrpMonitorForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -378,8 +378,8 @@ namespace Fuzzer
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MenuBar);
-            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
-            this.Name = "Form1";
+            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Name = "IrpMonitorForm";
             this.Text = "Canadian Fuzzy Bear";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBox1.ResumeLayout(false);
