@@ -103,7 +103,7 @@ namespace Fuzzer
                 return;
             }
 
-                       
+ 
             UpdateDisplayThread = new Thread(RefreshDataGridViewThreadRoutine)
             {
                 Name = "UpdateDisplayThread",
@@ -211,7 +211,7 @@ namespace Fuzzer
             while (true)
             {
 
-                bResult = Core.ReadCfbDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
+                bResult = Core.ReadDevice(IntPtr.Zero, 0, lpdwNumberOfByteRead);
 
                 if (!bResult)
                 {
@@ -247,7 +247,7 @@ namespace Fuzzer
 
             var RawMessage = Marshal.AllocHGlobal(dwNumberOfByteRead);
 
-            bResult = Core.ReadCfbDevice(RawMessage, dwNumberOfByteRead, new IntPtr(0));
+            bResult = Core.ReadDevice(RawMessage, dwNumberOfByteRead, new IntPtr(0));
 
             if (!bResult)
             {
@@ -306,7 +306,8 @@ namespace Fuzzer
 
 
         /// <summary>
-        /// Threaded function that'll open a handle to named pipe, and pop out structured messages
+        /// Thread function that opens a handle to named pipe, and pop out intercepted IRPs from
+        /// queued list
         /// </summary>
         private void PopIrpsFromDriverThreadRoutine()
         {
@@ -347,7 +348,7 @@ namespace Fuzzer
                     //
                     NewMessageEvent.Reset();
 
-                    Thread.Sleep(250);
+                    Thread.Sleep(500);
                 }
             }
             catch (Exception Ex)
@@ -374,6 +375,7 @@ namespace Fuzzer
             {
                 while (UpdateIrpDataView)
                 {
+
                     if ( NewItems.TryTake(out Irp irp) )
                     {
                         AddIrpToDataTable(irp);

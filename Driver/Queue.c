@@ -3,11 +3,11 @@
 
 static KSPIN_LOCK IrpQueueSpinLock;
 static KLOCK_QUEUE_HANDLE IrpQueueSpinLockQueue;
-
+static FAST_MUTEX FlushQueueMutex;
 static LIST_ENTRY InterceptedIrpHead;
 LIST_ENTRY* g_InterceptedIrpHead = &InterceptedIrpHead;
-static UINT32 InterceptedIrpListSize;
-static FAST_MUTEX FlushQueueMutex;
+UINT32 InterceptedIrpListSize;
+
 
 
 /*++
@@ -73,7 +73,7 @@ total size of the intercepted IRP (header + body).
 NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	
+    
 	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
 
 	if (IsListEmpty(g_InterceptedIrpHead))
@@ -89,7 +89,7 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 	}
 
 	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
-
+    
 	return Status;
 }
 
@@ -150,6 +150,7 @@ NTSTATUS FlushQueue()
 
 			CfbDbgPrintErr(L"An error occured : status=0x%x\n", Status);
 		}
+
 	}
 
 	ExReleaseFastMutex(&FlushQueueMutex);

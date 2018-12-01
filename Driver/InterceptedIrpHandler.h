@@ -14,4 +14,4 @@ extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
 
 NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp);
 
-VOID FreePipeMessage( IN PINTERCEPTED_IRP pMessage );
+VOID FreeInterceptedIrp( IN PINTERCEPTED_IRP pMessage );

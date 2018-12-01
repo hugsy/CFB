@@ -27,19 +27,18 @@ https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-developme
 --*/
 static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBufferLength, OUT PVOID *InputBuffer)
 {
-	NTSTATUS Status;
 
-    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
-
-	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, InputBufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(PagedPool, InputBufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
+    NTSTATUS Status = STATUS_SUCCESS;
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+
 	__try
 	{
-		Status = STATUS_SUCCESS;
 
 		do
 		{
@@ -96,13 +95,13 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBuffe
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
 		Status = GetExceptionCode();
-		CfbDbgPrintErr(L"GetDataFromIrp() - Exception Code: 0x%X\n", Status);
+		CfbDbgPrintErr(L"Exception Code: 0x%X\n", Status);
 	}
 
 
 	if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrintErr(L"GetDataFromIrp() - Freeing %p\n", Buffer);
+		CfbDbgPrintErr(L"Failed to copy data (Status=0x%x), freeing %p\n", Status, Buffer);
 		ExFreePoolWithTag(Buffer, CFB_DEVICE_TAG);
 	}
 	else
@@ -184,7 +183,7 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
-	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( PagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
 	if ( !*pIrp)
 	{
 		return Status;
@@ -195,7 +194,7 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 	// Allocate the intercepted IRP header...
 	//
 	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)ExAllocatePoolWithTag( 
-		NonPagedPool, 
+        PagedPool,
 		sizeof( INTERCEPTED_IRP_HEADER ), 
 		CFB_DEVICE_TAG 
 	);
@@ -250,18 +249,25 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 /*++
 
 --*/
-VOID FreePipeMessage(IN PINTERCEPTED_IRP pIrp)
+VOID FreeInterceptedIrp(IN PINTERCEPTED_IRP pIrp)
 {
-	ExFreePoolWithTag(pIrp->Header, CFB_DEVICE_TAG);
-	if (pIrp->RawBuffer)
+    UINT32 dwBodyLen = pIrp->Header->InputBufferLength;
+
+	if (pIrp->RawBuffer && dwBodyLen)
 	{
 		//
 		// We need to check because RawBuffer can be NULL
 		//
+        RtlSecureZeroMemory(pIrp->RawBuffer, dwBodyLen);
 		ExFreePoolWithTag(pIrp->RawBuffer, CFB_DEVICE_TAG);
+        pIrp->RawBuffer = NULL;
 	}
+
+    RtlSecureZeroMemory(pIrp->Header, sizeof(INTERCEPTED_IRP_HEADER));
+    ExFreePoolWithTag(pIrp->Header, CFB_DEVICE_TAG);
+
+    RtlSecureZeroMemory(pIrp, sizeof(INTERCEPTED_IRP));
 	ExFreePoolWithTag(pIrp, CFB_DEVICE_TAG);
-	RtlSecureZeroMemory(pIrp, sizeof(INTERCEPTED_IRP));
 	pIrp = NULL;
 	return;
 }
@@ -339,15 +345,14 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	if ( !NT_SUCCESS( Status ) )
 	{
 		CfbDbgPrintErr( L"PushToQueue(%p) failed, discarding message = %x\n", pIrp, Status );
-		FreePipeMessage( pIrp );
+		FreeInterceptedIrp( pIrp );
 	}
     else
     {
 	    //
 	    // and last, notify the client in UM of the new message posted
 	    //
-	    NotifyClient();
-
+        SetNewIrpInQueueAlert();
         CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrp, GetIrpListSize());
     }
 

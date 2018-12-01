@@ -3,22 +3,21 @@
 
 
 
-static PKEVENT g_EventNotificationPointer;
+/*++
+
+--*/
+VOID SetNewIrpInQueueAlert()
+{
+	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
+}
 
 
 /*++
 
 --*/
-VOID NotifyClient()
+VOID UnsetNewIrpInQueueAlert()
 {
-	if ( !g_EventNotificationPointer )
-	{
-		return;
-	}
-
-	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
-
-	return;
+    KeClearEvent(g_EventNotificationPointer);
 }
 
 
@@ -29,6 +28,7 @@ VOID ClearNotificationPointer()
 {
 	if ( !g_EventNotificationPointer )
 	{
+        CfbDbgPrintErr(L"Trying to free NULL pointer g_EventNotificationPointer\n");
 		return;
 	}
 
@@ -51,9 +51,9 @@ NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack )
 	NTSTATUS status = STATUS_SUCCESS;
 
 	UINT32 dwInputLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
-	if (dwInputLength < sizeof(HANDLE) )
+	if (dwInputLength != sizeof(HANDLE) )
 	{
-		return STATUS_BUFFER_TOO_SMALL;
+		return STATUS_INVALID_PARAMETER;
 	}
 
 	PHANDLE pHandle = (PHANDLE)Irp->AssociatedIrp.SystemBuffer;

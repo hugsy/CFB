@@ -49,21 +49,32 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 
 	ULONG BufferSize = pStack->Parameters.Read.Length;
 
-	PINTERCEPTED_IRP pData = NULL;
+	PINTERCEPTED_IRP pInterceptedIrp;
 	UINT32 dwExpectedSize;
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
+    CfbDbgPrintInfo(L"PeekHeadEntryExpectedSize(): Status=0x%x\n", Status);
 
 	if (!NT_SUCCESS(Status))
 	{
 		if (Status == STATUS_NO_MORE_ENTRIES)
 		{
-			CompleteRequest(Irp, STATUS_SUCCESS, 0);
-			return STATUS_SUCCESS;
+            //
+            // Second chance
+            //
+            KeWaitForSingleObject(g_EventNotificationPointer, UserRequest, KernelMode, FALSE, NULL);
+            Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
+            if (!NT_SUCCESS(Status))
+            {
+                CompleteRequest(Irp, Status, 0);
+                return Status;
+            }
 		}
-
-		CompleteRequest(Irp, Status, 0);
-		return Status;
+        else
+        {
+            CompleteRequest(Irp, Status, 0);
+            return Status;
+        }
 	}
 
 
@@ -78,10 +89,10 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 	}
 
 
-	if ( BufferSize < dwExpectedSize )
+	if ( BufferSize != dwExpectedSize )
 	{
 		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-		Status = STATUS_BUFFER_TOO_SMALL;
+		Status = STATUS_INFO_LENGTH_MISMATCH;
 		CompleteRequest(Irp, Status, 0);
 		return Status;
 	}
@@ -97,7 +108,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 	}
 
 
-	Status = PopFromQueue(&pData);
+	Status = PopFromQueue(&pInterceptedIrp);
 
 	if ( !NT_SUCCESS(Status) )
 	{
@@ -110,20 +121,20 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 	//
 	// Copy header
 	//
-	PINTERCEPTED_IRP_HEADER pHeader = pData->Header;
-	RtlCopyMemory( Buffer, pHeader, sizeof(INTERCEPTED_IRP_HEADER) );
+	PINTERCEPTED_IRP_HEADER pInterceptedIrpHeader = pInterceptedIrp->Header;
+	RtlCopyMemory( Buffer, pInterceptedIrpHeader, sizeof(INTERCEPTED_IRP_HEADER) );
 	
 
 	//
 	// Copy the IRP input buffer (if any)
 	//
-	if( pHeader->InputBufferLength && pData->RawBuffer)
+	if(pInterceptedIrpHeader->InputBufferLength && pInterceptedIrp->RawBuffer)
 	{
         PVOID RawBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(INTERCEPTED_IRP_HEADER) );
-		RtlCopyMemory(RawBuffer, pData->RawBuffer, pHeader->InputBufferLength);
+		RtlCopyMemory(RawBuffer, pInterceptedIrp->RawBuffer, pInterceptedIrpHeader->InputBufferLength);
 	}
 
-	FreePipeMessage( pData );
+	FreeInterceptedIrp(pInterceptedIrp);
 
 	CompleteRequest( Irp, STATUS_SUCCESS, dwExpectedSize );
 
@@ -311,6 +322,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
     BOOLEAN Found = FALSE;
     PHOOKED_DRIVER curDriver = NULL;
 
+
 	Status = IoAcquireRemoveLock( &DriverRemoveLock, Irp );
 	if ( !NT_SUCCESS( Status ) )
 	{
@@ -325,8 +337,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
     if( !IsListEmpty(g_HookedDriversHead) )
     {
-	    
-        PLIST_ENTRY Entry = g_HookedDriversHead;
+        PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
 
 	    do 
 	    {
@@ -339,7 +350,9 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		    }
 
             Entry = Entry->Flink;
-        } while (Entry != g_HookedDriversHead);
+
+        } 
+        while (Entry != g_HookedDriversHead);
     }
 
 
@@ -350,7 +363,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Could be a bad pointer restoration. Anyway, we log and fail for now.
 		//
 
-		CfbDbgPrintErr(L"InterceptedGenericRoutine() failed: couldn't get the current DriverObject\n");
+		CfbDbgPrintErr(L"Failed to find a DriverObject associated to the received IRP\n");
 		Status = CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
 
 	} 
@@ -364,8 +377,11 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE )
 		{
 			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
+
 			if( !NT_SUCCESS(Status) )
+            {
 				CfbDbgPrintWarn( L"HandleInterceptedIrp() returned 0x%X\n", Status );
+            }
 		}
 
 

@@ -245,7 +245,7 @@ namespace Fuzzer
         }
 
        
-        public static bool ReadCfbDevice(IntPtr Buffer, int BufSize, IntPtr dwNbBytesRead)
+        public static bool ReadDevice(IntPtr Buffer, int BufSize, IntPtr dwNbBytesRead)
         {
             return Kernel32.ReadFile(hDriver, Buffer, BufSize, dwNbBytesRead, IntPtr.Zero);
         }

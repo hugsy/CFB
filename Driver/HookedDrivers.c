@@ -15,7 +15,6 @@ Initialize the structures used as part of the driver hooking.
 void InitializeHookedDriverStructures()
 {
     KeInitializeSpinLock(&HookedDriverSpinLock);
-
     return;
 }
 
@@ -28,13 +27,15 @@ Return the number of the hooked drivers
 UINT32 GetNumberOfHookedDrivers()
 {
     UINT32 i = 0;
+    PLIST_ENTRY Entry;
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
     if (!IsListEmpty(g_HookedDriversHead))
     {
-        PLIST_ENTRY Entry;
-        for (i = 0, Entry = g_HookedDriversHead->Flink; Entry != g_HookedDriversHead; Entry = Entry->Flink, i++);
+        for (i = 0, Entry = g_HookedDriversHead->Flink; 
+            Entry != g_HookedDriversHead; 
+            Entry = Entry->Flink, i++);
     }
 
     KeReleaseInStackQueuedSpinLock(&HookedDriverSpinLockQueue);
