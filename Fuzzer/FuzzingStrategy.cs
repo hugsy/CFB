@@ -112,6 +112,49 @@ namespace Fuzzer
     }
 
 
+    public class RandomUnicodeFuzzingStrategy : RandomFuzzingStrategy
+    {
+        private readonly byte[] Charset;
+
+        public RandomUnicodeFuzzingStrategy()
+        {
+            name = "ASCII Overwrite";
+            description = "Generate random ASCII";
+            Rng = new Random();
+            Charset = System.Text.Encoding.ASCII.GetBytes("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ ");
+        }
+
+        protected override void FillBuffer(byte[] buffer)
+        {
+            int FuzzLen;
+
+            if (buffer.Length < 2)
+            {
+                return;
+            }         
+
+            if (buffer.Length % 2 == 0)
+            {
+                FuzzLen = buffer.Length / 2;
+            }
+            else
+            {
+                FuzzLen = (buffer.Length / 2) - 1;
+            }
+
+            byte[] b = Enumerable.Repeat(Charset, buffer.Length / 2).Select(s => s[Rng.Next(s.Length)]).ToArray();
+
+            for (int i = 0; i < b.Length; i+=2)
+            {
+                buffer[i] = b[i];
+                buffer[i + 1] = 0x00;
+            }
+        }
+
+    }
+
+
+
     public class BitflipFuzzingStrategy : FuzzingStrategy
     {
         public BitflipFuzzingStrategy()

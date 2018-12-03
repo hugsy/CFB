@@ -67,6 +67,7 @@ namespace Fuzzer
                 new BitflipFuzzingStrategy(),
                 new BigintOverwriteFuzzingStrategy(),
                 new RandomAsciiFuzzingStrategy(),
+                new RandomUnicodeFuzzingStrategy(),
             };
 
             foreach (FuzzingStrategy s in Strategies)
