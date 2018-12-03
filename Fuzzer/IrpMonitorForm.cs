@@ -233,7 +233,7 @@ namespace Fuzzer
             if (saveFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.FileName != "")
             {
                 string IrpDataInStr = "";
-                string IrpDataOutStr = "";
+                string IrpDataOutStr = "''";
 
                 foreach ( byte c in SelectedIrp.Body )
                 {

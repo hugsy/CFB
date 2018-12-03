@@ -370,7 +370,7 @@ namespace Fuzzer
             this.CleanIrpDataGridButton.Name = "CleanIrpDataGridButton";
             this.CleanIrpDataGridButton.Size = new System.Drawing.Size(134, 34);
             this.CleanIrpDataGridButton.TabIndex = 14;
-            this.CleanIrpDataGridButton.Text = "Clean IRP";
+            this.CleanIrpDataGridButton.Text = "Clear IRPs";
             this.CleanIrpDataGridButton.UseVisualStyleBackColor = true;
             this.CleanIrpDataGridButton.Click += new System.EventHandler(this.CleanIrpDataGridButton_Click);
             // 
