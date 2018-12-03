@@ -32,6 +32,8 @@ namespace Fuzzer
         private ToolStripStatusLabel SimpleFuzzStatusBarItem;
         private Label label7;
         private TextBox DeviceObjectPathTextBox;
+        private Label label8;
+        private TextBox IoctlCodeTextBox;
         private FuzzingSession Session;
 
         
@@ -42,6 +44,8 @@ namespace Fuzzer
             this.Irp = irp;
             this.Text = $"Fuzzing {Irp.ToString()}";
             this.DeviceObjectPathTextBox.Text = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
+            this.IoctlCodeTextBox.Text = $"0x{Irp.Header.IoctlCode:x}";
+            this.IoctlCodeTextBox.Enabled = false;
             InitializeWorker();
         }
 
@@ -90,6 +94,7 @@ namespace Fuzzer
         private void BackgroundWorkRoutine(object sender, DoWorkEventArgs evt)
         {
             BackgroundWorker worker = sender as BackgroundWorker;
+            bool res;
 
             resultLabel.Text = $"Defining strategy...";
             FuzzingStrategy SelectedStrategy = (FuzzingStrategy)StrategyComboBox.SelectedItem;
@@ -103,7 +108,7 @@ namespace Fuzzer
 
             resultLabel.Text = $"Validating session parameters...";
 
-            bool res = System.Int32.TryParse(FuzzByteStartIndexTextbox.Text, out int StartByteIndex);
+            res = System.Int32.TryParse(FuzzByteStartIndexTextbox.Text, out int StartByteIndex);
             if(!res || StartByteIndex < 0 || StartByteIndex > this.Irp.Body.Length-1)
                 StartByteIndex = 0;
 
@@ -194,6 +199,8 @@ namespace Fuzzer
             this.SimpleFuzzStatusBarItem = new System.Windows.Forms.ToolStripStatusLabel();
             this.label7 = new System.Windows.Forms.Label();
             this.DeviceObjectPathTextBox = new System.Windows.Forms.TextBox();
+            this.label8 = new System.Windows.Forms.Label();
+            this.IoctlCodeTextBox = new System.Windows.Forms.TextBox();
             this.SimpleFuzzStatusBar.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -319,7 +326,7 @@ namespace Fuzzer
             // 
             this.StrategyComboBox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.StrategyComboBox.FormattingEnabled = true;
-            this.StrategyComboBox.Location = new System.Drawing.Point(443, 117);
+            this.StrategyComboBox.Location = new System.Drawing.Point(445, 149);
             this.StrategyComboBox.Name = "StrategyComboBox";
             this.StrategyComboBox.Size = new System.Drawing.Size(121, 28);
             this.StrategyComboBox.TabIndex = 13;
@@ -328,7 +335,7 @@ namespace Fuzzer
             // 
             // label6
             // 
-            this.label6.Location = new System.Drawing.Point(334, 115);
+            this.label6.Location = new System.Drawing.Point(336, 143);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(96, 23);
             this.label6.TabIndex = 14;
@@ -368,9 +375,27 @@ namespace Fuzzer
             this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(119, 26);
             this.DeviceObjectPathTextBox.TabIndex = 17;
             // 
+            // label8
+            // 
+            this.label8.Location = new System.Drawing.Point(334, 115);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(105, 23);
+            this.label8.TabIndex = 18;
+            this.label8.Text = "IoctlCode";
+            this.label8.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // IoctlCodeTextBox
+            // 
+            this.IoctlCodeTextBox.Location = new System.Drawing.Point(445, 117);
+            this.IoctlCodeTextBox.Name = "IoctlCodeTextBox";
+            this.IoctlCodeTextBox.Size = new System.Drawing.Size(119, 26);
+            this.IoctlCodeTextBox.TabIndex = 19;
+            // 
             // SimpleFuzzerForm
             // 
             this.ClientSize = new System.Drawing.Size(607, 274);
+            this.Controls.Add(this.IoctlCodeTextBox);
+            this.Controls.Add(this.label8);
             this.Controls.Add(this.DeviceObjectPathTextBox);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.SimpleFuzzStatusBar);

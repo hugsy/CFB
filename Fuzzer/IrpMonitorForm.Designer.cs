@@ -43,6 +43,8 @@ namespace Fuzzer
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.LoadIrpDBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.SaveIrpToDBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.controlToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.driverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.loadDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -72,11 +74,9 @@ namespace Fuzzer
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.LogTextBox);
-            this.groupBox1.Location = new System.Drawing.Point(0, 497);
-            this.groupBox1.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox1.Location = new System.Drawing.Point(0, 765);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox1.Size = new System.Drawing.Size(914, 82);
+            this.groupBox1.Size = new System.Drawing.Size(1371, 126);
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Log";
@@ -85,22 +85,21 @@ namespace Fuzzer
             // 
             this.LogTextBox.BackColor = System.Drawing.SystemColors.Control;
             this.LogTextBox.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.LogTextBox.Location = new System.Drawing.Point(5, 18);
+            this.LogTextBox.Location = new System.Drawing.Point(8, 28);
+            this.LogTextBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.LogTextBox.Multiline = true;
             this.LogTextBox.Name = "LogTextBox";
             this.LogTextBox.ReadOnly = true;
             this.LogTextBox.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.LogTextBox.Size = new System.Drawing.Size(904, 59);
+            this.LogTextBox.Size = new System.Drawing.Size(1354, 89);
             this.LogTextBox.TabIndex = 0;
             // 
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.IrpDataView);
-            this.groupBox2.Location = new System.Drawing.Point(5, 52);
-            this.groupBox2.Margin = new System.Windows.Forms.Padding(2);
+            this.groupBox2.Location = new System.Drawing.Point(8, 80);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Padding = new System.Windows.Forms.Padding(2);
-            this.groupBox2.Size = new System.Drawing.Size(904, 441);
+            this.groupBox2.Size = new System.Drawing.Size(1356, 678);
             this.groupBox2.TabIndex = 5;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "IRPs";
@@ -113,8 +112,7 @@ namespace Fuzzer
             this.IrpDataView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.IrpDataView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.IrpDataView.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.IrpDataView.Location = new System.Drawing.Point(2, 15);
-            this.IrpDataView.Margin = new System.Windows.Forms.Padding(2);
+            this.IrpDataView.Location = new System.Drawing.Point(3, 22);
             this.IrpDataView.MultiSelect = false;
             this.IrpDataView.Name = "IrpDataView";
             this.IrpDataView.ReadOnly = true;
@@ -127,7 +125,7 @@ namespace Fuzzer
             this.IrpDataView.ShowCellToolTips = false;
             this.IrpDataView.ShowEditingIcon = false;
             this.IrpDataView.ShowRowErrors = false;
-            this.IrpDataView.Size = new System.Drawing.Size(900, 424);
+            this.IrpDataView.Size = new System.Drawing.Size(1350, 653);
             this.IrpDataView.TabIndex = 3;
             this.IrpDataView.SelectionChanged += new System.EventHandler(this.IrpDataView_SelectionChanged);
             this.IrpDataView.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.IrpDataView_MouseDoubleClick);
@@ -161,7 +159,8 @@ namespace Fuzzer
             this.helpToolStripMenuItem});
             this.MenuBar.Location = new System.Drawing.Point(0, 0);
             this.MenuBar.Name = "MenuBar";
-            this.MenuBar.Size = new System.Drawing.Size(914, 24);
+            this.MenuBar.Padding = new System.Windows.Forms.Padding(9, 3, 0, 3);
+            this.MenuBar.Size = new System.Drawing.Size(1371, 35);
             this.MenuBar.TabIndex = 6;
             this.MenuBar.Text = "CFB";
             // 
@@ -169,23 +168,39 @@ namespace Fuzzer
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.settingsToolStripMenuItem,
+            this.SaveIrpToDBToolStripMenuItem,
+            this.LoadIrpDBToolStripMenuItem,
             this.quitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(50, 29);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
             this.settingsToolStripMenuItem.Text = "Global Settings";
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.QuitToolStripMenuItem_Click);
+            // 
+            // LoadIrpDBToolStripMenuItem
+            // 
+            this.LoadIrpDBToolStripMenuItem.Name = "LoadIrpDBToolStripMenuItem";
+            this.LoadIrpDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.LoadIrpDBToolStripMenuItem.Text = "Load IRP DB";
+            this.LoadIrpDBToolStripMenuItem.Click += new System.EventHandler(this.LoadIrpDBToolStripMenuItem_Click);
+            // 
+            // SaveIrpToDBToolStripMenuItem
+            // 
+            this.SaveIrpToDBToolStripMenuItem.Name = "SaveIrpToDBToolStripMenuItem";
+            this.SaveIrpToDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.SaveIrpToDBToolStripMenuItem.Text = "Save IRPs to DB";
+            this.SaveIrpToDBToolStripMenuItem.Click += new System.EventHandler(this.SaveIrpToDBToolStripMenuItem_Click);
             // 
             // controlToolStripMenuItem
             // 
@@ -194,7 +209,7 @@ namespace Fuzzer
             this.monitoringToolStripMenuItem,
             this.hookUnhookDriversToolStripMenuItem});
             this.controlToolStripMenuItem.Name = "controlToolStripMenuItem";
-            this.controlToolStripMenuItem.Size = new System.Drawing.Size(59, 20);
+            this.controlToolStripMenuItem.Size = new System.Drawing.Size(83, 29);
             this.controlToolStripMenuItem.Text = "Control";
             // 
             // driverToolStripMenuItem
@@ -203,14 +218,14 @@ namespace Fuzzer
             this.loadDriverToolStripMenuItem,
             this.unloadIrpDumperDriverToolStripMenuItem});
             this.driverToolStripMenuItem.Name = "driverToolStripMenuItem";
-            this.driverToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.driverToolStripMenuItem.Size = new System.Drawing.Size(278, 30);
             this.driverToolStripMenuItem.Text = "Driver";
             // 
             // loadDriverToolStripMenuItem
             // 
             this.loadDriverToolStripMenuItem.Name = "loadDriverToolStripMenuItem";
             this.loadDriverToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L)));
-            this.loadDriverToolStripMenuItem.Size = new System.Drawing.Size(247, 22);
+            this.loadDriverToolStripMenuItem.Size = new System.Drawing.Size(358, 30);
             this.loadDriverToolStripMenuItem.Text = "Load IrpDumper driver";
             this.loadDriverToolStripMenuItem.Click += new System.EventHandler(this.LoadDriverToolStripMenuItem_Click);
             // 
@@ -218,7 +233,7 @@ namespace Fuzzer
             // 
             this.unloadIrpDumperDriverToolStripMenuItem.Name = "unloadIrpDumperDriverToolStripMenuItem";
             this.unloadIrpDumperDriverToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.U)));
-            this.unloadIrpDumperDriverToolStripMenuItem.Size = new System.Drawing.Size(247, 22);
+            this.unloadIrpDumperDriverToolStripMenuItem.Size = new System.Drawing.Size(358, 30);
             this.unloadIrpDumperDriverToolStripMenuItem.Text = "Unload IrpDumper driver";
             this.unloadIrpDumperDriverToolStripMenuItem.Click += new System.EventHandler(this.UnloadIrpDumperDriverToolStripMenuItem_Click);
             // 
@@ -228,14 +243,14 @@ namespace Fuzzer
             this.startMonitoringToolStripMenuItem,
             this.stopMonitoringToolStripMenuItem});
             this.monitoringToolStripMenuItem.Name = "monitoringToolStripMenuItem";
-            this.monitoringToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.monitoringToolStripMenuItem.Size = new System.Drawing.Size(278, 30);
             this.monitoringToolStripMenuItem.Text = "Monitoring";
             // 
             // startMonitoringToolStripMenuItem
             // 
             this.startMonitoringToolStripMenuItem.Name = "startMonitoringToolStripMenuItem";
             this.startMonitoringToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.M)));
-            this.startMonitoringToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.startMonitoringToolStripMenuItem.Size = new System.Drawing.Size(293, 30);
             this.startMonitoringToolStripMenuItem.Text = "Start monitoring";
             this.startMonitoringToolStripMenuItem.Click += new System.EventHandler(this.StartMonitoringToolStripMenuItem_Click);
             // 
@@ -243,7 +258,7 @@ namespace Fuzzer
             // 
             this.stopMonitoringToolStripMenuItem.Name = "stopMonitoringToolStripMenuItem";
             this.stopMonitoringToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.N)));
-            this.stopMonitoringToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.stopMonitoringToolStripMenuItem.Size = new System.Drawing.Size(293, 30);
             this.stopMonitoringToolStripMenuItem.Text = "Stop monitoring";
             this.stopMonitoringToolStripMenuItem.Click += new System.EventHandler(this.StopMonitoringToolStripMenuItem_Click);
             // 
@@ -253,14 +268,14 @@ namespace Fuzzer
             this.byPathToolStripMenuItem,
             this.fromListToolStripMenuItem});
             this.hookUnhookDriversToolStripMenuItem.Name = "hookUnhookDriversToolStripMenuItem";
-            this.hookUnhookDriversToolStripMenuItem.Size = new System.Drawing.Size(194, 22);
+            this.hookUnhookDriversToolStripMenuItem.Size = new System.Drawing.Size(278, 30);
             this.hookUnhookDriversToolStripMenuItem.Text = "Hook / Unhook drivers";
             // 
             // byPathToolStripMenuItem
             // 
             this.byPathToolStripMenuItem.Name = "byPathToolStripMenuItem";
             this.byPathToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.P)));
-            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(234, 30);
             this.byPathToolStripMenuItem.Text = "By Path";
             this.byPathToolStripMenuItem.Click += new System.EventHandler(this.ByPathToolStripMenuItem_Click);
             // 
@@ -268,7 +283,7 @@ namespace Fuzzer
             // 
             this.fromListToolStripMenuItem.Name = "fromListToolStripMenuItem";
             this.fromListToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(166, 22);
+            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(234, 30);
             this.fromListToolStripMenuItem.Text = "From List";
             this.fromListToolStripMenuItem.Click += new System.EventHandler(this.FromListToolStripMenuItem_Click);
             // 
@@ -277,13 +292,13 @@ namespace Fuzzer
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(61, 29);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(146, 30);
             this.aboutToolStripMenuItem.Text = "About";
             // 
             // statusStrip1
@@ -291,25 +306,25 @@ namespace Fuzzer
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.StatusBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 581);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 898);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(914, 22);
+            this.statusStrip1.Padding = new System.Windows.Forms.Padding(2, 0, 21, 0);
+            this.statusStrip1.Size = new System.Drawing.Size(1371, 30);
             this.statusStrip1.TabIndex = 7;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // StatusBar
             // 
             this.StatusBar.Name = "StatusBar";
-            this.StatusBar.Size = new System.Drawing.Size(28, 17);
+            this.StatusBar.Size = new System.Drawing.Size(42, 25);
             this.StatusBar.Text = "CFB";
             // 
             // ShowIrpBtn
             // 
             this.ShowIrpBtn.Enabled = false;
-            this.ShowIrpBtn.Location = new System.Drawing.Point(11, 26);
-            this.ShowIrpBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.ShowIrpBtn.Location = new System.Drawing.Point(16, 40);
             this.ShowIrpBtn.Name = "ShowIrpBtn";
-            this.ShowIrpBtn.Size = new System.Drawing.Size(81, 22);
+            this.ShowIrpBtn.Size = new System.Drawing.Size(122, 34);
             this.ShowIrpBtn.TabIndex = 10;
             this.ShowIrpBtn.Text = "Show IRP";
             this.ShowIrpBtn.UseVisualStyleBackColor = true;
@@ -318,10 +333,9 @@ namespace Fuzzer
             // DumpToFileBtn
             // 
             this.DumpToFileBtn.Enabled = false;
-            this.DumpToFileBtn.Location = new System.Drawing.Point(96, 26);
-            this.DumpToFileBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.DumpToFileBtn.Location = new System.Drawing.Point(144, 40);
             this.DumpToFileBtn.Name = "DumpToFileBtn";
-            this.DumpToFileBtn.Size = new System.Drawing.Size(91, 22);
+            this.DumpToFileBtn.Size = new System.Drawing.Size(136, 34);
             this.DumpToFileBtn.TabIndex = 11;
             this.DumpToFileBtn.Text = "Dump to File";
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
@@ -330,10 +344,9 @@ namespace Fuzzer
             // SaveForReplayBtn
             // 
             this.SaveForReplayBtn.Enabled = false;
-            this.SaveForReplayBtn.Location = new System.Drawing.Point(191, 26);
-            this.SaveForReplayBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.SaveForReplayBtn.Location = new System.Drawing.Point(286, 40);
             this.SaveForReplayBtn.Name = "SaveForReplayBtn";
-            this.SaveForReplayBtn.Size = new System.Drawing.Size(97, 22);
+            this.SaveForReplayBtn.Size = new System.Drawing.Size(146, 34);
             this.SaveForReplayBtn.TabIndex = 12;
             this.SaveForReplayBtn.Text = "Save for Replay";
             this.SaveForReplayBtn.UseVisualStyleBackColor = true;
@@ -342,10 +355,9 @@ namespace Fuzzer
             // FuzzIrpBtn
             // 
             this.FuzzIrpBtn.Enabled = false;
-            this.FuzzIrpBtn.Location = new System.Drawing.Point(292, 26);
-            this.FuzzIrpBtn.Margin = new System.Windows.Forms.Padding(2);
+            this.FuzzIrpBtn.Location = new System.Drawing.Point(438, 40);
             this.FuzzIrpBtn.Name = "FuzzIrpBtn";
-            this.FuzzIrpBtn.Size = new System.Drawing.Size(89, 22);
+            this.FuzzIrpBtn.Size = new System.Drawing.Size(134, 34);
             this.FuzzIrpBtn.TabIndex = 13;
             this.FuzzIrpBtn.Text = "Fuzz IRP";
             this.FuzzIrpBtn.UseVisualStyleBackColor = true;
@@ -354,10 +366,9 @@ namespace Fuzzer
             // CleanIrpDataGridButton
             // 
             this.CleanIrpDataGridButton.Enabled = false;
-            this.CleanIrpDataGridButton.Location = new System.Drawing.Point(817, 26);
-            this.CleanIrpDataGridButton.Margin = new System.Windows.Forms.Padding(2);
+            this.CleanIrpDataGridButton.Location = new System.Drawing.Point(1226, 40);
             this.CleanIrpDataGridButton.Name = "CleanIrpDataGridButton";
-            this.CleanIrpDataGridButton.Size = new System.Drawing.Size(89, 22);
+            this.CleanIrpDataGridButton.Size = new System.Drawing.Size(134, 34);
             this.CleanIrpDataGridButton.TabIndex = 14;
             this.CleanIrpDataGridButton.Text = "Clean IRP";
             this.CleanIrpDataGridButton.UseVisualStyleBackColor = true;
@@ -365,10 +376,10 @@ namespace Fuzzer
             // 
             // IrpMonitorForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(914, 603);
+            this.ClientSize = new System.Drawing.Size(1371, 928);
             this.Controls.Add(this.CleanIrpDataGridButton);
             this.Controls.Add(this.FuzzIrpBtn);
             this.Controls.Add(this.SaveForReplayBtn);
@@ -378,7 +389,6 @@ namespace Fuzzer
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MenuBar);
-            this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "IrpMonitorForm";
             this.Text = "Canadian Fuzzy Bear";
             this.Load += new System.EventHandler(this.Form1_Load);
@@ -429,6 +439,8 @@ namespace Fuzzer
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         public DataGridView IrpDataView;
         private Button CleanIrpDataGridButton;
+        private ToolStripMenuItem LoadIrpDBToolStripMenuItem;
+        private ToolStripMenuItem SaveIrpToDBToolStripMenuItem;
     }
 }
 

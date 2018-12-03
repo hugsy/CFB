@@ -85,6 +85,110 @@ namespace Fuzzer
         }
 
 
+        public bool PopulateViewFromFile(string FileName)
+        {
+            bool res = false;
+
+            ResetDataBinder();
+
+            using (System.IO.StreamReader sr = new System.IO.StreamReader(FileName))
+            {
+                char[] sep = new char[] { ';' };
+
+                try
+                {
+                    while (!sr.EndOfStream)
+                    {
+                        string[] fields = sr.ReadLine().Split(sep);
+
+                        if (fields.Length != 12)
+                        {
+                            continue;
+                        }
+
+                        IrpHeader irpHeader = new IrpHeader()
+                        {
+                            TimeStamp = Convert.ToUInt64(fields[0]),
+                            Irql = Convert.ToUInt32(fields[1]),
+                            Type = Convert.ToUInt32(fields[2]),
+                            IoctlCode = Convert.ToUInt32(fields[3]),
+                            ProcessId = Convert.ToUInt32(fields[4]),
+                            ThreadId = Convert.ToUInt32(fields[6]),
+                            InputBufferLength = Convert.ToUInt32(fields[7]),
+                            OutputBufferLength = Convert.ToUInt32(fields[8]),
+                        };
+
+                        string DriverName = fields[9];
+                        string DeviceName = fields[10];
+                        string ProcessName = fields[5];
+                        byte[] Body = Utils.ConvertHexStringToByteArray(fields[11]);
+
+                        Irp irp = new Irp
+                        {
+                            Header = irpHeader,
+                            DriverName = DriverName,
+                            DeviceName = DeviceName,
+                            ProcessName = ProcessName,
+                            Body = Body
+                        };
+
+                        Irps.Add(irp);
+                        AddIrpToDataTable(irp);
+                    }
+
+                    res = true;
+                }
+                catch(Exception)
+                {
+                    res = false;
+                }
+            }
+
+            return res;
+        }
+
+
+        public bool DumpViewToFile(string FileName)
+        {
+            bool res = false;
+
+            using (System.IO.StreamWriter wr = new System.IO.StreamWriter(FileName))
+            {
+                try
+                {
+                    foreach (Irp irp in Irps)
+                    {
+                        string[] fields = new string[12]
+                        {
+                        irp.Header.TimeStamp.ToString(), // timestamp
+                        irp.Header.Irql.ToString(), // irql
+                        irp.Header.Type.ToString(), // type
+                        irp.Header.IoctlCode.ToString(), // ioctl code
+                        irp.Header.ProcessId.ToString(), // process id
+                        irp.ProcessName.ToString(), // process name
+                        irp.Header.ThreadId.ToString(), // thread id
+                        irp.Header.InputBufferLength.ToString(), // input buffer length
+                        irp.Header.OutputBufferLength.ToString(), // output buffer length
+                        irp.DriverName, // driver name
+                        irp.DeviceName, // device name
+                        BitConverter.ToString(irp.Body).Replace("-", ""), // body
+                        };
+
+                        wr.WriteLine(String.Join(";", fields));
+                    }
+
+                    res = true;
+                }
+                catch(Exception)
+                {
+                    res = false;
+                }
+            }
+
+            return res;
+        }
+
+
         /// <summary>
         /// Starts a dedicated thread to pop out messages from the named pipe.
         /// </summary>
@@ -430,5 +534,7 @@ namespace Fuzzer
 
             return;
         }
+
+
     }
 }

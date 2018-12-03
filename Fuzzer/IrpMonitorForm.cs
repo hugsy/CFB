@@ -8,7 +8,7 @@ namespace Fuzzer
 {
     public partial class IrpMonitorForm : Form
     {
-        private IrpDataReader CfbReader;
+        private IrpDataReader DataReader;
         private LoadDriverForm ldForm;
         private static Mutex LogMutex;
         private bool bIsDriverLoaded;
@@ -23,7 +23,7 @@ namespace Fuzzer
 
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
-            CfbReader = new IrpDataReader(this);
+            DataReader = new IrpDataReader(this);
             ldForm = new LoadDriverForm(this);
         }
 
@@ -66,19 +66,19 @@ namespace Fuzzer
 
         private void StartListening()
         {
-            CfbReader.StartThreads();
+            DataReader.StartThreads();
         }
 
         private void StopListening()
         {
-            CfbReader.JoinThreads();
+            DataReader.JoinThreads();
         }
 
         private void OnProcessExit(object sender, EventArgs e)
         {
             Core.DisableMonitoring();
 
-            if (CfbReader.AreThreadsRunning )
+            if (DataReader.AreThreadsRunning )
                 StopListening();
 
             CleanupCfbContext();
@@ -158,7 +158,7 @@ namespace Fuzzer
         private void ShowIrpDetailsForm()
         {
             DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
-            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            Irp SelectedIrp = DataReader.Irps[SelectedRow.Index];
             IrpViewerForm HexViewForm = new IrpViewerForm(SelectedRow.Index, SelectedIrp);
             HexViewForm.Show();
         }
@@ -176,7 +176,7 @@ namespace Fuzzer
         private void DumpToFileBtn_Click(object sender, EventArgs e)
         {
             DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
-            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            Irp SelectedIrp = DataReader.Irps[SelectedRow.Index];
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
                 Filter = "Raw|*.raw",
@@ -222,16 +222,15 @@ namespace Fuzzer
         private void SaveForReplayBtn_Click(object sender, EventArgs e)
         {
             DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
-            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index]; 
+            Irp SelectedIrp = DataReader.Irps[SelectedRow.Index]; 
                                  
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
                 Filter = "Python|*.py",
                 Title = "Save IRP body to file"
             };
-            saveFileDialog.ShowDialog();
 
-            if (saveFileDialog.FileName != "")
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.FileName != "")
             {
                 string IrpDataInStr = "";
                 string IrpDataOutStr = "";
@@ -334,7 +333,7 @@ if __name__ == '__main__':
         private void FuzzIrpBtn_Click(object sender, EventArgs e)
         {
             DataGridViewRow SelectedRow = IrpDataView.SelectedRows[0];
-            Irp SelectedIrp = CfbReader.Irps[SelectedRow.Index];
+            Irp SelectedIrp = DataReader.Irps[SelectedRow.Index];
             SimpleFuzzerForm fuzzer = new SimpleFuzzerForm(SelectedIrp);
             fuzzer.Show();
         }
@@ -425,7 +424,10 @@ if __name__ == '__main__':
 
         private void ByPathToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string DriverName = SimplePromptPopup.ShowDialog("Enter the complete path to the driver object (example '\\driver\\fvevol'):", "Driver full path");
+            string DriverName = SimplePromptPopup.ShowDialog(
+                "Enter the complete path to the driver object (example '\\driver\\fvevol'):", 
+                "Driver full path"
+            );
 
             if (DriverName.Length == 0)
             {
@@ -457,7 +459,56 @@ if __name__ == '__main__':
 
         private void CleanIrpDataGridButton_Click(object sender, EventArgs e)
         {
-            CfbReader.ResetDataBinder();            
+            DataReader.ResetDataBinder();            
+        }
+
+        private void LoadIrpDBToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Filter = "CFB Database|*.csv",
+                Title = "Load IRPs from file"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                if ( DataReader.PopulateViewFromFile(openFileDialog.FileName) )
+                {
+                    Log($"IRPs loaded from '{openFileDialog.FileName:s}'");
+                }
+                else
+                {
+                    Log("Failed to load IRPs");
+                }
+            }
+        }
+
+        private void SaveIrpToDBToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (DataReader.Irps.Count == 0)
+            {
+                Log("Nothing to save");
+                return;
+            }
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "CFB Database|*.csv",
+                Title = "Save all the IRPs in View to file"
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && saveFileDialog.FileName != "")
+            {
+                if ( DataReader.DumpViewToFile(saveFileDialog.FileName) )
+                {
+                    Log($"IRPs saved in '{saveFileDialog.FileName}'");
+                }
+                else
+                {
+                    Log($"Failed to save IRPs");
+                }
+            }
+
         }
     }
 }

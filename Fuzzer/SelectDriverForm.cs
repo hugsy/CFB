@@ -68,9 +68,9 @@ namespace Fuzzer
             string[] BlackListedFSs = new string[] {
             };
 
-            //AddKernelObjectsToDataTable("\\Driver", BlackListedDrivers);
-            //AddKernelObjectsToDataTable("\\FileSystem", BlackListedFSs);
-            AddKernelObjectsToDataTable("\\Device", BlackListedFSs);
+            AddKernelObjectsToDataTable("\\Driver", BlackListedDrivers);
+            AddKernelObjectsToDataTable("\\FileSystem", BlackListedFSs);
+            //AddKernelObjectsToDataTable("\\Device", BlackListedFSs);
 
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {

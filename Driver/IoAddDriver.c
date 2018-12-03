@@ -26,6 +26,13 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	UNICODE_STRING UnicodeName;
     PDRIVER_OBJECT pDriver;
     PDEVICE_OBJECT pDevice;
+	
+	OBJECT_ATTRIBUTES ObjAttr;
+	HANDLE DeviceObjectHandle;
+	IO_STATUS_BLOCK IoStatusBlock;
+	OBJECT_HANDLE_INFORMATION HandleInformation;
+
+	
 
     RtlInitUnicodeString(&UnicodeName, lpObjectName);
 
@@ -53,17 +60,54 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
         break;
 
     case Device:
+		
+		InitializeObjectAttributes(&ObjAttr, &UnicodeName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+		CfbDbgPrintInfo(L"init done\n");
+
+		status = ZwOpenFile(
+			&DeviceObjectHandle,
+			FILE_READ_DATA,
+			&ObjAttr,
+			&IoStatusBlock,
+			FILE_GENERIC_READ,
+			FILE_OPEN);
+
+		if (!NT_SUCCESS(status))
+		{
+			return status;
+		}
+
+		CfbDbgPrintInfo(L"open done\n");
+
+
+		status = ObReferenceObjectByHandle(
+			DeviceObjectHandle,
+			GENERIC_READ,
+			*IoDeviceObjectType,
+			KernelMode,
+			&pDevice,
+			&HandleInformation
+        );
+
+		CfbDbgPrintInfo(L"ref done\n");
+
+
+		/*
 
         status = ObReferenceObjectByName(
-            /* IN PUNICODE_STRING */ &UnicodeName,
-            /* IN ULONG */ OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-            /* IN PACCESS_STATE */ NULL,
-            /* IN ACCESS_MASK */ 0,
-            /* IN POBJECT_TYPE */ *IoDeviceObjectType,
-            /* IN KPROCESSOR_MODE */KernelMode,
-            /* IN OUT PVOID */ NULL,
-            /* OUT PVOID* */ (PVOID*)&pDevice
+            &UnicodeName,
+            OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+            NULL,
+            0,
+            *IoDeviceObjectType,
+            KernelMode,
+            NULL,
+            (PVOID*)&pDevice
         );
+
+		// always returns 0xc0000024 
+		*/
 
         if (!NT_SUCCESS(status))
         {
@@ -149,10 +193,9 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 --*/
 NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 {
-	UNREFERENCED_PARAMETER(Irp);
-	
+
 	NTSTATUS Status = STATUS_SUCCESS;
-	LPWSTR lpDriverName;
+	LPWSTR lpObjectName;
 	ULONG InputBufferLen;
 
 	do
@@ -162,9 +205,9 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		// Check IRP arguments
 		//
 
-		lpDriverName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
+		lpObjectName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
 
-		if (!lpDriverName)
+		if (!lpObjectName)
 		{
 			Status = STATUS_INVALID_PARAMETER;
 			break;
@@ -180,32 +223,31 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		}
 
 
-        CfbDbgPrintInfo(L"Adding AddObjectByName('%s') \n", lpDriverName);
+        CfbDbgPrintInfo(L"Adding AddObjectByName('%s') \n", lpObjectName);
+
 
 		//
 		// Add the driver
 		//
 
-        if (wcsncmp(lpDriverName, L"\\driver", 7) == 0)
+        if (wcsncmp(lpObjectName, L"\\driver", 7) == 0)
         {
-            Status = AddObjectByName(lpDriverName, Driver);
+            Status = AddObjectByName(lpObjectName, Driver);
         }
-        else if (wcsncmp(lpDriverName, L"\\filesystem", 11) == 0)
+        else if (wcsncmp(lpObjectName, L"\\filesystem", 11) == 0)
         {
-            Status = AddObjectByName(lpDriverName, FileSystem);
+            Status = AddObjectByName(lpObjectName, FileSystem);
         }
-        else if (wcsncmp(lpDriverName, L"\\device", 7) == 0)
+        else if (wcsncmp(lpObjectName, L"\\device", 7) == 0)
         {
-            Status = AddObjectByName(lpDriverName, Device);
+            Status = AddObjectByName(lpObjectName, Device);
         }
         else
         {
             Status = STATUS_INVALID_PARAMETER;
         }
 		
-
-		CfbDbgPrintOk(L"AddObjectByName('%s') returned %#x\n", lpDriverName, Status);
-
+		CfbDbgPrintOk(L"AddObjectByName('%s') returned %#x\n", lpObjectName, Status);
 	}
 	while(0);
 

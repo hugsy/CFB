@@ -136,5 +136,14 @@ namespace Fuzzer
         {
             return Src.ToArray().Skip(IndexStart).Take(IndexEnd - IndexStart).ToArray();
         }
+
+
+        public static byte[] ConvertHexStringToByteArray(string HexString)
+        {
+            return Enumerable.Range(0, HexString.Length)
+                 .Where(x => x % 2 == 0)
+                 .Select(x => Convert.ToByte(HexString.Substring(x, 2), 16))
+                 .ToArray();
+        }
     }
 }
