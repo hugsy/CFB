@@ -318,8 +318,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
             break;
 
         default:
-            CfbDbgPrintErr(L"Incorrect IRP type %x\n", temp.Type);
-            return STATUS_UNSUCCESSFUL;
+            return STATUS_NOT_IMPLEMENTED;
 	}
 
 

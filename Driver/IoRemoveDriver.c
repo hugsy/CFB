@@ -9,34 +9,38 @@ extern PLIST_ENTRY g_HookedDriversHead;
 --*/
 NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 {
-	NTSTATUS status = STATUS_SUCCESS;
-
 	CfbDbgPrintInfo(L"Removing driver '%s'\n", lpDriverName);
 
-	PHOOKED_DRIVER pDriverToRemove;
-	NTSTATUS Status = GetHookedDriverByName(lpDriverName, &pDriverToRemove);
+	PHOOKED_DRIVER pHookedDriverToRemove;
+	NTSTATUS Status = GetHookedDriverByName(lpDriverName, &pHookedDriverToRemove);
 
 	if (!NT_SUCCESS(Status))
 	{
 		CfbDbgPrintErr(L"No hooked driver found as '%s': Status=0x%x\n", lpDriverName, Status);
-		return STATUS_INVALID_PARAMETER;
+		return Status;
 	}
 
 
-	pDriverToRemove->Enabled = FALSE;
+	pHookedDriverToRemove->Enabled = FALSE;
 
 
 	//
 	// restore the former device control function pointer
 	//
-	PDRIVER_OBJECT pDriver = pDriverToRemove->DriverObject;
+	PDRIVER_OBJECT pDriver = pHookedDriverToRemove->DriverObject;
 
+    for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
+    {
+        InterlockedExchangePointer(
+            (PVOID)&pDriver->MajorFunction[i],
+            (PVOID)pHookedDriverToRemove->OriginalRoutines[i]
+        );
+    }
+
+    /*
 	CfbDbgPrintInfo(L"- '%s' - restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
 
-	InterlockedExchangePointer(
-		(PVOID)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
-		(PVOID)pDriverToRemove->OldDeviceControlRoutine
-	);
+
 
 
 	CfbDbgPrintInfo( L"- '%s' - restoring IRP_MJ_READ to %p\n", lpDriverName, pDriverToRemove->OldReadRoutine );
@@ -53,24 +57,24 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 		(PVOID)&pDriver->MajorFunction[IRP_MJ_WRITE],
 		(PVOID)pDriverToRemove->OldWriteRoutine
 	);
-
+    */
 
 	//
 	// fix the chain
 	//
 
-    RemoveEntryList(&(pDriverToRemove->ListEntry));
+    RemoveEntryList(&(pHookedDriverToRemove->ListEntry));
         
 
 
 	//
 	// free the driver pool and its reference
 	//
-	ObDereferenceObject(pDriverToRemove->DriverObject);
+	ObDereferenceObject(pHookedDriverToRemove->DriverObject);
 
-	ExFreePoolWithTag(pDriverToRemove, CFB_DEVICE_TAG);
+	ExFreePoolWithTag(pHookedDriverToRemove, CFB_DEVICE_TAG);
 
-	return status;
+	return Status;
 }
 
 
@@ -90,16 +94,18 @@ NTSTATUS RemoveAllDrivers()
     UINT32 dwNbRemoved = 0;
     BOOLEAN bIsLast;
     PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+    PLIST_ENTRY Next;
 
     do
 	{
-        bIsLast = Entry->Flink == g_HookedDriversHead;
+        Next = Entry->Flink;
+        bIsLast = Next == g_HookedDriversHead;
 
         PHOOKED_DRIVER Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
 		WCHAR OldDriverName[HOOKED_DRIVER_MAX_NAME_LEN]={ 0, };
 		wcscpy( OldDriverName, Driver->Name );
-
+        
 		Status = RemoveDriverByName( Driver->Name );
 		if (!NT_SUCCESS(Status))
 		{
@@ -116,8 +122,7 @@ NTSTATUS RemoveAllDrivers()
             break;
         }
 
-        Entry = Entry->Flink;
-
+        Entry = Next;
     } 
 	while ( !IsListEmpty(g_HookedDriversHead) );
 

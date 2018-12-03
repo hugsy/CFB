@@ -145,8 +145,9 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
+    /*
 	CfbDbgPrintInfo( L"AddObjectByName('%s'): switching IRP_MJ_DEVICE_CONTROL with %p\n", lpObjectName, InterceptedDeviceControlRoutine );
-
+    
 	PVOID OldDeviceControlRoutine = InterlockedExchangePointer(
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
 		(PVOID)InterceptedDeviceControlRoutine
@@ -167,13 +168,26 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 		(PVOID*)&pDriver->MajorFunction[IRP_MJ_WRITE],
 		(PVOID)InterceptedWriteRoutine
 	);
-	
+	*/
 	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpObjectName);
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
 	NewDriver->DriverObject = pDriver;
+    /*
 	NewDriver->OldDeviceControlRoutine = OldDeviceControlRoutine;
 	NewDriver->OldReadRoutine = OldReadRoutine;
 	NewDriver->OldWriteRoutine = OldWriteRoutine;
+    */
+
+    for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
+    {
+        PVOID OldRoutine = InterlockedExchangePointer(
+            (PVOID*)&pDriver->MajorFunction[i],
+            (PVOID)InterceptGenericRoutine
+        );
+
+        NewDriver->OriginalRoutines[i] = OldRoutine;
+    }
+
 	NewDriver->Enabled = TRUE;
 	
 

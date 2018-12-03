@@ -44,10 +44,12 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 	OUT PVOID *ObjectPtr
 );
 
-
+/*
 NTSTATUS InterceptedDeviceControlRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
+*/
+NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
 NTSTATUS EnableMonitoring();
 NTSTATUS DisableMonitoring();

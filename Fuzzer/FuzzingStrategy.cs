@@ -48,7 +48,7 @@ namespace Fuzzer
     public class RandomFuzzingStrategy : FuzzingStrategy
     {
 
-        private Random Rng;
+        protected Random Rng;
 
 
         public RandomFuzzingStrategy()
@@ -56,6 +56,12 @@ namespace Fuzzer
             name = "Random";
             description = "Infinitely generates random data (unless Max Test Cases is not empty and higher than 0)";
             Rng = new Random();
+        }
+
+
+        protected virtual void FillBuffer(byte[] buffer)
+        {
+            Rng.NextBytes(buffer);
         }
 
 
@@ -68,15 +74,41 @@ namespace Fuzzer
 
                 Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(ClonedBuffer, IndexStart, IndexEnd);
-                Rng.NextBytes(FuzzedBuffer);
+                FillBuffer(FuzzedBuffer);
                 Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, IndexStart, FuzzedBuffer.Length);
 
                 yield return ClonedBuffer;
 
                 if (ForceDelayBetweenCases > 0)
+                {
                     Thread.Sleep(ForceDelayBetweenCases);
+                }
+                    
             }
         }
+    }
+
+    public class RandomAsciiFuzzingStrategy : RandomFuzzingStrategy
+    {
+        private readonly byte[] Charset;
+
+        public RandomAsciiFuzzingStrategy()
+        {
+            name = "ASCII Overwrite";
+            description = "Generate random ASCII";
+            Rng = new Random();
+            Charset = System.Text.Encoding.ASCII.GetBytes("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ " ); 
+        }
+
+        protected override void FillBuffer(byte[] buffer)
+        {
+            byte[] b = Enumerable.Repeat(Charset, buffer.Length).Select(s => s[Rng.Next(s.Length)]).ToArray();
+            for (int i = 0; i < b.Length; i++)
+            {
+                buffer[i] = b[i];
+            }
+        }
+
     }
 
 
@@ -267,4 +299,7 @@ namespace Fuzzer
             }
         }
     }
+
+
+
 }

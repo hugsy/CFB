@@ -51,7 +51,7 @@ namespace Fuzzer
 
                 string ObjectPath = $"{ObjectRootPath}\\{DriverName:s}";
                 DataRow row = DriverDataTable.NewRow();
-                row["DriverPath"] = ObjectPath;
+                row["DriverPath"] = ObjectPath.ToLower();
                 DriverDataTable.Rows.Add(row);
             }
         }
@@ -62,7 +62,7 @@ namespace Fuzzer
             DriverDataTable.Clear();
 
             string[] BlackListedDrivers = new string[] {
-                "\\Driver\\IrpDumper"
+                "\\driver\\irpdumper"
             };
 
             string[] BlackListedFSs = new string[] {
@@ -70,7 +70,6 @@ namespace Fuzzer
 
             AddKernelObjectsToDataTable("\\Driver", BlackListedDrivers);
             AddKernelObjectsToDataTable("\\FileSystem", BlackListedFSs);
-            //AddKernelObjectsToDataTable("\\Device", BlackListedFSs);
 
             foreach (DataGridViewRow row in LoadedDriverGridView.Rows)
             {

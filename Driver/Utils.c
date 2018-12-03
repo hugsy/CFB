@@ -6,14 +6,20 @@
 --*/
 VOID CfbDbgPrint(IN const WCHAR* lpFormatString, ...)
 {
+    if (KeGetCurrentIrql() != PASSIVE_LEVEL)
+    {
+        return;
+    }
+
 #ifdef _DEBUG
 	va_list args;
-	WCHAR buffer[1024] = { 0, };
+    WCHAR buffer[1024] = { 0, };
 	va_start(args, lpFormatString);
 	vswprintf_s(buffer, sizeof(buffer) / sizeof(WCHAR), lpFormatString, args);
 	va_end(args);
 
 	KdPrint(("[%S] %S", CFB_PROGRAM_NAME_SHORT, buffer));
+
 #else
 	UNREFERENCED_PARAMETER( lpFormatString );
 #endif
@@ -54,10 +60,10 @@ NTSTATUS GetDeviceNameFromDeviceObject( IN PVOID pDeviceObject, OUT WCHAR* Devic
 	POBJECT_NAME_INFORMATION pDeviceNameInfo = (POBJECT_NAME_INFORMATION)Buffer;
 
 	Status = ObQueryNameString(
-								pDeviceObject,
-								pDeviceNameInfo,
-								sizeof( Buffer ),
-								&ReturnLength
+        pDeviceObject,
+        pDeviceNameInfo,
+        sizeof( Buffer ),
+        &ReturnLength
 	);
 
 	if ( !NT_SUCCESS( Status ) )

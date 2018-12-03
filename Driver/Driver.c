@@ -316,7 +316,7 @@ Links:
 --*/
 typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
-static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	NTSTATUS Status;
     BOOLEAN Found = FALSE;
@@ -371,16 +371,16 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	{
 
 		//
-		// Push the message to the named pipe
+		// Capture the IRP data
 		//
 
 		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE )
 		{
 			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
 
-			if( !NT_SUCCESS(Status) )
+			if( !NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
             {
-				CfbDbgPrintWarn( L"HandleInterceptedIrp() returned 0x%X\n", Status );
+				CfbDbgPrintWarn( L"HandleInterceptedIrp() failed (status=0x%X)\n", Status );
             }
 		}
 
@@ -389,8 +389,11 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Call the original routine
 		//
 
-		PDRIVER_DISPATCH OldRoutine;
+        DWORD dwIndex = Stack->MajorFunction;
+        PDRIVER_DISPATCH OldRoutine = (DRIVER_DISPATCH*)curDriver->OriginalRoutines[dwIndex];
+        Status = OldRoutine(DeviceObject, Irp);
 
+        /*
 		switch ( Stack->MajorFunction )
 		{
 		case IRP_MJ_READ:
@@ -414,7 +417,7 @@ static NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 			CompleteRequest( Irp, STATUS_NOT_IMPLEMENTED, 0 );
 			break;
 		}
-
+        */
 	}	
 
 	IoReleaseRemoveLock( &DriverRemoveLock, Irp );
