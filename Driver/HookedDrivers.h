@@ -16,6 +16,7 @@ typedef struct
 	PVOID OldReadRoutine;
 	PVOID OldWriteRoutine;
 	LIST_ENTRY ListEntry;
+	PVOID OriginalRoutines[IRP_MJ_MAXIMUM_FUNCTION];
 }
 HOOKED_DRIVER, *PHOOKED_DRIVER;
 
