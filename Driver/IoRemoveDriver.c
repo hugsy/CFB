@@ -29,6 +29,8 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	//
 	PDRIVER_OBJECT pDriver = pHookedDriverToRemove->DriverObject;
 
+	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
+
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
         InterlockedExchangePointer(
@@ -59,12 +61,15 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	);
     */
 
+
+
 	//
 	// fix the chain
 	//
 
     RemoveEntryList(&(pHookedDriverToRemove->ListEntry));
         
+	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 
 
 	//

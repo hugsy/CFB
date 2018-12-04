@@ -6,7 +6,7 @@
 #include "InterceptedIrpHandler.h"
 
 
-#define CFB_QUEUE_SIZE 1024
+#define CFB_QUEUE_SIZE 4096
 
 
 void InitializeQueueStructures();

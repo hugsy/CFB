@@ -9,7 +9,17 @@ typedef enum
 
 extern PLIST_ENTRY g_HookedDriversHead;
 
-/*++/
+
+
+
+VOID InitializeIoAddDriverStructure()
+{
+	KeInitializeSpinLock(&g_AddRemoveDriverSpinLock);
+}
+
+
+
+/*++
 
 --*/
 NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
@@ -27,11 +37,12 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
     PDRIVER_OBJECT pDriver;
     PDEVICE_OBJECT pDevice;
 	
+	/*
 	OBJECT_ATTRIBUTES ObjAttr;
 	HANDLE DeviceObjectHandle;
 	IO_STATUS_BLOCK IoStatusBlock;
 	OBJECT_HANDLE_INFORMATION HandleInformation;
-
+	*/
 	
 
     RtlInitUnicodeString(&UnicodeName, lpObjectName);
@@ -61,9 +72,9 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 
     case Device:
 		
+		/*
+		
 		InitializeObjectAttributes(&ObjAttr, &UnicodeName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-		CfbDbgPrintInfo(L"init done\n");
 
 		status = ZwOpenFile(
 			&DeviceObjectHandle,
@@ -78,9 +89,6 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 			return status;
 		}
 
-		CfbDbgPrintInfo(L"open done\n");
-
-
 		status = ObReferenceObjectByHandle(
 			DeviceObjectHandle,
 			GENERIC_READ,
@@ -93,7 +101,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 		CfbDbgPrintInfo(L"ref done\n");
 
 
-		/*
+		*/
 
         status = ObReferenceObjectByName(
             &UnicodeName,
@@ -107,7 +115,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
         );
 
 		// always returns 0xc0000024 
-		*/
+		
 
         if (!NT_SUCCESS(status))
         {
@@ -178,6 +186,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	NewDriver->OldWriteRoutine = OldWriteRoutine;
     */
 
+	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
+
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
         PVOID OldRoutine = InterlockedExchangePointer(
@@ -196,6 +206,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	//
 
     InsertTailList(g_HookedDriversHead, &(NewDriver->ListEntry));
+
+	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 
 	return status;
 }

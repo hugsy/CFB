@@ -7,7 +7,7 @@ static FAST_MUTEX FastMutex;
 
 /*++
 --*/
-VOID InitializeStoreTestCaseStructures()
+VOID InitializeTestCaseStructures()
 {
     ExInitializeFastMutex(&FastMutex);
 
@@ -76,7 +76,7 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
 /*++
 
 --*/
-NTSTATUS ReleaseLastTestCase()
+NTSTATUS ReleaseTestCaseStructures()
 {
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 

@@ -30,6 +30,7 @@ namespace Fuzzer
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(IrpMonitorForm));
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.LogTextBox = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -42,9 +43,9 @@ namespace Fuzzer
             this.MenuBar = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.LoadIrpDBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SaveIrpToDBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.LoadIrpDBToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.quitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.controlToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.driverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.loadDriverToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -178,29 +179,29 @@ namespace Fuzzer
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.settingsToolStripMenuItem.Text = "Global Settings";
-            // 
-            // quitToolStripMenuItem
-            // 
-            this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
-            this.quitToolStripMenuItem.Text = "Quit";
-            this.quitToolStripMenuItem.Click += new System.EventHandler(this.QuitToolStripMenuItem_Click);
-            // 
-            // LoadIrpDBToolStripMenuItem
-            // 
-            this.LoadIrpDBToolStripMenuItem.Name = "LoadIrpDBToolStripMenuItem";
-            this.LoadIrpDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
-            this.LoadIrpDBToolStripMenuItem.Text = "Load IRP DB";
-            this.LoadIrpDBToolStripMenuItem.Click += new System.EventHandler(this.LoadIrpDBToolStripMenuItem_Click);
             // 
             // SaveIrpToDBToolStripMenuItem
             // 
             this.SaveIrpToDBToolStripMenuItem.Name = "SaveIrpToDBToolStripMenuItem";
-            this.SaveIrpToDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.SaveIrpToDBToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.SaveIrpToDBToolStripMenuItem.Text = "Save IRPs to DB";
             this.SaveIrpToDBToolStripMenuItem.Click += new System.EventHandler(this.SaveIrpToDBToolStripMenuItem_Click);
+            // 
+            // LoadIrpDBToolStripMenuItem
+            // 
+            this.LoadIrpDBToolStripMenuItem.Name = "LoadIrpDBToolStripMenuItem";
+            this.LoadIrpDBToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
+            this.LoadIrpDBToolStripMenuItem.Text = "Load IRP DB";
+            this.LoadIrpDBToolStripMenuItem.Click += new System.EventHandler(this.LoadIrpDBToolStripMenuItem_Click);
+            // 
+            // quitToolStripMenuItem
+            // 
+            this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
+            this.quitToolStripMenuItem.Text = "Quit";
+            this.quitToolStripMenuItem.Click += new System.EventHandler(this.QuitToolStripMenuItem_Click);
             // 
             // controlToolStripMenuItem
             // 
@@ -389,6 +390,7 @@ namespace Fuzzer
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.MenuBar);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "IrpMonitorForm";
             this.Text = "Canadian Fuzzy Bear";
             this.Load += new System.EventHandler(this.Form1_Load);

@@ -453,7 +453,7 @@ namespace Fuzzer
                     //
                     NewMessageEvent.Reset();
 
-                    Thread.Sleep(500);
+                    Thread.Sleep(100);
                 }
             }
             catch (Exception Ex)
@@ -488,7 +488,7 @@ namespace Fuzzer
                     else
                     {
                         RootForm.IrpDataView.Refresh();
-                        Thread.Sleep(500);
+                        Thread.Sleep(100);
                     }
                 }
             }

@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(IrpViewerForm));
             this.IrpDetails = new System.Windows.Forms.GroupBox();
             this.IrpIrqlTextBox = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
@@ -245,6 +246,7 @@
             this.ClientSize = new System.Drawing.Size(874, 758);
             this.Controls.Add(this.IrpHexdump);
             this.Controls.Add(this.IrpDetails);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "IrpViewerForm";
             this.Text = "Details for IRP";
             this.IrpDetails.ResumeLayout(false);

@@ -191,6 +191,7 @@ namespace Fuzzer
         #region Windows Form Designer generated code
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SimpleFuzzerForm));
             this.startAsyncButton = new System.Windows.Forms.Button();
             this.cancelAsyncButton = new System.Windows.Forms.Button();
             this.resultLabel = new System.Windows.Forms.Label();
@@ -311,14 +312,14 @@ namespace Fuzzer
             // 
             this.FuzzByteStartIndexTextbox.Location = new System.Drawing.Point(155, 27);
             this.FuzzByteStartIndexTextbox.Name = "FuzzByteStartIndexTextbox";
-            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteStartIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteStartIndexTextbox.TabIndex = 9;
             // 
             // FuzzByteEndIndexTextbox
             // 
             this.FuzzByteEndIndexTextbox.Location = new System.Drawing.Point(155, 56);
             this.FuzzByteEndIndexTextbox.Name = "FuzzByteEndIndexTextbox";
-            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 20);
+            this.FuzzByteEndIndexTextbox.Size = new System.Drawing.Size(100, 26);
             this.FuzzByteEndIndexTextbox.TabIndex = 10;
             // 
             // label5
@@ -334,7 +335,7 @@ namespace Fuzzer
             // 
             this.MaxTestCaseTextbox.Location = new System.Drawing.Point(155, 84);
             this.MaxTestCaseTextbox.Name = "MaxTestCaseTextbox";
-            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 20);
+            this.MaxTestCaseTextbox.Size = new System.Drawing.Size(100, 26);
             this.MaxTestCaseTextbox.TabIndex = 12;
             this.MaxTestCaseTextbox.Text = "-1";
             // 
@@ -344,7 +345,7 @@ namespace Fuzzer
             this.StrategyComboBox.FormattingEnabled = true;
             this.StrategyComboBox.Location = new System.Drawing.Point(423, 128);
             this.StrategyComboBox.Name = "StrategyComboBox";
-            this.StrategyComboBox.Size = new System.Drawing.Size(137, 21);
+            this.StrategyComboBox.Size = new System.Drawing.Size(137, 28);
             this.StrategyComboBox.TabIndex = 13;
             this.StrategyComboBox.TabStop = false;
             this.StrategyComboBox.SelectedIndexChanged += new System.EventHandler(this.StrategyComboBox_SelectedIndexChanged);
@@ -353,7 +354,7 @@ namespace Fuzzer
             // 
             this.label6.Location = new System.Drawing.Point(344, 128);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(56, 23);
+            this.label6.Size = new System.Drawing.Size(73, 23);
             this.label6.TabIndex = 14;
             this.label6.Text = "Strategy";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -363,16 +364,16 @@ namespace Fuzzer
             this.SimpleFuzzStatusBar.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.SimpleFuzzStatusBar.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.SimpleFuzzStatusBarItem});
-            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 385);
+            this.SimpleFuzzStatusBar.Location = new System.Drawing.Point(0, 377);
             this.SimpleFuzzStatusBar.Name = "SimpleFuzzStatusBar";
-            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 22);
+            this.SimpleFuzzStatusBar.Size = new System.Drawing.Size(607, 30);
             this.SimpleFuzzStatusBar.TabIndex = 15;
             this.SimpleFuzzStatusBar.Text = "statusStrip1";
             // 
             // SimpleFuzzStatusBarItem
             // 
             this.SimpleFuzzStatusBarItem.Name = "SimpleFuzzStatusBarItem";
-            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(39, 17);
+            this.SimpleFuzzStatusBarItem.Size = new System.Drawing.Size(60, 25);
             this.SimpleFuzzStatusBarItem.Text = "Status";
             // 
             // label7
@@ -388,7 +389,7 @@ namespace Fuzzer
             // 
             this.DeviceObjectPathTextBox.Location = new System.Drawing.Point(177, 100);
             this.DeviceObjectPathTextBox.Name = "DeviceObjectPathTextBox";
-            this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(140, 20);
+            this.DeviceObjectPathTextBox.Size = new System.Drawing.Size(140, 26);
             this.DeviceObjectPathTextBox.TabIndex = 17;
             // 
             // label8
@@ -404,7 +405,7 @@ namespace Fuzzer
             // 
             this.IoctlCodeTextBox.Location = new System.Drawing.Point(423, 100);
             this.IoctlCodeTextBox.Name = "IoctlCodeTextBox";
-            this.IoctlCodeTextBox.Size = new System.Drawing.Size(137, 20);
+            this.IoctlCodeTextBox.Size = new System.Drawing.Size(137, 26);
             this.IoctlCodeTextBox.TabIndex = 19;
             // 
             // RandomizeInputLengthCheckbox
@@ -412,7 +413,7 @@ namespace Fuzzer
             this.RandomizeInputLengthCheckbox.AutoSize = true;
             this.RandomizeInputLengthCheckbox.Location = new System.Drawing.Point(310, 29);
             this.RandomizeInputLengthCheckbox.Name = "RandomizeInputLengthCheckbox";
-            this.RandomizeInputLengthCheckbox.Size = new System.Drawing.Size(142, 17);
+            this.RandomizeInputLengthCheckbox.Size = new System.Drawing.Size(211, 24);
             this.RandomizeInputLengthCheckbox.TabIndex = 20;
             this.RandomizeInputLengthCheckbox.Text = "Randomize Input Length";
             this.RandomizeInputLengthCheckbox.UseVisualStyleBackColor = true;
@@ -439,7 +440,7 @@ namespace Fuzzer
             this.RandomizeOutputLengthCheckbox.AutoSize = true;
             this.RandomizeOutputLengthCheckbox.Location = new System.Drawing.Point(310, 58);
             this.RandomizeOutputLengthCheckbox.Name = "RandomizeOutputLengthCheckbox";
-            this.RandomizeOutputLengthCheckbox.Size = new System.Drawing.Size(150, 17);
+            this.RandomizeOutputLengthCheckbox.Size = new System.Drawing.Size(223, 24);
             this.RandomizeOutputLengthCheckbox.TabIndex = 21;
             this.RandomizeOutputLengthCheckbox.Text = "Randomize Output Length";
             this.RandomizeOutputLengthCheckbox.UseVisualStyleBackColor = true;
@@ -462,6 +463,7 @@ namespace Fuzzer
             this.Controls.Add(this.resultLabel);
             this.Controls.Add(this.cancelAsyncButton);
             this.Controls.Add(this.startAsyncButton);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "SimpleFuzzerForm";
             this.Text = "Simple IRP Fuzzer";
             this.SimpleFuzzStatusBar.ResumeLayout(false);

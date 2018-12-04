@@ -179,7 +179,7 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	KeEnterCriticalRegion();
 
     {
-        ReleaseLastTestCase();
+		ReleaseTestCaseStructures();
         DisableMonitoring();
         RemoveAllDrivers();
         IoAcquireRemoveLock(&DriverRemoveLock, Irp);
@@ -300,7 +300,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     InitializeMonitoringStructures();
     InitializeHookedDriverStructures();
 	InitializeQueueStructures();
-    InitializeTestCaseStructures();
+	InitializeTestCaseStructures();
+	InitializeIoAddDriverStructure();
 	
 	return status;
 }
