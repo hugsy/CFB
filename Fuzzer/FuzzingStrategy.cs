@@ -94,7 +94,7 @@ namespace Fuzzer
 
         public RandomAsciiFuzzingStrategy()
         {
-            name = "ASCII Overwrite";
+            name = "ASCII Character Overwrite";
             description = "Generate random ASCII";
             Rng = new Random();
             Charset = System.Text.Encoding.ASCII.GetBytes("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ " ); 
@@ -118,8 +118,8 @@ namespace Fuzzer
 
         public RandomUnicodeFuzzingStrategy()
         {
-            name = "ASCII Overwrite";
-            description = "Generate random ASCII";
+            name = "Unicode Character Overwrite";
+            description = "Generate random Unicode character";
             Rng = new Random();
             Charset = System.Text.Encoding.ASCII.GetBytes("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ ");
         }
@@ -284,8 +284,18 @@ namespace Fuzzer
             {
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i + StepSize);
                 for (int j = 0; j < FuzzedBuffer.Length; j++)
-                    FuzzedBuffer[j] = 0xff;
-                FuzzedBuffer[FuzzedBuffer.Length - 1] = 0x7f;
+                    FuzzedBuffer[j] = 0x7f;
+                Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
+                Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, i, FuzzedBuffer.Length);
+
+                yield return ClonedBuffer;
+            }
+
+            for (int i = 0; i < Data.Length; i += StepSize)
+            {
+                Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i + StepSize);
+                for (int j = 0; j < FuzzedBuffer.Length; j++)
+                    FuzzedBuffer[j] = 0x00;
                 Byte[] ClonedBuffer = Utils.CloneByteArray(Data);
                 Buffer.BlockCopy(FuzzedBuffer, 0, ClonedBuffer, i, FuzzedBuffer.Length);
 

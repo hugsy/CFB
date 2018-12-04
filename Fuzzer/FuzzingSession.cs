@@ -39,7 +39,7 @@ namespace Fuzzer
 
             if (this.DeviceName.Length == 0)
             {
-                this.DeviceName = this.Irp.DeviceName.Replace("\\Device\\", "\\\\.\\");
+                this.DeviceName = this.Irp.DeviceName.ToLower().Replace("\\device\\", "\\\\.\\");
             }
 
             Start();
@@ -55,7 +55,6 @@ namespace Fuzzer
 
             foreach (byte[] FuzzedInputData in Strategy.GenerateTestCases())
             {
-                //MessageBox.Show($"{BitConverter.ToString(FuzzedInputData)}");
 
                 if (Worker.CancellationPending)
                 {
@@ -64,6 +63,7 @@ namespace Fuzzer
                     break;
                 }
 
+                // TODO : save testcase
                 try
                 {
                     if (SendFuzzedData(this.DeviceName, IoctlCode, FuzzedInputData, OutputData) == false)

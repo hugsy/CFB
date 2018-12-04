@@ -190,6 +190,7 @@
     <ClInclude Include="IoRemoveDriver.h" />
     <ClInclude Include="IoSetEventPointer.h" />
     <ClInclude Include="InterceptedIrpHandler.h" />
+    <ClInclude Include="IoStoreTestCase.h" />
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
@@ -202,6 +203,7 @@
     <ClCompile Include="IoRemoveDriver.c" />
     <ClCompile Include="IoSetEventPointer.c" />
     <ClCompile Include="InterceptedIrpHandler.c" />
+    <ClCompile Include="IoStoreTestCase.c" />
     <ClCompile Include="Queue.c" />
     <ClCompile Include="Utils.c" />
   </ItemGroup>

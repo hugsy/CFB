@@ -179,6 +179,7 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 	KeEnterCriticalRegion();
 
     {
+        ReleaseLastTestCase();
         DisableMonitoring();
         RemoveAllDrivers();
         IoAcquireRemoveLock(&DriverRemoveLock, Irp);
@@ -299,6 +300,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     InitializeMonitoringStructures();
     InitializeHookedDriverStructures();
 	InitializeQueueStructures();
+    InitializeTestCaseStructures();
 	
 	return status;
 }
@@ -586,6 +588,11 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		CfbDbgPrintInfo( L"Received 'IoctlSetEventPointer'\n" );
 		Status = HandleIoSetEventPointer(Irp, CurrentStack);
 		break;
+
+    case IOCTL_StoreTestCase:
+        CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
+        Status = HandleIoStoreTestCase(Irp, CurrentStack);
+        break;
 
 
 	default:
