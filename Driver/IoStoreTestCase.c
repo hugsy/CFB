@@ -41,9 +41,9 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
         {
 
             PVOID lpUserBuffer = Irp->AssociatedIrp.SystemBuffer;
-            ULONG uBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
+            UINT32 uBufferLen = (UINT32) Stack->Parameters.DeviceIoControl.InputBufferLength;
 
-            if (uBufferLen-sizeof(ULONG) > CFB_MAX_TESTCASE_SIZE)
+            if (uBufferLen-sizeof(PUINT32) > CFB_MAX_TESTCASE_SIZE)
             {
                 CfbDbgPrintErr(L"Cannot store testcase (size=0x%x, max=0x%x)\n", uBufferLen, CFB_MAX_TESTCASE_SIZE);
                 Status = STATUS_BUFFER_OVERFLOW;
@@ -52,9 +52,9 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
 
             //ProbeForRead(lpUserBuffer, uBufferLen, (ULONG)__alignof(uBufferLen));
 
-            PULONG ptr = (PULONG)g_LastTestCase;
+            PUINT32 ptr = (PUINT32)g_LastTestCase;
             *ptr = uBufferLen;
-            RtlCopyMemory((PVOID)(((ULONG_PTR)g_LastTestCase)+sizeof(ULONG)), lpUserBuffer, uBufferLen - sizeof(ULONG));
+            RtlCopyMemory((PVOID)((PUINT32)g_LastTestCase + 1), lpUserBuffer, uBufferLen - sizeof(PUINT32));
 
             Status = STATUS_SUCCESS;
         } 

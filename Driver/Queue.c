@@ -137,9 +137,9 @@ NTSTATUS FlushQueue()
 
 	while (!IsListEmpty(g_InterceptedIrpHead))
 	{
-		PINTERCEPTED_IRP pIrpDummy;
+		PINTERCEPTED_IRP pIrp;
 
-		Status = PopFromQueue(&pIrpDummy);
+		Status = PopFromQueue(&pIrp);
 		if (!NT_SUCCESS(Status))
 		{
 			if (Status == STATUS_NO_MORE_ENTRIES)
@@ -151,6 +151,7 @@ NTSTATUS FlushQueue()
 			CfbDbgPrintErr(L"An error occured : status=0x%x\n", Status);
 		}
 
+        FreeInterceptedIrp(pIrp);
 	}
 
 	ExReleaseFastMutex(&FlushQueueMutex);
