@@ -453,7 +453,7 @@ namespace Fuzzer
                     //
                     NewMessageEvent.Reset();
 
-                    Thread.Sleep(250);
+                    Thread.Sleep(500);
                 }
             }
             catch (Exception Ex)
@@ -487,9 +487,9 @@ namespace Fuzzer
                     }
                     else
                     {
-                        RootForm.IrpDataView.Refresh();
+                        //RootForm.IrpDataView.Refresh();
 
-                        Thread.Sleep(250);
+                        Thread.Sleep(500);
                     }
                 }
             }
@@ -519,7 +519,7 @@ namespace Fuzzer
             }
             
             IrpDataTable.Rows.Add(
-                DateTime.FromFileTime(( long )irp.Header.TimeStamp),
+                DateTime.FromFileTime(( long )irp.Header.TimeStamp).ToString("G"),
                 irp.IrqlAsString(),
                 irp.TypeAsString(),
                 IoctlCodeStr,
