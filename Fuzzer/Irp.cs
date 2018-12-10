@@ -106,5 +106,16 @@ namespace Fuzzer
             return IrqlAsString(this.Header.Irql);
         }
 
+        public bool Matches(System.Collections.Generic.List<IrpFilter> IrpFilterList)
+        {
+            foreach(IrpFilter CurrentFilter in IrpFilterList)
+            {
+                if (CurrentFilter.Matches(this) == false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 }

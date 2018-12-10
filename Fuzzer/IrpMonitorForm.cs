@@ -9,10 +9,12 @@ namespace Fuzzer
     public partial class IrpMonitorForm : Form
     {
         private IrpDataReader DataReader;
-        private LoadDriverForm ldForm;
+        private LoadDriverForm DriverForm;
+        public IrpFilterForm FilterForm;
         private static Mutex LogMutex;
         private bool bIsDriverLoaded;
         private bool bIsMonitoringEnabled;
+
 
 
         public IrpMonitorForm()
@@ -24,8 +26,10 @@ namespace Fuzzer
             LogMutex = new Mutex();
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             DataReader = new IrpDataReader(this);
-            ldForm = new LoadDriverForm(this);
+            DriverForm = new LoadDriverForm(this);
+            FilterForm = new IrpFilterForm(this, DataReader);
         }
+
 
         public void Log(string message)
         {
@@ -204,7 +208,14 @@ namespace Fuzzer
                     ShowIrpBtn.Enabled = true;
                     DumpToFileBtn.Enabled = true;
                     SaveForReplayBtn.Enabled = true;
-                    FuzzIrpBtn.Enabled = true;
+
+                    Irp SelectedIrp = DataReader.Irps[IrpDataView.SelectedRows[0].Index];
+
+                    if ((Irp.IrpMajorType)SelectedIrp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL)
+                    {
+                        FuzzIrpBtn.Enabled = true;
+                    }
+                    
                     break;
 
                 default:
@@ -380,7 +391,7 @@ if __name__ == '__main__':
                 startMonitoringToolStripMenuItem.Enabled = false;
                 stopMonitoringToolStripMenuItem.Enabled = true;
                 CleanIrpDataGridButton.Enabled = false;
-                StatusBar.Text = $"Monitoring for new IRPs on {ldForm.LoadedDrivers.Count} drivers...";
+                StatusBar.Text = $"Monitoring for new IRPs on {DriverForm.LoadedDrivers.Count} drivers...";
             }
             else
             {
@@ -442,7 +453,7 @@ if __name__ == '__main__':
                 return;
             }
 
-            ldForm.LoadedDrivers.Add(DriverName);
+            DriverForm.LoadedDrivers.Add(DriverName);
             Log($"Driver object '{DriverName}' is now hooked.");
         }
 
@@ -452,8 +463,8 @@ if __name__ == '__main__':
 
             if (fc == null || fc.Visible == false)
             {
-                ldForm.RefreshDriverList();
-                ldForm.Show();
+                DriverForm.RefreshDriverList();
+                DriverForm.Show();
             }
         }
 
@@ -509,6 +520,16 @@ if __name__ == '__main__':
                 }
             }
 
+        }
+
+        private void DefineFiltersToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form f = Application.OpenForms["DefineFilterForm"];
+
+            if (f == null || f.Visible == false)
+            {
+                FilterForm.Show();
+            }
         }
     }
 }

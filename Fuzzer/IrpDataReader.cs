@@ -483,7 +483,11 @@ namespace Fuzzer
 
                     if ( NewItems.TryTake(out Irp irp) )
                     {
-                        AddIrpToDataTable(irp);
+                        if (irp.Matches(RootForm.FilterForm.IrpFilterList))
+                        {
+                            AddIrpToDataTable(irp);
+                        }
+                        
                     }
                     else
                     {

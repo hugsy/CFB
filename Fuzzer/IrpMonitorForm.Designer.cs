@@ -65,6 +65,7 @@ namespace Fuzzer
             this.SaveForReplayBtn = new System.Windows.Forms.Button();
             this.FuzzIrpBtn = new System.Windows.Forms.Button();
             this.CleanIrpDataGridButton = new System.Windows.Forms.Button();
+            this.DefineFiltersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -208,7 +209,8 @@ namespace Fuzzer
             this.controlToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.driverToolStripMenuItem,
             this.monitoringToolStripMenuItem,
-            this.hookUnhookDriversToolStripMenuItem});
+            this.hookUnhookDriversToolStripMenuItem,
+            this.DefineFiltersToolStripMenuItem});
             this.controlToolStripMenuItem.Name = "controlToolStripMenuItem";
             this.controlToolStripMenuItem.Size = new System.Drawing.Size(83, 29);
             this.controlToolStripMenuItem.Text = "Control";
@@ -276,7 +278,7 @@ namespace Fuzzer
             // 
             this.byPathToolStripMenuItem.Name = "byPathToolStripMenuItem";
             this.byPathToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.P)));
-            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(234, 30);
+            this.byPathToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
             this.byPathToolStripMenuItem.Text = "By Path";
             this.byPathToolStripMenuItem.Click += new System.EventHandler(this.ByPathToolStripMenuItem_Click);
             // 
@@ -284,7 +286,7 @@ namespace Fuzzer
             // 
             this.fromListToolStripMenuItem.Name = "fromListToolStripMenuItem";
             this.fromListToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(234, 30);
+            this.fromListToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
             this.fromListToolStripMenuItem.Text = "From List";
             this.fromListToolStripMenuItem.Click += new System.EventHandler(this.FromListToolStripMenuItem_Click);
             // 
@@ -375,6 +377,13 @@ namespace Fuzzer
             this.CleanIrpDataGridButton.UseVisualStyleBackColor = true;
             this.CleanIrpDataGridButton.Click += new System.EventHandler(this.CleanIrpDataGridButton_Click);
             // 
+            // DefineFiltersToolStripMenuItem
+            // 
+            this.DefineFiltersToolStripMenuItem.Name = "DefineFiltersToolStripMenuItem";
+            this.DefineFiltersToolStripMenuItem.Size = new System.Drawing.Size(278, 30);
+            this.DefineFiltersToolStripMenuItem.Text = "Define Filters";
+            this.DefineFiltersToolStripMenuItem.Click += new System.EventHandler(this.DefineFiltersToolStripMenuItem_Click);
+            // 
             // IrpMonitorForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -443,6 +452,7 @@ namespace Fuzzer
         private Button CleanIrpDataGridButton;
         private ToolStripMenuItem LoadIrpDBToolStripMenuItem;
         private ToolStripMenuItem SaveIrpToDBToolStripMenuItem;
+        private ToolStripMenuItem DefineFiltersToolStripMenuItem;
     }
 }
 

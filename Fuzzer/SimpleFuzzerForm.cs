@@ -1,20 +1,18 @@
 ﻿using System;
-using System.Collections;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace Fuzzer
 {
-    public class SimpleFuzzerForm : System.Windows.Forms.Form
+    public class SimpleFuzzerForm : Form
     {
         private readonly Irp Irp;
 
-        private System.Windows.Forms.Button startAsyncButton;
-        private System.Windows.Forms.Button cancelAsyncButton;
-        private System.Windows.Forms.ProgressBar progressBar1;
-        private System.Windows.Forms.Label statusLabel;
-        private System.Windows.Forms.Label resultLabel;
+        private Button startAsyncButton;
+        private Button cancelAsyncButton;
+        private ProgressBar progressBar1;
+        private Label statusLabel;
+        private Label resultLabel;
         private Label label1;
         private Label label2;
         private Label label3;
@@ -24,10 +22,8 @@ namespace Fuzzer
         private TextBox FuzzByteStartIndexTextbox;
         private TextBox FuzzByteEndIndexTextbox;
         private TextBox MaxTestCaseTextbox;
-        private System.ComponentModel.BackgroundWorker worker;
+        private BackgroundWorker worker;
         private ComboBox StrategyComboBox;
-
-        private FuzzingStrategy[] Strategies;
         private StatusStrip SimpleFuzzStatusBar;
         private ToolStripStatusLabel SimpleFuzzStatusBarItem;
         private Label label7;
@@ -37,6 +33,8 @@ namespace Fuzzer
         private CheckBox RandomizeInputLengthCheckbox;
         private GroupBox RandomFuzzGroupBox;
         private CheckBox RandomizeOutputLengthCheckbox;
+
+        private FuzzingStrategy[] Strategies;
         private FuzzingSession Session;
 
         
