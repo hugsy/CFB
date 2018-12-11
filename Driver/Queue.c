@@ -150,8 +150,10 @@ NTSTATUS FlushQueue()
 
 			CfbDbgPrintErr(L"An error occured : status=0x%x\n", Status);
 		}
-
-        FreeInterceptedIrp(pIrp);
+        else
+        {
+            FreeInterceptedIrp(pIrp);
+        }
 	}
 
 	ExReleaseFastMutex(&FlushQueueMutex);
