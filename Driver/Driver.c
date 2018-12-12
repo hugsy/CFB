@@ -396,31 +396,6 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         PDRIVER_DISPATCH OldRoutine = (DRIVER_DISPATCH*)curDriver->OriginalRoutines[dwIndex];
         Status = OldRoutine(DeviceObject, Irp);
 
-        /*
-		switch ( Stack->MajorFunction )
-		{
-		case IRP_MJ_READ:
-			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldReadRoutine;
-			Status = OldRoutine( DeviceObject, Irp );
-			break;
-
-		case IRP_MJ_WRITE:
-			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldWriteRoutine;
-			Status = OldRoutine( DeviceObject, Irp );
-			break;
-
-		case IRP_MJ_DEVICE_CONTROL:
-			OldRoutine = (DRIVER_DISPATCH*)curDriver->OldDeviceControlRoutine;
-			Status = OldRoutine( DeviceObject, Irp );
-			break;
-
-		default:
-			CfbDbgPrintErr( L"Fail to fallback to the IRP MAJOR routine %x in '%s'\n", Stack->MajorFunction, curDriver->Name );
-			Status = STATUS_NOT_IMPLEMENTED;
-			CompleteRequest( Irp, STATUS_NOT_IMPLEMENTED, 0 );
-			break;
-		}
-        */
 	}	
 
 	IoReleaseRemoveLock( &DriverRemoveLock, Irp );

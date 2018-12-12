@@ -211,7 +211,7 @@ namespace Fuzzer
 
                     Irp SelectedIrp = DataReader.Irps[IrpDataView.SelectedRows[0].Index];
 
-                    if ((Irp.IrpMajorType)SelectedIrp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL)
+                    if ((Irp.IrpMajorType)SelectedIrp.Header.Type == Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL)
                     {
                         FuzzIrpBtn.Enabled = true;
                     }

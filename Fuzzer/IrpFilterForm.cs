@@ -162,6 +162,30 @@ namespace Fuzzer
                         case "Equals": return irp.DriverName.ToLower() == Pattern.ToLower();
                     }
                     break;
+
+                case "Type":
+                    switch (Condition)
+                    {
+                        case "Contains": return Irp.TypeAsString(irp.Header.Type).ToLower().Contains(Pattern.ToLower());
+                        case "Equals": return Irp.TypeAsString(irp.Header.Type).ToLower() == Pattern.ToLower();
+                    }
+                    break;
+
+                case "ProcessName":
+                    switch (Condition)
+                    {
+                        case "Contains": return irp.ProcessName.ToLower().Contains(Pattern.ToLower());
+                        case "Equals": return irp.ProcessName.ToLower() == Pattern.ToLower();
+                    }
+                    break;
+
+                case "IoctlCode":
+                    switch (Condition)
+                    {
+                        case "Contains": return irp.Header.IoctlCode.ToString().ToLower().Contains(Pattern.ToLower());
+                        case "Equals": return irp.Header.IoctlCode.ToString().ToLower() == Pattern.ToLower();
+                    }
+                    break;
             }
 
             return false;

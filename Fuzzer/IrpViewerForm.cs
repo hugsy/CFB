@@ -32,15 +32,19 @@ namespace Fuzzer
 
             Irp.IrpMajorType CurrentIrpType = ( Irp.IrpMajorType )this.Irp.Header.Type;
 
-            if ( CurrentIrpType == Irp.IrpMajorType.READ || CurrentIrpType == Irp.IrpMajorType.WRITE)
+            switch(CurrentIrpType)
             {
-                label6.Text = "IRP Type..........................";
-                IrpIoctlCodeTextBox.Text = this.Irp.TypeAsString();
+                case Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL:
+                case Irp.IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:
+                    IrpIoctlCodeTextBox.Text = $"0x{this.Irp.Header.IoctlCode:x8}";
+                    break;
+
+                default:
+                    label6.Text = "IRP Type..........................";
+                    IrpIoctlCodeTextBox.Text = this.Irp.TypeAsString();
+                    break;
             }
-            else
-            {
-                IrpIoctlCodeTextBox.Text = $"0x{this.Irp.Header.IoctlCode:x8}";
-            }
+
         }
 
         private void UpdateIrpBodyTextBox()

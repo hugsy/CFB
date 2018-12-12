@@ -303,6 +303,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	switch (temp.Type)
 	{
         case IRP_MJ_DEVICE_CONTROL:
+        case IRP_MJ_INTERNAL_DEVICE_CONTROL:
 		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
             Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
             if(!NT_SUCCESS(Status))
@@ -317,8 +318,8 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
             Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &temp.InputBuffer, &temp.InputBufferLen);
             break;
 
-        default:
-            return STATUS_NOT_IMPLEMENTED;
+        //default:
+        //    return STATUS_NOT_IMPLEMENTED;
 	}
 
 

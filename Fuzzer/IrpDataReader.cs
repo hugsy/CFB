@@ -513,7 +513,10 @@ namespace Fuzzer
         {
             string IoctlCodeStr;
 
-            if( ( Irp.IrpMajorType )irp.Header.Type == Irp.IrpMajorType.DEVICE_CONTROL )
+            Irp.IrpMajorType MajorType = (Irp.IrpMajorType)irp.Header.Type;
+
+
+            if (MajorType == Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL || MajorType == Irp.IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL)
             {
                 IoctlCodeStr = $"0x" + irp.Header.IoctlCode.ToString("x8");
             }
