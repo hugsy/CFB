@@ -36,7 +36,7 @@ namespace Fuzzer
             var t = new Thread(() =>
             {
                 LogMutex.WaitOne();
-                LogTextBox.AppendText( $"{message:s}\n" );
+                LogTextBox.AppendText( $"{message:s}\r\n" );
                 LogMutex.ReleaseMutex();
             });
             t.Start();
@@ -391,7 +391,7 @@ if __name__ == '__main__':
                 startMonitoringToolStripMenuItem.Enabled = false;
                 stopMonitoringToolStripMenuItem.Enabled = true;
                 CleanIrpDataGridButton.Enabled = false;
-                StatusBar.Text = $"Monitoring for new IRPs on {DriverForm.LoadedDrivers.Count} drivers...";
+                StatusBar.Text = $"Monitoring for new IRPs on {DriverForm.LoadedDrivers.Count} driver(s)...";
             }
             else
             {
