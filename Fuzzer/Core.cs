@@ -33,14 +33,15 @@ namespace Fuzzer
         //
         // From Driver\IoctlCodes.h
         //
-        private static UInt32 IOCTL_AddDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x801, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_RemoveDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x802, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_GetNumberOfDrivers = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x803, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_ListAllDrivers = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x804, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_GetDriverInfo = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x805, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_SetEventPointer = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x806, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_EnableMonitoring = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x807, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
-        private static UInt32 IOCTL_DisableMonitoring = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x808, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_AddDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x801, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_RemoveDriver = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x802, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_GetNumberOfDrivers = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x803, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_ListAllDrivers = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x804, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_GetDriverInfo = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x805, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_SetEventPointer = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x806, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_EnableMonitoring = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x807, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_DisableMonitoring = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x808, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
+        public static UInt32 IOCTL_StoreTestCase = Wdm.CTL_CODE(Wdm.FILE_DEVICE_UNKNOWN, 0x809, Wdm.METHOD_BUFFERED, Wdm.FILE_ANY_ACCESS);
 
 
         public static bool CheckWindowsVersion()

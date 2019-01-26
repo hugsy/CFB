@@ -1,19 +1,35 @@
 #include "IoStoreTestCase.h"
 
-PVOID g_LastTestCase;
+PVOID g_LastTestCase = NULL;
 
 static FAST_MUTEX FastMutex;
 
 
 /*++
+
 --*/
-VOID InitializeTestCaseStructures()
+NTSTATUS InitializeTestCaseStructures()
 {
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
     ExInitializeFastMutex(&FastMutex);
 
     ExAcquireFastMutex(&FastMutex);
-    g_LastTestCase = ExAllocatePoolWithTag(PagedPool, CFB_MAX_TESTCASE_SIZE, CFB_TESTCASE_TAG);
+	{
+		g_LastTestCase = ExAllocatePoolWithTag(PagedPool, CFB_MAX_TESTCASE_SIZE, CFB_TESTCASE_TAG);
+		if (!g_LastTestCase)
+		{
+			Status = STATUS_INSUFFICIENT_RESOURCES;
+		}
+		else
+		{
+			RtlSecureZeroMemory(g_LastTestCase, CFB_MAX_TESTCASE_SIZE);
+			Status = STATUS_SUCCESS;
+		}
+	}
     ExReleaseFastMutex(&FastMutex);
+
+	return Status;
 }
 
 
@@ -26,9 +42,9 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
 
-    if (g_LastTestCase)
+    if (!g_LastTestCase)
     {
-        return STATUS_ALREADY_REGISTERED;
+        return Status;
     }
 
 
@@ -43,7 +59,7 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
             PVOID lpUserBuffer = Irp->AssociatedIrp.SystemBuffer;
             UINT32 uBufferLen = (UINT32) Stack->Parameters.DeviceIoControl.InputBufferLength;
 
-            if (uBufferLen-sizeof(PUINT32) > CFB_MAX_TESTCASE_SIZE)
+            if (uBufferLen-sizeof(PUINT32) >= CFB_MAX_TESTCASE_SIZE)
             {
                 CfbDbgPrintErr(L"Cannot store testcase (size=0x%x, max=0x%x)\n", uBufferLen, CFB_MAX_TESTCASE_SIZE);
                 Status = STATUS_BUFFER_OVERFLOW;
@@ -54,7 +70,8 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
 
             PUINT32 ptr = (PUINT32)g_LastTestCase;
             *ptr = uBufferLen;
-            RtlCopyMemory((PVOID)((PUINT32)g_LastTestCase + 1), lpUserBuffer, uBufferLen - sizeof(PUINT32));
+			ptr++;
+            RtlCopyMemory(ptr, lpUserBuffer, uBufferLen - sizeof(PUINT32));
 
             Status = STATUS_SUCCESS;
         } 

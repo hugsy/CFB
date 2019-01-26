@@ -37,9 +37,14 @@ namespace Fuzzer
 
             Strategy.Data = Utils.CloneByteArray(Irp.Body);
 
-            if (this.DeviceName.Length == 0)
+            if (this.DeviceName == null || this.DeviceName.Length == 0)
             {
-                this.DeviceName = this.Irp.DeviceName.ToLower().Replace("\\device\\", "\\\\.\\");
+                this.DeviceName = this.Irp.DeviceName.ToLower();
+            }
+
+            if (this.DeviceName.ToLower().StartsWith("\\device\\"))
+            {
+                this.DeviceName = this.DeviceName.ToLower().Replace("\\device\\", "\\\\.\\");
             }
 
             Start();
@@ -56,31 +61,41 @@ namespace Fuzzer
             foreach (byte[] FuzzedInputData in Strategy.GenerateTestCases())
             {
 
-                if (Worker.CancellationPending)
+                if (Worker != null && WorkEvent != null && Worker.CancellationPending)
                 {
                     Strategy.ContinueGeneratingCases = false;
                     WorkEvent.Cancel = true;
                     break;
                 }
 
-                // TODO : save testcase
+                
                 try
                 {
-                    if (SendFuzzedData(this.DeviceName, IoctlCode, FuzzedInputData, OutputData) == false)
+                    IntPtr hDriver = OpenDevice(this.DeviceName);
+
+                    SaveIrpData(hDriver, FuzzedInputData);
+
+                    if (SendFuzzedData(hDriver, IoctlCode, FuzzedInputData, OutputData) == false)
                     {
                         Strategy.ContinueGeneratingCases = false;
                     }
+
+                    CloseDevice(hDriver);
                 }
-                catch(FuzzingRuntimeException /* Excpt */)
+
+                catch (FuzzingRuntimeException /* Excpt */)
                 {
                     Strategy.ContinueGeneratingCases = false;
-                    WorkEvent.Cancel = true;
+                    if (WorkEvent != null)
+                    {
+                        WorkEvent.Cancel = true;
+                    }
                 }
             }
         }
 
 
-        private bool SendFuzzedData(string DeviceName, uint IoctlCode, byte[] InputData, byte[] OutputData)
+        private IntPtr OpenDevice(string DeviceName)
         {
             IntPtr hDriver = Kernel32.CreateFile(
                 DeviceName,
@@ -90,7 +105,7 @@ namespace Fuzzer
                 Kernel32.OPEN_EXISTING,
                 0,
                 IntPtr.Zero
-                );
+            );
 
             if (hDriver.ToInt32() == Kernel32.INVALID_HANDLE_VALUE)
             {
@@ -98,14 +113,23 @@ namespace Fuzzer
                 throw new FuzzingRuntimeException(text);
             }
 
+            return hDriver;
+        }
+
+
+        private void CloseDevice(IntPtr hDriver)
+        {
+            Kernel32.CloseHandle(hDriver);
+        }
+
+
+        private bool SendFuzzedData(IntPtr hDriver, uint IoctlCode, byte[] InputData, byte[] OutputData)
+        {
             IntPtr lpInBuffer = Marshal.AllocHGlobal(InputData.Length);
             Marshal.Copy(InputData, 0, lpInBuffer, InputData.Length);
-
             IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
-
             IntPtr lpOutBuffer = IntPtr.Zero;
             int dwOutBufferLen = 0;
-
             
             if (OutputData.Length > 0)
             {
@@ -138,9 +162,7 @@ namespace Fuzzer
                     }
                     // TODO: signal possible overflow
                 }
-
             }              
-
 
             Marshal.FreeHGlobal(pdwBytesReturned);
             Marshal.FreeHGlobal(lpInBuffer);
@@ -149,10 +171,32 @@ namespace Fuzzer
             {
                 Marshal.FreeHGlobal(lpOutBuffer);
             }
-            
-            Kernel32.CloseHandle(hDriver);
 
             return true;
+        }
+
+
+        private bool SaveIrpData(IntPtr hDriver, byte[] InputData)
+        {
+            IntPtr lpInBuffer = Marshal.AllocHGlobal(InputData.Length);
+            Marshal.Copy(InputData, 0, lpInBuffer, InputData.Length);
+            IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
+
+            bool res = Kernel32.DeviceIoControl(
+                hDriver,
+                Core.IOCTL_StoreTestCase,
+                lpInBuffer,
+                (uint)InputData.Length,
+                IntPtr.Zero,
+                (uint)0,
+                pdwBytesReturned,
+                IntPtr.Zero
+            );
+
+            Marshal.FreeHGlobal(pdwBytesReturned);
+            Marshal.FreeHGlobal(lpInBuffer);
+
+            return res;
         }
 
     }

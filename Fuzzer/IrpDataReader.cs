@@ -12,8 +12,9 @@ namespace Fuzzer
     public class IrpDataReader
     {
         
-        private Thread FetchIrpsFromDriverThread, UpdateDisplayThread;
+        private Thread FetchIrpsFromDriverThread, UpdateDisplayThread, AutoFuzzThread;
         private BlockingCollection<Irp> NewItems;
+        private BlockingCollection<Irp> AutoFuzzingQueue;
         private bool CollectIrp;
         private bool UpdateIrpDataView;
         private IrpMonitorForm RootForm;
@@ -43,6 +44,7 @@ namespace Fuzzer
 
             Irps = new List<Irp>();
             NewItems = new BlockingCollection<Irp>();
+            AutoFuzzingQueue = new BlockingCollection<Irp>();
             NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
 
@@ -224,15 +226,25 @@ namespace Fuzzer
                 IsBackground = true
             };
 
+            AutoFuzzThread = new Thread(AutoFuzzThreadRoutine)
+            {
+                Name = "AutoFuzzThreadRoutine",
+                Priority = ThreadPriority.BelowNormal,
+                IsBackground = true
+            };
+
 
             CollectIrp = true;
             UpdateIrpDataView = true;
 
             UpdateDisplayThread.Start();
             FetchIrpsFromDriverThread.Start();
+            AutoFuzzThread.Start();
 
             RootForm.Log("Threads started!");
         }
+
+
 
 
         /// <summary>
@@ -245,6 +257,8 @@ namespace Fuzzer
 
             UpdateIrpDataView = false;
             JoinThread(UpdateDisplayThread);
+
+            JoinThread(AutoFuzzThread);
         }
 
 
@@ -439,6 +453,16 @@ namespace Fuzzer
                             //}
 
                             NewItems.Add(irp);
+
+                            // if(cfg.AutoFuzz)
+                            if (true)
+                            {
+                                Irp.IrpMajorType MajorType = (Irp.IrpMajorType)irp.Header.Type;
+                                if (MajorType == Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+                                {
+                                    AutoFuzzingQueue.Add(irp);
+                                }
+                            }
                         }
                         else
                         {
@@ -487,12 +511,9 @@ namespace Fuzzer
                         {
                             AddIrpToDataTable(irp);
                         }
-                        
                     }
                     else
                     {
-                        //RootForm.IrpDataView.Refresh();
-
                         Thread.Sleep(500);
                     }
                 }
@@ -506,8 +527,40 @@ namespace Fuzzer
                 //    RootForm.Log("\r\n" + Ex.StackTrace);
                 //}
             }
+        }
+
+
+        private void AutoFuzzThreadRoutine()
+        {
+            RootForm.Log("Starting AutoFuzzThreadRoutine");
+
+            FuzzingStrategy[] Strategies = new FuzzingStrategy[2]
+            {
+                        new BitflipFuzzingStrategy(),
+                        new BigintOverwriteFuzzingStrategy()
+            };
+
+            try
+            {
+                while (true)
+                {
+                    Irp irp = AutoFuzzingQueue.Take();
+
+					foreach (FuzzingStrategy strategy in Strategies)
+					{
+						FuzzingSession fuzzingSession = new FuzzingSession();
+						fuzzingSession.Start(null, strategy, irp, null, null, 0, 0);
+					}
+				}
+
+            }
+            catch (Exception Ex)
+            {
+                RootForm.Log(Ex.Message);
+            }
 
         }
+
 
         private void AddIrpToDataTable(Irp irp)
         {
