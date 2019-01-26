@@ -66,12 +66,12 @@ NTSTATUS HandleIoStoreTestCase(PIRP Irp, PIO_STACK_LOCATION Stack)
                 break;
             }
 
-            //ProbeForRead(lpUserBuffer, uBufferLen, (ULONG)__alignof(uBufferLen));
-
             PUINT32 ptr = (PUINT32)g_LastTestCase;
             *ptr = uBufferLen;
 			ptr++;
             RtlCopyMemory(ptr, lpUserBuffer, uBufferLen - sizeof(PUINT32));
+
+			CfbDbgPrintOk(L"%d copied to %p...\n", uBufferLen - sizeof(PUINT32), g_LastTestCase);
 
             Status = STATUS_SUCCESS;
         } 

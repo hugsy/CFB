@@ -283,7 +283,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	}
 	else
 	{
-		CfbDbgPrintOk( L"Symlink '%s' to driver object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
+		CfbDbgPrintOk( L"Symlink '%s' to device object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 	}
 
 	DeviceObject->Flags |= DO_DIRECT_IO; 
@@ -377,7 +377,7 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Capture the IRP data
 		//
 
-		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE )
+		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != IoGetCurrentProcess())
 		{
 			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
 
