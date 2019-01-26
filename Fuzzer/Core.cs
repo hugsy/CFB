@@ -21,7 +21,7 @@ namespace Fuzzer
     class Core
     {
 
-        private static string CFB_DEVICE_NAME = "\\\\.\\IrpDumper"; 
+        private static string CFB_DEVICE_NAME = "\\\\.\\IrpDumper";
         private static string CFB_DRIVER_NAME = "IrpDumper.sys";
         private static string CFB_SERVICE_NAME = "IrpDumper";
         private static string CFB_SERVICE_DESCRIPTION = "CFB IRP Dumper Driver";
@@ -223,6 +223,18 @@ namespace Fuzzer
         }
 
 
+        public static int GetCfbMessageHeaderSize()
+        {
+            // todo 
+            return 1076;
+        }
+
+
+
+        //
+        // Low-level IOCTL command wrappers
+        //
+
         public static bool HookDriver(String DriverName)
         {
             byte[] InBuf = Encoding.Unicode.GetBytes(DriverName + "\x00");
@@ -239,13 +251,6 @@ namespace Fuzzer
         }
 
 
-        public static int GetCfbMessageHeaderSize()
-        {
-            // todo 
-            return 1076;
-        }
-
-       
         public static bool ReadDevice(IntPtr Buffer, int BufSize, IntPtr dwNbBytesRead)
         {
             return Kernel32.ReadFile(hDriver, Buffer, BufSize, dwNbBytesRead, IntPtr.Zero);
@@ -277,6 +282,17 @@ namespace Fuzzer
         public static bool DisableMonitoring()
         {
             return GenericDeviceIoControl(IOCTL_DisableMonitoring, new byte[0], new byte[0], out uint dwBytesReturned);
+        }
+
+
+        public static bool StoreLastIrpData(byte[] Buffer)
+        {
+            return GenericDeviceIoControl(
+                IOCTL_StoreTestCase, 
+                Buffer, 
+                new byte[0], 
+                out uint dwBytesReturned
+            );
         }
     }
 }

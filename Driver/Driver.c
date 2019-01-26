@@ -377,7 +377,7 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Capture the IRP data
 		//
 
-		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != IoGetCurrentProcess())
+		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
 		{
 			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
 
@@ -477,17 +477,21 @@ NTSTATUS DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 
     PAGED_CODE();
 
-    NTSTATUS Status;
+    NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
     KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
     
-    if (pCurrentOwnerProcess == NULL)
+    if (pCurrentOwnerProcess == NULL )
     {
         pCurrentOwnerProcess = PsGetCurrentProcess();
         CfbDbgPrintOk(L"Locked device to process %p...\n", pCurrentOwnerProcess);
         Status = STATUS_SUCCESS;
     }   
-    else
+	else if (PsGetCurrentProcess() == pCurrentOwnerProcess)
+	{
+		Status = STATUS_SUCCESS;
+	}
+	else
     {
         Status = STATUS_DEVICE_ALREADY_ATTACHED;
     }
@@ -566,7 +570,7 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		break;
 
     case IOCTL_StoreTestCase:
-        CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
         Status = HandleIoStoreTestCase(Irp, CurrentStack);
         break;
 
@@ -577,7 +581,11 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 		break;
 	}
 
-	CfbDbgPrintInfo(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
+	if (!NT_SUCCESS(Status))
+	{
+		CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
+	}
+	
 
 	CompleteRequest(Irp, Status, Information);
 

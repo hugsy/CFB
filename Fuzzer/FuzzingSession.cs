@@ -71,18 +71,17 @@ namespace Fuzzer
                 
                 try
                 {
-                    IntPtr hDriver = OpenDevice(this.DeviceName);
-
-                    SaveIrpData(hDriver, FuzzedInputData);
+                    IntPtr hDriver = OpenDevice(this.DeviceName);                  
 
                     if (SendFuzzedData(hDriver, IoctlCode, FuzzedInputData, OutputData) == false)
                     {
                         Strategy.ContinueGeneratingCases = false;
-                    }
+                    }     
 
                     CloseDevice(hDriver);
-                }
 
+                    SaveIrpData(FuzzedInputData);
+                }
                 catch (FuzzingRuntimeException /* Excpt */)
                 {
                     Strategy.ContinueGeneratingCases = false;
@@ -176,28 +175,9 @@ namespace Fuzzer
         }
 
 
-        private bool SaveIrpData(IntPtr hDriver, byte[] InputData)
+        private bool SaveIrpData(byte[] InputData)
         {
-            IntPtr lpInBuffer = Marshal.AllocHGlobal(InputData.Length);
-            Marshal.Copy(InputData, 0, lpInBuffer, InputData.Length);
-            IntPtr pdwBytesReturned = Marshal.AllocHGlobal(sizeof(int));
-
-            bool res = Kernel32.DeviceIoControl(
-                hDriver,
-                Core.IOCTL_StoreTestCase,
-                lpInBuffer,
-                (uint)InputData.Length,
-                IntPtr.Zero,
-                (uint)0,
-                pdwBytesReturned,
-                IntPtr.Zero
-            );
-
-            Marshal.FreeHGlobal(pdwBytesReturned);
-            Marshal.FreeHGlobal(lpInBuffer);
-
-            return res;
+            return Core.StoreLastIrpData(InputData);
         }
-
     }
 }
