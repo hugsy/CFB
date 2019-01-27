@@ -266,10 +266,10 @@ namespace Fuzzer
         }
 
 
-        private IEnumerable<byte[]> BigIntegerOverwrite(int StepSize)
+        private IEnumerable<byte[]> BigIntegerOverwrite(int StartIndex, int StepSize)
         {
             
-            for (int i = 0; i < Data.Length; i += StepSize)
+            for (int i = StartIndex; i < Data.Length; i += StepSize)
             {
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i+StepSize);
                 for (int j = 0; j < FuzzedBuffer.Length; j++)
@@ -280,7 +280,7 @@ namespace Fuzzer
                 yield return ClonedBuffer;
             }
 
-            for (int i = 0; i < Data.Length; i += StepSize)
+            for (int i = StartIndex; i < Data.Length; i += StepSize)
             {
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i + StepSize);
                 for (int j = 0; j < FuzzedBuffer.Length; j++)
@@ -291,7 +291,7 @@ namespace Fuzzer
                 yield return ClonedBuffer;
             }
 
-            for (int i = 0; i < Data.Length; i += StepSize)
+            for (int i = StartIndex; i < Data.Length; i += StepSize)
             {
                 Byte[] FuzzedBuffer = Utils.SliceByteArray(Data, i, i + StepSize);
                 for (int j = 0; j < FuzzedBuffer.Length; j++)
@@ -308,38 +308,53 @@ namespace Fuzzer
         public override IEnumerable<byte[]> GenerateTestCases()
         {
             var Step = 0;
+            var StartIdx = 0;
 
             while (ContinueGeneratingCases)
             {
+                StartIdx = 0;
+
                 switch (Step)
                 {
                     // qword 
                     case 0:
-                        foreach (var v in BigIntegerOverwrite(8))
-                            yield return v;
+                        while (StartIdx < 8)
+                        {
+                            foreach (var v in BigIntegerOverwrite(StartIdx, 8))
+                                yield return v;
+                            StartIdx += 1;
+                        }
                         Step += 1;
                         break;
 
 
                     // dword
                     case 1:
-                        foreach (var v in BigIntegerOverwrite(4))
-                            yield return v;
+                        while (StartIdx < 4)
+                        {
+                            foreach (var v in BigIntegerOverwrite(StartIdx, 4))
+                               yield return v;
+                            StartIdx += 1;
+                        }
                         Step += 1;
                         break;
 
 
                     // word
                     case 2:
-                        foreach (var v in BigIntegerOverwrite(2))
-                            yield return v;
+                        while (StartIdx < 2)
+                        {
+                            foreach (var v in BigIntegerOverwrite(StartIdx, 2))
+                                yield return v;
+                            StartIdx += 1;
+                        }
                         Step += 1;
                         break;
 
 
                     // byte
                     case 3:
-                        foreach (var v in BigIntegerOverwrite(1))
+                        foreach (var v in BigIntegerOverwrite(0, 1))
                             yield return v;
                         Step += 1;
                         break;

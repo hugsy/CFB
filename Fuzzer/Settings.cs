@@ -15,7 +15,7 @@ namespace Fuzzer
 
         private static int __verbosity = 0;
         private static bool __autofuzzirp = false;
-
+        private static List<FuzzingStrategy> __strategies = new List<FuzzingStrategy>();
 
 
         //
@@ -34,6 +34,8 @@ namespace Fuzzer
                 __verbosity = value;
             }
         }
+
+        
 
         public static bool AutoFuzzNewIrp
         {

@@ -53,7 +53,7 @@ namespace Fuzzer
             {
                 Settings.VerbosityLevel = NewVerbosityLevel;
                 SendNotificationToStatusBar($"New verbosity level set to {Settings.VerbosityLevel}");
-            }           
+            }
         }
         
 
