@@ -346,12 +346,12 @@ namespace Fuzzer
                 if (dwNumberOfByteRead == 0)
                     continue;
 
-                //if(cfg.LogLevel > 2)
-                //{
-                //   RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
-                //}
+                if (Settings.VerbosityLevel >= 2)
+                {
+                    RootForm.Log($"ReadMessage() - ReadCfbDevice() new message of {dwNumberOfByteRead:d} Bytes");
+                }
 
-                if( dwNumberOfByteRead < HeaderSize)
+                if ( dwNumberOfByteRead < HeaderSize)
                 {
                     throw new Exception($"ReadMessage() - announced size of {dwNumberOfByteRead:x} B is too small");
                 }
@@ -406,10 +406,10 @@ namespace Fuzzer
             Marshal.FreeHGlobal(lpdwNumberOfByteRead);
             Marshal.FreeHGlobal(RawMessage);
 
-            //if(cfg.LogLevel > 2)
-            //{
+            if (Settings.VerbosityLevel >= 2)
+            {
                 RootForm.Log($"Dumped IRP #{Header.IoctlCode:x} to '{DriverName:s}' from PID={Header.ProcessId:d}, InBodyLen={Header.InputBufferLength:d}B");
-            //}
+            }
 
             irp = new Irp
             {
@@ -484,10 +484,10 @@ namespace Fuzzer
             {
                 RootForm.Log(Ex.Message);
 
-                //if(cfg.LogLevel > 1)
-                //{
-                //    RootForm.Log("\r\n" + Ex.StackTrace);
-                //}
+                if (Settings.VerbosityLevel >= 2)
+                {
+                    RootForm.Log("\r\n" + Ex.StackTrace);
+                }
             }
 
         }
@@ -522,10 +522,10 @@ namespace Fuzzer
             {
                 RootForm.Log(Ex.Message);
 
-                //if(cfg.LogLevel > 1)
-                //{
-                //    RootForm.Log("\r\n" + Ex.StackTrace);
-                //}
+                if( Settings.VerbosityLevel >= 2)
+                {
+                    RootForm.Log(Ex.StackTrace);
+                }
             }
         }
 
@@ -551,7 +551,12 @@ namespace Fuzzer
 						FuzzingSession fuzzingSession = new FuzzingSession();
 						fuzzingSession.Start(null, strategy, irp, null, null, 0, 0);
 					}
-				}
+
+                    if (Settings.VerbosityLevel >= 2)
+                    {
+                        RootForm.Log("Basic IRP fuzzing done...");
+                    }
+                }
 
             }
             catch (Exception Ex)

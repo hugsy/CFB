@@ -20,12 +20,7 @@ namespace Fuzzer
 
     class Core
     {
-
-        private static string CFB_DEVICE_NAME = "\\\\.\\IrpDumper";
-        private static string CFB_DRIVER_NAME = "IrpDumper.sys";
-        private static string CFB_SERVICE_NAME = "IrpDumper";
-        private static string CFB_SERVICE_DESCRIPTION = "CFB IRP Dumper Driver";
-
+        
         private static IntPtr hDriver;
         private static IntPtr hSCManager;
         private static IntPtr hService;
@@ -78,12 +73,12 @@ namespace Fuzzer
             do
             {
 
-                string lpPath = $"{Directory.GetCurrentDirectory()}\\{CFB_DRIVER_NAME}";
+                string lpPath = $"{Directory.GetCurrentDirectory()}\\{Settings.CfbDriverFilename}";
 
                 hService = WinSvc.CreateService(
                     hSCManager,
-                    CFB_SERVICE_NAME,
-                    CFB_SERVICE_DESCRIPTION,
+                    Settings.CfbDriverShortName,
+                    Settings.CfbDriverDescription,
                     WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE,
                     WinNt.SERVICE_KERNEL_DRIVER,
                     WinNt.SERVICE_DEMAND_START,
@@ -105,7 +100,7 @@ namespace Fuzzer
 
                     hService = WinSvc.OpenService(
                         hSCManager,
-                        CFB_SERVICE_NAME,
+                        Settings.CfbDriverShortName,
                         WinSvc.SERVICE_START | WinSvc.SERVICE_STOP | WinNt.DELETE
                     );
 
@@ -146,7 +141,7 @@ namespace Fuzzer
         {
 
             hDriver = Kernel32.CreateFile(
-                CFB_DEVICE_NAME,
+                Settings.CfbDevicePath,
                 Kernel32.GENERIC_READ | Kernel32.GENERIC_WRITE,
                 0,
                 IntPtr.Zero,
@@ -157,7 +152,7 @@ namespace Fuzzer
 
             if (hDriver.ToInt32() == Kernel32.INVALID_HANDLE_VALUE)
             {
-                throw new CoreInitializationException($"CreateFile('{CFB_DEVICE_NAME}')");
+                throw new CoreInitializationException($"CreateFile('{Settings.CfbDevicePath}')");
             }
 
             return true;

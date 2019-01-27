@@ -9,11 +9,13 @@ namespace Fuzzer
     public partial class IrpMonitorForm : Form
     {
         private IrpDataReader DataReader;
+        private GlobalSettingsForm SettingsForm;
         private LoadDriverForm DriverForm;
         public IrpFilterForm FilterForm;
         private static Mutex LogMutex;
         private bool bIsDriverLoaded;
         private bool bIsMonitoringEnabled;
+        private bool bRunAsPrivileged;
 
 
 
@@ -27,6 +29,7 @@ namespace Fuzzer
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(OnProcessExit);
             DataReader = new IrpDataReader(this);
             DriverForm = new LoadDriverForm(this);
+            SettingsForm = new GlobalSettingsForm(this);
             FilterForm = new IrpFilterForm(this, DataReader);
         }
 
@@ -53,14 +56,27 @@ namespace Fuzzer
         }
 
 
-        private static void PopupError(string v)
+        private static void PopupError(string v, bool bPrintLastError = true)
         {
-            var gle = Kernel32.GetLastError();
-            var ex = new Win32Exception((int)gle);
-            var text = $"{v} \r\n\r\n {ex.Message}";
+            string text;
+            string title;
+
+            if (bPrintLastError)
+            {
+                var gle = Kernel32.GetLastError();
+                var ex = new Win32Exception((int)gle);
+                text = $"{v} \r\n\r\n {ex.Message}";
+                title = $"CFB initialization failed (Error={gle})";
+            }
+            else
+            {
+                text = v;
+                title = "Error !";
+            }
+
             MessageBox.Show(
                 text,
-                $"CFB initialization failed (Error={gle})",
+                title,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error,
                 MessageBoxDefaultButton.Button1
@@ -100,7 +116,7 @@ namespace Fuzzer
             if (bIsDriverLoaded)
                 return;
 
-            Log("Initializing CFB...");
+            Log("Initializing CFB driver...");
 
             try
             {
@@ -108,15 +124,21 @@ namespace Fuzzer
                 Core.RunInitializationChecks();
                 Core.LoadDriver();
                 Core.OpenDeviceHandle();
+                Log("Successful initialization, hook some drivers and start monitoring!");
+                SetLoadedDriverStatus(true);
+                bRunAsPrivileged = true;
+                return;
             }
             catch(CoreInitializationException Ex)
             {
+                bRunAsPrivileged = false;
                 PopupError(Ex.Message);
                 Application.Exit();
             }
 
-            Log("Successful initialization, hook some drivers and start monitoring...");
-            SetLoadedDriverStatus(true);
+            Log("Failed to initialize the driver, CFB will run as unprivileged");
+            DisablePrivilegedActions();
+            return;
         }
 
 
@@ -128,17 +150,21 @@ namespace Fuzzer
 
         private void CleanupCfbContext()
         {
-            if (!bIsDriverLoaded)
+            if (!bRunAsPrivileged)
                 return;
 
             Log("Cleaning up context (may take a bit, be patient)...");
+
             try
             {
-                Core.CloseDeviceHandle();
-                Core.UnloadDriver();
-                Log("Success...");
-                SetLoadedDriverStatus(false);
-                SetMonitoringStatus(false);
+                if (bIsDriverLoaded)
+                {
+                    Core.CloseDeviceHandle();
+                    Core.UnloadDriver();
+                    Log("Success...");
+                    SetLoadedDriverStatus(false);
+                    SetMonitoringStatus(false);
+                }
             }
             catch (CoreInitializationException Ex)
             {               
@@ -280,6 +306,9 @@ ntdll       = windll.ntdll
 kernel32    = windll.kernel32
 KdPrint     = lambda x:  kernel32.OutputDebugStringA(x + '\n')
 
+GENERIC_READ = 0x80000000
+GENERIC_WRITE = 0x40000000
+OPEN_EXISTING = 3
 
 def Hexdump(src, length=16):
     FILTER = ''.join([(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
@@ -294,8 +323,8 @@ def Hexdump(src, length=16):
 
 @contextmanager
 def GetDeviceHandle(DeviceName, *args, **kwargs):
-    Access = kwargs.get('dwDesiredAccess', win32con.GENERIC_READ | win32con.GENERIC_WRITE)
-    handle = kernel32.CreateFileA(DeviceName, Access, 0, None, win32con.OPEN_EXISTING, 0, None)
+    Access = kwargs.get('dwDesiredAccess', GENERIC_READ | GENERIC_WRITE)
+    handle = kernel32.CreateFileA(DeviceName, Access, 0, None, OPEN_EXISTING, 0, None)
     if handle == -1: raise IOError('Cannot get handle to %s' % DeviceName)
     try: yield handle
     finally: kernel32.CloseHandle(handle)
@@ -524,12 +553,36 @@ if __name__ == '__main__':
 
         private void DefineFiltersToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if(!bRunAsPrivileged)
+            {
+                PopupError("This action is only available in Privileged mode.");
+                return;
+            }
+
             Form f = Application.OpenForms["DefineFilterForm"];
 
             if (f == null || f.Visible == false)
             {
                 FilterForm.Show();
             }
+        }
+
+        private void SettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Form f = Application.OpenForms["GlobalSettingsForm"];
+
+            if (f == null || f.Visible == false)
+            {
+                SettingsForm.RefreshSettings();
+                SettingsForm.Show();
+            }
+        }
+
+
+        private void DisablePrivilegedActions()
+        {
+            SetMonitoringStatus(false, true);
+            SetLoadedDriverStatus(false, true);
         }
     }
 }

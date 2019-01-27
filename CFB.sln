@@ -12,6 +12,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common\Common.vcx
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0D5D410A-CA06-4EB5-B7B7-24A0A94357ED}"
 	ProjectSection(SolutionItems) = preProject
+		Docs\crash-analysis.md = Docs\crash-analysis.md
 		FAQ.md = FAQ.md
 		README.md = README.md
 	EndProjectSection
