@@ -37,13 +37,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
     PDRIVER_OBJECT pDriver;
     PDEVICE_OBJECT pDevice;
 	
-	/*
-	OBJECT_ATTRIBUTES ObjAttr;
-	HANDLE DeviceObjectHandle;
-	IO_STATUS_BLOCK IoStatusBlock;
-	OBJECT_HANDLE_INFORMATION HandleInformation;
-	*/
-	
+
 
     RtlInitUnicodeString(&UnicodeName, lpObjectName);
 
@@ -153,41 +147,17 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 
 	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
-    /*
-	CfbDbgPrintInfo( L"AddObjectByName('%s'): switching IRP_MJ_DEVICE_CONTROL with %p\n", lpObjectName, InterceptedDeviceControlRoutine );
-    
-	PVOID OldDeviceControlRoutine = InterlockedExchangePointer(
-		(PVOID*)&pDriver->MajorFunction[IRP_MJ_DEVICE_CONTROL],
-		(PVOID)InterceptedDeviceControlRoutine
-	);
 
-
-	CfbDbgPrintInfo( L"AddObjectByName('%s'): switching IRP_MJ_READ with %p\n", lpObjectName, InterceptedReadRoutine );
-
-	PVOID OldReadRoutine = InterlockedExchangePointer(
-		(PVOID*)&pDriver->MajorFunction[IRP_MJ_READ],
-		(PVOID)InterceptedReadRoutine
-	);
-
-
-	CfbDbgPrintInfo( L"AddObjectByName('%s'): switching IRP_MJ_WRITE with %p\n", lpObjectName, InterceptedWriteRoutine );
-
-	PVOID OldWriteRoutine = InterlockedExchangePointer(
-		(PVOID*)&pDriver->MajorFunction[IRP_MJ_WRITE],
-		(PVOID)InterceptedWriteRoutine
-	);
-	*/
 	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpObjectName);
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
 	NewDriver->DriverObject = pDriver;
-    /*
-	NewDriver->OldDeviceControlRoutine = OldDeviceControlRoutine;
-	NewDriver->OldReadRoutine = OldReadRoutine;
-	NewDriver->OldWriteRoutine = OldWriteRoutine;
-    */
+
 
 	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
+	//
+	// Exchange pointers for all the major functions
+	//
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
         PVOID OldRoutine = InterlockedExchangePointer(
@@ -198,14 +168,44 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
         NewDriver->OriginalRoutines[i] = OldRoutine;
     }
 
-	NewDriver->Enabled = TRUE;
-	
+
+	//
+	// Exchange pointer for Fast IO dispatcher
+	//
+	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
+
+
+	PVOID OldRoutine = InterlockedExchangePointer(
+		(PVOID*)&FastIoDispatch->FastIoDeviceControl,
+		(PVOID)InterceptGenericFastIoDeviceControl
+	);
+
+	NewDriver->OriginalFastIoDispatch[FASTIO_DEVICE_CONTROL] = OldRoutine;
+
+	OldRoutine = InterlockedExchangePointer(
+		(PVOID*)&FastIoDispatch->FastIoRead,
+		(PVOID)InterceptGenericFastIoRead
+	);
+
+	NewDriver->OriginalFastIoDispatch[FASTIO_READ] = OldRoutine;
+
+	OldRoutine = InterlockedExchangePointer(
+		(PVOID*)&FastIoDispatch->FastIoWrite,
+		(PVOID)InterceptGenericFastIoWrite
+	);
+
+	NewDriver->OriginalFastIoDispatch[FASTIO_WRITE] = OldRoutine;
+
 
 	//
 	// add it to the list
 	//
-
     InsertTailList(g_HookedDriversHead, &(NewDriver->ListEntry));
+
+	//
+	// Set the driver as ready
+	//
+	NewDriver->Enabled = TRUE;
 
 	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 

@@ -39,27 +39,25 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
         );
     }
 
-    /*
-	CfbDbgPrintInfo(L"- '%s' - restoring IRP_MJ_DEVICE_CONTROL to %p\n", lpDriverName, pDriverToRemove->OldDeviceControlRoutine);
-
-
-
-
-	CfbDbgPrintInfo( L"- '%s' - restoring IRP_MJ_READ to %p\n", lpDriverName, pDriverToRemove->OldReadRoutine );
+	//
+	// Restore Fast IO Dispatch pointers
+	//
+	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
 
 	InterlockedExchangePointer(
-		(PVOID)&pDriver->MajorFunction[IRP_MJ_READ],
-		(PVOID)pDriverToRemove->OldReadRoutine
+		(PVOID)&FastIoDispatch->FastIoDeviceControl,
+		(PVOID)pHookedDriverToRemove->OriginalFastIoDispatch[FASTIO_DEVICE_CONTROL]
 	);
-
-
-	CfbDbgPrintInfo( L"- '%s' - restoring IRP_MJ_WRITE to %p\n", lpDriverName, pDriverToRemove->OldWriteRoutine );
 
 	InterlockedExchangePointer(
-		(PVOID)&pDriver->MajorFunction[IRP_MJ_WRITE],
-		(PVOID)pDriverToRemove->OldWriteRoutine
+		(PVOID)&FastIoDispatch->FastIoRead,
+		(PVOID)pHookedDriverToRemove->OriginalFastIoDispatch[FASTIO_READ]
 	);
-    */
+
+	InterlockedExchangePointer(
+		(PVOID)&FastIoDispatch->FastIoWrite,
+		(PVOID)pHookedDriverToRemove->OriginalFastIoDispatch[FASTIO_WRITE]
+	);
 
 
 

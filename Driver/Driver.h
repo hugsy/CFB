@@ -26,6 +26,40 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
 NTSTATUS IrpNotImplementedHandler( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 
+BOOLEAN InterceptGenericFastIoDeviceControl(
+	PFILE_OBJECT FileObject,
+	BOOLEAN Wait,
+	IN PVOID InputBuffer OPTIONAL,
+	IN ULONG InputBufferLength,
+	OUT PVOID OutputBuffer OPTIONAL,
+	IN ULONG OutputBufferLength,
+	IN ULONG IoControlCode,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+);
+
+BOOLEAN InterceptGenericFastIoRead(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+	);
+
+BOOLEAN InterceptGenericFastIoWrite(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+);
+
 
 //
 // See https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/

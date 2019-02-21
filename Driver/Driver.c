@@ -406,6 +406,89 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
 /*++
 
+--*/
+BOOLEAN InterceptGenericFastIoDeviceControl(
+	PFILE_OBJECT FileObject,
+	BOOLEAN Wait,
+	IN PVOID InputBuffer OPTIONAL,
+	IN ULONG InputBufferLength,
+	OUT PVOID OutputBuffer OPTIONAL,
+	IN ULONG OutputBufferLength,
+	IN ULONG IoControlCode,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	UNREFERENCED_PARAMETER(FileObject);
+	UNREFERENCED_PARAMETER(Wait);
+	UNREFERENCED_PARAMETER(InputBuffer);
+	UNREFERENCED_PARAMETER(InputBufferLength);
+	UNREFERENCED_PARAMETER(OutputBuffer);
+	UNREFERENCED_PARAMETER(OutputBufferLength);
+	UNREFERENCED_PARAMETER(IoControlCode);
+	UNREFERENCED_PARAMETER(IoStatus);
+	UNREFERENCED_PARAMETER(DeviceObject);
+
+	return TRUE;
+}
+
+
+/*++
+
+--*/
+BOOLEAN InterceptGenericFastIoRead(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	UNREFERENCED_PARAMETER(FileObject);
+	UNREFERENCED_PARAMETER(FileOffset);
+	UNREFERENCED_PARAMETER(Length);
+	UNREFERENCED_PARAMETER(Wait);
+	UNREFERENCED_PARAMETER(LockKey);
+	UNREFERENCED_PARAMETER(Buffer);
+	UNREFERENCED_PARAMETER(IoStatus);
+	UNREFERENCED_PARAMETER(DeviceObject);
+
+	return TRUE;
+}
+
+
+/*++
+
+--*/
+BOOLEAN InterceptGenericFastIoWrite(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	UNREFERENCED_PARAMETER(FileObject);
+	UNREFERENCED_PARAMETER(FileOffset);
+	UNREFERENCED_PARAMETER(Length);
+	UNREFERENCED_PARAMETER(Wait);
+	UNREFERENCED_PARAMETER(LockKey);
+	UNREFERENCED_PARAMETER(Buffer);
+	UNREFERENCED_PARAMETER(IoStatus);
+	UNREFERENCED_PARAMETER(DeviceObject);
+
+	return TRUE;
+}
+
+
+/*++
+
 Unload routine for CFB IrpDumper.
 
 --*/
