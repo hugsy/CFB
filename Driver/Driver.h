@@ -26,6 +26,31 @@ NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
 NTSTATUS IrpNotImplementedHandler( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 
+
+
+
+//
+// See https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/
+//
+extern POBJECT_TYPE* IoDriverObjectType;
+extern POBJECT_TYPE* IoDeviceObjectType;
+
+extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
+	IN PUNICODE_STRING ObjectPath,
+	IN ULONG Attributes,
+	IN PACCESS_STATE PassedAccessState OPTIONAL,
+	IN ACCESS_MASK DesiredAccess OPTIONAL,
+	IN POBJECT_TYPE ObjectType,
+	IN KPROCESSOR_MODE AccessMode,
+	IN OUT PVOID ParseContext OPTIONAL,
+	OUT PVOID *ObjectPtr
+);
+
+//
+// Generic interception routine
+//
+NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+
 BOOLEAN InterceptGenericFastIoDeviceControl(
 	PFILE_OBJECT FileObject,
 	BOOLEAN Wait,
@@ -47,7 +72,7 @@ BOOLEAN InterceptGenericFastIoRead(
 	OUT PVOID Buffer,
 	OUT PIO_STATUS_BLOCK IoStatus,
 	IN PDEVICE_OBJECT DeviceObject
-	);
+);
 
 BOOLEAN InterceptGenericFastIoWrite(
 	IN PFILE_OBJECT FileObject,
@@ -60,30 +85,6 @@ BOOLEAN InterceptGenericFastIoWrite(
 	IN PDEVICE_OBJECT DeviceObject
 );
 
-
-//
-// See https://lylone.wordpress.com/2007/05/08/obreferenceobjectbynameundocumented/
-//
-extern POBJECT_TYPE* IoDriverObjectType;
-extern POBJECT_TYPE* IoDeviceObjectType;
-
-extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
-	IN PUNICODE_STRING ObjectPath,
-	IN ULONG Attributes,
-	IN PACCESS_STATE PassedAccessState OPTIONAL,
-	IN ACCESS_MASK DesiredAccess OPTIONAL,
-	IN POBJECT_TYPE ObjectType,
-	IN KPROCESSOR_MODE AccessMode,
-	IN OUT PVOID ParseContext OPTIONAL,
-	OUT PVOID *ObjectPtr
-);
-
-/*
-NTSTATUS InterceptedDeviceControlRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
-NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
-NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
-*/
-NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
 NTSTATUS EnableMonitoring();
 NTSTATUS DisableMonitoring();
