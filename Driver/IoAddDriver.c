@@ -172,6 +172,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	//
 	// Exchange pointer for Fast IO dispatcher
 	//
+	/*
 	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
 
 
@@ -195,7 +196,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	);
 
 	NewDriver->OriginalFastIoDispatch[FASTIO_WRITE] = OldRoutine;
-
+	*/
 
 	//
 	// add it to the list

@@ -63,9 +63,10 @@ namespace Fuzzer
             this.StatusBar = new System.Windows.Forms.ToolStripStatusLabel();
             this.ShowIrpBtn = new System.Windows.Forms.Button();
             this.DumpToFileBtn = new System.Windows.Forms.Button();
-            this.SaveForReplayBtn = new System.Windows.Forms.Button();
+            this.SaveForReplayPyBtn = new System.Windows.Forms.Button();
             this.FuzzIrpBtn = new System.Windows.Forms.Button();
             this.CleanIrpDataGridButton = new System.Windows.Forms.Button();
+            this.SaveForReplayPsBtn = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.IrpDataView)).BeginInit();
@@ -180,28 +181,28 @@ namespace Fuzzer
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.settingsToolStripMenuItem.Text = "Global Settings";
             this.settingsToolStripMenuItem.Click += new System.EventHandler(this.SettingsToolStripMenuItem_Click);
             // 
             // SaveIrpToDBToolStripMenuItem
             // 
             this.SaveIrpToDBToolStripMenuItem.Name = "SaveIrpToDBToolStripMenuItem";
-            this.SaveIrpToDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.SaveIrpToDBToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.SaveIrpToDBToolStripMenuItem.Text = "Save IRPs to DB";
             this.SaveIrpToDBToolStripMenuItem.Click += new System.EventHandler(this.SaveIrpToDBToolStripMenuItem_Click);
             // 
             // LoadIrpDBToolStripMenuItem
             // 
             this.LoadIrpDBToolStripMenuItem.Name = "LoadIrpDBToolStripMenuItem";
-            this.LoadIrpDBToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.LoadIrpDBToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.LoadIrpDBToolStripMenuItem.Text = "Load IRP DB";
             this.LoadIrpDBToolStripMenuItem.Click += new System.EventHandler(this.LoadIrpDBToolStripMenuItem_Click);
             // 
             // quitToolStripMenuItem
             // 
             this.quitToolStripMenuItem.Name = "quitToolStripMenuItem";
-            this.quitToolStripMenuItem.Size = new System.Drawing.Size(252, 30);
+            this.quitToolStripMenuItem.Size = new System.Drawing.Size(222, 30);
             this.quitToolStripMenuItem.Text = "Quit";
             this.quitToolStripMenuItem.Click += new System.EventHandler(this.QuitToolStripMenuItem_Click);
             // 
@@ -352,21 +353,21 @@ namespace Fuzzer
             this.DumpToFileBtn.UseVisualStyleBackColor = true;
             this.DumpToFileBtn.Click += new System.EventHandler(this.DumpToFileBtn_Click);
             // 
-            // SaveForReplayBtn
+            // SaveForReplayPyBtn
             // 
-            this.SaveForReplayBtn.Enabled = false;
-            this.SaveForReplayBtn.Location = new System.Drawing.Point(286, 40);
-            this.SaveForReplayBtn.Name = "SaveForReplayBtn";
-            this.SaveForReplayBtn.Size = new System.Drawing.Size(146, 34);
-            this.SaveForReplayBtn.TabIndex = 12;
-            this.SaveForReplayBtn.Text = "Save for Replay";
-            this.SaveForReplayBtn.UseVisualStyleBackColor = true;
-            this.SaveForReplayBtn.Click += new System.EventHandler(this.SaveForReplayBtn_Click);
+            this.SaveForReplayPyBtn.Enabled = false;
+            this.SaveForReplayPyBtn.Location = new System.Drawing.Point(286, 40);
+            this.SaveForReplayPyBtn.Name = "SaveForReplayPyBtn";
+            this.SaveForReplayPyBtn.Size = new System.Drawing.Size(167, 34);
+            this.SaveForReplayPyBtn.TabIndex = 12;
+            this.SaveForReplayPyBtn.Text = "Save for Replay (py)";
+            this.SaveForReplayPyBtn.UseVisualStyleBackColor = true;
+            this.SaveForReplayPyBtn.Click += new System.EventHandler(this.SaveForReplayPsBtn_Click);
             // 
             // FuzzIrpBtn
             // 
             this.FuzzIrpBtn.Enabled = false;
-            this.FuzzIrpBtn.Location = new System.Drawing.Point(438, 40);
+            this.FuzzIrpBtn.Location = new System.Drawing.Point(631, 40);
             this.FuzzIrpBtn.Name = "FuzzIrpBtn";
             this.FuzzIrpBtn.Size = new System.Drawing.Size(134, 34);
             this.FuzzIrpBtn.TabIndex = 13;
@@ -385,15 +386,27 @@ namespace Fuzzer
             this.CleanIrpDataGridButton.UseVisualStyleBackColor = true;
             this.CleanIrpDataGridButton.Click += new System.EventHandler(this.CleanIrpDataGridButton_Click);
             // 
+            // SaveForReplayPsBtn
+            // 
+            this.SaveForReplayPsBtn.Enabled = false;
+            this.SaveForReplayPsBtn.Location = new System.Drawing.Point(459, 40);
+            this.SaveForReplayPsBtn.Name = "SaveForReplayPsBtn";
+            this.SaveForReplayPsBtn.Size = new System.Drawing.Size(166, 34);
+            this.SaveForReplayPsBtn.TabIndex = 15;
+            this.SaveForReplayPsBtn.Text = "Save for Replay (ps)";
+            this.SaveForReplayPsBtn.UseVisualStyleBackColor = true;
+            this.SaveForReplayPsBtn.Click += new System.EventHandler(this.SaveForReplayPsBtn_Click);
+            // 
             // IrpMonitorForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.ClientSize = new System.Drawing.Size(1371, 928);
+            this.Controls.Add(this.SaveForReplayPsBtn);
             this.Controls.Add(this.CleanIrpDataGridButton);
             this.Controls.Add(this.FuzzIrpBtn);
-            this.Controls.Add(this.SaveForReplayBtn);
+            this.Controls.Add(this.SaveForReplayPyBtn);
             this.Controls.Add(this.DumpToFileBtn);
             this.Controls.Add(this.ShowIrpBtn);
             this.Controls.Add(this.statusStrip1);
@@ -436,7 +449,7 @@ namespace Fuzzer
         private System.Windows.Forms.ToolStripStatusLabel StatusBar;
         private System.Windows.Forms.Button ShowIrpBtn;
         private System.Windows.Forms.Button DumpToFileBtn;
-        private System.Windows.Forms.Button SaveForReplayBtn;
+        private System.Windows.Forms.Button SaveForReplayPyBtn;
         private System.Windows.Forms.Button FuzzIrpBtn;
         private System.Windows.Forms.ToolStripMenuItem controlToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem driverToolStripMenuItem;
@@ -454,6 +467,7 @@ namespace Fuzzer
         private ToolStripMenuItem LoadIrpDBToolStripMenuItem;
         private ToolStripMenuItem SaveIrpToDBToolStripMenuItem;
         private ToolStripMenuItem DefineFiltersToolStripMenuItem;
+        private Button SaveForReplayPsBtn;
     }
 }
 

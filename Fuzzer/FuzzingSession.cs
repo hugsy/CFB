@@ -71,6 +71,9 @@ namespace Fuzzer
                 
                 try
                 {
+
+                    SaveIrpData(FuzzedInputData);
+
                     IntPtr hDriver = OpenDevice(this.DeviceName);                  
 
                     if (SendFuzzedData(hDriver, IoctlCode, FuzzedInputData, OutputData) == false)
@@ -80,7 +83,6 @@ namespace Fuzzer
 
                     CloseDevice(hDriver);
 
-                    SaveIrpData(FuzzedInputData);
                 }
                 catch (FuzzingRuntimeException /* Excpt */)
                 {
