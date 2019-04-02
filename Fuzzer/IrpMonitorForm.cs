@@ -362,7 +362,7 @@ function Debug-Success
 {{
     param([string]$Message )
     [CFB]::OutputDebugString(""[+] "" + $Message + ""\n"")
-    Write-Log(""[+] "" + $Message)
+    Write-Host(""[+] "" + $Message)
 }}
 
 function Debug-Error
@@ -398,6 +398,7 @@ if ($hDevice -eq -1)
     Return
 }}
 
+$dwReturnLength = 0
 
 Debug-Info(""Sending request (IoctlCode=#{{0:x}})..."" -f $IoctlCode)
 $res = [CFB]::DeviceIoControl(
@@ -407,14 +408,17 @@ $res = [CFB]::DeviceIoControl(
     $IrpDataIn.Length,
     $IrpDataOut,
     $IrpDataOut.Length,
-    [ref]0,
+    [ref]$dwReturnLength,
     [System.IntPtr]::Zero
 )
 
 if ( $res -eq $true )
 {{
     Debug-Success(""Success"")
-    $DataIrpOut | Format-Hex -Count $DataIrpOut.Length
+    if($dwReturnLength -gt 0)
+    {
+        $IrpDataOut | Format-Hex
+    }
 }}
 else
 {{
