@@ -358,21 +358,21 @@ public static class CFB
 function Debug-Info
 {{
     param([string]$Message )
-    [CFB]::OutputDebugString(""[*] "" + $Message + ""\n"")
+    [CFB]::OutputDebugString(""[*] "" + $Message + ""`n"")
     Write-Host(""[*] "" + $Message)
 }}
 
 function Debug-Success
 {{
     param([string]$Message )
-    [CFB]::OutputDebugString(""[+] "" + $Message + ""\n"")
+    [CFB]::OutputDebugString(""[+] "" + $Message + ""`n"")
     Write-Host(""[+] "" + $Message)
 }}
 
 function Debug-Error
 {{
     param([string]$Message )
-    [CFB]::OutputDebugString(""[-] "" + $Message + ""\n"")
+    [CFB]::OutputDebugString(""[-] "" + $Message + ""`n"")
     Write-Error(""[-] "" + $Message)
 }}
 
