@@ -296,6 +296,10 @@ namespace Fuzzer
                 {
                     IrpDataOutStr += $"[Byte[]] @(0x00) * {SelectedIrp.Header.OutputBufferLength:d}";
                 }
+                else
+                {
+                    IrpDataOutStr += "[Byte[]] @()";
+                }
 
                 string DeviceName = SelectedIrp.DeviceName.Replace("\\Device", "\\\\.");
 

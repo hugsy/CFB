@@ -546,6 +546,9 @@ namespace Fuzzer
                 {
                     Irp irp = AutoFuzzingQueue.Take();
 
+                    if (Settings.AutoFuzzNewIrp == false)
+                        continue;
+
 					foreach (FuzzingStrategy strategy in Strategies)
 					{
 						FuzzingSession fuzzingSession = new FuzzingSession();
