@@ -359,7 +359,7 @@ function Debug-Info
 {{
     param([string]$Message )
     [CFB]::OutputDebugString(""[*] "" + $Message + ""\n"")
-    Write-Information(""[*] "" + $Message)
+    Write-Host(""[*] "" + $Message)
 }}
 
 function Debug-Success
@@ -420,9 +420,9 @@ if ( $res -eq $true )
 {{
     Debug-Success(""Success"")
     if($dwReturnLength -gt 0)
-    {
+    {{
         $IrpDataOut | Format-Hex
-    }
+    }}
 }}
 else
 {{
