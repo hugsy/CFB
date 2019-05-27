@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2042
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Driver", "Driver\Driver.vcxproj", "{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -50,13 +50,15 @@ Global
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Debug|x86.Build.0 = Debug|Win32
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Debug|x86.Deploy.0 = Debug|Win32
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|Any CPU.ActiveCfg = Release|Win32
-		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM.ActiveCfg = Release|ARM
+		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|Any CPU.Build.0 = Release|Win32
+		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|Any CPU.Deploy.0 = Release|Win32
+		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM.ActiveCfg = Release|Win32
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM.Build.0 = Release|ARM
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM.Deploy.0 = Release|ARM
-		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM64.ActiveCfg = Release|ARM64
+		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM64.ActiveCfg = Release|Win32
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM64.Build.0 = Release|ARM64
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|ARM64.Deploy.0 = Release|ARM64
-		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|x64.ActiveCfg = Release|x64
+		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|x64.ActiveCfg = Release|Win32
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|x64.Build.0 = Release|x64
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|x64.Deploy.0 = Release|x64
 		{148F59B4-A689-4C08-9D7D-0EFB5C6BDA16}.Release|x86.ActiveCfg = Release|Win32
@@ -70,9 +72,10 @@ Global
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Debug|x86.ActiveCfg = Debug|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Debug|x86.Build.0 = Debug|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|Any CPU.ActiveCfg = Release|Win32
+		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|Any CPU.Build.0 = Release|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|ARM.ActiveCfg = Release|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|ARM64.ActiveCfg = Release|Win32
-		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|x64.ActiveCfg = Release|x64
+		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|x64.ActiveCfg = Release|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|x64.Build.0 = Release|x64
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|x86.ActiveCfg = Release|Win32
 		{A1E1112D-966D-45EC-96DE-B84371E803EE}.Release|x86.Build.0 = Release|Win32

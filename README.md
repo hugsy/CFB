@@ -39,7 +39,7 @@ On this VM:
  - Enable kernel debug
  - Enable test signing
 
-Install VS 2017 redist x86 or x64 depending on your VM architecture.
+Install VS 2015/2017/2019 redist x86 or x64 depending on your VM architecture.
 
 
 -- hugsy
