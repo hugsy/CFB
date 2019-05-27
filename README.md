@@ -1,5 +1,11 @@
 # Canadian Fuzzy Bear
 
+## Status
+Project|Build Status
+---|---
+GUI|[![Build Status](https://dev.azure.com/blahcat/CFB/_apis/build/status/hugsy.CFB?branchName=master)](https://dev.azure.com/blahcat/CFB/_build/latest?definitionId=1&branchName=master)
+
+
 ## Concept
 
 _TODO add pretty diagram here_
