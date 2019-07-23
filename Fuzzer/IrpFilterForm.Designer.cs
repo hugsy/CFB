@@ -80,14 +80,14 @@
             // 
             // PatternTextBox
             // 
-            this.PatternTextBox.Location = new System.Drawing.Point(430, 78);
+            this.PatternTextBox.Location = new System.Drawing.Point(430, 83);
             this.PatternTextBox.Name = "PatternTextBox";
             this.PatternTextBox.Size = new System.Drawing.Size(220, 26);
             this.PatternTextBox.TabIndex = 7;
             // 
             // AddRuleButton
             // 
-            this.AddRuleButton.Location = new System.Drawing.Point(691, 55);
+            this.AddRuleButton.Location = new System.Drawing.Point(691, 67);
             this.AddRuleButton.Name = "AddRuleButton";
             this.AddRuleButton.Size = new System.Drawing.Size(116, 54);
             this.AddRuleButton.TabIndex = 6;
@@ -144,6 +144,7 @@
             this.FilterDataGridView.Location = new System.Drawing.Point(19, 35);
             this.FilterDataGridView.Name = "FilterDataGridView";
             this.FilterDataGridView.ReadOnly = true;
+            this.FilterDataGridView.RowHeadersWidth = 62;
             this.FilterDataGridView.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             this.FilterDataGridView.RowTemplate.Height = 28;
             this.FilterDataGridView.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;

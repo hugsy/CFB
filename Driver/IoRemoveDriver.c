@@ -1,7 +1,7 @@
 #include "IoRemoveDriver.h"
 
 
-extern PLIST_ENTRY g_HookedDriversHead;
+extern PLIST_ENTRY g_HookedDriverHead;
 
 
 /*++
@@ -89,7 +89,7 @@ NTSTATUS RemoveAllDrivers()
 {
 	NTSTATUS Status = STATUS_SUCCESS;
 
-    if (IsListEmpty(g_HookedDriversHead))
+    if (IsListEmpty(g_HookedDriverHead))
     {
 		CfbDbgPrintInfo(L"Hooked driver list is empty, nothing to do\n");
         return Status;
@@ -97,13 +97,13 @@ NTSTATUS RemoveAllDrivers()
     
     UINT32 dwNbRemoved = 0;
     BOOLEAN bIsLast;
-    PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+    PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
     PLIST_ENTRY Next;
 
     do
 	{
         Next = Entry->Flink;
-        bIsLast = Next == g_HookedDriversHead;
+        bIsLast = Next == g_HookedDriverHead;
 
         PHOOKED_DRIVER Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
@@ -128,7 +128,7 @@ NTSTATUS RemoveAllDrivers()
 
         Entry = Next;
     } 
-	while ( !IsListEmpty(g_HookedDriversHead) );
+	while ( !IsListEmpty(g_HookedDriverHead) );
 
 	CfbDbgPrintOk(L"Removed %lu drivers\n", dwNbRemoved);
 

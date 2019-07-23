@@ -5,9 +5,9 @@ typedef enum
     Driver,
     FileSystem,
     Device
-} OBJ_T;
+} HOOKABLE_OBJECT_T;
 
-extern PLIST_ENTRY g_HookedDriversHead;
+extern PLIST_ENTRY g_HookedDriverHead;
 
 
 
@@ -22,7 +22,7 @@ VOID InitializeIoAddDriverStructure()
 /*++
 
 --*/
-NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
+NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 
@@ -66,37 +66,6 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 
     case Device:
 		
-		/*
-		
-		InitializeObjectAttributes(&ObjAttr, &UnicodeName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-
-		status = ZwOpenFile(
-			&DeviceObjectHandle,
-			FILE_READ_DATA,
-			&ObjAttr,
-			&IoStatusBlock,
-			FILE_GENERIC_READ,
-			FILE_OPEN);
-
-		if (!NT_SUCCESS(status))
-		{
-			return status;
-		}
-
-		status = ObReferenceObjectByHandle(
-			DeviceObjectHandle,
-			GENERIC_READ,
-			*IoDeviceObjectType,
-			KernelMode,
-			&pDevice,
-			&HandleInformation
-        );
-
-		CfbDbgPrintInfo(L"ref done\n");
-
-
-		*/
-
         status = ObReferenceObjectByName(
             &UnicodeName,
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
@@ -201,7 +170,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, OBJ_T Type)
 	//
 	// add it to the list
 	//
-    InsertTailList(g_HookedDriversHead, &(NewDriver->ListEntry));
+    InsertTailList(g_HookedDriverHead, &(NewDriver->ListEntry));
 
 	//
 	// Set the driver as ready

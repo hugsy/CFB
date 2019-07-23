@@ -1,7 +1,7 @@
 #include "HookedDrivers.h"
 
 static LIST_ENTRY HookedDriversHead;
-PLIST_ENTRY g_HookedDriversHead = &HookedDriversHead;
+PLIST_ENTRY g_HookedDriverHead = &HookedDriversHead;
 
 static KSPIN_LOCK HookedDriverSpinLock;
 static KLOCK_QUEUE_HANDLE HookedDriverSpinLockQueue;
@@ -31,10 +31,10 @@ UINT32 GetNumberOfHookedDrivers()
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
-    if (!IsListEmpty(g_HookedDriversHead))
+    if (!IsListEmpty(g_HookedDriverHead))
     {
-        for (i = 0, Entry = g_HookedDriversHead->Flink; 
-            Entry != g_HookedDriversHead; 
+        for (i = 0, Entry = g_HookedDriverHead->Flink; 
+            Entry != g_HookedDriverHead; 
             Entry = Entry->Flink, i++);
     }
 
@@ -56,10 +56,10 @@ BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
-    if (!IsListEmpty(g_HookedDriversHead))
+    if (!IsListEmpty(g_HookedDriverHead))
     {
 
-        PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+        PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
 
         do
         {
@@ -74,7 +74,7 @@ BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
             Entry = Entry->Flink;
 
         } 
-		while (Entry != g_HookedDriversHead);
+		while (Entry != g_HookedDriverHead);
 
     }
 
@@ -97,9 +97,9 @@ NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHook
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
-    if (!IsListEmpty(g_HookedDriversHead))
+    if (!IsListEmpty(g_HookedDriverHead))
     {
-        PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+        PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
 
         do
         {
@@ -115,7 +115,7 @@ NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHook
             Entry = Entry->Flink;
 
         } 
-		while (Entry != g_HookedDriversHead);
+		while (Entry != g_HookedDriverHead);
 
     }
 

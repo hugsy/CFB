@@ -23,10 +23,12 @@ static PEPROCESS pCurrentOwnerProcess;
 static KSPIN_LOCK SpinLockOwner;
 static KLOCK_QUEUE_HANDLE SpinLockQueueOwner;
 
-extern PLIST_ENTRY g_HookedDriversHead;
+extern PLIST_ENTRY g_HookedDriverHead;
 
 
 /*++
+
+This routine is called when trying to ReadFile() from a handle to the device IrpDumper.
 
 --*/
 NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
@@ -212,43 +214,39 @@ Driver entry point: create the driver object for CFB
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
-
 	PAGED_CODE();
 
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
 
-	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	PDEVICE_OBJECT DeviceObject;
-	UNICODE_STRING name, symLink;
-
-
-	RtlInitUnicodeString(&name, CFB_DEVICE_NAME);
-	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
+	UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME); 
+	UNICODE_STRING DeviceSymlink = RTL_CONSTANT_STRING(CFB_DEVICE_LINK);
 
 
 	//
 	// Create the device
 	//
 
-	status = IoCreateDevice(
+	Status = IoCreateDevice(
 		DriverObject,
 		0,
-		&name,
+		&DeviceName,
 		FILE_DEVICE_UNKNOWN,
 		FILE_DEVICE_SECURE_OPEN,
 		TRUE,
 		&DeviceObject
 	);
 
-	if( !NT_SUCCESS(status) )
+	if( !NT_SUCCESS(Status) )
 	{
-		CfbDbgPrintErr(L"Error creating device object (0x%08X)\n", status);
+		CfbDbgPrintErr(L"Error creating device object (0x%08X)\n", Status);
 		if (DeviceObject)
 		{
 			IoDeleteDevice(DeviceObject);
 		}
 
-		return status;
+		return Status;
 	}
 
 	CfbDbgPrintOk( L"Device object '%s' created\n", CFB_DEVICE_NAME );
@@ -275,19 +273,17 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	//
 	// Create the symlink
 	//
-	status = IoCreateSymbolicLink(&symLink, &name);
-	if (!NT_SUCCESS(status))
+	Status = IoCreateSymbolicLink(&DeviceSymlink, &DeviceName);
+	if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrintErr(L"Error creating symbolic link (0x%08X)\n", status);
+		CfbDbgPrintErr(L"Error creating symbolic link (0x%08X)\n", Status);
 		IoDeleteDevice(DeviceObject);
+		return Status;
 	}
-	else
-	{
-		CfbDbgPrintOk( L"Symlink '%s' to device object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
-	}
+
+	CfbDbgPrintOk( L"Symlink '%s' to device object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 
 	DeviceObject->Flags |= DO_DIRECT_IO; 
-
 	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
     
@@ -295,7 +291,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     // Initializing the locks and structures
     //
 	IoInitializeRemoveLock(&DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
-	InitializeListHead(g_HookedDriversHead);
+	InitializeListHead(g_HookedDriverHead);
     KeInitializeSpinLock(&SpinLockOwner);
     InitializeMonitoringStructures();
     InitializeHookedDriverStructures();
@@ -303,7 +299,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	InitializeTestCaseStructures();
 	InitializeIoAddDriverStructure();
 	
-	return status;
+	return Status;
 }
 
 
@@ -321,7 +317,7 @@ typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
 
 NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
-	NTSTATUS Status;
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
     BOOLEAN Found = FALSE;
     PHOOKED_DRIVER curDriver = NULL;
 
@@ -338,9 +334,9 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	// Find the original function for the driver
 	//
 
-    if( !IsListEmpty(g_HookedDriversHead) )
+    if( !IsListEmpty(g_HookedDriverHead) )
     {
-        PLIST_ENTRY Entry = g_HookedDriversHead->Flink;
+        PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
 
 	    do 
 	    {
@@ -355,7 +351,7 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
             Entry = Entry->Flink;
 
         } 
-        while (Entry != g_HookedDriversHead);
+        while (Entry != g_HookedDriverHead);
     }
 
 

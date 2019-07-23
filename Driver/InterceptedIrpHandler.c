@@ -286,9 +286,9 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	PINTERCEPTED_IRP pIrp = NULL;
 	IRP_DATA_ENTRY temp = { 0, };
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
-
-	temp.Pid = (UINT32)((ULONG_PTR)PsGetProcessId( PsGetCurrentProcess() ) & 0xffffffff);
-	temp.Tid = (UINT32)((ULONG_PTR)PsGetCurrentThreadId() & 0xffffffff);
+	
+	temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
+	temp.Tid = HandleToULong(PsGetCurrentThreadId());
 	temp.Type = (UINT32)Stack->MajorFunction;
     temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
