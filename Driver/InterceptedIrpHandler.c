@@ -352,6 +352,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	    //
 	    // and last, notify the client in UM of the new message posted
 	    //
+
         SetNewIrpInQueueAlert();
         CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrp, GetIrpListSize());
     }
