@@ -33,13 +33,15 @@ Clone the repository and in a VS prompt run
 
 ## Setup
 
-A Windows 7+ VM (I'd recommend a [Windows 10 SDK VM](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines))
+A Windows 7+ VM ([Windows 10 SDK VM](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines) is recommended)
 
 On this VM:
  - Enable kernel debug
  - Enable test signing
 
 Install VS 2015/2017/2019 redist x86 or x64 depending on your VM architecture.
+
+Follow the indications in the `Docs/` folder to improve your setup.
 
 
 -- hugsy

@@ -1,12 +1,8 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
-
 #pragma once
 
 #define CFB_MAX_HOOKED_DRIVERS		32
-#define CFB_DEVICE_TAG		0x20424643 // " BFC" -> "CFB "
+#define CFB_DEVICE_TAG				'CFB ' 
 
 #include <wdm.h>
 #include <ntddk.h>
 
-#endif /* __COMMON_H__ */

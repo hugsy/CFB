@@ -18,13 +18,13 @@
 
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath);
-NTSTATUS DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
-VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject);
-NTSTATUS DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
-NTSTATUS DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
-NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp );
+VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(PDRIVER_OBJECT DriverObject);
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp);
 NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information);
-NTSTATUS IrpNotImplementedHandler( PDEVICE_OBJECT DeviceObject, PIRP Irp );
+NTSTATUS _Function_class_(DRIVER_DISPATCH) IrpNotImplementedHandler( PDEVICE_OBJECT DeviceObject, PIRP Irp );
 
 
 

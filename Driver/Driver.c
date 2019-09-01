@@ -11,8 +11,8 @@
 #endif
 
 
-
-static IO_REMOVE_LOCK DriverRemoveLock;
+static PDEVICE_OBJECT g_DeviceObject;
+static IO_REMOVE_LOCK g_DriverRemoveLock;
 static KSPIN_LOCK g_SpinLock;
 static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
 
@@ -31,7 +31,7 @@ extern PLIST_ENTRY g_HookedDriverHead;
 This routine is called when trying to ReadFile() from a handle to the device IrpDumper.
 
 --*/
-NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( pDeviceObject );
 
@@ -149,7 +149,7 @@ NTSTATUS DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
 Generic routine for unsupported major types.
 
 --*/
-NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 
@@ -167,7 +167,7 @@ NTSTATUS IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 /*++
 
 --*/
-NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( DeviceObject );
 
@@ -184,8 +184,8 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 		ReleaseTestCaseStructures();
         DisableMonitoring();
         RemoveAllDrivers();
-        IoAcquireRemoveLock(&DriverRemoveLock, Irp);
-        IoReleaseRemoveLockAndWait(&DriverRemoveLock, Irp);
+        IoAcquireRemoveLock(&g_DriverRemoveLock, Irp);
+        IoReleaseRemoveLockAndWait(&g_DriverRemoveLock, Irp);
     }
 
     KeLeaveCriticalRegion();
@@ -202,6 +202,12 @@ NTSTATUS DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 
 	CompleteRequest( Irp, STATUS_SUCCESS, 0 );
 
+	if (g_DeviceObject)
+	{
+		IoDeleteDevice(g_DeviceObject);
+		g_DeviceObject = NULL;
+	}
+	
 	return STATUS_SUCCESS;
 }
 
@@ -219,7 +225,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
 
-	PDEVICE_OBJECT DeviceObject;
 	UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME); 
 	UNICODE_STRING DeviceSymlink = RTL_CONSTANT_STRING(CFB_DEVICE_LINK);
 
@@ -235,17 +240,12 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 		FILE_DEVICE_UNKNOWN,
 		FILE_DEVICE_SECURE_OPEN,
 		TRUE,
-		&DeviceObject
+		&g_DeviceObject
 	);
 
 	if( !NT_SUCCESS(Status) )
 	{
 		CfbDbgPrintErr(L"Error creating device object (0x%08X)\n", Status);
-		if (DeviceObject)
-		{
-			IoDeleteDevice(DeviceObject);
-		}
-
 		return Status;
 	}
 
@@ -277,20 +277,20 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 	if (!NT_SUCCESS(Status))
 	{
 		CfbDbgPrintErr(L"Error creating symbolic link (0x%08X)\n", Status);
-		IoDeleteDevice(DeviceObject);
+		IoDeleteDevice(g_DeviceObject);
 		return Status;
 	}
 
 	CfbDbgPrintOk( L"Symlink '%s' to device object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 
-	DeviceObject->Flags |= DO_DIRECT_IO; 
-	DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
+	g_DeviceObject->Flags |= DO_DIRECT_IO; 
+	g_DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
     
     //
     // Initializing the locks and structures
     //
-	IoInitializeRemoveLock(&DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
+	IoInitializeRemoveLock(&g_DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
 	InitializeListHead(g_HookedDriverHead);
     KeInitializeSpinLock(&SpinLockOwner);
     InitializeMonitoringStructures();
@@ -322,7 +322,7 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
     PHOOKED_DRIVER curDriver = NULL;
 
 
-	Status = IoAcquireRemoveLock( &DriverRemoveLock, Irp );
+	Status = IoAcquireRemoveLock( &g_DriverRemoveLock, Irp );
 	if ( !NT_SUCCESS( Status ) )
 	{
 		return Status;
@@ -373,14 +373,14 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Capture the IRP data
 		//
 
-		if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
+		if (IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
 		{
-			Status = HandleInterceptedIrp( curDriver, DeviceObject, Irp );
+			Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
 
-			if( !NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
-            {
-				CfbDbgPrintWarn( L"HandleInterceptedIrp() failed (status=0x%X)\n", Status );
-            }
+			if (!NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
+			{
+				CfbDbgPrintWarn(L"HandleInterceptedIrp() failed (status=0x%X)\n", Status);
+			}
 		}
 
 
@@ -388,13 +388,12 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		// Call the original routine
 		//
 
-        DWORD dwIndex = Stack->MajorFunction;
-        PDRIVER_DISPATCH OldRoutine = (DRIVER_DISPATCH*)curDriver->OriginalRoutines[dwIndex];
-        Status = OldRoutine(DeviceObject, Irp);
+		DWORD dwIndex = Stack->MajorFunction;
+		PDRIVER_DISPATCH OldRoutine = (DRIVER_DISPATCH*)curDriver->OriginalRoutines[dwIndex];
+		Status = OldRoutine(DeviceObject, Irp);
+	}
 
-	}	
-
-	IoReleaseRemoveLock( &DriverRemoveLock, Irp );
+	IoReleaseRemoveLock( &g_DriverRemoveLock, Irp );
 
 	return Status;
 }
@@ -436,7 +435,7 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 Unload routine for CFB IrpDumper.
 
 --*/
-VOID DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
+VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
 {  
 
 	//
@@ -475,7 +474,7 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 /*++
 
 --*/
-NTSTATUS DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 
@@ -498,7 +497,7 @@ NTSTATUS DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 /*++
 
 --*/
-NTSTATUS DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
     UNREFERENCED_PARAMETER(pObject);
 
@@ -532,7 +531,7 @@ NTSTATUS DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 /*++
 
 --*/
-NTSTATUS DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 

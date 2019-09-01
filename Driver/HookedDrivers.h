@@ -19,7 +19,7 @@ typedef struct
 	UNICODE_STRING UnicodeName;
 	PDRIVER_OBJECT DriverObject;
 	LIST_ENTRY ListEntry;
-	PVOID OriginalRoutines[IRP_MJ_MAXIMUM_FUNCTION+1];
+	PVOID _Function_class_(DRIVER_DISPATCH) OriginalRoutines[IRP_MJ_MAXIMUM_FUNCTION+1];
 	PVOID OriginalFastIoDispatch[FASTIO_MAXIMUM_FUNCTION];
 }
 HOOKED_DRIVER, *PHOOKED_DRIVER;

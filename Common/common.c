@@ -7,33 +7,22 @@
 
 
 
-HANDLE g_ConsoleMutex;
 
 
-static void init()
-{
-	g_ConsoleMutex = CreateMutex(NULL, FALSE, NULL);
-	return;
-}
+/*++
 
-
-static void fini()
-{
-	CloseHandle(g_ConsoleMutex);
-	return;
-}
-
-
+--*/
 void _xlog(log_level_t level, const wchar_t* format, ...)
 {
 	size_t fmt_len;
 	LPWSTR fmt;
-	DWORD dwWaitResult;
 	va_list args;
 	const wchar_t* prio;
 
 #ifndef _DEBUG
-	/* If we're not in Debug mode, we don't care about xlog(LOG_DEBUG) */
+	//
+	// If we're not in Debug mode, we don't care about xlog(LOG_DEBUG) 
+	//
 	if (level == LOG_DEBUG)
 		return;
 #endif
@@ -73,50 +62,43 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	SYSTEMTIME lt;
 	GetLocalTime(&lt);
 
-	dwWaitResult = WaitForSingleObject(g_ConsoleMutex, INFINITE);
-
-	if (dwWaitResult == WAIT_OBJECT_0)
-	{
 #ifdef _DEBUG
 		fwprintf(stderr, L"%02d-%02d-%02d %02d:%02d:%02d ",
 			lt.wYear, lt.wMonth, lt.wDay,
 			lt.wHour, lt.wMinute, lt.wSecond);
 #endif
-		vfwprintf(stderr, fmt, args);
-		fflush(stderr);
-	}
+
+	vfwprintf(stderr, fmt, args);
+	fflush(stderr);
+
 	va_end(args);
-	ReleaseMutex(g_ConsoleMutex);
-
 	LocalFree(fmt);
-
 	return;
 }
 
 
-/**
- *
- */
-static inline void __hexdump_thread_safe(PVOID data, SIZE_T size)
+
+/*++
+
+Print out an hexdump-like formatted representation of `data`.
+
+--*/
+void hexdump(PVOID data, SIZE_T size)
 {
 	WCHAR ascii[17] = { 0, };
 	SIZE_T i, j;
+	PBYTE ptr = (PBYTE)data;
 
-	for (i = 0; i < size; ++i) {
-		BYTE c = *((PCHAR)data + i);
+	for (i = 0; i < size; ++i) 
+	{
+		BYTE c = ptr[i];
 
 		if (!ascii[0])
 			wprintf(L"%Ix   ", i);
 
 		wprintf(L"%02X ", c);
 
-		if (0x20 <= c && c < 0x7f)
-		{
-			ascii[i % 16] = (WCHAR)c;
-		}
-		else {
-			ascii[i % 16] = L'.';
-		}
+		ascii[i % 16] = (0x20 <= c && c < 0x7f) ? (WCHAR)c : L'.';
 
 		if ((i + 1) % 8 == 0 || i + 1 == size)
 		{
@@ -141,51 +123,56 @@ static inline void __hexdump_thread_safe(PVOID data, SIZE_T size)
 			}
 		}
 	}
+
+	return;
 }
 
 
-/**
- *
- */
-void Hexdump(PVOID data, SIZE_T size)
+/*++
+
+perror() style of function for Windows
+
+--*/
+void PrintError(const wchar_t* msg)
 {
-	DWORD dwWaitResult = WaitForSingleObject(g_ConsoleMutex, INFINITE);
+	WCHAR sysMsg[1024] = { 0, };
 
-	if (dwWaitResult == WAIT_OBJECT_0)
-	{
-		__hexdump_thread_safe(data, size);
-	}
+	DWORD eNum = GetLastError();
+	FormatMessageW(
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, 
+		eNum,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		sysMsg, 
+		(sizeof(sysMsg) - 1)/sizeof(WCHAR), 
+		NULL
+	);
 
-	ReleaseMutex(g_ConsoleMutex);
+	xlog(LOG_ERROR, L"%s, errcode=0x%x : %s", msg, eNum, sysMsg);
+	return;
 }
 
 
-
-/**
- *
- */
+/*++
+ 
+--*/
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
 
 	switch (fdwReason)
 	{
 	case DLL_PROCESS_ATTACH:
-		init();
 		break;
-	/*
+	
 	case DLL_THREAD_ATTACH:
 		break;
-	*/
+	
 	case DLL_THREAD_DETACH:
-		fini();
 		break;
-
-	/*
+	
 	case DLL_PROCESS_DETACH:
 		break;
-	*/
 	}
-
 
 	return TRUE;
 }
