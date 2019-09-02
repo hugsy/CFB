@@ -1,0 +1,83 @@
+﻿<Page
+    x:Class="GUI.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:GUI.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel>
+        
+            <TextBlock Style="{ThemeResource HeaderTextBlockStyle}"
+                       Text="Settings" />
+
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="IRP Broker location" />
+
+            <TextBlock Text="The auto-fuzz policy automatically run fuzzing instances for each IRP received. Althouth this helps finding bugs automatically, it might make the system unstable."/>
+
+            <TextBox Margin="0,5,1000,0" 
+                     BorderBrush="Green"
+                     BorderThickness="5"
+                     x:Name="settingIrpBrokerLocationTextBox" 
+                     SelectionChanged="settingIrpBrokerLocationTextBox_Changed"
+                     Text="{x:Bind settingIrpBrokerLocation}"/>
+            
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="Auto-Fuzz" />
+            
+            <TextBlock Text="The auto-fuzz policy automatically run fuzzing instances for each IRP received. Althouth this helps finding bugs automatically, it might make the system unstable."/>
+
+            <CheckBox x:Name="enableAutoFuzzCheckBox" 
+                      Click="onEnableAutoFuzzSetting_Click"
+                      Content="Enable Auto-Fuzz"/>
+
+            <TextBlock Margin="35,5,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="Auto-Fuzz Strategies" />
+
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="Auto-Fuzz" />
+
+            <TextBlock Text="TODO" />
+            
+           
+            <!--
+            <RadioButton
+                x:Name="SqliteRadio"
+                Checked="OnDataSourceChanged"
+                Content="Sqlite (Local)"
+                GroupName="DataSource"
+                Tag="Sqlite" />
+            <RadioButton
+                x:Name="RestRadio"
+                Checked="OnDataSourceChanged"
+                Content="REST (Azure)"
+                GroupName="DataSource"
+                Tag="Rest" />
+            <TextBlock Text="Data is read-only while using REST unless you deploy your own service. See the GitHub repository for details." />
+
+            <HyperlinkButton
+                x:Name="PrivacyButton"
+                Margin="0,25,0,0"
+                Click="OnPrivacyButtonClick"
+                Content="Privacy statement" />
+            <HyperlinkButton
+                x:Name="LicenseButton"
+                Click="OnLicenseButtonClick"
+                Content="Additional license terms" />
+            <HyperlinkButton
+                x:Name="GitHubButton"
+                Click="OnCodeButtonClick"
+                Content="GitHub repository" />
+            
+          -->
+        </StackPanel>
+    </Grid>
+</Page>
