@@ -14,66 +14,107 @@ for communicating with the IrpDumper driver by:
 
 #include "main.h"
 
+/*++
+
+--*/
+static BOOL AssignPrivilegeToSelf(_In_ const wchar_t* lpszPrivilegeName)
+{
+	HANDLE hToken = INVALID_HANDLE_VALUE;
+	BOOL bRes = FALSE;
+	LUID Luid = { 0, };
+
+	bRes = OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken);
+	if (bRes)
+	{
+		bRes = LookupPrivilegeValue(NULL, lpszPrivilegeName, &Luid);
+		if (bRes)
+		{
+			LUID_AND_ATTRIBUTES PrivAttr = { 0 };
+			PrivAttr.Luid = Luid;
+			PrivAttr.Attributes = SE_PRIVILEGE_ENABLED;
+
+			TOKEN_PRIVILEGES NewPrivs = { 0, };
+			NewPrivs.PrivilegeCount = 1;
+			NewPrivs.Privileges[0].Luid = Luid;
+			
+
+			bRes = AdjustTokenPrivileges(
+				hToken,
+				FALSE,
+				&NewPrivs,
+				sizeof(TOKEN_PRIVILEGES),
+				(PTOKEN_PRIVILEGES)NULL,
+				(PDWORD)NULL
+			) != 0;
+
+			if(bRes)
+				bRes = GetLastError() != ERROR_NOT_ALL_ASSIGNED;
+		}
+
+		CloseHandle(hToken);
+	}
+
+	return bRes;
+}
 
 
 /*++
 
-Check that we have sufficient privileges.
+Simple helper function to check a privilege by name on the current process.
 
 --*/
-static BOOL RunInitializationChecks(wchar_t* lpszProgramName)
+static BOOL HasPrivilege(_In_ const wchar_t* lpszPrivilegeName, _Out_ PBOOL lpHasPriv)
 {
-	LUID Luid[2] = { 0, };
+	LUID Luid = { 0, };
+	BOOL bRes = FALSE, bHasPriv = FALSE;
 	HANDLE hToken = INVALID_HANDLE_VALUE;
-	BOOL bRes, bHasPriv;
 
-	xlog(LOG_DEBUG, L"Checking for privileges...\n");
+	do
+	{
+		xlog(LOG_DEBUG, L"Checking for '%s'...\n", lpszPrivilegeName);
 
-	do {
-
-		bRes = LookupPrivilegeValue(NULL, L"SeDebugPrivilege", &Luid[0]);
+		bRes = LookupPrivilegeValue(NULL, lpszPrivilegeName, &Luid);
 		if (!bRes)
+		{
+			PrintError(L"LookupPrivilegeValue");
 			break;
+		}
 
-		bRes = LookupPrivilegeValue(NULL, L"SeLoadDriverPrivilege", &Luid[1]);
-		if (!bRes)
-			break;
+		LUID_AND_ATTRIBUTES PrivAttr = { 0 };
+		PrivAttr.Luid = Luid;
+		PrivAttr.Attributes = SE_PRIVILEGE_ENABLED | SE_PRIVILEGE_ENABLED_BY_DEFAULT;
 
-		LUID_AND_ATTRIBUTES DebugPrivilege = { 0 };
-		DebugPrivilege.Luid = Luid[0];
-		DebugPrivilege.Attributes = SE_PRIVILEGE_ENABLED | SE_PRIVILEGE_ENABLED_BY_DEFAULT;
-
-		LUID_AND_ATTRIBUTES LoadDriverPrivilege = { 0 };
-		LoadDriverPrivilege.Luid = Luid[1];
-		LoadDriverPrivilege.Attributes = SE_PRIVILEGE_ENABLED | SE_PRIVILEGE_ENABLED_BY_DEFAULT;
-
-		PRIVILEGE_SET* PrivSet = (PRIVILEGE_SET*)_malloca(sizeof(PRIVILEGE_SET) * 2);
-		PrivSet->PrivilegeCount = 2;
-		PrivSet->Privilege[0] = DebugPrivilege;
-		PrivSet->Privilege[1] = LoadDriverPrivilege;
+		PRIVILEGE_SET PrivSet = { 0, };
+		PrivSet.PrivilegeCount = 1;
+		PrivSet.Privilege[0] = PrivAttr;
 
 		bRes = OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken);
 		if (!bRes)
+		{
+			PrintError(L"OpenProcessToken");
 			break;
+		}
 
-		bRes = PrivilegeCheck(hToken, PrivSet, &bHasPriv);
+		bRes = PrivilegeCheck(hToken, &PrivSet, &bHasPriv);
 		if (!bRes)
+		{
+			PrintError(L"PrivilegeCheck");
 			break;
-		
+		}
+
+		*lpHasPriv = bHasPriv;
 		bRes = TRUE;
-	}
+	} 
 	while (0);
 
-	if (!bRes)
+	if (hToken != INVALID_HANDLE_VALUE)
 	{
-		if (hToken != INVALID_HANDLE_VALUE)
-		{
-			CloseHandle(hToken);
-		}
+		CloseHandle(hToken);
 	}
-	
-	return bHasPriv;
+
+	return bRes;
 }
+
 
 
 
@@ -82,7 +123,7 @@ static BOOL RunInitializationChecks(wchar_t* lpszProgramName)
 The entrypoint for the loader.
 
 --*/
-int main(int argc, wchar_t** argv)
+int wmain(int argc, wchar_t** argv)
 {
 	int retcode = EXIT_SUCCESS;
 	HANDLE hDriver = INVALID_HANDLE_VALUE;
@@ -98,9 +139,26 @@ int main(int argc, wchar_t** argv)
 	//
 	// Check the privileges: the broker must have SeLoadDriverPrivilege and SeDebugPrivilege
 	//
-	if (!RunInitializationChecks(argv[0]))
+	BOOL bHasDebugPriv = FALSE;
+	if (!HasPrivilege(L"SeDebugPrivilege", &bHasDebugPriv) || !bHasDebugPriv)
 	{
-		return EXIT_FAILURE;
+		xlog(LOG_WARNING, L"Privilege SeDebugPrivilege is missing, trying to acquire...\n");
+		if (!AssignPrivilegeToSelf(L"SeDebugPrivilege"))
+		{
+			xlog(LOG_CRITICAL, L"%s requires SeDebugPrivilege...\n", argv[0]);
+			return EXIT_FAILURE;
+		}
+	}
+
+	BOOL bHasLoadDriverPriv = FALSE;
+	if (!HasPrivilege(L"SeLoadDriverPrivilege", &bHasLoadDriverPriv) || !bHasLoadDriverPriv)
+	{
+		xlog(LOG_WARNING, L"Privilege SeLoadDriverPrivilege is missing, trying to acquire...\n");
+		if (!AssignPrivilegeToSelf(L"SeLoadDriverPrivilege"))
+		{
+			xlog(LOG_CRITICAL, L"%s requires SeLoadDriverPrivilege...\n", argv[0]);
+			return EXIT_FAILURE;
+		}
 	}
 
 	xlog(LOG_SUCCESS, L"Privilege check succeeded...\n");

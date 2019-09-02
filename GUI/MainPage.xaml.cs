@@ -22,9 +22,12 @@ namespace GUI
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private Model.MonitoredIrps monitoredIrps;
+
         public MainPage()
         {
             this.InitializeComponent();
+            monitoredIrps = new Model.MonitoredIrps();
         }
 
         private void NavigateToHome_Click(object sender, RoutedEventArgs e)
@@ -32,6 +35,11 @@ namespace GUI
             SideMenuSv.IsPaneOpen = !SideMenuSv.IsPaneOpen;
             //this.Frame.Navigate(typeof(MainPage));
             //this.Frame.GoBack();
+        }
+
+        private void SettingsSvBtn_Click(object sender, RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(Settings));
         }
     }
 }

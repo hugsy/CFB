@@ -31,7 +31,7 @@ extern PLIST_ENTRY g_HookedDriverHead;
 This routine is called when trying to ReadFile() from a handle to the device IrpDumper.
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine( PDEVICE_OBJECT pDeviceObject, PIRP Irp )
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT pDeviceObject, _In_ PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( pDeviceObject );
 
@@ -149,7 +149,9 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine( PDEVICE_OBJECT pDe
 Generic routine for unsupported major types.
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) IrpNotImplementedHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS 
+_Function_class_(DRIVER_DISPATCH) 
+IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
 
@@ -167,7 +169,9 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) IrpNotImplementedHandler(PDEVICE_OBJE
 /*++
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCleanup( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS 
+_Function_class_(DRIVER_DISPATCH) 
+DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( DeviceObject );
 
@@ -217,7 +221,8 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCleanup( PDEVICE_OBJECT DeviceO
 Driver entry point: create the driver object for CFB
 
 --*/
-NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
+NTSTATUS 
+DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
 	PAGED_CODE();
@@ -313,9 +318,9 @@ Links:
  - https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
 
 --*/
-typedef NTSTATUS(*PDRIVER_DISPATCH)(PDEVICE_OBJECT DeviceObject, PIRP Irp);
+typedef NTSTATUS(*PDRIVER_DISPATCH)(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
-NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
     BOOLEAN Found = FALSE;
@@ -389,42 +394,13 @@ NTSTATUS InterceptGenericRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		//
 
 		DWORD dwIndex = Stack->MajorFunction;
-		PDRIVER_DISPATCH OldRoutine = (DRIVER_DISPATCH*)curDriver->OriginalRoutines[dwIndex];
+		PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)curDriver->OriginalRoutines[dwIndex];
 		Status = OldRoutine(DeviceObject, Irp);
 	}
 
 	IoReleaseRemoveLock( &g_DriverRemoveLock, Irp );
 
 	return Status;
-}
-
-
-/*++
-
---*/
-BOOLEAN InterceptGenericFastIoDeviceControl(
-	PFILE_OBJECT FileObject,
-	BOOLEAN Wait,
-	IN PVOID InputBuffer OPTIONAL,
-	IN ULONG InputBufferLength,
-	OUT PVOID OutputBuffer OPTIONAL,
-	IN ULONG OutputBufferLength,
-	IN ULONG IoControlCode,
-	OUT PIO_STATUS_BLOCK IoStatus,
-	IN PDEVICE_OBJECT DeviceObject
-)
-{
-	UNREFERENCED_PARAMETER(FileObject);
-	UNREFERENCED_PARAMETER(Wait);
-	UNREFERENCED_PARAMETER(InputBuffer);
-	UNREFERENCED_PARAMETER(InputBufferLength);
-	UNREFERENCED_PARAMETER(OutputBuffer);
-	UNREFERENCED_PARAMETER(OutputBufferLength);
-	UNREFERENCED_PARAMETER(IoControlCode);
-	UNREFERENCED_PARAMETER(IoStatus);
-	UNREFERENCED_PARAMETER(DeviceObject);
-
-	return TRUE;
 }
 
 
@@ -435,7 +411,7 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 Unload routine for CFB IrpDumper.
 
 --*/
-VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(PDRIVER_OBJECT DriverObject)
+VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 {  
 
 	//
@@ -460,7 +436,7 @@ VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(PDRIVER_OBJECT DriverOb
 Generic function for IRP completion
 
 --*/
-NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
+NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS status, _In_ ULONG_PTR Information)
 {
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = Information;
@@ -474,7 +450,7 @@ NTSTATUS CompleteRequest(PIRP Irp, NTSTATUS status, ULONG_PTR Information)
 /*++
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 
@@ -497,7 +473,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(PDEVICE_OBJECT pOb
 /*++
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(pObject);
 
@@ -531,7 +507,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(PDEVICE_OBJECT pO
 /*++
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(PDEVICE_OBJECT pObject, PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(pObject);
 
@@ -622,7 +598,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(PDEVICE_OB
 /*++
 
 --*/
-NTSTATUS InterceptedDeviceControlRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
 	return InterceptGenericRoutine( DeviceObject, Irp );
 }
@@ -631,7 +607,7 @@ NTSTATUS InterceptedDeviceControlRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp 
 /*++
 
 --*/
-NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
 	return InterceptGenericRoutine( DeviceObject, Irp );
 }
@@ -640,61 +616,8 @@ NTSTATUS InterceptedReadRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
 /*++
 
 --*/
-NTSTATUS InterceptedWriteRoutine( PDEVICE_OBJECT DeviceObject, PIRP Irp )
+NTSTATUS InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
 	return InterceptGenericRoutine( DeviceObject, Irp );
 }
 
-
-/*++
-
---*/
-BOOLEAN InterceptGenericFastIoRead(
-	IN PFILE_OBJECT FileObject,
-	IN PLARGE_INTEGER FileOffset,
-	IN ULONG Length,
-	IN BOOLEAN Wait,
-	IN ULONG LockKey,
-	OUT PVOID Buffer,
-	OUT PIO_STATUS_BLOCK IoStatus,
-	IN PDEVICE_OBJECT DeviceObject
-)
-{
-	UNREFERENCED_PARAMETER(FileObject);
-	UNREFERENCED_PARAMETER(FileOffset);
-	UNREFERENCED_PARAMETER(Length);
-	UNREFERENCED_PARAMETER(Wait);
-	UNREFERENCED_PARAMETER(LockKey);
-	UNREFERENCED_PARAMETER(Buffer);
-	UNREFERENCED_PARAMETER(IoStatus);
-	UNREFERENCED_PARAMETER(DeviceObject);
-
-	return TRUE;
-}
-
-
-/*++
-
---*/
-BOOLEAN InterceptGenericFastIoWrite(
-	IN PFILE_OBJECT FileObject,
-	IN PLARGE_INTEGER FileOffset,
-	IN ULONG Length,
-	IN BOOLEAN Wait,
-	IN ULONG LockKey,
-	OUT PVOID Buffer,
-	OUT PIO_STATUS_BLOCK IoStatus,
-	IN PDEVICE_OBJECT DeviceObject
-)
-{
-	UNREFERENCED_PARAMETER(FileObject);
-	UNREFERENCED_PARAMETER(FileOffset);
-	UNREFERENCED_PARAMETER(Length);
-	UNREFERENCED_PARAMETER(Wait);
-	UNREFERENCED_PARAMETER(LockKey);
-	UNREFERENCED_PARAMETER(Buffer);
-	UNREFERENCED_PARAMETER(IoStatus);
-	UNREFERENCED_PARAMETER(DeviceObject);
-
-	return TRUE;
-}

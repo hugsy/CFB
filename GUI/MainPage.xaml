@@ -40,13 +40,14 @@
             <SplitView.Pane>
                 <StackPanel Background="Gray">
                     <Button x:Name="HomeSideMenuBtn" FontFamily="Segoe MDL2 Assets" Content="&#xE14C;" Click="NavigateToHome_Click" Background="{x:Null}" FontSize="30"/>
+                    
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="HomeSvBtn" Margin="5,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="20" Content="&#xEA8A;" Click="NavigateToHome_Click" Background="{x:Null}" />
-                        <TextBlock Text="Home" Margin="5,0,0,0" FontSize="18" VerticalAlignment="Center"  />
+                        <Button x:Name="HomeSvBtn" Margin="5,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="20" Content="&#xEA8A;" Background="{x:Null}" />
+                        <TextBlock Text="IRP Monitor" Margin="5,0,0,0" FontSize="18" VerticalAlignment="Center"  />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="SettingsSvBtn" Margin="5,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="20" Content="&#xE115;" Background="{x:Null}" />
+                        <Button x:Name="SettingsSvBtn" Click="SettingsSvBtn_Click" Margin="5,0,0,0" FontFamily="Segoe MDL2 Assets" FontSize="20" Content="&#xE115;" Background="{x:Null}" />
                         <TextBlock Text="Settings" Margin="5,0,0,0" FontSize="18" VerticalAlignment="Center"  />
                     </StackPanel>
 
@@ -64,6 +65,7 @@
         </SplitView>
 
         <TextBlock x:Name="TitleLbl" Style="{ThemeResource HeaderTextBlockStyle}" Text="CFB Monitor View" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="36,0,0,0" />
-        <controls:DataGrid HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Center"/>
+
+        <controls:DataGrid HorizontalAlignment="Center" Grid.Row="1" VerticalAlignment="Center" x:Name="IrpDataGrid" AutoGenerateColumns="True" ItemsSource="{x:Bind monitoredIrps.GetIrps()}"/>
     </Grid>
 </Page>
