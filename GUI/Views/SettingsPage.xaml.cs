@@ -23,9 +23,8 @@ namespace GUI.Views
     /// </summary>
     public sealed partial class SettingsPage : Page
     {
-
-        public string settingIrpBrokerLocation = "tcp://localhost:1337";
         private ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
+
 
         public SettingsPage()
         {
@@ -37,15 +36,13 @@ namespace GUI.Views
             return true;
         }
 
+
         private void settingIrpBrokerLocationTextBox_Changed(object sender, RoutedEventArgs e)
         {
-            var new_value = settingIrpBrokerLocationTextBox.Text;
-            if (new_value.StartsWith("tcp://"))
+            var location = settingIrpBrokerLocationTextBox.Text.ToLower();
+            if (IsValidLocationFormat(location))
             {
-                // todo make better checks
-                settingIrpBrokerLocation = new_value;
-                localSettings.Values["IrpBrokerLocation"] = new_value;
-
+                localSettings.Values["IrpBrokerLocation"] = location;
                 settingIrpBrokerLocationTextBox.BorderBrush = new SolidColorBrush(Windows.UI.Colors.Green);
             }
             else
@@ -53,6 +50,26 @@ namespace GUI.Views
                 settingIrpBrokerLocationTextBox.BorderBrush = new SolidColorBrush(Windows.UI.Colors.Red);
             }
         }
+
+
+        private bool IsValidLocationFormat(string location)
+        {
+            try
+            {
+                var uri = new Uri(location);
+
+                if (uri.Scheme != "tcp" && uri.Scheme != "pipe")
+                    return false;
+
+                return true;
+            }
+            catch(Exception)
+            {
+            }
+            
+            return false;
+        }
+
 
         private void onEnableAutoFuzzSetting_Click(object sender, RoutedEventArgs e)
         {

@@ -8,7 +8,20 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel>
+            <TextBlock Style="{ThemeResource HeaderTextBlockStyle}"
+                       Text="About CFB" />
+
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="CFB is a tool for assisting in the process of monitoring, capturing and fuzzing IRPs on Windows hosts. It works by hooking the major function functions in the targeted drivers." />
+
+            <HyperlinkButton
+                Click="OnGithubLink_Clicked"
+                Content="GitHub Repository" />
+            
+        </StackPanel>
 
     </Grid>
 </Page>

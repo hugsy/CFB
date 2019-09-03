@@ -35,7 +35,7 @@
 
         <NavigationView
             x:Name="NavView"
-            OpenPaneLength="180"
+            OpenPaneLength="200"
             AlwaysShowHeader="False"
             IsSettingsVisible="True"
             IsPaneOpen = "False"
@@ -52,6 +52,24 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
+                <NavigationViewItem
+                    x:Name="OpenIrpDbMenuItem"
+                    Content="{x:Bind OpenIrpDbLabel}"
+                    ToolTipService.ToolTip="Open and load a previously saved database">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="OpenFile"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem
+                    x:Name="SaveIrpDbMenuItem"
+                    Content="{x:Bind SaveIrpDbLabel}"
+                    ToolTipService.ToolTip="Save all the IRPs to a local file that can be loaded later.">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="SaveLocal"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                
             </NavigationView.MenuItems>
 
             <NavigationView.PaneFooter>

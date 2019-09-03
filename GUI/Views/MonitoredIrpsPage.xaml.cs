@@ -26,5 +26,27 @@ namespace GUI.Views
         {
             this.InitializeComponent();
         }
+
+        private void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void IrpSearchBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            //IrpSearchBox.AutoSuggestBox.PlaceholderText = "Search IRP by RegExp...";
+        }
+
+
     }
 }

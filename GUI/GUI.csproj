@@ -122,9 +122,14 @@
     <Compile Include="AppShell.xaml.cs">
       <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Models\Constants.cs" />
     <Compile Include="Models\Irp.cs" />
     <Compile Include="Models\MonitoredIrps.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UserControls\IrpSearchBox.xaml.cs">
+      <DependentUpon>IrpSearchBox.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Controllers\MonitoredIrpsController.cs" />
     <Compile Include="Views\AboutPage.xaml.cs">
       <DependentUpon>AboutPage.xaml</DependentUpon>
     </Compile>
@@ -158,6 +163,10 @@
     <Page Include="AppShell.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="UserControls\IrpSearchBox.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\AboutPage.xaml">
       <SubType>Designer</SubType>

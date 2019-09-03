@@ -25,7 +25,7 @@
                      BorderThickness="5"
                      x:Name="settingIrpBrokerLocationTextBox" 
                      SelectionChanged="settingIrpBrokerLocationTextBox_Changed"
-                     Text="{x:Bind settingIrpBrokerLocation}"/>
+                     Text="{x:Bind localSettings.Values['IrpBrokerLocation'] }"/>
             
             <TextBlock Margin="5,25,0,5"
                        Style="{ThemeResource TitleTextBlockStyle}"

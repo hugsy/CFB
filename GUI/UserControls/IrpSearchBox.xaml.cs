@@ -13,23 +13,27 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-using GUI.Models;
-using Windows.System;
+// The User Control item template is documented at https://go.microsoft.com/fwlink/?LinkId=234236
 
-namespace GUI.Views
+namespace GUI.UserControls
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
-    public sealed partial class AboutPage : Page
+    public sealed partial class IrpSearchBox : UserControl
     {
-        public AboutPage()
+        private double RequestedWidth = 32;
+
+
+        public IrpSearchBox()
         {
             this.InitializeComponent();
         }
 
-        private async void OnGithubLink_Clicked(object sender, RoutedEventArgs e) =>
-            await Launcher.LaunchUriAsync(new Uri(Constants.ProjectUrl));
 
+        private void SearchButton_Checked(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void SearchBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+        }
     }
 }

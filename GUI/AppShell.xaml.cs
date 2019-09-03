@@ -13,6 +13,10 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Windows.System;
+using System.Threading.Tasks;
+
+using GUI.Models;
+
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -23,11 +27,11 @@ namespace GUI
     /// </summary>
     public sealed partial class AppShell : Page
     {
-        private Model.MonitoredIrps monitoredIrps;
-
         public readonly string MonitoredIrpsListLabel = "Monitored IRPs";
+        public readonly string OpenIrpDbLabel = "Open IRP Database";
+        public readonly string SaveIrpDbLabel = "Save IRPs to a local file";
         public readonly string AboutLabel = "About CFB";
-        public readonly string ReportBugUrl = "https://github.com/hugsy/cfb/issues";
+
         public readonly string StartMonitoringLabel = "Start Monitoring IRPs";
         public readonly string StopMonitoringLabel = "Stop Monitoring IRPs";
         public readonly string ClearGridLabel = "Clear all intercepted IRPs";
@@ -38,16 +42,7 @@ namespace GUI
         public AppShell()
         {
             this.InitializeComponent();
-            monitoredIrps = new Model.MonitoredIrps();
         }
-
-        //private void NavigateToHome_Click(object sender, RoutedEventArgs e)
-        //{
-            //SideMenuSv.IsPaneOpen = !SideMenuSv.IsPaneOpen;
-            //this.Frame.Navigate(typeof(MainPage));
-            //this.Frame.GoBack();
-            //this.Frame.Navigate(typeof(Settings));
-        //}
 
 
         /// <summary>
@@ -74,6 +69,12 @@ namespace GUI
                 else if (label == AboutLabel)
                     targetPage = typeof(Views.AboutPage);
 
+                else if (label == OpenIrpDbLabel)
+                {
+                    InsertIrpsFromPickedFile();
+                    targetPage = typeof(Views.MonitoredIrpsPage);
+                }
+
                 //
                 // TODO: Add other pages
                 //
@@ -82,6 +83,29 @@ namespace GUI
             NavView.IsPaneOpen = false;
             AppFrame.Navigate(targetPage);
         }
+
+
+        private async void InsertIrpsFromPickedFile()
+        {
+            try
+            {
+                var picker = new Windows.Storage.Pickers.FileOpenPicker();
+                picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.Thumbnail;
+                picker.FileTypeFilter.Add(".cfb");
+                Windows.Storage.StorageFile file = await picker.PickSingleFileAsync();
+
+                var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);              
+                byte[] fileContent = buffer.ToArray(); 
+
+                // todo implement
+            }
+            catch(Exception)
+            {
+            }
+            
+            return;
+        }
+
 
         /// <summary>
         /// When navigating to a new page in the root frame, keep track of the 
@@ -98,7 +122,7 @@ namespace GUI
                 else if (e.SourcePageType == typeof(Views.MonitoredIrpsPage))
                     NavView.SelectedItem = MonitoredIrpsMenuItem;
 
-                else if (e.SourcePageType == typeof(Views.SettingsPage))
+                else if (e.SourcePageType == typeof(Views.AboutPage))
                     NavView.SelectedItem = AboutMenuItem;
 
                 //
@@ -114,7 +138,7 @@ namespace GUI
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private async void ReportBug_Tapped(object sender, TappedRoutedEventArgs e) =>
-            await Launcher.LaunchUriAsync(new Uri(ReportBugUrl));
+            await Launcher.LaunchUriAsync(new Uri(Constants.ProjectIssueUrl));
 
 
         /// <summary>

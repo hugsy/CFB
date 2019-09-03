@@ -3,12 +3,49 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:GUI.Views"
+    xmlns:uc="using:GUI.UserControls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
+    NavigationCacheMode="Required"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid>
+    <Page.Resources>
+        <MenuFlyout x:Key="DataGridContextMenu">
+            <!-- Click="ShowDetails_Click"-->
+            <MenuFlyoutItem
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE1A5;"
+                Text="Show IRP Details" />
 
-    </Grid>
+                <!-- Click="SaveAsRawFile_Click" -->
+            <MenuFlyoutItem               
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE14D;"
+                Text="Save the current IRP data as Raw" />
+
+            <!--Click="SaveAsPowershellScript_Click"-->
+            <MenuFlyoutItem
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE14D;"
+                Text="Save the current IRP data as a PowerShell script" />
+
+            <!--Click="SaveAsPythonScript_Click"-->
+            <MenuFlyoutItem
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE14D;"
+                Text="Save the current IRP data as a Python script" />
+
+        </MenuFlyout>
+    </Page.Resources>
+
+    <uc:IrpSearchBox
+        x:Name="IrpSearchBox"
+        Width="240"
+        HorizontalAlignment="Right"
+        Margin="12,8,12,0"
+        Loaded="IrpSearchBox_Loaded"
+        RelativePanel.AlignRightWithPanel="True" />
+    
+
 </Page>
