@@ -71,6 +71,22 @@
                 </NavigationViewItem>
 
                 <NavigationViewItem
+                    Content="{x:Bind ManageDriversLabel}"
+                    ToolTipService.ToolTip="Add or remove IRP drivers.">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="MapDrive"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem
+                    Content="{x:Bind ManageFiltersLabel}"
+                    ToolTipService.ToolTip="Add or remove IRP capture filters.">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Filter"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+
+                <NavigationViewItem
                         x:Name="AboutMenuItem"
                         Content="{x:Bind AboutLabel}" 
                         ToolTipService.ToolTip="{x:Bind AboutLabel}"
