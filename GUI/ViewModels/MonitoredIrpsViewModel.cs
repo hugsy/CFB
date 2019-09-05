@@ -9,13 +9,13 @@ using System.ComponentModel;
 using GUI.Models;
 
 
-namespace GUI.Controllers
+namespace GUI.ViewModels
 {
-    class MonitoredIrpsController
+    class MonitoredIrpsViewModel
     {
         private MonitoredIrps _model;
 
-        public MonitoredIrpsController()
+        public MonitoredIrpsViewModel()
         {
             _model = new MonitoredIrps();
         }

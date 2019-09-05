@@ -73,7 +73,8 @@ namespace GUI.Views
 
         private void onEnableAutoFuzzSetting_Click(object sender, RoutedEventArgs e)
         {
-            localSettings.Values["EnableAutoFuzz"] = enableAutoFuzzCheckBox.IsChecked;
+            localSettings.Values["EnableAutoFuzz"] = enableAutoFuzzCheckBox.IsOn;
+            autoFuzzStrategiesPanel.Visibility = enableAutoFuzzCheckBox.IsOn ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

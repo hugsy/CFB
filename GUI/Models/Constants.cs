@@ -23,7 +23,6 @@ namespace GUI.Models
         /// </summary>
         public const double ProjectVersion = 0.1;
 
-
         /// <summary>
         /// 
         /// </summary>

@@ -64,11 +64,13 @@ namespace GUI
             else
             {
                 if (label == MonitoredIrpsListLabel)
+                {
                     targetPage = typeof(Views.MonitoredIrpsPage);
-
+                }
                 else if (label == AboutLabel)
+                {
                     targetPage = typeof(Views.AboutPage);
-
+                }
                 else if (label == OpenIrpDbLabel)
                 {
                     InsertIrpsFromPickedFile();

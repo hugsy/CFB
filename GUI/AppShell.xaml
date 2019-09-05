@@ -69,6 +69,12 @@
                         <SymbolIcon Symbol="SaveLocal"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+
+                <NavigationViewItem
+                        x:Name="AboutMenuItem"
+                        Content="{x:Bind AboutLabel}" 
+                        ToolTipService.ToolTip="{x:Bind AboutLabel}"
+                        Icon="Contact" />
                 
             </NavigationView.MenuItems>
 
@@ -83,11 +89,6 @@
                         </NavigationViewItem.Icon>
                     </NavigationViewItem>
 
-                    <NavigationViewItem
-                        x:Name="AboutMenuItem"
-                        Content="{x:Bind AboutLabel}" 
-                        ToolTipService.ToolTip="{x:Bind AboutLabel}"
-                        Icon="Contact" />
                 </StackPanel>
                 </NavigationView.PaneFooter>
 

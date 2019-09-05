@@ -13,14 +13,20 @@
             <TextBlock Style="{ThemeResource HeaderTextBlockStyle}"
                        Text="About CFB" />
 
-            <TextBlock Margin="5,25,0,5"
+            <TextBlock Margin="100,25,150,30"
                        Style="{ThemeResource TitleTextBlockStyle}"
                        Text="CFB is a tool for assisting in the process of monitoring, capturing and fuzzing IRPs on Windows hosts. It works by hooking the major function functions in the targeted drivers." />
 
             <HyperlinkButton
-                Click="OnGithubLink_Clicked"
-                Content="GitHub Repository" />
+                Margin="20,0,0,0"
+                Click="OnLink_Clicked"
+                Content="{x:Bind GithubRepositoryLabel}" />
             
+            <HyperlinkButton
+                Margin="20,0,0,0"
+                Click="OnLink_Clicked"
+                Content="{x:Bind GithubIssueLabel}" />
+
         </StackPanel>
 
     </Grid>

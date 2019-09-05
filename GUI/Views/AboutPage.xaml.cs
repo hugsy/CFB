@@ -23,13 +23,27 @@ namespace GUI.Views
     /// </summary>
     public sealed partial class AboutPage : Page
     {
+        public readonly string GithubRepositoryLabel = "Visit Github Repository";
+        public readonly string GithubIssueLabel = "Submit an issue";
+        public readonly string GithubPullRequestLabel = "Submit a pull request";
+
         public AboutPage()
         {
             this.InitializeComponent();
         }
 
-        private async void OnGithubLink_Clicked(object sender, RoutedEventArgs e) =>
-            await Launcher.LaunchUriAsync(new Uri(Constants.ProjectUrl));
 
+        private async void OnLink_Clicked(object sender, RoutedEventArgs e)
+        {
+            HyperlinkButton clickedBtn = (HyperlinkButton)e.OriginalSource;
+            string buttonLabel = clickedBtn.Content.ToString();
+
+            await Launcher.LaunchUriAsync(new Uri("http://localhost/?"+buttonLabel));
+
+            if (buttonLabel == GithubRepositoryLabel)
+                await Launcher.LaunchUriAsync(new Uri(Constants.ProjectUrl));
+            else if (buttonLabel == GithubIssueLabel)
+                await Launcher.LaunchUriAsync(new Uri(Constants.ProjectIssueUrl));
+        }
     }
 }
