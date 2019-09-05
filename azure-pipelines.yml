@@ -25,28 +25,28 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: VSBuild@Common
+- task: VSBuildCommon@1
   inputs:
     solution: '$(solution)'
     projectFile: '**/Common.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: VSBuild@Driver
+- task: VSBuildDriver@1
   inputs:
     solution: '$(solution)'
     projectFile: '**/Driver.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: VSBuild@Broker
+- task: VSBuildBroker@1
   inputs:
     solution: '$(solution)'
     projectFile: '**/Broker.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
     
-- task: VSBuild@GUI
+- task: VSBuildGUI@1
   inputs:
     solution: '$(solution)'
     projectFile: '**/GUI.vcxproj'
