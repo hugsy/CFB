@@ -18,13 +18,6 @@ variables:
   buildConfiguration: 'Release'
 
 
-jobs:
-- job: 'Test'
-  displayName: "Build"
-  timeoutInMinutes: 0
-  cancelTimeoutInMinutes: 300
-
-
 steps:
 - task: NuGetToolInstaller@0
 
