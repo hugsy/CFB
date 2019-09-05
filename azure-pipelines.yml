@@ -25,11 +25,15 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: VSBuild@0
+- task: VSBuild@1
   inputs:
     solution: '$(solution)'
     projectFile: '**/Broker.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
-    logFileVerbosity: 'detailed'    
+    logFileVerbosity: 'detailed'
    
+- task: VSTest@2
+  inputs:
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
