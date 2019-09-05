@@ -1,18 +1,29 @@
-# .NET Desktop
-# Build and run tests for .NET Desktop or Windows classic desktop solutions.
-# Add steps that publish symbols, save build artifacts, and more:
+#
 # https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
+#
 
 trigger:
-- master
+  batch: true
+  branches:
+    include:
+    - master
 
 pool:
   vmImage: 'windows-latest'
 
+
 variables:
   solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
+  buildPlatform: 'x86|x64'
   buildConfiguration: 'Release'
+
+
+jobs:
+- job: 'Test'
+  displayName: "Build"
+  timeoutInMinutes: 0
+  cancelTimeoutInMinutes: 300
+
 
 steps:
 - task: NuGetToolInstaller@0
@@ -21,13 +32,31 @@ steps:
   inputs:
     restoreSolution: '$(solution)'
 
-- task: VSBuild@1
+- task: VSBuild@Common
   inputs:
     solution: '$(solution)'
+    projectFile: '**/Common.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
 
-- task: VSTest@2
+- task: VSBuild@Driver
   inputs:
+    solution: '$(solution)'
+    projectFile: '**/Driver.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
+
+- task: VSBuild@Broker
+  inputs:
+    solution: '$(solution)'
+    projectFile: '**/Broker.vcxproj'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+    
+- task: VSBuild@GUI
+  inputs:
+    solution: '$(solution)'
+    projectFile: '**/GUI.vcxproj'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+    
