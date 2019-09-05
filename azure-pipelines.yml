@@ -31,5 +31,5 @@ steps:
     projectFile: '**/Broker.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
-    
+    logFileVerbosity: 'detailed'    
    
