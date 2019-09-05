@@ -32,10 +32,4 @@ steps:
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
     
-- task: VSBuild@0
-  inputs:
-    solution: '$(solution)'
-    projectFile: '**/GUI.vcxproj'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-    
+   
