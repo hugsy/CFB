@@ -54,8 +54,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\x64\Debug\Driver\IrpDumper.sys" />
     <None Include="cfb_driv.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\x64\Debug\Driver\IrpDumper.sys">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

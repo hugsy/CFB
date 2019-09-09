@@ -31,18 +31,18 @@
 #define CFB_PIPE_OUTBUFLEN			4096
 
 
-#ifdef _DEBUG
-/* Debug */
-
 #define WIDE2(x) L##x
 #define WIDECHAR(x) WIDE2(x)
 
-#define WIDE_FUNCTION WIDECHAR(__FUNCTION__) L"()"
-#define WIDE_FILE WIDECHAR(__FILE__)
+#define FUNCTIONW WIDECHAR(__FUNCTION__) L"()"
+#define FILENAMEW WIDECHAR(__FILE__)
 
+
+#ifdef _DEBUG
+/* Debug */
 #define GEN_FMT L"in '%s'(%s:%d) [%d] "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
-#define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, WIDE_FUNCTION, WIDE_FILE, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
+#define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, FUNCTIONW, FILENAMEW, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
 
 #else
 /* Release */
@@ -50,6 +50,9 @@
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 
 #endif /* _DEBUG_ */
+
+
+#define PrintErrorWithFunctionName(x) PrintError(FILENAMEW L":" FUNCTIONW L": " x)
 
 
 typedef enum

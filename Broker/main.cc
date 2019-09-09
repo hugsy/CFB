@@ -1,5 +1,11 @@
 /*++
 
+Module Name:
+   main.c
+
+   
+Abstract:
+
 This is the main file for the broker.
 
 The broker is a privileged process (must have at least SeDebug and SeLoadDriver) and is responsible 
@@ -9,12 +15,27 @@ for communicating with the IrpDumper driver by:
 - fetching IRP data from the hooked drivers
 - upon cleanup the resources, unload the driver and delete the service.
 
+
 --*/
 
 
 #include "main.h"
 
 /*++
+
+Routine Description:
+
+Attempts to acquire a privilege by its name.
+
+
+Arguments:
+
+	lpszPrivilegeName - the name (as a wide string) of the privilege
+
+
+Return Value:
+
+	Returns TRUE if the privilege was successfully acquired
 
 --*/
 static BOOL AssignPrivilegeToSelf(_In_ const wchar_t* lpszPrivilegeName)
@@ -60,7 +81,22 @@ static BOOL AssignPrivilegeToSelf(_In_ const wchar_t* lpszPrivilegeName)
 
 /*++
 
+Routine Description:
+
 Simple helper function to check a privilege by name on the current process.
+
+
+Arguments:
+
+	lpszPrivilegeName - the name (as a wide string) of the privilege
+
+	lpHasPriv - a pointer to a boolean indicating whether the current process own that 
+	privilege
+
+
+Return Value:
+
+	Returns TRUE if the current has the privilege 
 
 --*/
 static BOOL HasPrivilege(_In_ const wchar_t* lpszPrivilegeName, _Out_ PBOOL lpHasPriv)
@@ -120,7 +156,21 @@ static BOOL HasPrivilege(_In_ const wchar_t* lpszPrivilegeName, _Out_ PBOOL lpHa
 
 /*++
 
-The entrypoint for the loader.
+Routine Description:
+
+The entrypoint for the broker.
+
+
+Arguments:
+
+	argc - 
+
+	argv - 
+
+
+Return Value:
+
+	Returns 0 on success.
 
 --*/
 int wmain(int argc, wchar_t** argv)

@@ -2,8 +2,18 @@
 
 
 /*++
+Routine Description:
 
 Create the named pipe responsible for the communication with the GUI.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Returns TRUE upon successful creation of the pipe, FALSE if any error occured.
 
 --*/
 BOOL CreateServerPipe()
@@ -25,7 +35,7 @@ BOOL CreateServerPipe()
 
 	if (g_hServerPipe == INVALID_HANDLE_VALUE)
 	{
-		PrintError(L"CreateNamedPipe()");
+		PrintErrorWithFunctionName(L"CreateNamedPipe()");
 		return FALSE;
 	}
 
@@ -35,7 +45,18 @@ BOOL CreateServerPipe()
 
 /*++
 
+Routine Description:
+
 Flush all the data and close the pipe.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Returns TRUE upon successful termination of the pipe, FALSE if any error occured.
 
 --*/
 BOOL CloseServerPipe()
@@ -54,7 +75,7 @@ BOOL CloseServerPipe()
 	//
 	if (!DisconnectNamedPipe(g_hServerPipe))
 	{
-		PrintError(L"DisconnectNamedPipe()");
+		PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
 		return FALSE;
 	}
 
@@ -64,8 +85,26 @@ BOOL CloseServerPipe()
 
 /*++
 
+Routine Description:
+
+This routine handles the communication with the front-end of CFB (for now, the only one implemented
+is the GUI).
+
+Once a message from the frontend is received, it is parsed and pushed as an incoming Task, and notify 
+the BackEnd driver thread, then wait for an event from that same thread, notifying a response. Once the 
+response is popped from the outgoing Task list, the data is sent back to the frontend.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Returns 0 the thread execution went successfully.
+
 --*/
-static DWORD GuiThread(_In_ LPVOID lpParameter)
+static DWORD FrontendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 {
 	while (TRUE)
 	{
@@ -79,6 +118,20 @@ static DWORD GuiThread(_In_ LPVOID lpParameter)
 
 /*++
 
+Routine Description:
+
+This function is a simple wrapper around CreateThread() to start the thread handling the conversation
+with the frontend part of the application.
+
+
+Arguments:
+
+	lpThread - a pointer to the handle of the created
+
+
+Return Value:
+	Returns TRUE upon successful creation of the thread, FALSE if any error occured.
+
 --*/
 _Success_(return) 
 BOOL StartGuiThread(_Out_ PHANDLE lpThread)
@@ -88,7 +141,7 @@ BOOL StartGuiThread(_Out_ PHANDLE lpThread)
 	HANDLE hThread = CreateThread(
 		NULL,
 		0,
-		GuiThread,
+		FrontendConnectionHandlingThread,
 		NULL,
 		0,
 		&dwThreadId
@@ -96,7 +149,7 @@ BOOL StartGuiThread(_Out_ PHANDLE lpThread)
 
 	if (!hThread)
 	{
-		PrintError(L"CreateThread(Gui)");
+		PrintErrorWithFunctionName(L"CreateThread(Gui)");
 		return FALSE;
 	}
 

@@ -5,8 +5,20 @@
 
 /*++
 
-Extracts the driver from the resources, and dump it to the location defined by 
+Routine Description:
+
+Extracts the driver from the resources, and dump it to the location defined by
 `CFB_DRIVER_LOCATION_DIRECTORY` in drivers.h
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Returns TRUE upon successful extraction of the driver from the resource of the PE 
+	file, FALSE if any error occured.
 
 --*/
 BOOL ExtractDriverFromResource()
@@ -20,21 +32,21 @@ BOOL ExtractDriverFromResource()
 	HRSRC DriverRsc = FindResource(NULL, MAKEINTRESOURCE(IDR_CFB_DRIVER1), L"CFB_DRIVER");
 	if (!DriverRsc)
 	{
-		PrintError(L"ExtractDriverFromResource:FindResource() failed");
+		PrintErrorWithFunctionName(L"FindResource()");
 		return FALSE;
 	}
 
 	DWORD dwDriverSize = SizeofResource(NULL, DriverRsc);
 	if (!dwDriverSize)
 	{
-		PrintError(L"ExtractDriverFromResource:SizeofResource() failed");
+		PrintErrorWithFunctionName(L"SizeofResource()");
 		return FALSE;
 	}
 
 	HGLOBAL hgDriverRsc = LoadResource(NULL, DriverRsc);
 	if (!hgDriverRsc)
 	{
-		PrintError(L"ExtractDriverFromResource:LoadResource() failed");
+		PrintErrorWithFunctionName(L"LoadResource()");
 		return FALSE;
 	}
 
@@ -49,14 +61,14 @@ BOOL ExtractDriverFromResource()
 	HANDLE hDriverFile = CreateFile(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hDriverFile == INVALID_HANDLE_VALUE)
 	{
-		PrintError(L"CreateFile()");
+		PrintErrorWithFunctionName(L"CreateFile()");
 		return FALSE;
 	}
 
 	DWORD dwWritten;
 	if (!WriteFile(hDriverFile, hgDriverRsc, dwDriverSize, &dwWritten, NULL))
 	{
-		PrintError(L"WriteFile()");
+		PrintErrorWithFunctionName(L"WriteFile()");
 		retcode = FALSE;
 	}
 
@@ -66,6 +78,20 @@ BOOL ExtractDriverFromResource()
 
 
 /*++
+
+Routine Description:
+
+Delete the driver extracted from the PE resources from the disk.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+
+	Returns TRUE upon successful deletion of the driver from the disk.
 
 --*/
 BOOL DeleteDriverFromDisk()
@@ -78,7 +104,20 @@ BOOL DeleteDriverFromDisk()
 
 /*++
 
+Routine Description:
+
 Creates and starts a service for the driver.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+
+	Returns TRUE if the service was successfully created, and the driver loaded;
+	FALSE in any other case
 
 --*/
 BOOL LoadDriver()
@@ -91,15 +130,16 @@ BOOL LoadDriver()
 
 	if (!g_hSCManager)
 	{
-		PrintError(L"OpenSCManager()");
+		PrintErrorWithFunctionName(L"OpenSCManager()");
 		return FALSE;
 	}
 
 	WCHAR lpPath[MAX_PATH] = { 0, };
 	GetDriverOnDiskFullPath(lpPath);
 
-	xlog(LOG_DEBUG, L"Create the service '%s' for kernel driver '%s'\n", CFB_SERVICE_NAME, lpPath);
-
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"Creating the service '%s' for kernel driver '%s'\n", CFB_SERVICE_NAME, lpPath);
+#endif 
 	g_hService = CreateService(
 		g_hSCManager,
 		CFB_SERVICE_NAME,
@@ -123,14 +163,14 @@ BOOL LoadDriver()
 	{
 		if (GetLastError() != ERROR_SERVICE_EXISTS)
 		{
-			PrintError(L"CreateService()");
+			PrintErrorWithFunctionName(L"CreateService()");
 			return FALSE;
 		}
 
 		g_hService = OpenService(g_hSCManager, CFB_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP);
 		if (!g_hService)
 		{
-			PrintError(L"CreateService()");
+			PrintErrorWithFunctionName(L"CreateService()");
 			return FALSE;
 		}
 	}
@@ -144,7 +184,7 @@ BOOL LoadDriver()
 
 	if (!StartService(g_hService, 0, NULL))
 	{
-		PrintError(L"StartService()");
+		PrintErrorWithFunctionName(L"StartService()");
 		return FALSE;
 	}
 
@@ -154,7 +194,19 @@ BOOL LoadDriver()
 
 /*++
 
-Stops and unloads the service to the driver.
+Routine Description:
+
+Unloads the driver.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+
+	Returns TRUE if the driver was successfully unloaded; FALSE in any other case
 
 --*/
 BOOL UnloadDriver()
@@ -165,7 +217,7 @@ BOOL UnloadDriver()
 #endif
 	if (!ControlService(g_hService, SERVICE_CONTROL_STOP, &ServiceStatus))
 	{
-		PrintError(L"ControlService");
+		PrintErrorWithFunctionName(L"ControlService");
 		return FALSE;
 	}
 
@@ -174,7 +226,7 @@ BOOL UnloadDriver()
 #endif
 	if (!DeleteService(g_hService))
 	{
-		PrintError(L"DeleteService");
+		PrintErrorWithFunctionName(L"DeleteService");
 		return FALSE;
 	}
 
@@ -188,8 +240,25 @@ BOOL UnloadDriver()
 
 /*++
 
+Routine Description:
+
+Reads the new tasks received by the FrontEnd thread, and bounces thoses requests to the backend (i.e. the driver) 
+via the IOCTL codes (which can be found in Driver\Header Files\IoctlCodes.h).
+
+The driver must acknowledge the request by sending a response (even if the result content is asynchronous).
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	
+	Returns 0
+
 --*/
-static DWORD DriverThread(_In_ LPVOID lpParameter)
+static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 {
 	while (TRUE)
 	{
@@ -203,6 +272,21 @@ static DWORD DriverThread(_In_ LPVOID lpParameter)
 
 /*++
 
+Routine Description:
+
+Start the thread responsible for the communcation between the broker and the backend (i.e.
+the driver).
+
+
+Arguments:
+
+	lpThread -  a pointer to the handle of the created
+
+
+Return Value:
+
+	Returns TRUE if the thread was successfully created; FALSE in any other case
+
 --*/
 _Success_(return)
 BOOL StartDriverThread(_Out_ PHANDLE lpThread)
@@ -212,7 +296,7 @@ BOOL StartDriverThread(_Out_ PHANDLE lpThread)
 	HANDLE hThread = CreateThread(
 		NULL,
 		0,
-		DriverThread,
+		BackendConnectionHandlingThread,
 		NULL,
 		0,
 		&dwThreadId
