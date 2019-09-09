@@ -1,18 +1,22 @@
-# .NET Desktop
-# Build and run tests for .NET Desktop or Windows classic desktop solutions.
-# Add steps that publish symbols, save build artifacts, and more:
+#
 # https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
+#
 
 trigger:
-- master
+  batch: true
+  branches:
+    include:
+    - master
 
 pool:
   vmImage: 'windows-latest'
+
 
 variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+
 
 steps:
 - task: NuGetToolInstaller@0
@@ -22,11 +26,16 @@ steps:
     restoreSolution: '$(solution)'
 
 - task: VSBuild@1
+  displayName: 'Building Broker'
+  name: 'CompileBroker'
   inputs:
     solution: '$(solution)'
+    projectFile: '**/Broker.vcxproj'
     platform: '$(buildPlatform)'
     configuration: '$(buildConfiguration)'
-
+    logFileVerbosity: 'detailed'
+    
+   
 - task: VSTest@2
   inputs:
     platform: '$(buildPlatform)'
