@@ -1,8 +1,14 @@
 #pragma once
 
+#include <memory>
+#include <wil/resource.h>
+
+
 #include "resource.h"
 
 #include "common.h"
+#include "main.h"
+
 
 #define CFB_DRIVER_LOCATION_DIRECTORY L"C:\\Windows\\System32\\Drivers"
 
@@ -13,7 +19,7 @@
  }
 
 
-static HANDLE g_hDriver = NULL;
+static HANDLE g_hDevice = NULL;
 static SC_HANDLE g_hService = NULL;
 static SC_HANDLE g_hSCManager = NULL;
 

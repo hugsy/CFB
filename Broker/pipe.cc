@@ -85,6 +85,33 @@ BOOL CloseServerPipe()
 
 /*++
 
+--*/
+static DWORD FrontendConnectionHandlingThreadOut(_In_ LPVOID /* lpParameter */)
+{
+	while (g_bIsRunning)
+	{
+		//
+		// blocking-pop on response task list
+		//
+		
+		//
+		// write response to pipe
+		//
+
+		//
+		// delete task
+		//
+
+
+		Sleep(10 * 1000); // placeholder
+	}
+
+	return 0;
+}
+
+
+/*++
+
 Routine Description:
 
 This routine handles the communication with the front-end of CFB (for now, the only one implemented
@@ -104,12 +131,44 @@ Return Value:
 	Returns 0 the thread execution went successfully.
 
 --*/
-static DWORD FrontendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
+static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID /* lpParameter */)
 {
-	while (TRUE)
+	DWORD dwThreadId;
+
+	HANDLE hThreadOut = CreateThread(
+		NULL,
+		0,
+		FrontendConnectionHandlingThreadOut,
+		NULL,
+		0,
+		&dwThreadId
+	);
+
+	if (!hThreadOut)
 	{
-		Sleep(10 * 1000);
+		PrintErrorWithFunctionName(L"CreateThread(hThreadPipeOut");
+		return GetLastError();
 	}
+
+	while (g_bIsRunning)
+	{
+		//
+		// get next message from pipe
+		//
+
+		//
+		// parse message to task
+		//
+
+		//
+		// push task to request task list
+		//
+		Sleep(10 * 1000); // placeholder
+	}
+
+	WaitForSingleObject(hThreadOut, INFINITE);
+
+	CloseHandle(hThreadOut);
 
 	return 0;
 }
@@ -141,7 +200,7 @@ BOOL StartGuiThread(_Out_ PHANDLE lpThread)
 	HANDLE hThread = CreateThread(
 		NULL,
 		0,
-		FrontendConnectionHandlingThread,
+		FrontendConnectionHandlingThreadIn,
 		NULL,
 		0,
 		&dwThreadId

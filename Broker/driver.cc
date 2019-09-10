@@ -260,10 +260,63 @@ Return Value:
 --*/
 static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 {
-	while (TRUE)
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"Getting a handle to the device object\n");
+#endif
+
+	wil::unique_handle hDevice(
+		::CreateFile(
+			CFB_USER_DEVICE_NAME,
+			GENERIC_READ | GENERIC_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+			NULL
+		)
+	);
+
+	if (!hDevice)
 	{
-		Sleep(10 * 1000);
+		PrintErrorWithFunctionName(L"CreateFile(g_hDevice");
+		return GetLastError();
 	}
+
+
+	while (g_bIsRunning)
+	{
+		//
+		// blocking-pop from request task list
+		//
+
+		
+		//
+		// send the DeviceIoControl
+		//
+
+
+		//
+		// flag task as Delivered
+		//
+
+
+		//
+		// get response
+		//
+
+
+		//
+		// flag task as Completed, push to response task list
+		//
+
+		//
+		// send CompletionEvent
+		//
+
+
+		Sleep(10 * 1000); // placeholder
+	}
+
 
 	return 0;
 }

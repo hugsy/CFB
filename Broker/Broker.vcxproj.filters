@@ -18,13 +18,13 @@
     <ClCompile Include="main.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pipe.cc">
+    <ClCompile Include="Driver.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="driver.cc">
+    <ClCompile Include="Device.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device.cc">
+    <ClCompile Include="Pipe.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,6 +47,15 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="task.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tasks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Broker.rc">
@@ -60,5 +69,6 @@
     <None Include="..\x64\Debug\Driver\IrpDumper.sys">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

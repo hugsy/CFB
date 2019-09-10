@@ -3,6 +3,7 @@
 #include <Windows.h>
 
 #include "common.h"
+#include "main.h"
 
 static HANDLE g_hServerPipe = INVALID_HANDLE_VALUE;
 

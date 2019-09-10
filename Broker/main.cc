@@ -179,6 +179,7 @@ int wmain(int argc, wchar_t** argv)
 	HANDLE hDriver = INVALID_HANDLE_VALUE;
 	HANDLE hGui = INVALID_HANDLE_VALUE;
 	HANDLE Handles[2] = { 0 };
+	g_bIsRunning = FALSE;
 
 	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
 
@@ -248,6 +249,8 @@ int wmain(int argc, wchar_t** argv)
 
 	xlog(LOG_SUCCESS, L"Service '%s' loaded and started\n", CFB_SERVICE_NAME);
 
+	
+	g_bIsRunning = TRUE;
 
 	//
 	// Start broker <-> driver thread
@@ -278,6 +281,7 @@ int wmain(int argc, wchar_t** argv)
 	//
 	Handles[0] = hGui;
 	Handles[1] = hDriver;
+
 
 	WaitForMultipleObjects(2, Handles, TRUE, INFINITE);
 

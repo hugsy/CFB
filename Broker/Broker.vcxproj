@@ -128,10 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="device.cc" />
-    <ClCompile Include="driver.cc" />
+    <ClCompile Include="Device.cc" />
+    <ClCompile Include="Driver.cc" />
     <ClCompile Include="main.cc" />
-    <ClCompile Include="pipe.cc" />
+    <ClCompile Include="Pipe.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
@@ -139,7 +139,10 @@
     <ClInclude Include="driver.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="pipe.h" />
+    <ClInclude Include="queue.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="task.h" />
+    <ClInclude Include="tasks.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
@@ -152,8 +155,16 @@
   <ItemGroup>
     <None Include="..\x64\Debug\Driver\IrpDumper.sys" />
     <None Include="cfb_driv.bin" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.190716.2\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.190716.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.190716.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.190716.2\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
+  </Target>
 </Project>
