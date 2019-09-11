@@ -4,31 +4,15 @@
 #include "task.h"
 #include "queue.h"
 
+
 class TaskManager
 {
 public:
-	TaskManager()
-	{
-		_tasks = new Queue<Task>();
-	};
-
-	~TaskManager()
-	{
-		delete _tasks;
-	};
-
-	void push(Task t)
-	{
-		_tasks->push(t);
-	}
-
-	Task pop()
-	{
-		return _tasks->pop();
-	}
+	TaskManager();
+	~TaskManager();
+	void push(Task &t);
+	Task pop();
 
 private:
-	Queue<Task> * _tasks;
+	Queue<Task> _tasks;
 };
-
-

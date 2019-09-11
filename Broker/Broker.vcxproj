@@ -132,6 +132,8 @@
     <ClCompile Include="driver.cc" />
     <ClCompile Include="main.cc" />
     <ClCompile Include="pipe.cc" />
+    <ClCompile Include="Task.cpp" />
+    <ClCompile Include="TaskManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
@@ -141,8 +143,8 @@
     <ClInclude Include="pipe.h" />
     <ClInclude Include="queue.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="task.h" />
-    <ClInclude Include="taskmanager.h" />
+    <ClInclude Include="Task.h" />
+    <ClInclude Include="TaskManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">

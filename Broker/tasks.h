@@ -7,23 +7,11 @@
 class TaskManager
 {
 public:
-	TaskManager() 
-	{
-		_tasks = new Queue<Task>();
-	};
+	TaskManager();
+	~TaskManager();
+	void push(Task& t);
 
-	~TaskManager() 
-	{
-		delete _tasks;
-	};
-
-	void push(Task t)
-	{
-		_tasks.push(t);
-	}
 
 private:
-	//static Queue<Task> g_RequestTasks = {};
-	//static Queue<Task> g_ResponseTasks = {};
-	Queue<Task> * _tasks;
+	Queue<Task&> _tasks;
 };
