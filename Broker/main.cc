@@ -256,7 +256,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start broker <-> driver thread
 	//
 
-	if (!StartDriverThread(&hDriver) || hDriver == INVALID_HANDLE_VALUE)
+	if (!StartBackendManagerThread(&hDriver) || hDriver == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -267,7 +267,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start gui <-> broker thread
 	//
 
-	if (!StartGuiThread(&hGui) || hGui == INVALID_HANDLE_VALUE)
+	if (!StartFrontendManagerThread(&hGui) || hGui == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;

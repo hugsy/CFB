@@ -2,7 +2,28 @@
 
 #include "common.h"
 #include "task.h"
-#include <vector>
+#include "queue.h"
 
-std::vector<Task> g_RequestTasks = {};
-std::vector<Task> g_ResponseTasks = {};
+class TaskManager
+{
+public:
+	TaskManager() 
+	{
+		_tasks = new Queue<Task>();
+	};
+
+	~TaskManager() 
+	{
+		delete _tasks;
+	};
+
+	void push(Task t)
+	{
+		_tasks.push(t);
+	}
+
+private:
+	//static Queue<Task> g_RequestTasks = {};
+	//static Queue<Task> g_ResponseTasks = {};
+	Queue<Task> * _tasks;
+};

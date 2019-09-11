@@ -128,10 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Device.cc" />
-    <ClCompile Include="Driver.cc" />
+    <ClCompile Include="device.cc" />
+    <ClCompile Include="driver.cc" />
     <ClCompile Include="main.cc" />
-    <ClCompile Include="Pipe.cc" />
+    <ClCompile Include="pipe.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
@@ -142,7 +142,7 @@
     <ClInclude Include="queue.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="task.h" />
-    <ClInclude Include="tasks.h" />
+    <ClInclude Include="taskmanager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.vcxproj">
@@ -153,7 +153,6 @@
     <ResourceCompile Include="Broker.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\x64\Debug\Driver\IrpDumper.sys" />
     <None Include="cfb_driv.bin" />
     <None Include="packages.config" />
   </ItemGroup>

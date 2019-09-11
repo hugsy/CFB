@@ -282,6 +282,8 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 		return GetLastError();
 	}
 
+	
+	extern TaskManager g_RequestManager, g_ResponseManager;
 
 	while (g_bIsRunning)
 	{
@@ -289,32 +291,84 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 		// blocking-pop from request task list
 		//
 
+		auto in_task = g_RequestManager.pop();
 		
-		//
-		// send the DeviceIoControl
-		//
-
 
 		//
 		// flag task as Delivered
 		//
+		in_task.SetState(TaskState::Delivered);
 
 
 		//
-		// get response
+		// send the DeviceIoControl
 		//
+		xlog(LOG_DEBUG, L"Type: %s, Length: %d\n", in_task.Type(), in_task.Length());
+
+		
+		byte* lpOutputBuffer = nullptr;
+		DWORD dwOutputBufferSize = 0;
+		DWORD dwNbBytesReturned = 0;
+
+		while (TRUE)
+		{
+			BOOL bRes = ::DeviceIoControl(
+				hDevice.get(),
+				in_task.IoctlCode(),
+				in_task.Data(),
+				in_task.Length(),
+				lpOutputBuffer,
+				dwOutputBufferSize,
+				&dwNbBytesReturned,
+				NULL
+			);
+
+			//
+			// If the ioctl was ok, we exit
+			//
+			if (bRes)
+				break;
+
+			DWORD dwErrCode = ::GetLastError();
+
+			//
+			// If the buffer was too small, retry with the appropriate size
+			//
+			if (dwErrCode == ERROR_INSUFFICIENT_BUFFER)
+			{
+				dwOutputBufferSize = dwNbBytesReturned;
+				if (lpOutputBuffer)
+					delete[] lpOutputBuffer;
+
+				lpOutputBuffer = new byte[dwOutputBufferSize];
+				continue;
+			}
+
+			break;
+		}
+		
+
+		//
+		// flag task as Completed
+		//
+		in_task.SetState(TaskState::Completed);
+
+		delete& in_task;
 
 
 		//
-		// flag task as Completed, push to response task list
+		// Prepare the response task
 		//
-
-		//
-		// send CompletionEvent
-		//
+		Task out_task(TaskType::IoctlResponse, lpOutputBuffer, dwOutputBufferSize, ::GetLastError());
+		delete[] lpOutputBuffer;
 
 
-		Sleep(10 * 1000); // placeholder
+		//
+		// push to response task list
+		//
+		g_ResponseManager.push(out_task);
+
+		out_task.SetState(TaskState::Queued);
 	}
 
 
@@ -342,7 +396,7 @@ Return Value:
 
 --*/
 _Success_(return)
-BOOL StartDriverThread(_Out_ PHANDLE lpThread)
+BOOL StartBackendManagerThread(_Out_ PHANDLE lpThread)
 {
 	DWORD dwThreadId;
 

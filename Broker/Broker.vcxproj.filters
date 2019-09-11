@@ -18,13 +18,13 @@
     <ClCompile Include="main.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Driver.cc">
+    <ClCompile Include="device.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Device.cc">
+    <ClCompile Include="driver.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Pipe.cc">
+    <ClCompile Include="pipe.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,7 +53,7 @@
     <ClInclude Include="task.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tasks.h">
+    <ClInclude Include="taskmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -64,9 +64,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cfb_driv.bin">
-      <Filter>Resource Files</Filter>
-    </None>
-    <None Include="..\x64\Debug\Driver\IrpDumper.sys">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="packages.config" />
