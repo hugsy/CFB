@@ -245,7 +245,7 @@ static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			g_bIsRunning = TRUE;
+			g_bIsRunning = FALSE;
 			continue;
 
 		default:
@@ -290,7 +290,7 @@ static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			g_bIsRunning = TRUE;
+			g_bIsRunning = FALSE;
 			continue;
 
 		default:
