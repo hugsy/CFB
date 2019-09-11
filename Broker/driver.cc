@@ -170,7 +170,7 @@ BOOL LoadDriver()
 		g_hService = OpenService(g_hSCManager, CFB_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP);
 		if (!g_hService)
 		{
-			PrintErrorWithFunctionName(L"CreateService()");
+			PrintErrorWithFunctionName(L"OpenService()");
 			return FALSE;
 		}
 	}

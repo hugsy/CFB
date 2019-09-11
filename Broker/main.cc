@@ -21,6 +21,10 @@ for communicating with the IrpDumper driver by:
 
 #include "main.h"
 
+
+static HANDLE g_hTerminationEvent;
+
+
 /*++
 
 Routine Description:
@@ -153,6 +157,39 @@ static BOOL HasPrivilege(_In_ const wchar_t* lpszPrivilegeName, _Out_ PBOOL lpHa
 
 
 
+/*++
+
+Routine Description:
+
+Ctrl-C handler: when receiving either CTRL_C_EVENT or CTRL_CLOSE_EVENT, set the termination event.
+
+
+Arguments:
+
+	fdwCtrlType - the event type received by the window
+
+
+Return Value:
+
+	Returns TRUE if the event was handled. FALSE otherwise.
+
+--*/
+static BOOL CtrlHandler(DWORD fdwCtrlType)
+{
+	switch (fdwCtrlType)
+	{
+	case CTRL_CLOSE_EVENT:
+	case CTRL_C_EVENT:
+		xlog(LOG_INFO, L"Received Ctrl-C event, stopping...\n");
+		g_bIsRunning = FALSE;
+		SetEvent(g_hTerminationEvent);
+		return TRUE;
+
+	default:
+		return FALSE;
+	}
+}
+
 
 /*++
 
@@ -180,7 +217,6 @@ int wmain(int argc, wchar_t** argv)
 	HANDLE hGui = INVALID_HANDLE_VALUE;
 	HANDLE ThreadHandles[2] = { 0 };
 	DWORD dwWaitResult = 0;
-	HANDLE hEvent;
 	g_bIsRunning = FALSE;
 
 	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
@@ -220,16 +256,29 @@ int wmain(int argc, wchar_t** argv)
 	//
 	// Create the main event to stop the running threads
 	//
-	hEvent = CreateEvent(
+	g_hTerminationEvent = CreateEvent(
 		NULL,
 		TRUE,
 		FALSE,
 		NULL
 	);
 
-	if (!hEvent)
+	if (!g_hTerminationEvent)
+	{
+		xlog(LOG_CRITICAL, L"Couldn't setup Termination Event()...\n");
 		return EXIT_FAILURE;
+	}
 
+
+	//
+	// Install the Ctrl-C handler to clean up properly
+	//
+	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
+	{
+		xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
+		return EXIT_FAILURE;
+	}
+	
 
 	//
 	// Extract the driver from the resources
@@ -268,11 +317,12 @@ int wmain(int argc, wchar_t** argv)
 
 	g_bIsRunning = TRUE;
 
+
 	//
 	// Start broker <-> driver thread
 	//
 
-	if (!StartBackendManagerThread(&hEvent, &hDriver) || hDriver == INVALID_HANDLE_VALUE)
+	if (!StartBackendManagerThread(&g_hTerminationEvent, &hDriver) || hDriver == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -283,7 +333,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start gui <-> broker thread
 	//
 
-	if (!StartFrontendManagerThread(&hEvent, &hGui) || hGui == INVALID_HANDLE_VALUE)
+	if (!StartFrontendManagerThread(&g_hTerminationEvent, &hGui) || hGui == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -350,6 +400,9 @@ __CreateServerPipeFailed:
 	{
 		xlog(LOG_SUCCESS, L"Driver deleted\n");
 	}
+
+
+	CloseHandle(g_hTerminationEvent);
 
 	return retcode;
 }
