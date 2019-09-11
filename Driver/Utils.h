@@ -16,9 +16,9 @@
 VOID CfbDbgPrint( IN const WCHAR* lpFormatString, ... );
 VOID CfbHexDump( IN PUCHAR Buffer, IN ULONG Length );
 
-#define CfbDbgPrintErr(fmt, ...)		CfbDbgPrint(L"[-] " __WFILE__ L":" __WFUNCTION__ L"() " fmt,  __VA_ARGS__)
 #define CfbDbgPrintOk(fmt, ...)			CfbDbgPrint(L"[+] " __WFILE__ L":" __WFUNCTION__ L"() " fmt,  __VA_ARGS__)
 #define CfbDbgPrintInfo(fmt, ...)		CfbDbgPrint(L"[*] " __WFILE__ L":" __WFUNCTION__ L"() " fmt,  __VA_ARGS__)
+#define CfbDbgPrintErr(fmt, ...)		CfbDbgPrint(L"[-] " __WFILE__ L":" __WFUNCTION__ L"() " fmt,  __VA_ARGS__)
 #define CfbDbgPrintWarn(fmt, ...)		CfbDbgPrint(L"[!] " __WFILE__ L":" __WFUNCTION__ L"() " fmt,  __VA_ARGS__)
 #define CfbAssertIrqlMinLevel(Irql)		NT_ASSERT( KeGetCurrentIrql() > Irql )
 
@@ -30,6 +30,6 @@ extern NTKERNELAPI NTSTATUS ObQueryNameString(
 );
 
 
-NTSTATUS GetDeviceNameFromDeviceObject( IN PVOID pDeviceObject, OUT WCHAR* DeviceNameBuffer, IN ULONG DeviceNameBufferSize );
+NTSTATUS GetDeviceNameFromDeviceObject( _In_ PVOID pDeviceObject, _Out_ WCHAR* DeviceNameBuffer, _In_ ULONG DeviceNameBufferSize );
 
 

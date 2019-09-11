@@ -16,4 +16,4 @@ extern TaskManager g_ResponseManager;
 
 BOOL CreateServerPipe();
 BOOL CloseServerPipe();
-_Success_(return) BOOL StartFrontendManagerThread(_Out_ PHANDLE lpThread);
+_Success_(return) BOOL StartFrontendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread);

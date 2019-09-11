@@ -42,6 +42,7 @@ public:
 	uint32_t Length();
 	byte* Data();
 
+
 private:
 	TaskType _type;
 	TaskState _state;

@@ -28,4 +28,4 @@ BOOL ExtractDriverFromResource();
 BOOL LoadDriver();
 BOOL UnloadDriver();
 BOOL DeleteDriverFromDisk();
-_Success_(return) BOOL StartBackendManagerThread(_Out_ PHANDLE lpThread);
+_Success_(return) BOOL StartBackendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread);

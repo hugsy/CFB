@@ -28,7 +28,21 @@ extern PLIST_ENTRY g_HookedDriverHead;
 
 /*++
 
+Routine Description:
+
 This routine is called when trying to ReadFile() from a handle to the device IrpDumper.
+
+
+Arguments:
+
+	pDeviceObject - a pointer to the Device Object being closed
+
+	Irp - a pointer to the IRP context
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT pDeviceObject, _In_ PIRP Irp )
@@ -44,8 +58,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	if ( !pStack )
 	{
 		CfbDbgPrintErr( L"IoGetCurrentIrpStackLocation() failed (IRP %p)\n", Irp );
-		CompleteRequest( Irp, STATUS_UNSUCCESSFUL, 0 );
-		return STATUS_UNSUCCESSFUL;
+		return CompleteRequest(Irp, STATUS_UNSUCCESSFUL, 0);
 	}
 
 
@@ -146,7 +159,21 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 /*++
 
-Generic routine for unsupported major types.
+Routine Description:
+
+Generic routine for implemented major types.
+
+
+Arguments:
+
+	DeviceObject - a pointer to the Device Object being closed
+
+	Irp - a pointer to the IRP context
+
+
+Return Value:
+
+	Returns STATUS_NOT_IMPLEMENTED.
 
 --*/
 NTSTATUS 
@@ -158,15 +185,31 @@ IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 	PAGED_CODE();
 
 #ifdef _DEBUG
-	CfbDbgPrintInfo(L"Major = 0x%x\n", IoGetCurrentIrpStackLocation(Irp)->MajorFunction);
+	CfbDbgPrintInfo(L"MajorFunction = 0x%x\n", IoGetCurrentIrpStackLocation(Irp)->MajorFunction);
 #endif
 
-	CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0);
-	return STATUS_NOT_IMPLEMENTED;
+	return CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0); 
 }
 
 
 /*++
+
+Routine Description:
+
+The cleanup is invoked when the handle to the device object is being closed. We must cleanup
+the context associated with that handle.
+
+
+Arguments:
+
+	DeviceObject - a pointer to the Device Object being closed
+
+	Irp - a pointer to the IRP context
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS 
@@ -204,21 +247,34 @@ DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 	ClearNotificationPointer();
 
 
-	CompleteRequest( Irp, STATUS_SUCCESS, 0 );
+	//
+	// Context is clean, let's exit gracefully.
+	//
 
-	if (g_DeviceObject)
-	{
-		IoDeleteDevice(g_DeviceObject);
-		g_DeviceObject = NULL;
-	}
-	
-	return STATUS_SUCCESS;
+	return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
 
 
 /*++
 
-Driver entry point: create the driver object for CFB
+Routine Description:
+
+The driver entry point function for the IrpDumper driver: it will create the device object for CFB
+stored in a global, and associate all the necessary routines to the driver object.
+
+Last, it will initialize all the structures internal to the driver.
+
+
+Arguments:
+
+	DeviceObject - a pointer to the Device Object being closed
+
+	Irp - a pointer to the IRP context
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS 
@@ -311,11 +367,23 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
 /*++
 
+Routine Description:
+
 This routine is the CFB interception routine that will be executed *before* the original
 routine from the hooked driver.
 
 Links:
  - https://msdn.microsoft.com/en-us/library/windows/hardware/ff550694(v=vs.85).aspx
+
+
+Arguments:
+
+
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 typedef NTSTATUS(*PDRIVER_DISPATCH)(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
@@ -408,7 +476,19 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 
 /*++
 
+Routine Description:
+
 Unload routine for CFB IrpDumper.
+
+
+Arguments:
+
+	- DriverObject
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
@@ -433,21 +513,45 @@ VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT Dri
 
 /*++
 
+Routine Description:
+
 Generic function for IRP completion
+
+
+Arguments:
+
+	- Irp
+
+	- status
+
+	- Information
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS status, _In_ ULONG_PTR Information)
 {
 	Irp->IoStatus.Status = status;
 	Irp->IoStatus.Information = Information;
-
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-
 	return status;
 }
 
 
 /*++
+
+Routine Description:
+
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
@@ -471,6 +575,16 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJEC
 
 
 /*++
+
+Routine Description:
+
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
@@ -505,6 +619,23 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
 
 
 /*++
+
+Routine Description:
+
+This routine handles the dispatch of DeviceIoControl() sent to a IrpDumper device object. It will 
+parse the IRP and invoke the routine associated to the specific IOCTL code.
+
+
+Arguments:
+
+	- DeviceObject
+
+	- Irp
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
@@ -588,14 +719,27 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 		CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
 	}
 	
-
-	CompleteRequest(Irp, Status, Information);
-
-	return Status;
+	return CompleteRequest(Irp, Status, Information);
 }
 
 
 /*++
+
+Routine Description:
+
+The DeviceIoControl() interception routine wrapper.
+
+
+Arguments:
+
+	- DeviceObject
+
+	- Irp
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
@@ -606,6 +750,22 @@ NTSTATUS InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ 
 
 /*++
 
+Routine Description:
+
+The ReadFile() interception routine wrapper.
+
+
+Arguments:
+
+	- DeviceObject
+
+	- Irp
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
+
 --*/
 NTSTATUS InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
@@ -614,6 +774,22 @@ NTSTATUS InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp 
 	
 
 /*++
+
+Routine Description:
+
+The WriteFile() interception routine wrapper.
+
+
+Arguments:
+
+	- DeviceObject
+	
+	- Irp
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 NTSTATUS InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )

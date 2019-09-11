@@ -250,7 +250,7 @@ The driver must acknowledge the request by sending a response (even if the resul
 
 Arguments:
 
-	None
+	pEvent - 
 
 
 Return Value:
@@ -258,7 +258,7 @@ Return Value:
 	Returns 0
 
 --*/
-static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
+static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Getting a handle to the device object\n");
@@ -282,11 +282,35 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID /* lpParameter */)
 		return GetLastError();
 	}
 
-	
 	extern TaskManager g_RequestManager, g_ResponseManager;
+
+	HANDLE hEvent = *((PHANDLE)lpParameter);
+	HANDLE hPushEvent = g_RequestManager.hPushEvent;
+
+	const HANDLE Handles[2] = { hEvent , hPushEvent };
 
 	while (g_bIsRunning)
 	{
+		//
+		// Wait for a push event or a termination notification event
+		//
+		DWORD dwWaitResult = WaitForMultipleObjects(
+			2,
+			Handles,
+			FALSE,
+			INFINITE
+		);
+
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			g_bIsRunning = TRUE;
+			continue;
+
+		default:
+			break;
+		}
+
 		//
 		// blocking-pop from request task list
 		//
@@ -396,7 +420,7 @@ Return Value:
 
 --*/
 _Success_(return)
-BOOL StartBackendManagerThread(_Out_ PHANDLE lpThread)
+BOOL StartBackendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread)
 {
 	DWORD dwThreadId;
 
@@ -404,7 +428,7 @@ BOOL StartBackendManagerThread(_Out_ PHANDLE lpThread)
 		NULL,
 		0,
 		BackendConnectionHandlingThread,
-		NULL,
+		pEvent,
 		0,
 		&dwThreadId
 	);

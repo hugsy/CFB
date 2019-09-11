@@ -164,64 +164,38 @@ Routine Description:
 
 Arguments:
 
-	None
+	task
 
 
 Return Value:
 
+	Returns 0 if successful.
+
 --*/
-static DWORD FrontendConnectionHandlingThreadOut(_In_ LPVOID /* lpParameter */)
+static byte* PreparePipeMessageOut(_In_ Task task )
 {
+	byte* msg;
 
+	//
+	// write response to pipe
+	//
+	uint32_t msglen = 2 * sizeof(uint32_t) + task.Length();
 
-	while (g_bIsRunning)
+	if (msglen >= 2 * sizeof(uint32_t))
 	{
-		DWORD dwNumberOfBytesWritten;
+		msg = new byte[msglen];
 
-		//
-		// blocking-pop on response task list
-		//
-		auto task = g_ResponseManager.pop();
-
-		//
-		// write response to pipe
-		//
-		uint32_t msglen = 2 * sizeof(uint32_t) + task.Length();
-
-		if (msglen >= 2 * sizeof(uint32_t))
-		{
-			byte* msg = new byte[msglen];
-			
-			uint32_t* tl = reinterpret_cast<uint32_t*>(msg);
-			tl[0] = task.Type();
-			tl[1] = task.Length();
-			::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
-
-			BOOL bRes = WriteFile(
-				g_hServerPipe,
-				msg,
-				msglen,
-				&dwNumberOfBytesWritten,
-				NULL
-			);
-
-			if(!bRes || dwNumberOfBytesWritten != msglen)
-				throw std::runtime_error("WriteFile failed");
-
-			delete[] msg;
-		}
-		else
-		{
-			throw std::runtime_error("arithmetic overflow");
-		}
-
-		//
-		// delete task
-		//
-		delete& task;		
+		uint32_t* tl = reinterpret_cast<uint32_t*>(msg);
+		tl[0] = task.Type();
+		tl[1] = task.Length();
+		::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
+	}
+	else
+	{
+		throw std::runtime_error("arithmetic overflow");
 	}
 
-	return 0;
+	return msg;
 }
 
 
@@ -239,35 +213,45 @@ response is popped from the outgoing Task list, the data is sent back to the fro
 
 Arguments:
 
-	None
+	lpParameter - the thread parameter
 
 
 Return Value:
 	Returns 0 the thread execution went successfully.
 
 --*/
-static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID /* lpParameter */)
+static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 {
-	DWORD dwThreadId;
-
-	HANDLE hThreadOut = CreateThread(
-		NULL,
-		0,
-		FrontendConnectionHandlingThreadOut,
-		NULL,
-		0,
-		&dwThreadId
-	);
-
-	if (!hThreadOut)
-	{
-		PrintErrorWithFunctionName(L"CreateThread(hThreadPipeOut");
-		return ::GetLastError();
-	}
+	HANDLE Handles[2] = { 0 };
+	Handles[0] = *((PHANDLE)lpParameter);;
+	DWORD dwNumberOfBytesWritten, dwWaitResult;
 
 
 	while (g_bIsRunning)
 	{
+		//
+		// Wait for the pipe to be written to, or a termination notification event
+		//
+		
+		Handles[1] = g_hServerPipe;
+
+		dwWaitResult = WaitForMultipleObjects(
+			2,
+			Handles,
+			FALSE,
+			INFINITE
+		);
+
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			g_bIsRunning = TRUE;
+			continue;
+
+		default:
+			break;
+		}
+
 		try
 		{
 			//
@@ -275,11 +259,75 @@ static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID /* lpParameter */)
 			//
 			auto task = ReadPipeMessage(g_hServerPipe);
 
+
 			//
-			// push task to request task list
+			// push the task to request task list (and set the push event)
 			//
 			g_RequestManager.push(task);
 			task.SetState(Queued);
+
+		}
+		catch (std::exception e)
+		{
+			xlog(LOG_WARNING, L"Invalid message format, discarding: %S\n", e.what());
+			continue;
+		}
+
+
+
+		//
+		// Wait for either the response or a termination event
+		//
+		Handles[1] = g_ResponseManager.hPushEvent;
+
+		dwWaitResult = WaitForMultipleObjects(
+			2,
+			Handles,
+			FALSE,
+			INFINITE
+		);
+
+		switch (dwWaitResult)
+		{
+		case WAIT_OBJECT_0:
+			g_bIsRunning = TRUE;
+			continue;
+
+		default:
+			break;
+		}
+
+
+		try
+		{
+
+			//
+			// blocking-pop on response task list
+			//
+			auto task = g_ResponseManager.pop();
+
+			byte* msg = PreparePipeMessageOut(task);
+			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
+
+			BOOL bRes = WriteFile(
+				g_hServerPipe,
+				msg,
+				msglen,
+				&dwNumberOfBytesWritten,
+				NULL
+			);
+
+			if (!bRes || dwNumberOfBytesWritten != msglen)
+			{
+				PrintErrorWithFunctionName(L"WriteFile()");
+			}
+
+
+			//
+			// cleanup
+			//
+			delete& task;
+			delete[] msg;
 		}
 		catch(std::exception e)
 		{
@@ -287,10 +335,6 @@ static DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID /* lpParameter */)
 			continue;
 		}
 	}
-
-	WaitForSingleObject(hThreadOut, INFINITE);
-
-	CloseHandle(hThreadOut);
 
 	return 0;
 }
@@ -315,30 +359,31 @@ Return Value:
 
 --*/
 _Success_(return) 
-BOOL StartFrontendManagerThread(_Out_ PHANDLE lpThread)
+BOOL StartFrontendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread)
 {
-	DWORD dwThreadId;
+	DWORD dwThreadInId;
 
-	HANDLE hThread = CreateThread(
+	HANDLE hThreadIn = CreateThread(
 		NULL,
 		0,
 		FrontendConnectionHandlingThreadIn,
-		NULL,
+		pEvent,
 		0,
-		&dwThreadId
+		&dwThreadInId
 	);
 
-	if (!hThread)
+	if (!hThreadIn)
 	{
-		PrintErrorWithFunctionName(L"CreateThread(Frontend)");
+		PrintErrorWithFunctionName(L"CreateThread(hThreadPipeIn)");
 		return FALSE;
 	}
+	
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, "CreateThread(Frontend) started as TID=%d\n", dwThreadId);
+	xlog(LOG_DEBUG, "Created frontend thread as TID=%d\n", dwThreadInId);
 #endif
 
-	*lpThread = hThread;
+	*lpThread = hThreadIn;
 
 	return TRUE;
 }

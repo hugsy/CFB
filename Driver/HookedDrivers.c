@@ -9,7 +9,17 @@ static KLOCK_QUEUE_HANDLE HookedDriverSpinLockQueue;
 
 /*++
 
+Routine Description:
+
 Initialize the structures used as part of the driver hooking.
+
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 void InitializeHookedDriverStructures()
@@ -21,7 +31,17 @@ void InitializeHookedDriverStructures()
 
 /*++
 
+Routine Description:
+
 Return the number of the hooked drivers
+
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 UINT32 GetNumberOfHookedDrivers()
@@ -47,7 +67,17 @@ UINT32 GetNumberOfHookedDrivers()
 
 /*++
 
+Routine Description:
+
 Determines whether a specific Driver Object is already in the hooked driver list.
+
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
 
 --*/
 BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
@@ -86,10 +116,20 @@ BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
 
 /*++
 
+Routine Description:
+
 Returns a pointer to a HOOKED_DRIVER object if its name is found in the list of hooked
 drivers.
 
---*/
+
+Arguments:
+
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
+
+	--*/
 NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHookedDrv)
 {
 	NTSTATUS Status = STATUS_OBJECT_NAME_NOT_FOUND;

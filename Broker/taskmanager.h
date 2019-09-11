@@ -13,6 +13,8 @@ public:
 	void push(Task &t);
 	Task pop();
 
+	HANDLE hPushEvent = INVALID_HANDLE_VALUE;
+
 private:
 	Queue<Task> _tasks;
 };

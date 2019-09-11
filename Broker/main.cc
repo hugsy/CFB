@@ -178,7 +178,9 @@ int wmain(int argc, wchar_t** argv)
 	int retcode = EXIT_SUCCESS;
 	HANDLE hDriver = INVALID_HANDLE_VALUE;
 	HANDLE hGui = INVALID_HANDLE_VALUE;
-	HANDLE Handles[2] = { 0 };
+	HANDLE ThreadHandles[2] = { 0 };
+	DWORD dwWaitResult = 0;
+	HANDLE hEvent;
 	g_bIsRunning = FALSE;
 
 	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
@@ -216,6 +218,20 @@ int wmain(int argc, wchar_t** argv)
 
 
 	//
+	// Create the main event to stop the running threads
+	//
+	hEvent = CreateEvent(
+		NULL,
+		TRUE,
+		FALSE,
+		NULL
+	);
+
+	if (!hEvent)
+		return EXIT_FAILURE;
+
+
+	//
 	// Extract the driver from the resources
 	//
 	if (!ExtractDriverFromResource())
@@ -249,14 +265,14 @@ int wmain(int argc, wchar_t** argv)
 
 	xlog(LOG_SUCCESS, L"Service '%s' loaded and started\n", CFB_SERVICE_NAME);
 
-	
+
 	g_bIsRunning = TRUE;
 
 	//
 	// Start broker <-> driver thread
 	//
 
-	if (!StartBackendManagerThread(&hDriver) || hDriver == INVALID_HANDLE_VALUE)
+	if (!StartBackendManagerThread(&hEvent, &hDriver) || hDriver == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -267,7 +283,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start gui <-> broker thread
 	//
 
-	if (!StartFrontendManagerThread(&hGui) || hGui == INVALID_HANDLE_VALUE)
+	if (!StartFrontendManagerThread(&hEvent, &hGui) || hGui == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -279,11 +295,21 @@ int wmain(int argc, wchar_t** argv)
 	//
 	// Wait for those 2 threads to finish
 	//
-	Handles[0] = hGui;
-	Handles[1] = hDriver;
+	ThreadHandles[0] = hGui;
+	ThreadHandles[1] = hDriver;
 
+	dwWaitResult = WaitForMultipleObjects(2, ThreadHandles, TRUE, INFINITE);
 
-	WaitForMultipleObjects(2, Handles, TRUE, INFINITE);
+	switch (dwWaitResult)
+	{
+	case WAIT_OBJECT_0:
+		xlog(LOG_SUCCESS, L"All threads ended, cleaning up for application exit...\n");
+		break;
+
+	default:
+		xlog(LOG_ERROR, L"WaitForMultipleObjects failed (%d)\n", GetLastError());
+		break;
+	}
 
 
 __UnsetEnv:
