@@ -35,7 +35,7 @@ This routine is called when trying to ReadFile() from a handle to the device Irp
 
 Arguments:
 
-	pDeviceObject - a pointer to the Device Object being closed
+	DeviceObject - a pointer to the Device Object being closed
 
 	Irp - a pointer to the IRP context
 
@@ -45,13 +45,13 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT pDeviceObject, _In_ PIRP Irp )
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
-	UNREFERENCED_PARAMETER( pDeviceObject );
+	UNREFERENCED_PARAMETER(DeviceObject);
 
 	PAGED_CODE();
 
-	NTSTATUS Status;
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
 	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( Irp );
 
@@ -72,24 +72,19 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	if (!NT_SUCCESS(Status))
 	{
-		if (Status == STATUS_NO_MORE_ENTRIES)
-		{
-            //
-            // Second chance
-            //
-            KeWaitForSingleObject(g_EventNotificationPointer, UserRequest, KernelMode, FALSE, NULL);
-            Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
-            if (!NT_SUCCESS(Status))
-            {
-                CompleteRequest(Irp, Status, 0);
-                return Status;
-            }
-		}
-        else
-        {
-            CompleteRequest(Irp, Status, 0);
-            return Status;
-        }
+
+		if (Status != STATUS_NO_MORE_ENTRIES)
+			return CompleteRequest(Irp, Status, 0);
+
+
+        //
+        // Second chance
+        //
+        KeWaitForSingleObject(g_EventNotificationPointer, UserRequest, KernelMode, FALSE, NULL);
+        Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
+        if (!NT_SUCCESS(Status))
+			return CompleteRequest(Irp, Status, 0);
+
 	}
 
 
@@ -99,28 +94,22 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate
 		// We end the IRP and announce the expected size
 		//
-		CompleteRequest( Irp, STATUS_SUCCESS, dwExpectedSize );
-		return STATUS_SUCCESS;
+		
+		return CompleteRequest(Irp, STATUS_BUFFER_TOO_SMALL, dwExpectedSize);
 	}
 
 
 	if ( BufferSize != dwExpectedSize )
 	{
 		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-		Status = STATUS_INFO_LENGTH_MISMATCH;
-		CompleteRequest(Irp, Status, 0);
-		return Status;
+		return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, 0);
 	}
 
 
 	PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, HighPagePriority );
 
 	if ( !Buffer )
-	{
-		Status = STATUS_INSUFFICIENT_RESOURCES;
-		CompleteRequest(Irp, Status, 0);
-		return Status;
-	}
+		return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
 
 
 	Status = PopFromQueue(&pInterceptedIrp);
@@ -151,9 +140,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	FreeInterceptedIrp(pInterceptedIrp);
 
-	CompleteRequest( Irp, STATUS_SUCCESS, dwExpectedSize );
-
-	return STATUS_SUCCESS;
+	return CompleteRequest(Irp, STATUS_SUCCESS, dwExpectedSize);
 }
 
 
@@ -196,8 +183,8 @@ IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 
 Routine Description:
 
-The cleanup is invoked when the handle to the device object is being closed. We must cleanup
-the context associated with that handle.
+The cleanup is invoked when the last handle to the device object is being closed for a specific process.
+We must cleanup the context associated with that handle for said process.
 
 
 Arguments:
@@ -247,6 +234,7 @@ DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 	ClearNotificationPointer();
 
 
+
 	//
 	// Context is clean, let's exit gracefully.
 	//
@@ -281,9 +269,11 @@ NTSTATUS
 DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
+
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
 	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
 
 	UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME); 
@@ -291,7 +281,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
 
 	//
-	// Create the device
+	// Create the device object
 	//
 
 	Status = IoCreateDevice(
@@ -322,8 +312,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 		DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
 	}
 
-	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateRoutine;
+	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCloseRoutine;
 	DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
 	DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
 	DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
@@ -498,12 +488,10 @@ VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT Dri
 	// Delete the device object
 	//
 
-	UNICODE_STRING symLink = { 0, };
-	RtlInitUnicodeString(&symLink, CFB_DEVICE_LINK);
+	UNICODE_STRING symLink = RTL_CONSTANT_STRING(CFB_DEVICE_LINK);
 
 	IoDeleteSymbolicLink(&symLink);
 	IoDeleteDevice(DriverObject->DeviceObject);
-
 
 	CfbDbgPrintOk(L"Success unloading '%s'\n", CFB_PROGRAM_NAME_SHORT);
 
@@ -522,7 +510,7 @@ Arguments:
 
 	- Irp
 
-	- status
+	- Status
 
 	- Information
 
@@ -532,12 +520,12 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS status, _In_ ULONG_PTR Information)
+NTSTATUS CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PTR Information)
 {
-	Irp->IoStatus.Status = status;
+	Irp->IoStatus.Status = Status;
 	Irp->IoStatus.Information = Information;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);
-	return status;
+	return Status;
 }
 
 
@@ -638,9 +626,9 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
-	UNREFERENCED_PARAMETER(pObject);
+	UNREFERENCED_PARAMETER(DeviceObject);
 
 	PAGED_CODE();
 
@@ -649,11 +637,8 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 
 
     if ( pCurrentOwnerProcess != PsGetCurrentProcess() )
-    {
-        Status = STATUS_DEVICE_ALREADY_ATTACHED;
-        CompleteRequest(Irp, Status, Information);
-        return Status;
-    }
+        return CompleteRequest(Irp, STATUS_DEVICE_ALREADY_ATTACHED, Information);
+
 	
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
@@ -675,13 +660,13 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 
 	case IOCTL_EnableMonitoring:
 		CfbDbgPrintInfo( L"Received 'IoctlEnableDriver'\n" );
-		Status = HandleIoEnableMonitoring( Irp, CurrentStack );
+		Status = HandleIoEnableMonitoring(Irp, CurrentStack );
 		break;
 
 
 	case IOCTL_DisableMonitoring:
 		CfbDbgPrintInfo( L"Received 'IoctlDisableDriver'\n" );
-		Status = HandleIoDisableMonitoring( Irp, CurrentStack );
+		Status = HandleIoDisableMonitoring(Irp, CurrentStack );
 		break;
 
 
@@ -744,7 +729,7 @@ Return Value:
 --*/
 NTSTATUS InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
-	return InterceptGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine(DeviceObject, Irp);
 }
 
 
@@ -769,7 +754,7 @@ Return Value:
 --*/
 NTSTATUS InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
-	return InterceptGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine(DeviceObject, Irp);
 }
 	
 
@@ -794,6 +779,6 @@ Return Value:
 --*/
 NTSTATUS InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
-	return InterceptGenericRoutine( DeviceObject, Irp );
+	return InterceptGenericRoutine(DeviceObject, Irp);
 }
 

@@ -58,9 +58,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
         );
 
         if (!NT_SUCCESS(status))
-        {
             return status;
-        }
+
 
         break;
 
@@ -81,9 +80,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 		
 
         if (!NT_SUCCESS(status))
-        {
             return status;
-        }
+
 
         pDriver = pDevice->DriverObject;
         
