@@ -688,7 +688,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 		break;
 
     case IOCTL_StoreTestCase:
-		CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
+		//CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
         Status = HandleIoStoreTestCase(Irp, CurrentStack);
         break;
 
