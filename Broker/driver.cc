@@ -7,241 +7,6 @@
 
 Routine Description:
 
-Extracts the driver from the resources, and dump it to the location defined by
-`CFB_DRIVER_LOCATION_DIRECTORY` in drivers.h
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-	Returns TRUE upon successful extraction of the driver from the resource of the PE 
-	file, FALSE if any error occured.
-
---*/
-BOOL ExtractDriverFromResource()
-{
-	BOOL retcode = TRUE;
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Extracting driver from resources\n");
-#endif
-
-	HRSRC DriverRsc = FindResource(NULL, MAKEINTRESOURCE(IDR_CFB_DRIVER1), L"CFB_DRIVER");
-	if (!DriverRsc)
-	{
-		PrintErrorWithFunctionName(L"FindResource()");
-		return FALSE;
-	}
-
-	DWORD dwDriverSize = SizeofResource(NULL, DriverRsc);
-	if (!dwDriverSize)
-	{
-		PrintErrorWithFunctionName(L"SizeofResource()");
-		return FALSE;
-	}
-
-	HGLOBAL hgDriverRsc = LoadResource(NULL, DriverRsc);
-	if (!hgDriverRsc)
-	{
-		PrintErrorWithFunctionName(L"LoadResource()");
-		return FALSE;
-	}
-
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Writing driver to '%s'\n", CFB_DRIVER_LOCATION_DIRECTORY);
-#endif
-
-	WCHAR lpszFilePath[MAX_PATH] = { 0, };
-	GetDriverOnDiskFullPath(lpszFilePath);
-
-	HANDLE hDriverFile = CreateFile(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hDriverFile == INVALID_HANDLE_VALUE)
-	{
-		PrintErrorWithFunctionName(L"CreateFile()");
-		return FALSE;
-	}
-
-	DWORD dwWritten;
-	if (!WriteFile(hDriverFile, hgDriverRsc, dwDriverSize, &dwWritten, NULL))
-	{
-		PrintErrorWithFunctionName(L"WriteFile()");
-		retcode = FALSE;
-	}
-
-	CloseHandle(hDriverFile);
-	return retcode;
-}
-
-
-/*++
-
-Routine Description:
-
-Delete the driver extracted from the PE resources from the disk.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-
-	Returns TRUE upon successful deletion of the driver from the disk.
-
---*/
-BOOL DeleteDriverFromDisk()
-{
-	WCHAR lpszFilePath[MAX_PATH] = { 0, };
-	GetDriverOnDiskFullPath(lpszFilePath);
-	return DeleteFile(lpszFilePath);
-}
-
-
-/*++
-
-Routine Description:
-
-Creates and starts a service for the driver.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-
-	Returns TRUE if the service was successfully created, and the driver loaded;
-	FALSE in any other case
-
---*/
-BOOL LoadDriver()
-{
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Loading '%s'\n", CFB_DRIVER_NAME);
-#endif
-
-	g_hSCManager = OpenSCManager(L"", SERVICES_ACTIVE_DATABASE, SC_MANAGER_CREATE_SERVICE);
-
-	if (!g_hSCManager)
-	{
-		PrintErrorWithFunctionName(L"OpenSCManager()");
-		return FALSE;
-	}
-
-	WCHAR lpPath[MAX_PATH] = { 0, };
-	GetDriverOnDiskFullPath(lpPath);
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Creating the service '%s' for kernel driver '%s'\n", CFB_SERVICE_NAME, lpPath);
-#endif 
-	g_hService = CreateService(
-		g_hSCManager,
-		CFB_SERVICE_NAME,
-		CFB_SERVICE_DESCRIPTION,
-		SERVICE_START | DELETE | SERVICE_STOP,
-		SERVICE_KERNEL_DRIVER,
-		SERVICE_DEMAND_START,
-		SERVICE_ERROR_IGNORE,
-		lpPath,
-		NULL, 
-		NULL, 
-		NULL, 
-		NULL, 
-		NULL
-	);
-
-	//
-	// if the service was already registered, just open it
-	//
-	if (!g_hService)
-	{
-		if (GetLastError() != ERROR_SERVICE_EXISTS)
-		{
-			PrintErrorWithFunctionName(L"CreateService()");
-			return FALSE;
-		}
-
-		g_hService = OpenService(g_hSCManager, CFB_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP);
-		if (!g_hService)
-		{
-			PrintErrorWithFunctionName(L"OpenService()");
-			return FALSE;
-		}
-	}
-
-	//
-	// start the service
-	//
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Starting service '%s'\n", CFB_SERVICE_NAME);
-#endif 
-
-	if (!StartService(g_hService, 0, NULL))
-	{
-		PrintErrorWithFunctionName(L"StartService()");
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-
-/*++
-
-Routine Description:
-
-Unloads the driver.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-
-	Returns TRUE if the driver was successfully unloaded; FALSE in any other case
-
---*/
-BOOL UnloadDriver()
-{
-	SERVICE_STATUS ServiceStatus;
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Stopping service '%s'\n", CFB_SERVICE_NAME);
-#endif
-	if (!ControlService(g_hService, SERVICE_CONTROL_STOP, &ServiceStatus))
-	{
-		PrintErrorWithFunctionName(L"ControlService");
-		return FALSE;
-	}
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Service '%s' stopped\n", CFB_SERVICE_NAME);
-#endif
-	if (!DeleteService(g_hService))
-	{
-		PrintErrorWithFunctionName(L"DeleteService");
-		return FALSE;
-	}
-
-
-	CloseServiceHandle(g_hService);
-	CloseServiceHandle(g_hSCManager);
-
-	return TRUE;
-}
-
-
-/*++
-
-Routine Description:
-
 Reads the new tasks received by the FrontEnd thread, and bounces thoses requests to the backend (i.e. the driver) 
 via the IOCTL codes (which can be found in Driver\Header Files\IoctlCodes.h).
 
@@ -255,7 +20,7 @@ Arguments:
 
 Return Value:
 	
-	Returns 0
+	Returns 0 on success, GetLastError() otherwise
 
 --*/
 static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
@@ -264,6 +29,14 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	xlog(LOG_DEBUG, L"Getting a handle to the device object\n");
 #endif
 
+	Session& Sess = reinterpret_cast<Session&>(lpParameter);
+	TaskManager& RequestTaskManager = Sess.RequestTasks;
+	TaskManager& ResponseTaskManager = Sess.ResponseTasks;
+
+
+	//
+	// Get a handle to the device
+	//
 	wil::unique_handle hDevice(
 		::CreateFile(
 			CFB_USER_DEVICE_NAME,
@@ -279,17 +52,46 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	if (!hDevice)
 	{
 		PrintErrorWithFunctionName(L"CreateFile(g_hDevice");
-		return GetLastError();
+		return ::GetLastError();
 	}
 
-	extern TaskManager g_RequestManager, g_ResponseManager;
 
-	HANDLE hEvent = *((PHANDLE)lpParameter);
-	HANDLE hPushEvent = g_RequestManager.hPushEvent;
+	//
+	// Create an event for the driver to notify the broker new data has arrived
+	//
+	HANDLE hIrpDataEvent = CreateEvent(
+		NULL,
+		TRUE,
+		FALSE,
+		NULL
+	);
 
-	const HANDLE Handles[2] = { hEvent , hPushEvent };
+	if(!hIrpDataEvent)
+	{
+		PrintErrorWithFunctionName(L"CreateEvent(IrpEvent)");
+		return ::GetLastError();
+	}
 
-	while (g_bIsRunning)
+
+	//
+	// Create a Task to share the event handle with the driver
+	//
+	Task DriverNotifyEventTask(NotifyEventHandle, (byte*)&hIrpDataEvent, sizeof(HANDLE));
+
+
+	//
+	// Submit the task to the request manager, and wait for the driver's response
+	//
+	RequestTaskManager.push(DriverNotifyEventTask);
+
+
+	const HANDLE Handles[2] = { 
+		Sess.hTerminationEvent , 
+		RequestTaskManager.GetPushEventHandle()
+	};
+
+
+	while ( Sess.IsRunning() )
 	{
 		//
 		// Wait for a push event or a termination notification event
@@ -304,7 +106,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			g_bIsRunning = FALSE;
+			Sess.Stop();
 			continue;
 
 		default:
@@ -315,7 +117,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// blocking-pop from request task list
 		//
 
-		auto in_task = g_RequestManager.pop();
+		auto in_task = RequestTaskManager.pop();
 		
 
 		//
@@ -390,7 +192,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// push to response task list
 		//
-		g_ResponseManager.push(out_task);
+		ResponseTaskManager.push(out_task);
 
 		out_task.SetState(TaskState::Queued);
 	}
@@ -420,7 +222,7 @@ Return Value:
 
 --*/
 _Success_(return)
-BOOL StartBackendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread)
+BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 {
 	DWORD dwThreadId;
 
@@ -428,7 +230,7 @@ BOOL StartBackendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread)
 		NULL,
 		0,
 		BackendConnectionHandlingThread,
-		pEvent,
+		lpParameter,
 		0,
 		&dwThreadId
 	);
@@ -439,11 +241,14 @@ BOOL StartBackendManagerThread(_In_ PHANDLE pEvent, _Out_ PHANDLE lpThread)
 		return FALSE;
 	}
 
+	
+
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, "CreateThread(Driver) started as TID=%d\n", dwThreadId);
 #endif
 
-	*lpThread = hThread;
+	Session* Sess = reinterpret_cast<Session*>(lpParameter);
+	Sess->hBackendThreadHandle = hThread;
 
 	return TRUE;
 }

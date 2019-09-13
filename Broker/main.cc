@@ -181,8 +181,7 @@ static BOOL CtrlHandler(DWORD fdwCtrlType)
 	case CTRL_CLOSE_EVENT:
 	case CTRL_C_EVENT:
 		xlog(LOG_INFO, L"Received Ctrl-C event, stopping...\n");
-		g_bIsRunning = FALSE;
-		SetEvent(g_hTerminationEvent);
+		Sess->Stop();
 		return TRUE;
 
 	default:
@@ -217,7 +216,10 @@ int wmain(int argc, wchar_t** argv)
 	HANDLE hGui = INVALID_HANDLE_VALUE;
 	HANDLE ThreadHandles[2] = { 0 };
 	DWORD dwWaitResult = 0;
-	g_bIsRunning = FALSE;
+	BOOL bHasDebugPriv = FALSE;
+	BOOL bHasLoadDriverPriv = FALSE;
+	Sess = nullptr;
+
 
 	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
 
@@ -225,10 +227,11 @@ int wmain(int argc, wchar_t** argv)
 	xlog(LOG_DEBUG, L"DEBUG mode on\n");
 #endif
 
+
 	//
 	// Check the privileges: the broker must have SeLoadDriverPrivilege and SeDebugPrivilege
 	//
-	BOOL bHasDebugPriv = FALSE;
+	
 	if (!HasPrivilege(L"SeDebugPrivilege", &bHasDebugPriv) || !bHasDebugPriv)
 	{
 		xlog(LOG_WARNING, L"Privilege SeDebugPrivilege is missing, trying to acquire...\n");
@@ -239,7 +242,7 @@ int wmain(int argc, wchar_t** argv)
 		}
 	}
 
-	BOOL bHasLoadDriverPriv = FALSE;
+	
 	if (!HasPrivilege(L"SeLoadDriverPrivilege", &bHasLoadDriverPriv) || !bHasLoadDriverPriv)
 	{
 		xlog(LOG_WARNING, L"Privilege SeLoadDriverPrivilege is missing, trying to acquire...\n");
@@ -252,22 +255,20 @@ int wmain(int argc, wchar_t** argv)
 
 	xlog(LOG_SUCCESS, L"Privilege check succeeded...\n");
 
+	xlog(LOG_INFO, L"Initializing the session...\n");
 
-	//
-	// Create the main event to stop the running threads
-	//
-	g_hTerminationEvent = CreateEvent(
-		NULL,
-		TRUE,
-		FALSE,
-		NULL
-	);
+	
 
-	if (!g_hTerminationEvent)
+	try
 	{
-		xlog(LOG_CRITICAL, L"Couldn't setup Termination Event()...\n");
+		Sess = new Session();
+	}
+	catch (std::runtime_error& e)
+	{
+		xlog(LOG_CRITICAL, L"Failed to initialize the session, reason: %S\n", e.what());
 		return EXIT_FAILURE;
 	}
+
 
 
 	//
@@ -276,6 +277,7 @@ int wmain(int argc, wchar_t** argv)
 	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
 	{
 		xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
+		delete Sess;
 		return EXIT_FAILURE;
 	}
 	
@@ -283,9 +285,10 @@ int wmain(int argc, wchar_t** argv)
 	//
 	// Extract the driver from the resources
 	//
-	if (!ExtractDriverFromResource())
+	if (!Sess->ServiceManager.ExtractDriverFromResource())
 	{
 		xlog(LOG_CRITICAL, L"Failed to extract driver from resource, aborting...\n");
+		delete Sess;
 		return EXIT_FAILURE;
 	}
 
@@ -293,9 +296,10 @@ int wmain(int argc, wchar_t** argv)
 
 
 	//
-	// Create the named pipe the GUI will read data from
+	// Create the frontend listening socket
 	//
-	if (!CreateServerPipe())
+	
+	if (!Sess->FrontEndServer.CreatePipe())
 	{
 		retcode = EXIT_FAILURE;
 		goto __CreateServerPipeFailed;
@@ -306,7 +310,7 @@ int wmain(int argc, wchar_t** argv)
 	//
 	// Create the service and load the driver
 	//
-	if (!LoadDriver())
+	if (!Sess->ServiceManager.LoadDriver())
 	{
 		retcode = EXIT_FAILURE;
 		goto __LoadDriverFailed;
@@ -315,14 +319,14 @@ int wmain(int argc, wchar_t** argv)
 	xlog(LOG_SUCCESS, L"Service '%s' loaded and started\n", CFB_SERVICE_NAME);
 
 
-	g_bIsRunning = TRUE;
+	Sess->Start();
 
 
 	//
 	// Start broker <-> driver thread
 	//
 
-	if (!StartBackendManagerThread(&g_hTerminationEvent, &hDriver) || hDriver == INVALID_HANDLE_VALUE)
+	if (!StartBackendManagerThread(Sess) || hDriver == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -333,7 +337,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start gui <-> broker thread
 	//
 
-	if (!StartFrontendManagerThread(&g_hTerminationEvent, &hGui) || hGui == INVALID_HANDLE_VALUE)
+	if (!StartFrontendManagerThread(Sess) || hGui == INVALID_HANDLE_VALUE)
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -364,7 +368,7 @@ int wmain(int argc, wchar_t** argv)
 
 __UnsetEnv:
 	
-	if (!UnloadDriver())
+	if (!Sess->ServiceManager.UnloadDriver())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while unloading driver\n");
 	}
@@ -379,7 +383,7 @@ __LoadDriverFailed:
 	//
 	// Flush and stop the pipe, then unload the service, and the driver
 	//
-	if (!CloseServerPipe())
+	if (!Sess->FrontEndServer.ClosePipe())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while closing named pipe\n");
 	} 
@@ -392,7 +396,7 @@ __LoadDriverFailed:
 
 __CreateServerPipeFailed:
 
-	if (!DeleteDriverFromDisk())
+	if (!Sess->ServiceManager.DeleteDriverFromDisk())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while deleting driver from disk\n");
 	}
@@ -402,7 +406,7 @@ __CreateServerPipeFailed:
 	}
 
 
-	CloseHandle(g_hTerminationEvent);
+	delete Sess;
 
 	return retcode;
 }

@@ -24,21 +24,24 @@
     <ClCompile Include="driver.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pipe.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TaskManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Task.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FrontEndServer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ServiceManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Session.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pipe.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="common.h">
@@ -60,6 +63,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Task.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FrontEndServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServiceManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Session.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

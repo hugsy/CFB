@@ -12,6 +12,7 @@ enum TaskType : uint32_t
 	UnhookDriver,
 	GetDriverInfo,
 	GetNumberOfDriver,
+	NotifyEventHandle,
 	TaskTypeMax
 };
 
