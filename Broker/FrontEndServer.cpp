@@ -227,6 +227,7 @@ Arguments:
 
 
 Return Value:
+
 	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
@@ -272,10 +273,9 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 
 
 			//
-			// push the task to request task list (and set the push event)
+			// push the task to request task list
 			//
 			Sess->RequestTasks.push(task);
-			task.SetState(Queued);
 
 		}
 		catch (std::exception e)
