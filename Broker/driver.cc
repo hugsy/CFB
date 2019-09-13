@@ -29,9 +29,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	xlog(LOG_DEBUG, L"Getting a handle to the device object\n");
 #endif
 
-	Session& Sess = reinterpret_cast<Session&>(lpParameter);
-	TaskManager& RequestTaskManager = Sess.RequestTasks;
-	TaskManager& ResponseTaskManager = Sess.ResponseTasks;
+	Session* Sess = reinterpret_cast<Session*>(lpParameter);
 
 
 	//
@@ -82,16 +80,16 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	//
 	// Submit the task to the request manager, and wait for the driver's response
 	//
-	RequestTaskManager.push(DriverNotifyEventTask);
+	Sess->RequestTasks.push(DriverNotifyEventTask);
 
 
 	const HANDLE Handles[2] = { 
-		Sess.hTerminationEvent , 
-		RequestTaskManager.GetPushEventHandle()
+		Sess->hTerminationEvent , 
+		Sess->RequestTasks.GetPushEventHandle()
 	};
 
 
-	while ( Sess.IsRunning() )
+	while ( Sess->IsRunning() )
 	{
 		//
 		// Wait for a push event or a termination notification event
@@ -106,7 +104,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			Sess.Stop();
+			Sess->Stop();
 			continue;
 
 		default:
@@ -117,7 +115,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// blocking-pop from request task list
 		//
 
-		auto in_task = RequestTaskManager.pop();
+		auto in_task = Sess->RequestTasks.pop();
 		
 
 		//
@@ -192,7 +190,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// push to response task list
 		//
-		ResponseTaskManager.push(out_task);
+		Sess->ResponseTasks.push(out_task);
 
 		out_task.SetState(TaskState::Queued);
 	}

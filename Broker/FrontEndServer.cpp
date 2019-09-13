@@ -227,13 +227,12 @@ Arguments:
 
 
 Return Value:
-	Returns 0 the thread execution went successfully.
+	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
 DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 {
-	Session* Sess = (Session*)(lpParameter);
-
+	Session* Sess = reinterpret_cast<Session*>(lpParameter);
 	DWORD dwNumberOfBytesWritten, dwWaitResult;
 	HANDLE Handles[2] = { 0 };
 	Handles[0] = Sess->hTerminationEvent;
@@ -395,8 +394,8 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 	xlog(LOG_DEBUG, "Created frontend thread as TID=%d\n", dwThreadId);
 #endif
 
-	Session& Sess = reinterpret_cast<Session&>(lpParameter);
-	Sess.hFrontendThreadHandle = hThread;
+	Session* Sess = reinterpret_cast<Session*>(lpParameter);
+	Sess->hFrontendThreadHandle = hThread;
 
 	return TRUE;
 }

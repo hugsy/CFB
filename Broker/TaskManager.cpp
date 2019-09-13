@@ -26,14 +26,14 @@ void TaskManager::push(Task& t)
 {
 	_tasks.push(t);
 	SetEvent(hPushEvent);
-	t.SetState(Queued);
+	t.SetState(TaskState::Queued);
 }
 
 
 Task TaskManager::pop()
 {
 	Task t = _tasks.pop(); 
-	t.SetState(Delivered);
+	t.SetState(TaskState::Delivered);
 	return t;
 }
 
