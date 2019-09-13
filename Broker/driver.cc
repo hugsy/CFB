@@ -58,20 +58,124 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 }
 
 
+/*++
+
+Routine Description:
+
+Fetch one IRP (metadata + data) temporarily stored in the driver.
+
+
+Arguments:
+
+	hDevice -
+
+	lpSession -
+
+
+Return Value:
+
+	Returns ERROR_SUCCESS on success, GetLastError() otherwise
+
+--*/
+DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session* lpSession)
+{
+	//
+	// Probe the size of the buffer
+	//
+	BOOL bRes = FALSE;
+	DWORD dwNbBytesReturned;
+	byte* lpBuffer = nullptr;
+	DWORD dwBufferSize = 0;
+
+	do
+	{
+		bRes = ::ReadFile(
+			hDevice,
+			lpBuffer,
+			dwBufferSize,
+			&dwNbBytesReturned,
+			NULL
+		);
+
+		if (bRes == TRUE)
+			//
+			// lpBuffer was correctly filled with the IRP, we can stop probing
+			//
+			break;
+
+
+		//
+		// Otherwise, check the error status
+		//
+		DWORD dwErrCode = ::GetLastError();
+		
+		if (dwErrCode != ERROR_INSUFFICIENT_BUFFER)
+		{
+			xlog(LOG_ERROR, L"Unexpected error code: %x\n", dwErrCode);
+			if (lpBuffer)
+				delete[] lpBuffer;
+
+			return dwErrCode;
+		}
+
+		//
+		// Adjust the buffer and size, retry
+		//
+		if (lpBuffer)
+			delete[] lpBuffer;
+
+		lpBuffer = new byte[dwNbBytesReturned];
+		dwBufferSize = dwNbBytesReturned;
+
+#ifdef _DEBUG
+		xlog(LOG_DEBUG, L"adjusted buffer size to %d\n", dwBufferSize);
+#endif // _DEBUG
+
+	} 
+	while (bRes == FALSE);
+
+
+
+	PINTERCEPTED_IRP_HEADER pIrp = (PINTERCEPTED_IRP_HEADER)lpBuffer;
+
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"New IRP received:\n");
+	xlog(LOG_DEBUG, L"\t- timestamp:%llx\n", pIrp->TimeStamp);
+	xlog(LOG_DEBUG, L"\t- IRQ level:%x\n", pIrp->Irql);
+	xlog(LOG_DEBUG, L"\t- Major type:%x\n", pIrp->Type);
+	xlog(LOG_DEBUG, L"\t- IoctlCode:%x\n", pIrp->IoctlCode);
+	xlog(LOG_DEBUG, L"\t- PID=%d / TID=%d\n", pIrp->Pid, pIrp->Tid);
+	xlog(LOG_DEBUG, L"\t- InputBufferLength=%d / OutputBufferLength=%d\n", pIrp->InputBufferLength, pIrp->OutputBufferLength);
+	xlog(LOG_DEBUG, L"\t- DriverName:%s\n", pIrp->DriverName);
+	xlog(LOG_DEBUG, L"\t- DeviceName:%s\n", pIrp->DeviceName);
+#endif // _DEBUG
+
+
+	//
+	// todo: finish 
+	// must be pushed to a local queue
+	//
+
+
+	delete[] lpBuffer;
+
+	return ERROR_SUCCESS;
+}
+
 
 /*++
 
 Routine Description:
 
 Reads the new tasks received by the FrontEnd thread, and bounces thoses requests to the backend (i.e. the driver) 
-via the IOCTL codes (which can be found in Driver\Header Files\IoctlCodes.h).
+via the IOCTL codes (which can be found in "Driver\Header Files\IoctlCodes.h" - imported by common.h).
 
 The driver must acknowledge the request by sending a response (even if the result content is asynchronous).
 
 
 Arguments:
 
-	pEvent - 
+	lpParameter - 
 
 
 Return Value:
@@ -79,13 +183,15 @@ Return Value:
 	Returns 0 on success, GetLastError() otherwise
 
 --*/
-static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
+DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Getting a handle to the device object\n");
-#endif
+#endif // _DEBUG
+
 
 	Session* Sess = reinterpret_cast<Session*>(lpParameter);
+	DWORD dwRes;
 
 
 	//
@@ -128,9 +234,10 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	// todo: finish by adding the routine for reading IRP from the driver and storing them locally
 	//
 
-	const HANDLE Handles[2] = { 
+	const HANDLE Handles[3] = { 
 		Sess->hTerminationEvent , 
-		Sess->RequestTasks.GetPushEventHandle()
+		hIrpDataEvent.get(),
+		Sess->RequestTasks.GetPushEventHandle(),
 	};
 
 
@@ -140,7 +247,7 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// Wait for a push event or a termination notification event
 		//
 		DWORD dwWaitResult = WaitForMultipleObjects(
-			2,
+			3,
 			Handles,
 			FALSE,
 			INFINITE
@@ -149,10 +256,21 @@ static DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
+			// Termination Event
 			Sess->Stop();
 			continue;
 
+		case WAIT_OBJECT_0 + 1:
+			// new IRP data Event
+			dwRes = FetchNextIrpFromDevice( hDevice.get(), Sess );
+			if (dwRes)
+			{
+				xlog(LOG_ERROR, L"FetchNextIrpFromDevice() failed with status=%x\n", dwRes);
+			}
+			continue;
+
 		default:
+			// new request
 			break;
 		}
 

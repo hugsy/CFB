@@ -13,6 +13,8 @@ enum TaskType : uint32_t
 	GetDriverInfo,
 	GetNumberOfDriver,
 	NotifyEventHandle,
+	EnableMonitoring,
+	DisableMonitoring,
 	TaskTypeMax
 };
 

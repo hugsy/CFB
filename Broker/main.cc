@@ -326,7 +326,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start broker <-> driver thread
 	//
 
-	if (!StartBackendManagerThread(Sess) || hDriver == INVALID_HANDLE_VALUE)
+	if (!StartBackendManagerThread(Sess))
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -337,7 +337,7 @@ int wmain(int argc, wchar_t** argv)
 	// Start gui <-> broker thread
 	//
 
-	if (!StartFrontendManagerThread(Sess) || hGui == INVALID_HANDLE_VALUE)
+	if (!StartFrontendManagerThread(Sess))
 	{
 		retcode = EXIT_FAILURE;
 		goto __UnsetEnv;
@@ -349,8 +349,8 @@ int wmain(int argc, wchar_t** argv)
 	//
 	// Wait for those 2 threads to finish
 	//
-	ThreadHandles[0] = hGui;
-	ThreadHandles[1] = hDriver;
+	ThreadHandles[0] = Sess->hFrontendThreadHandle;
+	ThreadHandles[1] = Sess->hBackendThreadHandle;
 
 	dwWaitResult = WaitForMultipleObjects(2, ThreadHandles, TRUE, INFINITE);
 

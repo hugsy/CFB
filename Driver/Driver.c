@@ -92,9 +92,10 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	{
 		//
 		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate
-		// We end the IRP and announce the expected size
+		// We end the IRP with STATUS_BUFFER_TOO_SMALL and announce the expected size as Information
+		// The client can pick up that value by looking up a value for GetLastError() set to 
+		// ERROR_INSUFFICIENT_BUFFER
 		//
-		
 		return CompleteRequest(Irp, STATUS_BUFFER_TOO_SMALL, dwExpectedSize);
 	}
 
@@ -102,7 +103,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	if ( BufferSize != dwExpectedSize )
 	{
 		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-		return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, 0);
+		return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, dwExpectedSize);
 	}
 
 

@@ -101,8 +101,10 @@ Routine Description:
 Reads and validate a message from the named pipe (from the frontend). Each message format must follow TLV type of format as follow:
 
 - Type as uint32_t
-- Length as uint32_t
+- Length as uint32_t (the length of the field `Value`)
 - Value as uint8_t[Length]
+
+This means that each message has a TOTAL SIZE of at least 2*sizeof(uint32_t) bytes (i.e. 8 bytes), that is if Length=0
 
 
 Arguments:
@@ -337,8 +339,8 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 			//
 			// cleanup
 			//
-			delete& task;
 			delete[] msg;
+			delete& task;
 		}
 		catch (std::exception& e)
 		{

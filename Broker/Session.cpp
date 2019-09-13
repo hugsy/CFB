@@ -29,7 +29,14 @@ Session::Session()
 Session::~Session()
 {
 	State = GLOBAL_STATE_IDLE;
+
 	CloseHandle(hTerminationEvent);
+
+	if (hFrontendThreadHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(hFrontendThreadHandle);
+
+	if (hBackendThreadHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(hBackendThreadHandle);
 }
 
 
