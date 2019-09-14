@@ -18,9 +18,6 @@
     <ClCompile Include="main.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="device.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="driver.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,9 +45,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="driver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">

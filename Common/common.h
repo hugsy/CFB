@@ -104,3 +104,5 @@ INTERCEPTED_IRP, *PINTERCEPTED_IRP;
 __declspec(dllexport) void hexdump(PVOID data, SIZE_T size);
 __declspec(dllexport) void PrintError(const wchar_t* msg);
 __declspec(dllexport) void _xlog(log_level_t level, const wchar_t* format, ...);
+__declspec(dllexport) char* CreateRandomString(const size_t len);
+__declspec(dllexport) void GenerateRandomString(char* str, const size_t len);

@@ -23,6 +23,8 @@ Session::Session()
 	if(!hTerminationEvent)
 		throw std::runtime_error("CreateEvent(hTerminationEvent) failed");
 
+	RequestTasks.SetName("RequestTaskManager");
+	ResponseTasks.SetName("ResponseTaskManager");
 }
 
 

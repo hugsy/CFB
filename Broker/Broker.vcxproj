@@ -134,7 +134,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="device.cc" />
     <ClCompile Include="driver.cc" />
     <ClCompile Include="FrontEndServer.cpp" />
     <ClCompile Include="main.cc" />
@@ -145,7 +144,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
-    <ClInclude Include="device.h" />
     <ClInclude Include="driver.h" />
     <ClInclude Include="FrontEndServer.h" />
     <ClInclude Include="json.hpp" />

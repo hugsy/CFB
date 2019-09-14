@@ -154,6 +154,71 @@ void PrintError(const wchar_t* msg)
 
 
 /*++
+
+Routine Description:
+
+Fill the buffer given in parameter with a (C-like) string filled with a random 
+alpha-numeric charset.
+
+
+Arguments:
+
+	- str is a pointer to the buffer to fill with random chars
+
+	- len is the number of random char to populate `str` with 
+
+
+Return value:
+	
+	None
+
+--*/
+void GenerateRandomString(char* str, const size_t len) 
+{
+	static const char charset[] =
+		"0123456789"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"abcdefghijklmnopqrstuvwxyz";
+
+	for (int i = 0; i < len; ++i) {
+		str[i] = charset[rand() % (sizeof(charset) - 1)];
+	}
+
+	str[len] = 0;
+}
+
+
+/*++
+
+Routine Description:
+
+Create a (C-like) string filled with a random alpha-numeric charset.
+The buffer must be free-ed (via LocalFree()) by the caller.
+
+
+Arguments:
+
+	- len is the length of the wanted random string
+
+
+Return value:
+
+	A pointer to the random string if successful, NULL otherwise.
+
+--*/
+char* CreateRandomString(const size_t len)
+{
+	char* m = LocalAlloc(LHND, len+1);
+	if (!m)
+		return NULL;
+
+	GenerateRandomString(m, len);
+
+	return m;
+}
+
+
+/*++
  
 --*/
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)

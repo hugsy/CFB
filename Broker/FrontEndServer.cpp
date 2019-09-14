@@ -184,22 +184,25 @@ Return Value:
 	Returns 0 if successful.
 
 --*/
-static byte* PreparePipeMessageOut(_In_ Task task)
+byte* PrepareTlvMessageFromTask(_In_ Task task)
 {
-	byte* msg;
+	byte* msg = nullptr;
 
 	//
 	// write response to pipe
 	//
 	uint32_t msglen = 2 * sizeof(uint32_t) + task.Length();
-
-	if (msglen >= 2 * sizeof(uint32_t))
+	
+	if (msglen > 2 * sizeof(uint32_t))
 	{
 		msg = new byte[msglen];
 
+		// copy header
 		uint32_t* tl = reinterpret_cast<uint32_t*>(msg);
 		tl[0] = task.Type();
 		tl[1] = task.Length();
+
+		// copy the body
 		::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
 	}
 	else
@@ -319,7 +322,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 			//
 			auto task = Sess->ResponseTasks.pop();
 
-			byte* msg = PreparePipeMessageOut(task);
+			byte* msg = PrepareTlvMessageFromTask(task);
 			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
 
 			BOOL bRes = ::WriteFile(
