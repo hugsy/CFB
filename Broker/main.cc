@@ -366,7 +366,7 @@ int wmain(int argc, wchar_t** argv)
 		break;
 
 	default:
-		xlog(LOG_ERROR, L"WaitForMultipleObjects failed (%d)\n", GetLastError());
+		PrintErrorWithFunctionName(L"WaitForMultipleObjects");
 		break;
 	}
 

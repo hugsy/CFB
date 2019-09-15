@@ -2,9 +2,14 @@
 
 #define ToString(x) case x: return L# x
 
+static DWORD g_id = 0;
+static std::mutex g_mutex;
+
 
 Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
 {
+	std::lock_guard<std::mutex> guard(g_mutex);
+	_id = g_id++;
 	_type = type;
 	_state = Initialized;
 	_code = code;

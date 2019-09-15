@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include <string>
+#include <mutex>
 
 enum TaskType : uint32_t
 {
@@ -44,6 +45,7 @@ public:
 	void SetState(TaskState s);
 	uint32_t Length();
 	byte* Data();
+	DWORD Id();
 
 
 private:
@@ -52,4 +54,5 @@ private:
 	byte* _data = NULL;
 	uint32_t _data_length;
 	DWORD _code;
+	DWORD _id;
 };
