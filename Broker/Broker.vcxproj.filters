@@ -78,9 +78,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cfb_driv.bin">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

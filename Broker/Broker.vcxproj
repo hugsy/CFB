@@ -164,7 +164,6 @@
     <ResourceCompile Include="Broker.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cfb_driv.bin" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,7 +1,7 @@
 #include "TaskManager.h"
 
 
-TaskManager::TaskManager(std::string name)
+TaskManager::TaskManager(std::wstring name)
 {
 	m_hPushEvent = CreateEvent(
 		NULL,
@@ -18,7 +18,7 @@ TaskManager::TaskManager(std::string name)
 
 
 TaskManager::TaskManager()
-	: TaskManager::TaskManager("default")
+	: TaskManager::TaskManager(L"default")
 {
 }
 
@@ -26,7 +26,7 @@ TaskManager::TaskManager()
 TaskManager::~TaskManager()
 {
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"deleting TM '%s'\n", m_name);
+	xlog(LOG_DEBUG, L"deleting TM '%s'\n", m_name.c_str());
 #endif // _DEBUG
 
 	CloseHandle(m_hPushEvent);
@@ -36,7 +36,7 @@ TaskManager::~TaskManager()
 void TaskManager::push(Task& t)
 {
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", t.TypeAsString(), m_name);
+	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", t.TypeAsString(), m_name.c_str());
 #endif // _DEBUG
 
 	m_tasks.push(t);
@@ -51,7 +51,7 @@ Task TaskManager::pop()
 	t.SetState(TaskState::Delivered);
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"pop task of type='%s' to %s\n", t.TypeAsString(), m_name);
+	xlog(LOG_DEBUG, L"pop task of type='%s' to %s\n", t.TypeAsString(), m_name.c_str());
 #endif // _DEBUG
 
 	return t;
@@ -64,7 +64,7 @@ HANDLE TaskManager::GetPushEventHandle()
 }
 
 
-BOOL TaskManager::SetName(std::string name)
+BOOL TaskManager::SetName(std::wstring name)
 {
 	m_name = name;
 	return TRUE;

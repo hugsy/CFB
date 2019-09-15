@@ -9,18 +9,18 @@ class TaskManager
 {
 public:
 	TaskManager();
-	TaskManager(std::string name);
+	TaskManager(std::wstring name);
 
 	~TaskManager();
 
 	void push(Task &t);
 	Task pop();
 	HANDLE GetPushEventHandle();
-	BOOL SetName(std::string name);
+	BOOL SetName(std::wstring name);
 
 
 private:
 	HANDLE m_hPushEvent = INVALID_HANDLE_VALUE;
 	Queue<Task> m_tasks;
-	std::string m_name;
+	std::wstring m_name;
 };

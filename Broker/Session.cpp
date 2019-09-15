@@ -12,7 +12,6 @@ Session::Session()
 	//
 	// Create the main event to stop the running threads
 	//
-
 	hTerminationEvent = CreateEvent(
 		NULL,
 		TRUE,
@@ -23,8 +22,11 @@ Session::Session()
 	if(!hTerminationEvent)
 		throw std::runtime_error("CreateEvent(hTerminationEvent) failed");
 
-	RequestTasks.SetName("RequestTaskManager");
-	ResponseTasks.SetName("ResponseTaskManager");
+	//
+	// Defining some attributes
+	//
+	RequestTasks.SetName(L"RequestTaskManager");
+	ResponseTasks.SetName(L"ResponseTaskManager");
 }
 
 

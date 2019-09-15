@@ -384,7 +384,7 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 		0,
 		FrontendConnectionHandlingThreadIn,
 		lpParameter,
-		0,
+		CREATE_SUSPENDED,
 		&dwThreadId
 	);
 

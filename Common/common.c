@@ -219,6 +219,40 @@ char* CreateRandomString(const size_t len)
 
 
 /*++
+
+Routine Description:
+
+Create a (C-like) wide string filled with a random alpha-numeric charset.
+The buffer must be free-ed (via LocalFree()) by the caller.
+
+
+Arguments:
+
+	- len is the length of the wanted random string
+
+
+Return value:
+
+	A pointer to the random string if successful, NULL otherwise.
+
+--*/
+wchar_t* CreateRandomWideString(const size_t len)
+{
+	char* m = LocalAlloc(LHND, 2*(len + 1));
+	if (!m)
+		return NULL;
+
+	GenerateRandomString(m, len);
+
+	for (int i = 0; i < 2 * len; i+=2)
+		m[i] = 0;
+
+	return (wchar_t*)m;
+}
+
+
+
+/*++
  
 --*/
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)

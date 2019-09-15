@@ -206,7 +206,7 @@ Arguments:
 
 Return Value:
 
-	Returns 0 on success.
+	Returns EXIT_SUCCESS on success, EXIT_FAILURE
 
 --*/
 int wmain(int argc, wchar_t** argv)
@@ -319,9 +319,6 @@ int wmain(int argc, wchar_t** argv)
 	xlog(LOG_SUCCESS, L"Service '%s' loaded and started\n", CFB_SERVICE_NAME);
 
 
-	Sess->Start();
-
-
 	//
 	// Start broker <-> driver thread
 	//
@@ -344,6 +341,14 @@ int wmain(int argc, wchar_t** argv)
 	}
 
 	xlog(LOG_SUCCESS, L"Threads started\n");
+
+
+	//
+	// Start everything
+	//
+	Sess->Start();
+	ResumeThread(Sess->hFrontendThreadHandle);
+	ResumeThread(Sess->hBackendThreadHandle);
 
 
 	//
