@@ -6,20 +6,20 @@ Session::Session()
 	//
 	// Initial state has to be idle
 	//
-	State = GLOBAL_STATE_IDLE;
+	m_State = GLOBAL_STATE_IDLE;
 
 
 	//
 	// Create the main event to stop the running threads
 	//
-	hTerminationEvent = CreateEvent(
+	m_hTerminationEvent = CreateEvent(
 		NULL,
 		TRUE,
 		FALSE,
 		NULL
 	);
 
-	if(!hTerminationEvent)
+	if(!m_hTerminationEvent)
 		throw std::runtime_error("CreateEvent(hTerminationEvent) failed");
 
 	//
@@ -32,32 +32,32 @@ Session::Session()
 
 Session::~Session()
 {
-	State = GLOBAL_STATE_IDLE;
+	m_State = GLOBAL_STATE_IDLE;
 
-	CloseHandle(hTerminationEvent);
+	CloseHandle(m_hTerminationEvent);
 
-	if (hFrontendThreadHandle != INVALID_HANDLE_VALUE)
-		CloseHandle(hFrontendThreadHandle);
+	if (m_hFrontendThreadHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(m_hFrontendThreadHandle);
 
-	if (hBackendThreadHandle != INVALID_HANDLE_VALUE)
-		CloseHandle(hBackendThreadHandle);
+	if (m_hBackendThreadHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(m_hBackendThreadHandle);
 }
 
 
 void Session::Start()
 {
-	State = GLOBAL_STATE_RUNNING;
+	m_State = GLOBAL_STATE_RUNNING;
 }
 
 
 void Session::Stop()
 {
-	State = GLOBAL_STATE_IDLE;
-	SetEvent(hTerminationEvent);
+	m_State = GLOBAL_STATE_IDLE;
+	SetEvent(m_hTerminationEvent);
 }
 
 
 BOOL Session::IsRunning()
 {
-	return State == GLOBAL_STATE_RUNNING;
+	return m_State == GLOBAL_STATE_RUNNING;
 }

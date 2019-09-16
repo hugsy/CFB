@@ -32,20 +32,20 @@ public:
 	//
 	// The termination Event: if set, everything must stop
 	//
-	HANDLE hTerminationEvent = INVALID_HANDLE_VALUE;
+	HANDLE m_hTerminationEvent = INVALID_HANDLE_VALUE;
 
 
 	//
 	// Handle between frontend (GUI, TUI) and the broker
 	// For now this is done with NamedPipes
 	//
-	HANDLE hFrontendThreadHandle = INVALID_HANDLE_VALUE;
+	HANDLE m_hFrontendThreadHandle = INVALID_HANDLE_VALUE;
 
 
 	//
 	// Handle between the broker and the IrpDumper driver
 	// 
-	HANDLE hBackendThreadHandle = INVALID_HANDLE_VALUE;
+	HANDLE m_hBackendThreadHandle = INVALID_HANDLE_VALUE;
 
 
 	
@@ -55,7 +55,7 @@ private:
 	// 0 -> not running
 	// 1 -> running
 	//
-	uint16_t State = GLOBAL_STATE_IDLE;
+	uint16_t m_State = GLOBAL_STATE_IDLE;
 
 	
 

@@ -221,6 +221,14 @@ int wmain(int argc, wchar_t** argv)
 	Sess = nullptr;
 
 
+	HANDLE hStdErr = GetStdHandle(STD_ERROR_HANDLE);
+	DWORD dwConsoleMode;
+
+	::GetConsoleMode(hStdErr, &dwConsoleMode);
+	dwConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	::SetConsoleMode(hStdErr, dwConsoleMode);
+
+
 	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
 
 #ifdef _DEBUG
@@ -229,36 +237,30 @@ int wmain(int argc, wchar_t** argv)
 
 
 	//
-	// Check the privileges: the broker must have SeLoadDriverPrivilege and SeDebugPrivilege
+	// Check the privileges
 	//
-	
-	if (!HasPrivilege(L"SeDebugPrivilege", &bHasDebugPriv) || !bHasDebugPriv)
-	{
-		xlog(LOG_WARNING, L"Privilege SeDebugPrivilege is missing, trying to acquire...\n");
-		if (!AssignPrivilegeToSelf(L"SeDebugPrivilege"))
-		{
-			xlog(LOG_CRITICAL, L"%s requires SeDebugPrivilege...\n", argv[0]);
-			return EXIT_FAILURE;
-		}
-	}
+	const wchar_t* lpszPrivilegeNames[2] = { L"SeDebugPrivilege", L"SeLoadDriverPrivilege" };
 
-	
-	if (!HasPrivilege(L"SeLoadDriverPrivilege", &bHasLoadDriverPriv) || !bHasLoadDriverPriv)
+	for (int i = 0; i < _countof(lpszPrivilegeNames); i++)
 	{
-		xlog(LOG_WARNING, L"Privilege SeLoadDriverPrivilege is missing, trying to acquire...\n");
-		if (!AssignPrivilegeToSelf(L"SeLoadDriverPrivilege"))
+		BOOL fHasPriv = FALSE;
+		if (!HasPrivilege(lpszPrivilegeNames[i], &fHasPriv) || !fHasPriv)
 		{
-			xlog(LOG_CRITICAL, L"%s requires SeLoadDriverPrivilege...\n", argv[0]);
-			return EXIT_FAILURE;
+			xlog(LOG_WARNING, L"Privilege '%s' is missing, trying to acquire...\n", lpszPrivilegeNames[i]);
+
+			if (!AssignPrivilegeToSelf(lpszPrivilegeNames[i]))
+			{
+				xlog(LOG_CRITICAL, L"%s requires '%s', cannot proceed...\n", argv[0], lpszPrivilegeNames[i]);
+				return EXIT_FAILURE;
+			}
 		}
 	}
 
 	xlog(LOG_SUCCESS, L"Privilege check succeeded...\n");
 
+
 	xlog(LOG_INFO, L"Initializing the session...\n");
-
 	
-
 	try
 	{
 		Sess = new Session();
@@ -347,15 +349,15 @@ int wmain(int argc, wchar_t** argv)
 	// Start everything
 	//
 	Sess->Start();
-	ResumeThread(Sess->hFrontendThreadHandle);
-	ResumeThread(Sess->hBackendThreadHandle);
+	ResumeThread(Sess->m_hFrontendThreadHandle);
+	ResumeThread(Sess->m_hBackendThreadHandle);
 
 
 	//
 	// Wait for those 2 threads to finish
 	//
-	ThreadHandles[0] = Sess->hFrontendThreadHandle;
-	ThreadHandles[1] = Sess->hBackendThreadHandle;
+	ThreadHandles[0] = Sess->m_hFrontendThreadHandle;
+	ThreadHandles[1] = Sess->m_hBackendThreadHandle;
 
 	dwWaitResult = WaitForMultipleObjects(2, ThreadHandles, TRUE, INFINITE);
 
@@ -367,6 +369,7 @@ int wmain(int argc, wchar_t** argv)
 
 	default:
 		PrintErrorWithFunctionName(L"WaitForMultipleObjects");
+		retcode = EXIT_FAILURE;
 		break;
 	}
 
@@ -376,6 +379,7 @@ __UnsetEnv:
 	if (!Sess->ServiceManager.UnloadDriver())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while unloading driver\n");
+		retcode = EXIT_FAILURE;
 	}
 	else
 	{
@@ -391,6 +395,7 @@ __LoadDriverFailed:
 	if (!Sess->FrontEndServer.ClosePipe())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while closing named pipe\n");
+		retcode = EXIT_FAILURE;
 	} 
 	else
 	{
@@ -404,14 +409,21 @@ __CreateServerPipeFailed:
 	if (!Sess->ServiceManager.DeleteDriverFromDisk())
 	{
 		xlog(LOG_CRITICAL, L"A critical error occured while deleting driver from disk\n");
+		retcode = EXIT_FAILURE;
 	}
 	else
 	{
 		xlog(LOG_SUCCESS, L"Driver deleted\n");
 	}
 
-
 	delete Sess;
+
+
+#ifdef _DEBUG
+	if(retcode != EXIT_SUCCESS)
+		xlog(LOG_CRITICAL, L"%s exited with error(s)\n", argv[0]);
+#endif // _DEBUG
+
 
 	return retcode;
 }

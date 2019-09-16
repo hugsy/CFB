@@ -4,6 +4,16 @@
 
 #include <string>
 #include <mutex>
+#include <map>
+
+
+enum TaskState : uint16_t
+{
+	Initialized,
+	Queued,
+	Delivered,
+	Completed
+};
 
 enum TaskType : uint32_t
 {
@@ -16,17 +26,23 @@ enum TaskType : uint32_t
 	NotifyEventHandle,
 	EnableMonitoring,
 	DisableMonitoring,
+	StoreTestCase,
 	TaskTypeMax
 };
 
 
-enum TaskState : uint16_t
+static std::map<TaskType, DWORD> g_TaskIoctls = 
 {
-	Initialized,
-	Queued,
-	Delivered,
-	Completed
+	{HookDriver, IOCTL_AddDriver},
+	{UnhookDriver, IOCTL_RemoveDriver},
+	{GetNumberOfDriver, IOCTL_GetNumberOfDrivers},
+	{GetDriverInfo, IOCTL_ListAllDrivers},
+	{NotifyEventHandle, IOCTL_SetEventPointer},
+	{EnableMonitoring, IOCTL_EnableMonitoring},
+	{DisableMonitoring, IOCTL_DisableMonitoring},
+	{StoreTestCase, IOCTL_StoreTestCase},
 };
+
 
 
 
@@ -49,10 +65,10 @@ public:
 
 
 private:
-	TaskType _type;
-	TaskState _state;
-	byte* _data = NULL;
-	uint32_t _data_length;
-	DWORD _code;
-	DWORD _id;
+	TaskType m_Type;
+	TaskState m_State;
+	byte* m_Data = NULL;
+	uint32_t m_dwDataLength;
+	DWORD m_dwIoctlCode;
+	DWORD m_dwId;
 };

@@ -235,7 +235,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	//
 
 	const HANDLE Handles[3] = { 
-		Sess->hTerminationEvent , 
+		Sess->m_hTerminationEvent , 
 		hIrpDataEvent.get(),
 		Sess->RequestTasks.GetPushEventHandle(),
 	};
@@ -406,7 +406,7 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 
 
 	Session* Sess = reinterpret_cast<Session*>(lpParameter);
-	Sess->hBackendThreadHandle = hThread;
+	Sess->m_hBackendThreadHandle = hThread;
 
 	return TRUE;
 }

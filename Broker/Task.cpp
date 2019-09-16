@@ -9,13 +9,13 @@ static std::mutex g_mutex;
 Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
 {
 	std::lock_guard<std::mutex> guard(g_mutex);
-	_id = g_id++;
-	_type = type;
-	_state = Initialized;
-	_code = code;
-	_data_length = datalen;
-	_data = new byte[datalen];
-	::memcpy(_data, data, datalen);
+	m_dwId = g_id++;
+	m_Type = type;
+	m_State = Initialized;
+	m_dwIoctlCode = code;
+	m_dwDataLength = datalen;
+	m_Data = new byte[datalen];
+	::memcpy(m_Data, data, datalen);
 }
 
 
@@ -26,13 +26,13 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 
 Task::~Task()
 {
-	delete _data;
+	delete m_Data;
 }
 
 
 std::wstring Task::State()
 {
-	switch (_state)
+	switch (m_State)
 	{
 		ToString(Initialized);
 		ToString(Queued);
@@ -44,7 +44,7 @@ std::wstring Task::State()
 
 std::wstring Task::TypeAsString()
 {
-	switch (_type)
+	switch (m_Type)
 	{
 		ToString(HookDriver);
 		ToString(UnhookDriver);
@@ -57,35 +57,39 @@ std::wstring Task::TypeAsString()
 
 TaskType Task::Type()
 {
-	return _type;
+	return m_Type;
 }
 
 
 DWORD Task::IoctlCode()
 {
-	switch (_type)
-	{
-		case HookDriver: return IOCTL_AddDriver;
-		case UnhookDriver: return IOCTL_RemoveDriver;
-	}
+	std::map<TaskType, DWORD>::iterator it = g_TaskIoctls.find(m_Type);
+	if(it == g_TaskIoctls.end())
+		return ERROR_BAD_ARGUMENTS;
 
-	return ERROR_BAD_ARGUMENTS;
+	return it->second;
 }
 
 
 void Task::SetState(TaskState s)
 {
-	_state = s;
+	m_State = s;
 }
 
 
 uint32_t Task::Length()
 {
-	return _data_length;
+	return m_dwDataLength;
 }
 
 
 byte* Task::Data()
 {
-	return _data;
+	return m_Data;
+}
+
+
+DWORD Task::Id()
+{
+	return m_dwId;
 }

@@ -9,7 +9,12 @@ FrontEndServer::~FrontEndServer() {}
 /*++
 Routine Description:
 
-Create the named pipe responsible for the communication with the GUI.
+Create the named pipe responsible for the communication with the GUI. To do, a Security 
+Descriptor is created with Explicit Access set for Everyone (including remote clients),
+to Read/Write the pipe.
+
+Therefore, we must be careful about that as any user would be able to send some commands
+to the broker pipe (and therefore to the kernel driver). 
 
 
 Arguments:
@@ -23,28 +28,122 @@ Return Value:
 --*/
 BOOL FrontEndServer::CreatePipe()
 {
+	BOOL fSuccess = FALSE;
+	SID_IDENTIFIER_AUTHORITY SidAuthWorld = SECURITY_WORLD_SID_AUTHORITY;
+	EXPLICIT_ACCESS ea[1] = { 0 };
+	PACL pNewAcl = NULL;
+	PSID pEveryoneSid = NULL;
+	SECURITY_ATTRIBUTES SecurityAttributes = { 0 };
+	SECURITY_DESCRIPTOR SecurityDescriptor = { 0 };
+
+	do
+	{
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Creating named pipe '%s'...\n", CFB_PIPE_NAME);
+		xlog(LOG_DEBUG, L"Defining new SD for pipe\n");
+#endif // _DEBUG
+	
+
+		//
+		// For now, SD is set for Everyone to have RW access 
+		//
+
+		if (!::AllocateAndInitializeSid(
+				&SidAuthWorld,
+				1,
+				SECURITY_WORLD_RID,
+				0, 0, 0, 0, 0, 0, 0,
+				&pEveryoneSid
+			)
+		)
+		{
+			PrintErrorWithFunctionName(L"AllocateAndInitializeSid");
+			fSuccess = FALSE;
+			break;
+		}
+
+
+		//
+		// Populate the EA entry
+		//
+		ea[0].grfAccessPermissions = GENERIC_ALL;
+		ea[0].grfAccessMode = SET_ACCESS;
+		ea[0].grfInheritance = NO_INHERITANCE;
+		ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		ea[0].Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+		ea[0].Trustee.ptstrName = (LPTSTR)pEveryoneSid;
+
+
+		//
+		// Apply the EA to the ACL
+		//
+		if (::SetEntriesInAcl(1, ea, NULL, &pNewAcl) != ERROR_SUCCESS)
+		{
+			PrintErrorWithFunctionName(L"SetEntriesInAcl");
+			fSuccess = FALSE;
+			break;
+		}
+
+
+		//
+		// Set the SD to new ACL
+		//
+		if (!::InitializeSecurityDescriptor(&SecurityDescriptor, SECURITY_DESCRIPTOR_REVISION))
+		{
+			PrintErrorWithFunctionName(L"InitializeSecurityDescriptor");
+			fSuccess = FALSE;
+			break;
+		}
+
+		if (!::SetSecurityDescriptorDacl(&SecurityDescriptor, TRUE, pNewAcl, FALSE))
+		{
+			PrintErrorWithFunctionName(L"SetSecurityDescriptorDacl");
+			fSuccess = FALSE;
+			break;
+		}
+
+
+		//
+		// Init the SA
+		//
+		SecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+		SecurityAttributes.lpSecurityDescriptor = &SecurityDescriptor;
+		SecurityAttributes.bInheritHandle = FALSE;
+
+
+#ifdef _DEBUG
+		xlog(LOG_DEBUG, L"Creating named pipe '%s'...\n", CFB_PIPE_NAME);
 #endif
 
-	hServerHandle = CreateNamedPipe(
-		CFB_PIPE_NAME,
-		PIPE_ACCESS_DUPLEX,
-		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-		CFB_PIPE_MAXCLIENTS,
-		CFB_PIPE_INBUFLEN,
-		CFB_PIPE_OUTBUFLEN,
-		0,
-		NULL
-	);
+		hServerHandle = ::CreateNamedPipe(
+			CFB_PIPE_NAME,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
+			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+			CFB_PIPE_MAXCLIENTS,
+			CFB_PIPE_INBUFLEN,
+			CFB_PIPE_OUTBUFLEN,
+			NMPWAIT_USE_DEFAULT_WAIT,
+			&SecurityAttributes
+		);
 
-	if (hServerHandle == INVALID_HANDLE_VALUE)
-	{
-		PrintErrorWithFunctionName(L"CreateNamedPipe()");
-		return FALSE;
-	}
+		if (hServerHandle == INVALID_HANDLE_VALUE)
+		{
+			PrintErrorWithFunctionName(L"CreateNamedPipe()");
+			fSuccess = FALSE;
+			break;
+		}
 
-	return TRUE;
+		fSuccess = TRUE;
+	} 
+	while (FALSE);
+
+	if (pEveryoneSid)
+		FreeSid(pEveryoneSid);
+
+	if (pNewAcl)
+		LocalFree(pNewAcl);
+
+
+	return fSuccess;
 }
 
 
@@ -241,7 +340,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 	Session* Sess = reinterpret_cast<Session*>(lpParameter);
 	DWORD dwNumberOfBytesWritten, dwWaitResult;
 	HANDLE Handles[2] = { 0 };
-	Handles[0] = Sess->hTerminationEvent;
+	Handles[0] = Sess->m_hTerminationEvent;
 	HANDLE hServer = Sess->FrontEndServer.GetListeningSocketHandle();
 
 	while (Sess->IsRunning())
@@ -400,7 +499,7 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 #endif
 
 	Session* Sess = reinterpret_cast<Session*>(lpParameter);
-	Sess->hFrontendThreadHandle = hThread;
+	Sess->m_hFrontendThreadHandle = hThread;
 
 	return TRUE;
 }
