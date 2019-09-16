@@ -46,34 +46,38 @@ static BOOL AssignPrivilegeToSelf(_In_ const wchar_t* lpszPrivilegeName)
 {
 	HANDLE hToken = INVALID_HANDLE_VALUE;
 	BOOL bRes = FALSE;
-	LUID Luid = { 0, };
+	
 
-	bRes = OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken);
+	bRes = ::OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken);
 	if (bRes)
 	{
-		bRes = LookupPrivilegeValue(NULL, lpszPrivilegeName, &Luid);
+		LUID Luid = { 0, };
+
+		bRes = ::LookupPrivilegeValue(NULL, lpszPrivilegeName, &Luid);
 		if (bRes)
 		{
-			LUID_AND_ATTRIBUTES PrivAttr = { 0 };
-			PrivAttr.Luid = Luid;
-			PrivAttr.Attributes = SE_PRIVILEGE_ENABLED;
+			size_t nBufferSize = sizeof(TOKEN_PRIVILEGES) + 1*sizeof(LUID_AND_ATTRIBUTES);
+			PTOKEN_PRIVILEGES NewState = (PTOKEN_PRIVILEGES)LocalAlloc(LPTR, nBufferSize);
+			if (NewState)
+			{
+				NewState->PrivilegeCount = 1;
+				NewState->Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+				NewState->Privileges[0].Luid = Luid;
 
-			TOKEN_PRIVILEGES NewPrivs = { 0, };
-			NewPrivs.PrivilegeCount = 1;
-			NewPrivs.Privileges[0].Luid = Luid;
-			
+				bRes = ::AdjustTokenPrivileges(
+					hToken,
+					FALSE,
+					NewState,
+					0,
+					(PTOKEN_PRIVILEGES)NULL,
+					(PDWORD)NULL
+				) != 0;
 
-			bRes = AdjustTokenPrivileges(
-				hToken,
-				FALSE,
-				&NewPrivs,
-				sizeof(TOKEN_PRIVILEGES),
-				(PTOKEN_PRIVILEGES)NULL,
-				(PDWORD)NULL
-			) != 0;
+				if (bRes)
+					bRes = GetLastError() != ERROR_NOT_ALL_ASSIGNED;
 
-			if(bRes)
-				bRes = GetLastError() != ERROR_NOT_ALL_ASSIGNED;
+				LocalFree(NewState);
+			}
 		}
 
 		CloseHandle(hToken);
@@ -116,7 +120,7 @@ static BOOL HasPrivilege(_In_ const wchar_t* lpszPrivilegeName, _Out_ PBOOL lpHa
 		bRes = LookupPrivilegeValue(NULL, lpszPrivilegeName, &Luid);
 		if (!bRes)
 		{
-			PrintError(L"LookupPrivilegeValue");
+			PrintErrorWithFunctionName(L"LookupPrivilegeValue");
 			break;
 		}
 
@@ -244,15 +248,10 @@ int wmain(int argc, wchar_t** argv)
 	for (int i = 0; i < _countof(lpszPrivilegeNames); i++)
 	{
 		BOOL fHasPriv = FALSE;
-		if (!HasPrivilege(lpszPrivilegeNames[i], &fHasPriv) || !fHasPriv)
+		if (!AssignPrivilegeToSelf(lpszPrivilegeNames[i]))
 		{
-			xlog(LOG_WARNING, L"Privilege '%s' is missing, trying to acquire...\n", lpszPrivilegeNames[i]);
-
-			if (!AssignPrivilegeToSelf(lpszPrivilegeNames[i]))
-			{
-				xlog(LOG_CRITICAL, L"%s requires '%s', cannot proceed...\n", argv[0], lpszPrivilegeNames[i]);
-				return EXIT_FAILURE;
-			}
+			xlog(LOG_CRITICAL, L"%s requires '%s', cannot proceed...\n", argv[0], lpszPrivilegeNames[i]);
+			return EXIT_FAILURE;
 		}
 	}
 

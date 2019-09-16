@@ -404,7 +404,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.RequestTasks.push(task);
 
 		}
-		catch (std::exception e)
+		catch (std::exception& e)
 		{
 			xlog(LOG_WARNING, L"Invalid message format, discarding: %S\n", e.what());
 			continue;

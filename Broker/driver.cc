@@ -77,7 +77,7 @@ Return Value:
 	Returns ERROR_SUCCESS on success, GetLastError() otherwise
 
 --*/
-DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session* Session)
+DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 {
 	//
 	// Probe the size of the buffer
@@ -180,7 +180,7 @@ Arguments:
 
 Return Value:
 	
-	Returns 0 on success, GetLastError() otherwise
+	Returns 0 on success
 
 --*/
 DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
@@ -190,7 +190,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 #endif // _DEBUG
 
 
-	Session* Sess = reinterpret_cast<Session*>(lpParameter);
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 	DWORD dwRes;
 
 
@@ -211,7 +211,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 	if (!hDevice)
 	{
-		PrintErrorWithFunctionName(L"CreateFile(g_hDevice");
+		PrintErrorWithFunctionName(L"CreateFile(hDeviceObject)");
 		return ::GetLastError();
 	}
 
@@ -226,7 +226,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	if (!hIrpDataEvent)
 	{
 		PrintErrorWithFunctionName(L"ShareHandleWithDriver() failed");
-		return ::GetLastError();
+		return ERROR_INVALID_HANDLE;
 	}
 
 
@@ -235,13 +235,13 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	//
 
 	const HANDLE Handles[3] = { 
-		Sess->m_hTerminationEvent , 
+		Sess.m_hTerminationEvent , 
 		hIrpDataEvent.get(),
-		Sess->RequestTasks.GetPushEventHandle(),
+		Sess.RequestTasks.GetPushEventHandle(),
 	};
 
 
-	while ( Sess->IsRunning() )
+	while ( Sess.IsRunning() )
 	{
 		//
 		// Wait for a push event or a termination notification event
@@ -257,7 +257,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		{
 		case WAIT_OBJECT_0:
 			// Termination Event
-			Sess->Stop();
+			Sess.Stop();
 			continue;
 
 		case WAIT_OBJECT_0 + 1:
@@ -279,7 +279,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// some data available (because of the Event)
 		//
 
-		auto in_task = Sess->RequestTasks.pop();
+		auto in_task = Sess.RequestTasks.pop();
 		
 
 		//
@@ -351,12 +351,12 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// push to response task list
 		//
-		Sess->ResponseTasks.push(out_task);
+		Sess.ResponseTasks.push(out_task);
 
 	}
 
 
-	return 0;
+	return ERROR_SUCCESS;
 }
 
 

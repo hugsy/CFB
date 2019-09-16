@@ -11,7 +11,7 @@
 #define COLOR_UNDERLINE L"\033[4m"
 
 #define COLOR_FG_BLACK L"\033[30m"
-#define COLOR_FG_RED L"\03331m"
+#define COLOR_FG_RED L"\033[31m"
 #define COLOR_FG_GREEN L"\033[32m"
 #define COLOR_FG_YELLOW L"\033[33m"
 #define COLOR_FG_BLUE L"\033[34m"
