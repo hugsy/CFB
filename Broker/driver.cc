@@ -24,7 +24,7 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 	DWORD dwNbBytesReturned;
 	
 
-	HANDLE hDataEvent = CreateEvent(
+	HANDLE hDataEvent = ::CreateEvent(
 		NULL,
 		TRUE,
 		FALSE,
@@ -400,10 +400,10 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 	}
 
 	
-
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, "CreateThread(Driver) started as TID=%d\n", dwThreadId);
-#endif
+#endif // _DEBUG
+
 
 	Session* Sess = reinterpret_cast<Session*>(lpParameter);
 	Sess->hBackendThreadHandle = hThread;
