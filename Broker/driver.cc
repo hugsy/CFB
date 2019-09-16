@@ -384,7 +384,7 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 {
 	DWORD dwThreadId;
 
-	HANDLE hThread = CreateThread(
+	HANDLE hThread = ::CreateThread(
 		NULL,
 		0,
 		BackendConnectionHandlingThread,

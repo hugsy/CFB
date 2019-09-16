@@ -18,7 +18,7 @@ public:
 	HANDLE GetListeningSocketHandle();
 
 private:
-	HANDLE hServerHandle = INVALID_HANDLE_VALUE;
+	HANDLE m_hServerHandle = INVALID_HANDLE_VALUE;
 };
 
 

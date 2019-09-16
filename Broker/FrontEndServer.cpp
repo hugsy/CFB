@@ -114,7 +114,7 @@ BOOL FrontEndServer::CreatePipe()
 		xlog(LOG_DEBUG, L"Creating named pipe '%s'...\n", CFB_PIPE_NAME);
 #endif
 
-		hServerHandle = ::CreateNamedPipe(
+		m_hServerHandle = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
 			PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
 			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
@@ -125,7 +125,7 @@ BOOL FrontEndServer::CreatePipe()
 			&SecurityAttributes
 		);
 
-		if (hServerHandle == INVALID_HANDLE_VALUE)
+		if (m_hServerHandle == INVALID_HANDLE_VALUE)
 		{
 			PrintErrorWithFunctionName(L"CreateNamedPipe()");
 			fSuccess = FALSE;
@@ -169,27 +169,37 @@ BOOL FrontEndServer::ClosePipe()
 	xlog(LOG_DEBUG, L"Closing named pipe '%s'...\n", CFB_PIPE_NAME);
 #endif
 
-	//
-	// Wait until all data was consumed
-	//
-	FlushFileBuffers(hServerHandle);
+	BOOL fSuccess = TRUE;
 
-	//
-	// Then close down the named pipe
-	//
-	if (!DisconnectNamedPipe(hServerHandle))
+	do
 	{
-		PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
-		return FALSE;
-	}
+		//
+		// Wait until all data was consumed
+		//
+		if (!FlushFileBuffers(m_hServerHandle))
+		{
+			PrintErrorWithFunctionName(L"FlushFileBuffers()");
+			fSuccess = FALSE;
+		}
 
-	return TRUE;
+		//
+		// Then close down the named pipe
+		//
+		if (!DisconnectNamedPipe(m_hServerHandle))
+		{
+			PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
+			fSuccess = FALSE;
+		}
+	} 
+	while (FALSE);
+
+	return fSuccess;
 }
 
 
 HANDLE FrontEndServer::GetListeningSocketHandle()
 {
-	return hServerHandle;
+	return m_hServerHandle;
 }
 
 
@@ -216,7 +226,7 @@ Return Value:
 	a correctly formatted Task object on success, a C++ exception otherwise
 
 --*/
-static Task ReadPipeMessage(HANDLE hPipe)
+static Task ReadTlvMessage(_In_ HANDLE hPipe)
 {
 	BOOL bSuccess = FALSE;
 	DWORD dwNbByteRead;
@@ -226,7 +236,7 @@ static Task ReadPipeMessage(HANDLE hPipe)
 	//
 	uint32_t tl[2] = { 0 };
 
-	bSuccess = ReadFile(
+	bSuccess = ::ReadFile(
 		hPipe,
 		tl,
 		sizeof(tl),
@@ -234,11 +244,14 @@ static Task ReadPipeMessage(HANDLE hPipe)
 		NULL
 	);
 
-	if (!bSuccess || dwNbByteRead != sizeof(tl))
-		throw std::runtime_error("ReadFile() failed:");
+	if (!bSuccess)
+		throw std::runtime_error("ReadFile(1): " + GetLastError());
+
+	if (dwNbByteRead != sizeof(tl))
+		throw std::runtime_error("ReadFile(1): invalid size read");
 
 	if (tl[0] >= TaskType::TaskTypeMax)
-		throw std::runtime_error("Message type is invalid");
+		throw std::runtime_error("Message type is invalid: " + tl[0]);
 
 	TaskType type = static_cast<TaskType>(tl[0]);
 	uint32_t datalen = tl[1];
@@ -251,7 +264,7 @@ static Task ReadPipeMessage(HANDLE hPipe)
 	if (data == nullptr)
 		throw std::runtime_error("allocate failed");
 
-	bSuccess = ReadFile(
+	bSuccess = ::ReadFile(
 		hPipe,
 		data,
 		datalen,
@@ -260,10 +273,11 @@ static Task ReadPipeMessage(HANDLE hPipe)
 	);
 
 	if (!bSuccess || dwNbByteRead != datalen)
-		throw std::runtime_error("ReadFile() failed:");
+		throw std::runtime_error("ReadFile(2)");
 
 	auto task = Task(type, data, datalen);
 	delete[] data;
+
 	return task;
 }
 
@@ -283,7 +297,7 @@ Return Value:
 	Returns 0 if successful.
 
 --*/
-byte* PrepareTlvMessageFromTask(_In_ Task task)
+byte* PrepareTlvMessageFromTask(_In_ Task& task)
 {
 	byte* msg = nullptr;
 
@@ -335,15 +349,15 @@ Return Value:
 	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
-DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
+DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
-	Session* Sess = reinterpret_cast<Session*>(lpParameter);
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 	DWORD dwNumberOfBytesWritten, dwWaitResult;
 	HANDLE Handles[2] = { 0 };
-	Handles[0] = Sess->m_hTerminationEvent;
-	HANDLE hServer = Sess->FrontEndServer.GetListeningSocketHandle();
+	Handles[0] = Sess.m_hTerminationEvent;
+	HANDLE hServer = Sess.FrontEndServer.GetListeningSocketHandle();
 
-	while (Sess->IsRunning())
+	while (Sess.IsRunning())
 	{
 		//
 		// Wait for the pipe to be written to, or a termination notification event
@@ -351,7 +365,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 
 		Handles[1] = hServer;
 
-		dwWaitResult = WaitForMultipleObjects(
+		dwWaitResult = ::WaitForMultipleObjects(
 			2,
 			Handles,
 			FALSE,
@@ -361,25 +375,33 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			Sess->Stop();
+			Sess.Stop();
 			continue;
 
 		default:
 			break;
 		}
 
+#ifdef _DEBUG
+		xlog(LOG_DEBUG, L"<-- data\n");
+#endif // _DEBUG
+
+
 		try
 		{
 			//
 			// get next message from pipe and parse it as a task
 			//
-			auto task = ReadPipeMessage(hServer);
+			auto task = ReadTlvMessage(hServer);
 
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"new task (id=%d, type='%s')\n", task.Id(), task.TypeAsString());
+#endif // _DEBUG
 
 			//
 			// push the task to request task list
 			//
-			Sess->RequestTasks.push(task);
+			Sess.RequestTasks.push(task);
 
 		}
 		catch (std::exception e)
@@ -393,7 +415,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 		//
 		// Wait for either the response or a termination event
 		//
-		Handles[1] = Sess->ResponseTasks.GetPushEventHandle();
+		Handles[1] = Sess.ResponseTasks.GetPushEventHandle();
 
 		dwWaitResult = WaitForMultipleObjects(
 			2,
@@ -405,7 +427,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-			Sess->Stop();
+			Sess.Stop();
 			continue;
 
 		default:
@@ -419,7 +441,7 @@ DWORD FrontendConnectionHandlingThreadIn(_In_ LPVOID lpParameter)
 			//
 			// blocking-pop on response task list
 			//
-			auto task = Sess->ResponseTasks.pop();
+			auto task = Sess.ResponseTasks.pop();
 
 			byte* msg = PrepareTlvMessageFromTask(task);
 			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
@@ -466,7 +488,7 @@ with the frontend part of the application.
 
 Arguments:
 
-	lpThread - a pointer to the handle of the created
+	lpParameter - a generic pointer to the global Session
 
 
 Return Value:
@@ -478,10 +500,10 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 {
 	DWORD dwThreadId;
 
-	HANDLE hThread = CreateThread(
+	HANDLE hThread = ::CreateThread(
 		NULL,
 		0,
-		FrontendConnectionHandlingThreadIn,
+		FrontendConnectionHandlingThread,
 		lpParameter,
 		CREATE_SUSPENDED,
 		&dwThreadId

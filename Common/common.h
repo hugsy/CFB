@@ -1,12 +1,5 @@
 #pragma once
 
-#ifndef _DRIVER
-#include <Windows.h>
-#include <stdio.h>
-#endif // !_DRIVER
-
-
-
 #define CFB_PROGRAM_NAME			L"Canadian Fuzzy Bear"
 #define CFB_PROGRAM_NAME_SHORT		L"CFB"
 #define CFB_AUTHOR					L"@_hugsy_"
