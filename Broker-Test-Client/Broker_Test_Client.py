@@ -14,8 +14,8 @@ from struct import *
 def ok(x): print("[+] {0}".format(x))
 def p16(x): return pack("<H", x)
 def p32(x): return pack("<I", x)
-def u16(x): return unpack(">H", x)[0]
-def u32(x): return unpack(">I", x)[0]
+def u16(x): return unpack("<H", x)[0]
+def u32(x): return unpack("<I", x)[0]
 
 def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
     result = []
@@ -33,7 +33,7 @@ def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
     return "\n".join(result)
 
 
-TEST_DRIVER_NAME = b"vboxguest.sys"
+TEST_DRIVER_NAME = "\\driver\\vboxguest.sys\x00"
 
 
 @unique
@@ -114,7 +114,8 @@ def PipeConnect():
     ok("Starting Step 2")
 
     ## send request
-    tlv_msg = PrepareTlvMessage(TaskType.HookDriver, TEST_DRIVER_NAME)
+    lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
+    tlv_msg = PrepareTlvMessage(TaskType.HookDriver, lpszDriverName)
     cbWritten = c_ulong(0)
     bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
     assert bSuccess 
@@ -129,7 +130,7 @@ def PipeConnect():
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
 
-    assert cbRead.value == 0 # hookdriver doesn't return any data
+    assert cbRead.value == 8 # hookdriver doesn't return any data (header only = 2*uint32_t)
 
     ok("Step 2 ok")
     
@@ -172,7 +173,8 @@ def PipeConnect():
     # 6. unhook test driver
     ok("Starting Step 6")
 
-    tlv_msg = PrepareTlvMessage(TaskType.UnhookDriver, TEST_DRIVER_NAME)
+    lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
+    tlv_msg = PrepareTlvMessage(TaskType.UnhookDriver, lpszDriverName)
     cbWritten = c_ulong(0)
     bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
 

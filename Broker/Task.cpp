@@ -15,16 +15,30 @@ Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
 	m_dwIoctlCode = code;
 	m_dwDataLength = datalen;
 	m_Data = new byte[datalen];
+	::memcpy(m_Data, data, datalen);
 }
 
 
 Task::Task(TaskType type, byte* data, uint32_t datalen)
 		: Task(type, data, datalen, 0)
-{ }
+{ 
+
+}
+
+Task::Task(const Task& src)
+	: m_dwDataLength(src.m_dwDataLength), m_dwId(src.m_dwId),
+	m_Type(src.m_Type), m_State(src.m_State), m_dwIoctlCode(src.m_dwIoctlCode)
+{
+	m_Data = new byte[m_dwDataLength];
+	::memcpy(m_Data, src.m_Data, m_dwDataLength);
+}
 
 
 Task::~Task()
-{ }
+{
+	if(m_Data)
+		delete[] m_Data;
+}
 
 
 const wchar_t* Task::StateAsString()

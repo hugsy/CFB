@@ -225,7 +225,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 	if (!hIrpDataEvent)
 	{
-		PrintErrorWithFunctionName(L"ShareHandleWithDriver() failed");
+		PrintErrorWithFunctionName(L"ShareHandleWithDriver()");
 		return ERROR_INVALID_HANDLE;
 	}
 
@@ -308,6 +308,10 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				NULL
 			);
 
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"DeviceIoControl(%x) returned: %d\n", in_task.IoctlCode(), bRes);
+#endif // _DEBUG
+
 			//
 			// If the ioctl was ok, we exit
 			//
@@ -332,21 +336,13 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			break;
 		}
 
-		if (!bRes)
-		{
-			if (lpOutputBuffer)
-				delete[] lpOutputBuffer;
-
-			return ERROR_INVALID_PARAMETER;
-		}
-		
 
 		//
-		// flag task as Completed
+		// flag task as Completed, the task can finally be deleted
 		//
 		in_task.SetState(TaskState::Completed);
 
-		delete& in_task;
+		//delete& in_task;
 
 
 		//

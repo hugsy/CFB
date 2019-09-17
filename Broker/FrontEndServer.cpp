@@ -309,7 +309,7 @@ byte* PrepareTlvMessageFromTask(_In_ Task& task)
 	//
 	uint32_t msglen = 2 * sizeof(uint32_t) + task.Length();
 	
-	if (msglen > 2 * sizeof(uint32_t))
+	if (msglen >= 2 * sizeof(uint32_t))
 	{
 		msg = new byte[msglen];
 
@@ -319,7 +319,7 @@ byte* PrepareTlvMessageFromTask(_In_ Task& task)
 		tl[1] = task.Length();
 
 		// copy the body
-		::memcpy(msg + 2 * sizeof(uint32_t), &task.Data()[0], task.Length());
+		::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
 	}
 	else
 	{
