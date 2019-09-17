@@ -52,7 +52,6 @@ public:
 
 	Task(TaskType type, byte* data, uint32_t datalen, uint32_t code);
 	Task(TaskType type, byte* data, uint32_t datalen);
-	//Task& operator=(const Task& t);
 	~Task();
 
 	const wchar_t* StateAsString();

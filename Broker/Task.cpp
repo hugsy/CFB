@@ -11,7 +11,7 @@ Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
 	std::lock_guard<std::mutex> guard(g_mutex);
 	m_dwId = g_id++;
 	m_Type = type;
-	m_State = Initialized;
+	m_State = TaskState::Initialized;
 	m_dwIoctlCode = code;
 	m_dwDataLength = datalen;
 	m_Data = new byte[datalen];
@@ -25,20 +25,17 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 
 }
 
-/*
-Task& Task::operator=(const Task& t)
-{
-	byte* pData = m_Data;
-	m_Data = new byte[t.m_dwDataLength];
-	::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
-	delete[] pData;
-	return *this;
-}
-*/
 
 Task::~Task()
 {
-	delete[] m_Data;
+	//
+	// the buffer associated with the Task can only be freeed when the 
+	// task is completed.
+	//
+	if (m_State == TaskState::Completed)
+	{
+		delete[] m_Data;
+	}
 }
 
 
@@ -51,7 +48,8 @@ const wchar_t* Task::StateAsString()
 		ToString(Delivered);
 		ToString(Completed);
 	}
-	return L"??";
+
+	throw std::runtime_error("Unknown Task State");
 }
 
 
@@ -59,12 +57,22 @@ const wchar_t* Task::TypeAsString()
 {
 	switch (m_Type)
 	{
+		ToString(IoctlResponse);
 		ToString(HookDriver);
 		ToString(UnhookDriver);
 		ToString(GetDriverInfo);
 		ToString(GetNumberOfDriver);
+		ToString(NotifyEventHandle);
+		ToString(EnableMonitoring);
+		ToString(DisableMonitoring);
+		ToString(StoreTestCase);
 	}
-	return L"(Unknown)";
+
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, "Undeclared TaskType %d\n", m_Type);
+#endif // _DEBUG
+
+	return L"(UnknownType)";
 }
 
 

@@ -13,10 +13,10 @@ public:
 	TaskManager();
 	~TaskManager();
 
-	void push(Task &t);
+	void push(Task t);
 	Task pop();
 	HANDLE GetPushEventHandle();
-	BOOL SetName(std::wstring name);
+	BOOL SetName(const std::wstring name);
 
 
 private:

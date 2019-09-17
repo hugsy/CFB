@@ -130,22 +130,27 @@ def PipeConnect():
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
     assert cbRead.value == 8 # hookdriver doesn't return any data (header only = 2*uint32_t)
+    assert u32(szBuf[:4]) == TaskType.IoctlResponse
 
     ok("Step 2 ok")
     
 
     # 3. enable monitoring
-    ok("Starting Step 3")
+    #ok("Starting Step 3")
 
-    tlv_msg = PrepareTlvMessage(TaskType.EnableMonitoring)
-    cbWritten = c_ulong(0)
-    
-    bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
+    ## send request
+    #tlv_msg = PrepareTlvMessage(TaskType.EnableMonitoring)
+    #cbWritten = c_ulong(0)    
+    #bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
+    #assert bSuccess 
+    #assert len(tlv_msg) == cbWritten.value
 
-    assert bSuccess 
-    assert len(tlv_msg) == cbWritten.value
-
-    ok("Step 3 ok")
+    ## recv response
+    #bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+    #assert bSuccess
+    #ok("data recv: %d" % cbRead.value)
+    #assert u32(szBuf[:4]) == TaskType.IoctlResponse
+    #ok("Step 3 ok")
 
 
     # 4. read one dumped IRP
@@ -157,35 +162,45 @@ def PipeConnect():
 
 
     # 5. disable monitoring
-    ok("Starting Step 5")
+    #ok("Starting Step 5")
 
-    tlv_msg = PrepareTlvMessage(TaskType.DisableMonitoring)
-    cbWritten = c_ulong(0)  
-    bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
+    #tlv_msg = PrepareTlvMessage(TaskType.DisableMonitoring)
+    #cbWritten = c_ulong(0)  
+    #bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
 
-    assert bSuccess 
-    assert len(tlv_msg) == cbWritten.value
+    #assert bSuccess 
+    #assert len(tlv_msg) == cbWritten.value
 
-    ok("Step 5 ok")
+    #ok("Step 5 ok")
 
 
     # 6. unhook test driver
     ok("Starting Step 6")
 
+     ## send request
     lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
     tlv_msg = PrepareTlvMessage(TaskType.UnhookDriver, lpszDriverName)
     cbWritten = c_ulong(0)
     bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-
-    assert bSuccess 
+    assert bSuccess
     assert len(tlv_msg) == cbWritten.value
+
+    ## recv response
+    cbRead = c_ulong(0)
+    szBuf = create_string_buffer(BUFSIZE)
+    bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+    assert bSuccess
+    ok("data recv: %d" % cbRead.value)
+    assert cbRead.value == 8 # unhookdriver doesn't return any data (header only = 2*uint32_t)
+    assert u32(szBuf[:4]) == TaskType.IoctlResponse
 
     ok("Step 6 ok")
 
 
     # 7. close handle
     ok("Starting Step 7")
-    windll.kernel32.CloseHandle(hPipe)
+    bSuccess = windll.kernel32.CloseHandle(hPipe)
+    assert bSuccess 
     ok("Step 7 ok")
 
     return True

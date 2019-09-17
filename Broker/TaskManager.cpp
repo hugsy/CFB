@@ -27,14 +27,14 @@ TaskManager::~TaskManager()
 }
 
 
-void TaskManager::push(Task& task)
+void TaskManager::push(Task task)
 {
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", task.TypeAsString(), m_name.c_str());
 #endif // _DEBUG
 
 	//
-	// push the task to the queue
+	// push a copy of the task to the queue
 	// 
 	std::unique_lock<std::mutex> mlock(m_mutex);
 	m_queue.push(task);
@@ -79,7 +79,7 @@ HANDLE TaskManager::GetPushEventHandle()
 }
 
 
-BOOL TaskManager::SetName(std::wstring name)
+BOOL TaskManager::SetName(const std::wstring name)
 {
 	m_name = name;
 	return TRUE;
