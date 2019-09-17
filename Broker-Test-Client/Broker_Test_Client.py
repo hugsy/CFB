@@ -33,7 +33,7 @@ def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
     return "\n".join(result)
 
 
-TEST_DRIVER_NAME = "\\driver\\vboxguest.sys\x00"
+TEST_DRIVER_NAME = "\\driver\\vboxguest"
 
 
 @unique
@@ -130,7 +130,8 @@ def PipeConnect():
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
     assert cbRead.value == 8 # hookdriver doesn't return any data (header only = 2*uint32_t)
-    assert u32(szBuf[:4]) == TaskType.IoctlResponse
+    assert u32(szBuf[:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 0
 
     ok("Step 2 ok")
     
@@ -192,7 +193,8 @@ def PipeConnect():
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
     assert cbRead.value == 8 # unhookdriver doesn't return any data (header only = 2*uint32_t)
-    assert u32(szBuf[:4]) == TaskType.IoctlResponse
+    assert u32(szBuf[:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 0
 
     ok("Step 6 ok")
 
