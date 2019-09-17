@@ -286,7 +286,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// send the DeviceIoControl
 		//
 #ifdef _DEBUG
-		xlog(LOG_DEBUG, L"Type: %s, Length: %d\n", in_task.Type(), in_task.Length());
+		xlog(LOG_DEBUG, L"Sending to device Task=%d (Type: %s, Length: %d)\n", in_task.Id(), in_task.TypeAsString(), in_task.Length());
 #endif // _DEBUG
 
 		
@@ -330,6 +330,14 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			}
 
 			break;
+		}
+
+		if (!bRes)
+		{
+			if (lpOutputBuffer)
+				delete[] lpOutputBuffer;
+
+			return ERROR_INVALID_PARAMETER;
 		}
 		
 

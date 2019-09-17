@@ -5,7 +5,7 @@
 #include <string>
 #include <mutex>
 #include <map>
-
+#include <vector>
 
 enum TaskState : uint16_t
 {
@@ -54,8 +54,8 @@ public:
 	Task(TaskType type, byte* data, uint32_t datalen);
 	~Task();
 
-	std::wstring State();
-	std::wstring TypeAsString();
+	const wchar_t* StateAsString();
+	const wchar_t* TypeAsString();
 	TaskType Type();
 	DWORD IoctlCode();
 	void SetState(TaskState s);
@@ -67,7 +67,7 @@ public:
 private:
 	TaskType m_Type;
 	TaskState m_State;
-	byte* m_Data = NULL;
+	byte* m_Data;
 	uint32_t m_dwDataLength;
 	DWORD m_dwIoctlCode;
 	DWORD m_dwId;

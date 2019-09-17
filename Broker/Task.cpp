@@ -15,7 +15,6 @@ Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
 	m_dwIoctlCode = code;
 	m_dwDataLength = datalen;
 	m_Data = new byte[datalen];
-	::memcpy(m_Data, data, datalen);
 }
 
 
@@ -25,12 +24,10 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 
 
 Task::~Task()
-{
-	delete m_Data;
-}
+{ }
 
 
-std::wstring Task::State()
+const wchar_t* Task::StateAsString()
 {
 	switch (m_State)
 	{
@@ -42,7 +39,8 @@ std::wstring Task::State()
 	return L"??";
 }
 
-std::wstring Task::TypeAsString()
+
+const wchar_t* Task::TypeAsString()
 {
 	switch (m_Type)
 	{
@@ -65,7 +63,7 @@ DWORD Task::IoctlCode()
 {
 	std::map<TaskType, DWORD>::iterator it = g_TaskIoctls.find(m_Type);
 	if(it == g_TaskIoctls.end())
-		return ERROR_BAD_ARGUMENTS;
+		return (DWORD)-1;
 
 	return it->second;
 }

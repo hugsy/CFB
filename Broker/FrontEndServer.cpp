@@ -117,11 +117,11 @@ BOOL FrontEndServer::CreatePipe()
 		m_hServerHandle = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
 			PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
-			PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
 			CFB_PIPE_MAXCLIENTS,
 			CFB_PIPE_INBUFLEN,
 			CFB_PIPE_OUTBUFLEN,
-			NMPWAIT_USE_DEFAULT_WAIT,
+			0,
 			&SecurityAttributes
 		);
 
@@ -226,7 +226,7 @@ Return Value:
 	a correctly formatted Task object on success, a C++ exception otherwise
 
 --*/
-static Task ReadTlvMessage(_In_ HANDLE hPipe)
+Task ReadTlvMessage(_In_ HANDLE hPipe) 
 {
 	BOOL bSuccess = FALSE;
 	DWORD dwNbByteRead;
@@ -245,13 +245,13 @@ static Task ReadTlvMessage(_In_ HANDLE hPipe)
 	);
 
 	if (!bSuccess)
-		throw std::runtime_error("ReadFile(1): " + GetLastError());
+		throw std::runtime_error("ReadFile(1) failed");
 
 	if (dwNbByteRead != sizeof(tl))
 		throw std::runtime_error("ReadFile(1): invalid size read");
 
 	if (tl[0] >= TaskType::TaskTypeMax)
-		throw std::runtime_error("Message type is invalid: " + tl[0]);
+		throw std::runtime_error("ReadFile(1): Message type is invalid");
 
 	TaskType type = static_cast<TaskType>(tl[0]);
 	uint32_t datalen = tl[1];
@@ -272,10 +272,13 @@ static Task ReadTlvMessage(_In_ HANDLE hPipe)
 		NULL
 	);
 
-	if (!bSuccess || dwNbByteRead != datalen)
-		throw std::runtime_error("ReadFile(2)");
+	if (!bSuccess)
+		throw std::runtime_error("ReadFile(2) failed");
 
-	auto task = Task(type, data, datalen);
+	if (dwNbByteRead != datalen)
+		throw std::runtime_error("ReadFile(2): invalid size read");
+
+	Task task(type, data, datalen);
 	delete[] data;
 
 	return task;
@@ -316,7 +319,7 @@ byte* PrepareTlvMessageFromTask(_In_ Task& task)
 		tl[1] = task.Length();
 
 		// copy the body
-		::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
+		::memcpy(msg + 2 * sizeof(uint32_t), &task.Data()[0], task.Length());
 	}
 	else
 	{
@@ -357,6 +360,18 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	Handles[0] = Sess.m_hTerminationEvent;
 	HANDLE hServer = Sess.FrontEndServer.GetListeningSocketHandle();
 
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"Pipe mode listening...\n");
+#endif // _DEBUG
+
+
+	if (!::ConnectNamedPipe(hServer, NULL))
+	{
+		PrintErrorWithFunctionName(L"ConnectNamedPipe");
+		return ERROR_INVALID_HANDLE;
+	}
+
+
 	while (Sess.IsRunning())
 	{
 		//
@@ -382,15 +397,11 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			break;
 		}
 
-#ifdef _DEBUG
-		xlog(LOG_DEBUG, L"<-- data\n");
-#endif // _DEBUG
-
 
 		try
 		{
 			//
-			// get next message from pipe and parse it as a task
+			// Construct a Task object from the next message read from the pipe
 			//
 			auto task = ReadTlvMessage(hServer);
 
