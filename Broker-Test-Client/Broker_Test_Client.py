@@ -12,10 +12,25 @@ from ctypes import *
 from struct import *
 
 def ok(x): print("[+] {0}".format(x))
-def p16(x): return pack("=H", x)
-def p32(x): return pack("=I", x)
-def u16(x): return unpack("=H", x)[0]
-def u32(x): return unpack("=I", x)[0]
+def p16(x): return pack("<H", x)
+def p32(x): return pack("<I", x)
+def u16(x): return unpack(">H", x)[0]
+def u32(x): return unpack(">I", x)[0]
+
+def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
+    result = []
+
+    for i in range(0, len(source), length):
+        chunk = bytearray(source[i:i + length])
+        hexa = " ".join([b for b in chunk])
+        text = "".join([chr(b) if 0x20 <= b < 0x7F else separator for b in chunk])
+        result.append("{addr:#0{aw}x}     {data:<{dw}}    {text}".format(aw=align,
+                                                                         addr=base+i,
+                                                                         dw=3*length,
+                                                                         data=hexa,
+                                                                         text=text)
+                      )
+    return "\n".join(result)
 
 
 TEST_DRIVER_NAME = b"vboxguest.sys"
@@ -104,12 +119,16 @@ def PipeConnect():
     bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
     assert bSuccess 
     assert len(tlv_msg) == cbWritten.value
+    ok("data sent: %d" % cbWritten.value)
+
 
     ## recv response
     cbRead = c_ulong(0)
     szBuf = create_string_buffer(BUFSIZE)
-    bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, len(szBuf), byref(cbRead), None)
-    assert bSuccess 
+    bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+    assert bSuccess
+    ok("data recv: %d" % cbRead.value)
+
     assert cbRead.value == 0 # hookdriver doesn't return any data
 
     ok("Step 2 ok")

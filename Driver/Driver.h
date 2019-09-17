@@ -1,7 +1,7 @@
 #pragma once
 
+
 #include "Common.h"
-#include "../Common/common.h"
 
 #include "IoctlCodes.h"
 #include "Utils.h"
@@ -14,7 +14,6 @@
 #include "IoGetDriverInfo.h"
 #include "IoEnableDisableMonitoring.h"
 #include "IoStoreTestCase.h"
-
 
 
 NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath);

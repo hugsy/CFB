@@ -583,25 +583,57 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
     PAGED_CODE();
 
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
+	PIO_STACK_LOCATION lpStack = IoGetCurrentIrpStackLocation(Irp);
+	PIO_SECURITY_CONTEXT lpSecurityContext = lpStack->Parameters.Create.SecurityContext;
 
-    KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
-    
-    if (pCurrentOwnerProcess == NULL )
-    {
-        pCurrentOwnerProcess = PsGetCurrentProcess();
-        CfbDbgPrintOk(L"Locked device to process %p...\n", pCurrentOwnerProcess);
-        Status = STATUS_SUCCESS;
-    }   
-	else if (PsGetCurrentProcess() == pCurrentOwnerProcess)
+
+	//
+	// Ensure the calling process has SeDebugPrivilege
+	//
+	PPRIVILEGE_SET lpRequiredPrivileges;
+	UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)];
+
+	lpRequiredPrivileges = (PPRIVILEGE_SET)ucPrivilegesBuffer;
+	lpRequiredPrivileges->PrivilegeCount = 1;
+	lpRequiredPrivileges->Control = PRIVILEGE_SET_ALL_NECESSARY;
+	lpRequiredPrivileges->Privilege[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
+	lpRequiredPrivileges->Privilege[0].Luid.HighPart = 0;
+	lpRequiredPrivileges->Privilege[0].Attributes = 0;
+
+	if (!SePrivilegeCheck(
+		lpRequiredPrivileges,
+		&lpSecurityContext->AccessState->SubjectSecurityContext,
+		Irp->RequestorMode
+		)
+	)
 	{
-		Status = STATUS_SUCCESS;
+		Status = STATUS_PRIVILEGE_NOT_HELD;
 	}
 	else
-    {
-        Status = STATUS_DEVICE_ALREADY_ATTACHED;
-    }
+	{
+		//
+		// Currently, we don't authorize more than one process, and one handle per process
+		//
 
-    KeReleaseInStackQueuedSpinLock(&SpinLockQueueOwner);
+		KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
+    
+		if (pCurrentOwnerProcess == NULL )
+		{
+			pCurrentOwnerProcess = PsGetCurrentProcess();
+			CfbDbgPrintOk(L"Locked device to process %p...\n", pCurrentOwnerProcess);
+			Status = STATUS_SUCCESS;
+		}   
+		else if (PsGetCurrentProcess() == pCurrentOwnerProcess)
+		{
+			Status = STATUS_SUCCESS;
+		}
+		else
+		{
+			Status = STATUS_DEVICE_ALREADY_ATTACHED;
+		}
+
+		KeReleaseInStackQueuedSpinLock(&SpinLockQueueOwner);
+	}
 
     return CompleteRequest(Irp, Status, 0);
 }
