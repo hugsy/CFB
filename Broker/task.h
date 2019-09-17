@@ -52,17 +52,17 @@ public:
 
 	Task(TaskType type, byte* data, uint32_t datalen, uint32_t code);
 	Task(TaskType type, byte* data, uint32_t datalen);
-	Task(const Task& src);
+	//Task& operator=(const Task& t);
 	~Task();
 
 	const wchar_t* StateAsString();
 	const wchar_t* TypeAsString();
-	TaskType Type();
-	DWORD IoctlCode();
+	const TaskType Type();
+	const DWORD IoctlCode();
 	void SetState(TaskState s);
-	uint32_t Length();
+	const uint32_t Length();
 	byte* Data();
-	DWORD Id();
+	const DWORD Id();
 
 
 private:

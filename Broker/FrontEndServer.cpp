@@ -475,7 +475,6 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			// cleanup
 			//
 			delete[] msg;
-			delete& task;
 		}
 		catch (std::exception& e)
 		{

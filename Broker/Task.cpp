@@ -25,19 +25,20 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 
 }
 
-Task::Task(const Task& src)
-	: m_dwDataLength(src.m_dwDataLength), m_dwId(src.m_dwId),
-	m_Type(src.m_Type), m_State(src.m_State), m_dwIoctlCode(src.m_dwIoctlCode)
+/*
+Task& Task::operator=(const Task& t)
 {
-	m_Data = new byte[m_dwDataLength];
-	::memcpy(m_Data, src.m_Data, m_dwDataLength);
+	byte* pData = m_Data;
+	m_Data = new byte[t.m_dwDataLength];
+	::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
+	delete[] pData;
+	return *this;
 }
-
+*/
 
 Task::~Task()
 {
-	if(m_Data)
-		delete[] m_Data;
+	delete[] m_Data;
 }
 
 
@@ -67,13 +68,13 @@ const wchar_t* Task::TypeAsString()
 }
 
 
-TaskType Task::Type()
+const TaskType Task::Type()
 {
 	return m_Type;
 }
 
 
-DWORD Task::IoctlCode()
+const DWORD Task::IoctlCode()
 {
 	std::map<TaskType, DWORD>::iterator it = g_TaskIoctls.find(m_Type);
 	if(it == g_TaskIoctls.end())
@@ -89,7 +90,7 @@ void Task::SetState(TaskState s)
 }
 
 
-uint32_t Task::Length()
+const uint32_t Task::Length()
 {
 	return m_dwDataLength;
 }
@@ -101,7 +102,7 @@ byte* Task::Data()
 }
 
 
-DWORD Task::Id()
+const DWORD Task::Id()
 {
 	return m_dwId;
 }

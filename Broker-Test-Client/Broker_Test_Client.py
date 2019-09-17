@@ -129,7 +129,6 @@ def PipeConnect():
     bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
-
     assert cbRead.value == 8 # hookdriver doesn't return any data (header only = 2*uint32_t)
 
     ok("Step 2 ok")

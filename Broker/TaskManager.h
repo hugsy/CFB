@@ -2,15 +2,15 @@
 
 #include "common.h"
 #include "task.h"
-#include "queue.h"
+
+#include <queue>
+#include <mutex>
 
 
 class TaskManager
 {
 public:
 	TaskManager();
-	TaskManager(std::wstring name);
-
 	~TaskManager();
 
 	void push(Task &t);
@@ -21,6 +21,8 @@ public:
 
 private:
 	HANDLE m_hPushEvent = INVALID_HANDLE_VALUE;
-	Queue<Task> m_tasks;
 	std::wstring m_name;
+	std::queue<Task> m_queue;
+	std::mutex m_mutex;
+	std::condition_variable m_cond;
 };

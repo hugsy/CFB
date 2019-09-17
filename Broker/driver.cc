@@ -342,8 +342,6 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		in_task.SetState(TaskState::Completed);
 
-		//delete& in_task;
-
 
 		//
 		// Prepare the response task

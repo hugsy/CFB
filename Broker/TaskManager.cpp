@@ -1,7 +1,7 @@
 #include "TaskManager.h"
 
 
-TaskManager::TaskManager(std::wstring name)
+TaskManager::TaskManager()
 {
 	m_hPushEvent = CreateEvent(
 		NULL,
@@ -13,41 +13,56 @@ TaskManager::TaskManager(std::wstring name)
 	if(!m_hPushEvent)
 		throw std::runtime_error("CreateEvent(hPushEvent) failed");
 
-	SetName(name);
 }
 
-
-TaskManager::TaskManager()
-	: TaskManager::TaskManager(L"default")
-{
-}
 
 
 TaskManager::~TaskManager()
 {
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"deleting TM '%s'\n", m_name.c_str());
+	xlog(LOG_DEBUG, L"deleting TaskManager '%s'\n", m_name.c_str());
 #endif // _DEBUG
 
 	CloseHandle(m_hPushEvent);
 }
 
 
-void TaskManager::push(Task& t)
+void TaskManager::push(Task& task)
 {
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", t.TypeAsString(), m_name.c_str());
+	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", task.TypeAsString(), m_name.c_str());
 #endif // _DEBUG
 
-	m_tasks.push(t);
+	//
+	// push the task to the queue
+	// 
+	std::unique_lock<std::mutex> mlock(m_mutex);
+	m_queue.push(task);
+	mlock.unlock();
+	m_cond.notify_one();
+
+	//
+	// notify other threads an item has been pushed
+	//
 	SetEvent(m_hPushEvent);
-	t.SetState(TaskState::Queued);
+	task.SetState(TaskState::Queued);
 }
 
 
 Task TaskManager::pop()
 {
-	Task t = m_tasks.pop();
+	std::unique_lock<std::mutex> mlock(m_mutex);
+	while (m_queue.empty())
+	{
+		m_cond.wait(mlock);
+	}
+
+	//
+	// copy-pop the top task, mark as delivered
+	//
+	Task t(m_queue.front());
+	m_queue.pop();
+
 	t.SetState(TaskState::Delivered);
 
 #ifdef _DEBUG

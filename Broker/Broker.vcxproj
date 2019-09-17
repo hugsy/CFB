@@ -149,7 +149,6 @@
     <ClInclude Include="FrontEndServer.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="main.h" />
-    <ClInclude Include="queue.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ServiceManager.h" />
     <ClInclude Include="Session.h" />
