@@ -27,3 +27,4 @@ _Success_(return) BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter);
 
 #include "taskmanager.h"
 #include "Session.h"
+#include "CfbException.h"

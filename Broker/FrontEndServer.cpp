@@ -245,13 +245,13 @@ Task ReadTlvMessage(_In_ HANDLE hPipe)
 	);
 
 	if (!bSuccess)
-		throw std::runtime_error("ReadFile(1) failed");
+		RAISE_EXCEPTION("ReadFile(1) failed");
 
 	if (dwNbByteRead != sizeof(tl))
-		throw std::runtime_error("ReadFile(1): invalid size read");
+		RAISE_EXCEPTION("ReadFile(1): invalid size read");
 
 	if (tl[0] >= TaskType::TaskTypeMax)
-		throw std::runtime_error("ReadFile(1): Message type is invalid");
+		RAISE_EXCEPTION("ReadFile(1): Message type is invalid");
 
 	TaskType type = static_cast<TaskType>(tl[0]);
 	uint32_t datalen = tl[1];
@@ -393,8 +393,15 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.Stop();
 			continue;
 
-		default:
+		case WAIT_OBJECT_0 + 1:
+			// normal case
 			break;
+
+		default:
+			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
+			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			Sess.Stop();
+			continue;
 		}
 
 
@@ -415,9 +422,9 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.RequestTasks.push(task);
 
 		}
-		catch (std::exception& e)
+		catch (GenericException& e)
 		{
-			xlog(LOG_WARNING, L"Invalid message format, discarding: %S\n", e.what());
+			xlog(LOG_WARNING, L"An exception occured while processing incoming message:\n%S\n", e.what());
 			continue;
 		}
 
@@ -441,8 +448,15 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.Stop();
 			continue;
 
-		default:
+		case WAIT_OBJECT_0 + 1:
+			// normal case
 			break;
+
+		default:
+			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
+			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			Sess.Stop();
+			continue;
 		}
 
 

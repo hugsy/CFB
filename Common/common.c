@@ -5,33 +5,7 @@
 
 #include "common.h"
 
-#ifdef _COLORIZE
-#define COLOR_RESET L"\033[0m"
-#define COLOR_BOLD L"\033[1m"
-#define COLOR_UNDERLINE L"\033[4m"
 
-#define COLOR_FG_BLACK L"\033[30m"
-#define COLOR_FG_RED L"\033[31m"
-#define COLOR_FG_GREEN L"\033[32m"
-#define COLOR_FG_YELLOW L"\033[33m"
-#define COLOR_FG_BLUE L"\033[34m"
-#define COLOR_FG_MAGENTA L"\033[35m"
-#define COLOR_FG_CYAN L"\033[36m"
-#define COLOR_FG_WHITE L"\033[37m"
-#else
-#define COLOR_RESET
-#define COLOR_BOLD
-#define COLOR_UNDERLINE 
-
-#define COLOR_FG_BLACK
-#define COLOR_FG_RED
-#define COLOR_FG_GREEN
-#define COLOR_FG_YELLOW 
-#define COLOR_FG_BLUE
-#define COLOR_FG_MAGENTA
-#define COLOR_FG_CYAN
-#define COLOR_FG_WHITE
-#endif
 
 
 /*++
