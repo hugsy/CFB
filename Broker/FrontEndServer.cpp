@@ -285,19 +285,22 @@ Task ReadTlvMessage(_In_ HANDLE hPipe)
 	if (data == nullptr)
 		throw std::runtime_error("allocate failed");
 
-	bSuccess = ::ReadFile(
-		hPipe,
-		data,
-		datalen,
-		&dwNbByteRead,
-		NULL
-	);
+	if (datalen)
+	{
+		bSuccess = ::ReadFile(
+			hPipe,
+			data,
+			datalen,
+			&dwNbByteRead,
+			NULL
+		);
 
-	if (!bSuccess)
-		throw std::runtime_error("ReadFile(2) failed");
+		if (!bSuccess)
+			throw std::runtime_error("ReadFile(2) failed");
 
-	if (dwNbByteRead != datalen)
-		throw std::runtime_error("ReadFile(2): invalid size read");
+		if (dwNbByteRead != datalen)
+			throw std::runtime_error("ReadFile(2): invalid size read");
+	}
 
 	Task task(type, data, datalen);
 	delete[] data;
