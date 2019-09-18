@@ -15,6 +15,7 @@ public:
 
 	BOOL CreatePipe();
 	BOOL ClosePipe();
+	BOOL ListenPipe();
 	HANDLE GetListeningSocketHandle();
 
 private:

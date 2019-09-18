@@ -116,7 +116,7 @@ BOOL FrontEndServer::CreatePipe()
 
 		m_hServerHandle = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
-			PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE,
+			PIPE_ACCESS_DUPLEX,
 			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
 			CFB_PIPE_MAXCLIENTS,
 			CFB_PIPE_INBUFLEN,
@@ -196,6 +196,17 @@ BOOL FrontEndServer::ClosePipe()
 	return fSuccess;
 }
 
+BOOL FrontEndServer::ListenPipe()
+{
+	if (!::ConnectNamedPipe(m_hServerHandle, NULL))
+	{
+		PrintErrorWithFunctionName(L"ConnectNamedPipe");
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 
 HANDLE FrontEndServer::GetListeningSocketHandle()
 {
@@ -245,13 +256,23 @@ Task ReadTlvMessage(_In_ HANDLE hPipe)
 	);
 
 	if (!bSuccess)
-		RAISE_EXCEPTION("ReadFile(1) failed");
+	{
+		switch (::GetLastError())
+		{
+		case ERROR_BROKEN_PIPE:
+			RAISE_EXCEPTION(BrokenPipeException, "ReadFile(1) failed");
+
+		default:
+			RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
+		}
+	}
+		
 
 	if (dwNbByteRead != sizeof(tl))
-		RAISE_EXCEPTION("ReadFile(1): invalid size read");
+		RAISE_GENERIC_EXCEPTION("ReadFile(1): invalid size read");
 
 	if (tl[0] >= TaskType::TaskTypeMax)
-		RAISE_EXCEPTION("ReadFile(1): Message type is invalid");
+		RAISE_GENERIC_EXCEPTION("ReadFile(1): Message type is invalid");
 
 	TaskType type = static_cast<TaskType>(tl[0]);
 	uint32_t datalen = tl[1];
@@ -365,11 +386,8 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 #endif // _DEBUG
 
 
-	if (!::ConnectNamedPipe(hServer, NULL))
-	{
-		PrintErrorWithFunctionName(L"ConnectNamedPipe");
-		return ERROR_INVALID_HANDLE;
-	}
+	if (!Sess.FrontEndServer.ListenPipe())
+		return ERROR_INVALID_PARAMETER;
 
 
 	while (Sess.IsRunning())
@@ -422,9 +440,15 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.RequestTasks.push(task);
 
 		}
-		catch (GenericException& e)
+		catch (BrokenPipeException&)
 		{
-			xlog(LOG_WARNING, L"An exception occured while processing incoming message:\n%S\n", e.what());
+			xlog(LOG_WARNING, L"Broken pipe detected\n");
+			Sess.Stop(); // todo: handle reconnect
+			continue;
+		}
+		catch (BaseException& e)
+		{
+			xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
 			continue;
 		}
 
