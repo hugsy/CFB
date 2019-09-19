@@ -11,6 +11,8 @@ from enum import Enum, unique
 from ctypes import *
 from struct import *
 
+import json, pprint
+
 def ok(x): print("[+] {0}".format(x))
 def p16(x): return pack("<H", x)
 def p32(x): return pack("<I", x)
@@ -46,6 +48,7 @@ class TaskType(Enum):
     NotifyEventHandle = 6
     EnableMonitoring = 7
     DisableMonitoring = 8
+    GetInterceptedIrps = 9
 
 
 
@@ -160,19 +163,29 @@ def PipeConnect():
     ok("Step 3 ok")
 
 
+    raw_input("> ")
+
+
     # 4. read one dumped IRP
     ok("Starting Step 4")
 
-    tlv_msg = PrepareTlvMessage(TaskType.DisableMonitoring)
+    tlv_msg = PrepareTlvMessage(TaskType.GetInterceptedIrps)
     cbWritten = c_ulong(0)  
     bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
     assert bSuccess 
     assert len(tlv_msg) == cbWritten.value
 
-    #chBuf = create_string_buffer(BUFSIZE)
-    #cbRead = c_ulong(0)
-    #fSuccess = windll.kernel32.ReadFile(hPipe, chBuf, BUFSIZE, byref(cbRead), None)
-    #ok("Step 4 ok")
+    chBuf = create_string_buffer(BUFSIZE)
+    cbRead = c_ulong(0)
+    fSuccess = windll.kernel32.ReadFile(hPipe, chBuf, BUFSIZE, byref(cbRead), None)
+    assert bSuccess
+    ok("GetInterceptedIrps: %d" % bSuccess)
+    assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 4
+    ok("GetInterceptedIrps: gle -> %d" % (u32(szBuf[8:12]), ))
+    j = json.loads(szBuf[12:])
+    pprint.pprint(j)
+    ok("Step 4 ok")
 
 
     # 5. disable monitoring

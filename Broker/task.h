@@ -26,6 +26,7 @@ enum TaskType : uint32_t
 	NotifyEventHandle,
 	EnableMonitoring,
 	DisableMonitoring,
+	GetInterceptedIrps,
 	StoreTestCase,
 	TaskTypeMax
 };

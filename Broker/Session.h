@@ -4,12 +4,15 @@
 #include "taskmanager.h"
 #include "ServiceManager.h"
 #include "FrontEndServer.h"
+#include "Irp.h"
 
+#include <queue>
 
-
-#define GLOBAL_STATE_IDLE 0
-#define GLOBAL_STATE_RUNNING  1
-
+enum SessionState : uint16_t
+{
+	Idle,
+	Running
+};
 
 class Session
 {
@@ -23,8 +26,19 @@ public:
 	BOOL IsRunning();
 
 
+	//
+	// The ServiceManager is responsible for managing the IrpDumper driver
+	//
 	ServiceManager ServiceManager;
+
+	//
+	// The FrontEndServer handles the communication with the frontend
+	//
 	FrontEndServer FrontEndServer;
+
+	//
+	// Those 2 task managers are used for dispatching requests from/to the frontend
+	//
 	TaskManager RequestTasks;
 	TaskManager ResponseTasks;
 	
@@ -48,15 +62,15 @@ public:
 	HANDLE m_hBackendThreadHandle = INVALID_HANDLE_VALUE;
 
 
-	
+	//
+	// This queue receives all the IRP intercepted by driver.
+	//
+	std::queue<Irp> m_IrpQueue;
+	std::mutex m_IrpMutex;
 
 private:
 	//
-	// 0 -> not running
-	// 1 -> running
+	// The global state of the current session
 	//
-	uint16_t m_State = GLOBAL_STATE_IDLE;
-
-	
-
+	SessionState m_State = SessionState::Idle;
 };

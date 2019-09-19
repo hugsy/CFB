@@ -37,7 +37,7 @@ void TaskManager::push(Task task)
 	// push a copy of the task to the queue
 	// 
 	std::unique_lock<std::mutex> mlock(m_mutex);
-	m_queue.push(task);
+	m_task_queue.push(task);
 	mlock.unlock();
 	m_cond.notify_one();
 
@@ -52,7 +52,7 @@ void TaskManager::push(Task task)
 Task TaskManager::pop()
 {
 	std::unique_lock<std::mutex> mlock(m_mutex);
-	while (m_queue.empty())
+	while (m_task_queue.empty())
 	{
 		m_cond.wait(mlock);
 	}
@@ -60,8 +60,8 @@ Task TaskManager::pop()
 	//
 	// copy-pop the top task, mark as delivered
 	//
-	Task t(m_queue.front());
-	m_queue.pop();
+	Task t(m_task_queue.front());
+	m_task_queue.pop();
 
 	t.SetState(TaskState::Delivered);
 

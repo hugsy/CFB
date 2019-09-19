@@ -138,6 +138,7 @@
     <ClCompile Include="CfbException.cpp" />
     <ClCompile Include="driver.cc" />
     <ClCompile Include="FrontEndServer.cpp" />
+    <ClCompile Include="Irp.cpp" />
     <ClCompile Include="main.cc" />
     <ClCompile Include="ServiceManager.cpp" />
     <ClCompile Include="Session.cpp" />
@@ -149,6 +150,7 @@
     <ClInclude Include="common.h" />
     <ClInclude Include="driver.h" />
     <ClInclude Include="FrontEndServer.h" />
+    <ClInclude Include="Irp.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="main.h" />
     <ClInclude Include="resource.h" />

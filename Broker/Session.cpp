@@ -6,7 +6,7 @@ Session::Session()
 	//
 	// Initial state has to be idle
 	//
-	m_State = GLOBAL_STATE_IDLE;
+	m_State = SessionState::Idle;
 
 
 	//
@@ -32,7 +32,7 @@ Session::Session()
 
 Session::~Session()
 {
-	m_State = GLOBAL_STATE_IDLE;
+	m_State = SessionState::Idle;
 
 	CloseHandle(m_hTerminationEvent);
 
@@ -46,18 +46,18 @@ Session::~Session()
 
 void Session::Start()
 {
-	m_State = GLOBAL_STATE_RUNNING;
+	m_State = SessionState::Running;
 }
 
 
 void Session::Stop()
 {
-	m_State = GLOBAL_STATE_IDLE;
+	m_State = SessionState::Idle;
 	SetEvent(m_hTerminationEvent);
 }
 
 
 BOOL Session::IsRunning()
 {
-	return m_State == GLOBAL_STATE_RUNNING;
+	return m_State == SessionState::Running;
 }

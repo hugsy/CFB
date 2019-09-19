@@ -22,7 +22,8 @@ public:
 private:
 	HANDLE m_hPushEvent = INVALID_HANDLE_VALUE;
 	std::wstring m_name;
-	std::queue<Task> m_queue;
+	std::queue<Task> m_task_queue;
 	std::mutex m_mutex;
 	std::condition_variable m_cond;
+	
 };

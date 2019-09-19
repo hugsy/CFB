@@ -39,6 +39,9 @@
     <ClCompile Include="CfbException.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Irp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -72,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CfbException.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Irp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

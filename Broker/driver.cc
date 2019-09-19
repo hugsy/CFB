@@ -136,28 +136,31 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 
 
 
-	PINTERCEPTED_IRP_HEADER pIrp = (PINTERCEPTED_IRP_HEADER)lpBuffer;
+	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
+	PINTERCEPTED_IRP_BODY pIrpBody = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
 
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"New IRP received:\n");
-	xlog(LOG_DEBUG, L"\t- timestamp:%llx\n", pIrp->TimeStamp);
-	xlog(LOG_DEBUG, L"\t- IRQ level:%x\n", pIrp->Irql);
-	xlog(LOG_DEBUG, L"\t- Major type:%x\n", pIrp->Type);
-	xlog(LOG_DEBUG, L"\t- IoctlCode:%x\n", pIrp->IoctlCode);
-	xlog(LOG_DEBUG, L"\t- PID=%d / TID=%d\n", pIrp->Pid, pIrp->Tid);
-	xlog(LOG_DEBUG, L"\t- InputBufferLength=%d / OutputBufferLength=%d\n", pIrp->InputBufferLength, pIrp->OutputBufferLength);
-	xlog(LOG_DEBUG, L"\t- DriverName:%s\n", pIrp->DriverName);
-	xlog(LOG_DEBUG, L"\t- DeviceName:%s\n", pIrp->DeviceName);
+	xlog(LOG_DEBUG, L"\t- timestamp:%llx\n", pIrpHeader->TimeStamp);
+	xlog(LOG_DEBUG, L"\t- IRQ level:%x\n", pIrpHeader->Irql);
+	xlog(LOG_DEBUG, L"\t- Major type:%x\n", pIrpHeader->Type);
+	xlog(LOG_DEBUG, L"\t- IoctlCode:%x\n", pIrpHeader->IoctlCode);
+	xlog(LOG_DEBUG, L"\t- PID=%d / TID=%d\n", pIrpHeader->Pid, pIrpHeader->Tid);
+	xlog(LOG_DEBUG, L"\t- InputBufferLength=%d / OutputBufferLength=%d\n", pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength);
+	xlog(LOG_DEBUG, L"\t- DriverName:%s\n", pIrpHeader->DriverName);
+	xlog(LOG_DEBUG, L"\t- DeviceName:%s\n", pIrpHeader->DeviceName);
 #endif // _DEBUG
 
 
 	//
-	// todo: finish 
-	// must be pushed to a local queue
+	// pushing new IRP to the session queue\n");
 	//
 
+	Irp irp(pIrpHeader, pIrpBody);
 
-	delete[] lpBuffer;
+	std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
+	Session.m_IrpQueue.push(irp);
+	mlock.unlock();
 
 	return ERROR_SUCCESS;
 }

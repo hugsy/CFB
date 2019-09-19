@@ -354,6 +354,71 @@ byte* PrepareTlvMessageFromTask(_In_ Task& task)
 
 Routine Description:
 
+
+Arguments:
+	
+	Session -
+
+
+Return Value:
+
+	Returns 0 on success, or throws an exception otherwise.
+
+--*/
+DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
+{
+	HANDLE hServer = Session.FrontEndServer.GetListeningSocketHandle();
+	json j;
+
+	//
+	// Make sure no element are being added concurrently
+	//
+	std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
+	size_t i = 0;
+
+	j["entries"] = json::array();
+
+	while(!Session.m_IrpQueue.empty())
+	{
+		//
+		// pop an IRP
+		//
+		Irp irp(Session.m_IrpQueue.front());
+		Session.m_IrpQueue.pop();
+
+		//
+		// format a new JSON entry
+		//
+
+		//j["entries"];
+
+
+		//
+		// The IRP is ready to be deleted
+		//
+		irp.Dispose();
+
+		i++;
+	}
+
+	mlock.unlock();
+
+	j["nb_entries"] = i;
+
+	//
+	// Prepare the TLV message and write the data back
+	//
+
+	// ::WriteFile( hServer, 
+	return 0;
+}
+
+
+
+/*++
+
+Routine Description:
+
 This routine handles the communication with the front-end of CFB (for now, the only one implemented
 is the GUI).
 
@@ -432,6 +497,17 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 #ifdef _DEBUG
 			xlog(LOG_DEBUG, L"new task (id=%d, type='%s')\n", task.Id(), task.TypeAsString());
 #endif // _DEBUG
+
+
+			//
+			// if the request is of type `GetInterceptedIrps`, the function
+			// exports in a JSON format all the IRPs from the IRP session queue
+			//
+			if (task.Id() == TaskType::GetInterceptedIrps)
+			{
+				SendInterceptedIrpsAsJson(Sess);
+				continue;
+			}
 
 			//
 			// push the task to request task list
