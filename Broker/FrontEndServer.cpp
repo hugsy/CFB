@@ -1,10 +1,6 @@
 #include "FrontEndServer.h"
 
 
-FrontEndServer::FrontEndServer() {}
-
-FrontEndServer::~FrontEndServer() {}
-
 
 /*++
 Routine Description:

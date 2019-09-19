@@ -129,9 +129,10 @@ def PipeConnect():
     bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
     assert bSuccess
     ok("HookDriver: %d -> %d" % (bSuccess, cbRead.value))
-    assert cbRead.value == 8 # hookdriver doesn't return any data (header only = 2*uint32_t)
+    assert cbRead.value == 12 # hookdriver doesn't return any data (header only = 2*uint32_t + uint32_t for GLE)
     assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-    assert u32(szBuf[4:8]) == 0
+    assert u32(szBuf[4:8]) == 4
+    ok("HookDriver: result -> %d" % (u32(szBuf[8:12]), ))
 
     ok("Step 2 ok")
     
@@ -152,14 +153,22 @@ def PipeConnect():
     bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
     assert bSuccess
     ok("EnableMonitoring: %d" % bSuccess)
-    assert u32(szBuf[0:4]) == TaskType.IoctlResponse
-    assert u32(szBuf[4:8]) == 0
+    assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 4
+    ok("EnableMonitoring: gle -> %d" % (u32(szBuf[8:12]), ))
 
     ok("Step 3 ok")
 
 
     # 4. read one dumped IRP
-    #ok("Starting Step 4")
+    ok("Starting Step 4")
+
+    tlv_msg = PrepareTlvMessage(TaskType.DisableMonitoring)
+    cbWritten = c_ulong(0)  
+    bSuccess = windll.kernel32.WriteFile(hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
+    assert bSuccess 
+    assert len(tlv_msg) == cbWritten.value
+
     #chBuf = create_string_buffer(BUFSIZE)
     #cbRead = c_ulong(0)
     #fSuccess = windll.kernel32.ReadFile(hPipe, chBuf, BUFSIZE, byref(cbRead), None)
@@ -181,8 +190,9 @@ def PipeConnect():
     bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
     assert bSuccess
     ok("DisableMonitoring: %d" % bSuccess)
-    assert u32(szBuf[0:4]) == TaskType.IoctlResponse
-    assert u32(szBuf[4:8]) == 0  
+    assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 4
+    ok("DisableMonitoring: gle -> %d" % (u32(szBuf[8:12]), ))
 
     ok("Step 5 ok")
 
@@ -204,9 +214,10 @@ def PipeConnect():
     bSuccess = windll.kernel32.ReadFile(hPipe, szBuf, BUFSIZE, byref(cbRead), None)
     assert bSuccess
     ok("data recv: %d" % cbRead.value)
-    assert cbRead.value == 8 # unhookdriver doesn't return any data (header only = 2*uint32_t)
-    assert u32(szBuf[:4]) == TaskType.IoctlResponse.value
-    assert u32(szBuf[4:8]) == 0
+    assert cbRead.value == 12
+    assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+    assert u32(szBuf[4:8]) == 4
+    ok("UnhookDriver: gle -> %d" % (u32(szBuf[8:12]), ))
 
     ok("Step 6 ok")
 

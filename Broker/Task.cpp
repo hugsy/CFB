@@ -6,24 +6,17 @@ static DWORD g_id = 0;
 static std::mutex g_mutex;
 
 
-Task::Task(TaskType type, byte* data, uint32_t datalen, uint32_t code)
+Task::Task(TaskType type, byte* data, uint32_t datalen)
 {
 	std::lock_guard<std::mutex> guard(g_mutex);
 	m_dwId = g_id++;
 	m_Type = type;
 	m_State = TaskState::Initialized;
-	m_dwIoctlCode = code;
 	m_dwDataLength = datalen;
 	m_Data = new byte[datalen];
 	::memcpy(m_Data, data, datalen);
 }
 
-
-Task::Task(TaskType type, byte* data, uint32_t datalen)
-		: Task(type, data, datalen, 0)
-{ 
-
-}
 
 
 Task::~Task()

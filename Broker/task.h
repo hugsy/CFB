@@ -50,7 +50,6 @@ class Task
 {
 public:
 
-	Task(TaskType type, byte* data, uint32_t datalen, uint32_t code);
 	Task(TaskType type, byte* data, uint32_t datalen);
 	~Task();
 
@@ -69,6 +68,5 @@ private:
 	TaskState m_State;
 	byte* m_Data = nullptr;
 	uint32_t m_dwDataLength;
-	DWORD m_dwIoctlCode;
 	DWORD m_dwId;
 };

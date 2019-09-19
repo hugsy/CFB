@@ -294,9 +294,12 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		DWORD dwOutputBufferSize = 0;
 		DWORD dwNbBytesReturned = 0;
 		BOOL bRes;
+		DWORD dwErrCode;
 
 		while (TRUE)
 		{
+			dwErrCode = ERROR_SUCCESS;
+
 			bRes = ::DeviceIoControl(
 				hDevice.get(),
 				in_task.IoctlCode(),
@@ -318,7 +321,8 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			if (bRes)
 				break;
 
-			DWORD dwErrCode = ::GetLastError();
+			dwErrCode = ::GetLastError();
+
 
 			//
 			// If the buffer was too small, retry with the appropriate size
@@ -345,9 +349,16 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 		//
 		// Prepare the response task
+		// A response task always starts with the response code (DWORD), then optionally the data if any
 		//
-		Task out_task(TaskType::IoctlResponse, lpOutputBuffer, dwOutputBufferSize, ::GetLastError());
+		byte* lpResponseBuffer = new byte[dwOutputBufferSize+sizeof(DWORD)];
+		::memcpy(lpResponseBuffer, &dwErrCode, sizeof(DWORD));
+		::memcpy(lpResponseBuffer+sizeof(DWORD), lpOutputBuffer, dwOutputBufferSize);
 		delete[] lpOutputBuffer;
+
+
+		Task out_task(TaskType::IoctlResponse, lpResponseBuffer, dwOutputBufferSize+sizeof(DWORD));
+		delete[] lpResponseBuffer;
 
 
 		//

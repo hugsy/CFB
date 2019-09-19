@@ -10,9 +10,6 @@ class FrontEndServer
 {
 
 public:
-	FrontEndServer();
-	~FrontEndServer();
-
 	BOOL CreatePipe();
 	BOOL ClosePipe();
 	BOOL ListenPipe();
