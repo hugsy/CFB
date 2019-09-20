@@ -18,16 +18,16 @@ enum TaskState : uint16_t
 enum TaskType : uint32_t
 {
 	TaskTypeMin = 0,
-	IoctlResponse,
+	IoctlResponse = 1,
 	HookDriver,
 	UnhookDriver,
 	GetDriverInfo,
-	GetNumberOfDriver,
+	GetNumberOfDriver = 5,
 	NotifyEventHandle,
 	EnableMonitoring,
 	DisableMonitoring,
 	GetInterceptedIrps,
-	StoreTestCase,
+	StoreTestCase = 10,
 	TaskTypeMax
 };
 

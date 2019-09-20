@@ -279,7 +279,7 @@ Task ReadTlvMessage(_In_ HANDLE hPipe)
 	//
 	byte* data = new byte[datalen];
 	if (data == nullptr)
-		throw std::runtime_error("allocate failed");
+		RAISE_GENERIC_EXCEPTION("allocate failed");
 
 	if (datalen)
 	{
@@ -362,7 +362,7 @@ Arguments:
 
 Return Value:
 
-	Returns 0 on success, or throws an exception otherwise.
+	Returns 0 on success, -1 on failure.
 
 --*/
 DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
@@ -389,8 +389,7 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 		//
 		// format a new JSON entry
 		//
-
-		//j["entries"];
+		j["entries"].push_back(irp.AsJson());
 
 
 		//
@@ -405,11 +404,38 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 
 	j["nb_entries"] = i;
 
+
 	//
-	// Prepare the TLV message and write the data back
+	// Write the data back
 	//
 
-	// ::WriteFile( hServer, 
+	std::string result(j.dump().c_str());
+	DWORD dwNbByteWritten;
+	DWORD dwBufferSize = (DWORD)result.length() + 3 * sizeof(uint32_t);
+	byte* buf = new byte[dwBufferSize];
+	uint32_t* p = (uint32_t*)buf;
+	p[0] = TaskType::IoctlResponse;
+	p[1] = (uint32_t)( ((DWORD)result.length()) + 2 * sizeof(uint32_t) );
+	p[2] = ::GetLastError();
+	::memcpy(&p[3], result.c_str(), result.length());
+
+
+	BOOL fSuccess = ::WriteFile(
+		hServer,
+		buf,
+		dwBufferSize,
+		&dwNbByteWritten,
+		NULL
+	);
+
+	delete[] buf;
+
+	if (!fSuccess)
+	{
+		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+		return (DWORD)-1;
+	}
+
 	return 0;
 }
 
@@ -495,25 +521,27 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			auto task = ReadTlvMessage(hServer);
 
 #ifdef _DEBUG
-			xlog(LOG_DEBUG, L"new task (id=%d, type='%s')\n", task.Id(), task.TypeAsString());
+			xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
 #endif // _DEBUG
 
 
-			//
-			// if the request is of type `GetInterceptedIrps`, the function
-			// exports in a JSON format all the IRPs from the IRP session queue
-			//
-			if (task.Id() == TaskType::GetInterceptedIrps)
+
+			if (task.Type() == TaskType::GetInterceptedIrps)
 			{
+				//
+				// if the request is of type `GetInterceptedIrps`, the function
+				// exports in a JSON format all the IRPs from the IRP session queue
+				//
 				SendInterceptedIrpsAsJson(Sess);
 				continue;
 			}
-
-			//
-			// push the task to request task list
-			//
-			Sess.RequestTasks.push(task);
-
+			else
+			{
+				//
+				// push the task to request task list
+				//
+				Sess.RequestTasks.push(task);
+			}
 		}
 		catch (BrokenPipeException&)
 		{

@@ -35,7 +35,6 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 		return INVALID_HANDLE_VALUE;
 
 
-
 	BOOL bRes = ::DeviceIoControl(
 		hDevice,
 		IOCTL_SetEventPointer,
@@ -48,7 +47,7 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 	);
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"ShareHandleWithDriver() returned: %s, dwNbBytesReturned: %d\n", bRes ? L"TRUE" : L"FALSE", dwNbBytesReturned);
+	xlog(LOG_DEBUG, L"ShareHandleWithDriver() returned: %s\n", bRes ? L"TRUE" : L"FALSE");
 #endif
 
 	if (bRes)
@@ -77,15 +76,15 @@ Return Value:
 	Returns ERROR_SUCCESS on success, GetLastError() otherwise
 
 --*/
-DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
+DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Session& Session)
 {
 	//
 	// Probe the size of the buffer
 	//
 	BOOL bRes = FALSE;
-	DWORD dwNbBytesReturned;
-	byte* lpBuffer = nullptr;
+	DWORD lpNumberOfBytesRead;
 	DWORD dwBufferSize = 0;
+	byte* lpBuffer = NULL;
 
 	do
 	{
@@ -93,9 +92,11 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 			hDevice,
 			lpBuffer,
 			dwBufferSize,
-			&dwNbBytesReturned,
+			&lpNumberOfBytesRead,
 			NULL
 		);
+
+		xlog(LOG_DEBUG, L"ReadFile(hDevice=%p, lpBuffer=%p, dwBufferSize=%d) -> %d\n", hDevice, lpBuffer, dwBufferSize, bRes);
 
 		if (bRes == TRUE)
 			//
@@ -111,12 +112,13 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 		
 		if (dwErrCode != ERROR_INSUFFICIENT_BUFFER)
 		{
-			xlog(LOG_ERROR, L"Unexpected error code: %x\n", dwErrCode);
+			PrintErrorWithFunctionName(L"ReadFile(hDevice)");
 			if (lpBuffer)
 				delete[] lpBuffer;
 
 			return dwErrCode;
 		}
+
 
 		//
 		// Adjust the buffer and size, retry
@@ -124,8 +126,8 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 		if (lpBuffer)
 			delete[] lpBuffer;
 
-		lpBuffer = new byte[dwNbBytesReturned];
-		dwBufferSize = dwNbBytesReturned;
+		lpBuffer = new byte[lpNumberOfBytesRead];
+		dwBufferSize = lpNumberOfBytesRead;
 
 #ifdef _DEBUG
 		xlog(LOG_DEBUG, L"adjusted buffer size to %d\n", dwBufferSize);
@@ -161,6 +163,11 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ Session& Session)
 	std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
 	Session.m_IrpQueue.push(irp);
 	mlock.unlock();
+
+	//
+	// Reset the event
+	//
+	ResetEvent(hEvent);
 
 	return ERROR_SUCCESS;
 }
@@ -249,7 +256,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// Wait for a push event or a termination notification event
 		//
-		DWORD dwWaitResult = WaitForMultipleObjects(
+		DWORD dwWaitResult = ::WaitForMultipleObjects(
 			3,
 			Handles,
 			FALSE,
@@ -265,11 +272,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 		case WAIT_OBJECT_0 + 1:
 			// new IRP data Event
-			dwRes = FetchNextIrpFromDevice( hDevice.get(), Sess );
-			if (dwRes)
-			{
-				xlog(LOG_ERROR, L"FetchNextIrpFromDevice() failed with status=%x\n", dwRes);
-			}
+			dwRes = FetchNextIrpFromDevice( hDevice.get(), hIrpDataEvent.get(), Sess );
 			continue;
 
 		default:
@@ -370,7 +373,6 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		Sess.ResponseTasks.push(out_task);
 
 	}
-
 
 	return ERROR_SUCCESS;
 }

@@ -58,7 +58,7 @@ const wchar_t* Task::TypeAsString()
 		ToString(NotifyEventHandle);
 		ToString(EnableMonitoring);
 		ToString(DisableMonitoring);
-		ToString(StoreTestCase);
+		ToString(GetInterceptedIrps);
 	}
 
 #ifdef _DEBUG
