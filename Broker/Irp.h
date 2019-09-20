@@ -4,6 +4,12 @@
 #include <string>
 #include <sstream>
 
+#include "json.hpp"
+using json = nlohmann::json;
+
+#include "Utils.h"
+
+
 class Irp
 {
 public:
@@ -12,12 +18,20 @@ public:
 	
 	void Dispose();
 	PVOID Data();
-	std::string ToJson();
+
+	json HeaderAsJson();
+	std::string ExportHeaderAsJson();
+
+	json BodyAsJson();
+	std::string ExportBodyAsJson();
+
+	json AsJson();
+	std::string ExportAsJson();
 
 
 private:
-	PINTERCEPTED_IRP_HEADER m_Header;
-	PINTERCEPTED_IRP_BODY m_Body;
-	BOOL m_fShouldDelete;
+	INTERCEPTED_IRP_HEADER m_Header;
+	byte* m_Body = nullptr;
+	BOOL m_fShouldDelete = false;
 };
 

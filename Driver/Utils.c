@@ -21,9 +21,6 @@ Return Value:
 --*/
 VOID CfbDbgPrint(IN const WCHAR* lpFormatString, ...)
 {
-    if (KeGetCurrentIrql() != PASSIVE_LEVEL)
-        return;
-
 
 #ifdef _DEBUG
 	va_list args;

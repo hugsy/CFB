@@ -52,7 +52,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-
+	CfbDbgPrintInfo(L"0\n");
 	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( Irp );
 
 	if ( !pStack )
@@ -69,14 +69,16 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
 
+	CfbDbgPrintInfo(L"1\n");
 
 	if (!NT_SUCCESS(Status))
 	{
+		CfbDbgPrintInfo(L"2\n");
 
 		if (Status != STATUS_NO_MORE_ENTRIES)
 			return CompleteRequest(Irp, Status, 0);
 
-
+		CfbDbgPrintInfo(L"3\n");
         //
         // Second chance
         //
@@ -87,9 +89,10 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	}
 
-
+	CfbDbgPrintInfo(L"4\n");
 	if ( BufferSize == 0 )
 	{
+		CfbDbgPrintInfo(L"5\n");
 		//
 		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate
 		// We end the IRP with STATUS_BUFFER_TOO_SMALL and announce the expected size as Information
@@ -276,6 +279,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
 	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
+	pCurrentOwnerProcess = NULL;
 
 	UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME); 
 	UNICODE_STRING DeviceSymlink = RTL_CONSTANT_STRING(CFB_DEVICE_LINK);
@@ -614,13 +618,12 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
 		//
 		// Currently, we don't authorize more than one process, and one handle per process
 		//
-
 		KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
     
 		if (pCurrentOwnerProcess == NULL )
 		{
 			pCurrentOwnerProcess = PsGetCurrentProcess();
-			CfbDbgPrintOk(L"Locked device to process %p...\n", pCurrentOwnerProcess);
+			CfbDbgPrintOk(L"Locked device to EPROCESS=%p...\n", pCurrentOwnerProcess);
 			Status = STATUS_SUCCESS;
 		}   
 		else if (PsGetCurrentProcess() == pCurrentOwnerProcess)
@@ -676,6 +679,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
 
+	
 	switch (IoctlCode)
 	{
 
@@ -692,13 +696,13 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 
 
 	case IOCTL_EnableMonitoring:
-		CfbDbgPrintInfo( L"Received 'IoctlEnableDriver'\n" );
+		CfbDbgPrintInfo( L"Received 'IoctlEnableMonitoring'\n" );
 		Status = HandleIoEnableMonitoring(Irp, CurrentStack );
 		break;
 
 
 	case IOCTL_DisableMonitoring:
-		CfbDbgPrintInfo( L"Received 'IoctlDisableDriver'\n" );
+		CfbDbgPrintInfo( L"Received 'IoctlDisableMonitoring'\n" );
 		Status = HandleIoDisableMonitoring(Irp, CurrentStack );
 		break;
 
@@ -721,7 +725,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 		break;
 
     case IOCTL_StoreTestCase:
-		//CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
+		CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
         Status = HandleIoStoreTestCase(Irp, CurrentStack);
         break;
 

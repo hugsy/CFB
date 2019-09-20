@@ -60,8 +60,8 @@ NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack )
 	HANDLE hEvent = *pHandle;
 	PKEVENT pKernelNotifEvent;
 
-	CfbDbgPrintInfo( L"Lookup for handle %x\n", hEvent );
-
+	CfbDbgPrintInfo(L"Lookup for handle 0x%x\n", hEvent);
+	
 	status = ObReferenceObjectByHandle(
 		hEvent,
 		EVENT_ALL_ACCESS,
@@ -75,6 +75,8 @@ NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack )
 	{
 		return status;
 	}
+
+	CfbDbgPrintOk(L"Event handle set to 0x%x\n", hEvent);
 
 	PKEVENT pOldEvent = InterlockedExchangePointer((PVOID*)&g_EventNotificationPointer, pKernelNotifEvent );
 
