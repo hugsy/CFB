@@ -341,7 +341,7 @@ int wmain(int argc, wchar_t** argv)
 		goto __UnsetEnv;
 	}
 
-	xlog(LOG_SUCCESS, L"Threads started\n");
+	xlog(LOG_SUCCESS, L"Threads started with TIDs %d and %d\n", GetThreadId(Sess->m_hFrontendThreadHandle), GetThreadId(Sess->m_hBackendThreadHandle));
 
 
 	//
@@ -358,12 +358,12 @@ int wmain(int argc, wchar_t** argv)
 	ThreadHandles[0] = Sess->m_hFrontendThreadHandle;
 	ThreadHandles[1] = Sess->m_hBackendThreadHandle;
 
-	dwWaitResult = WaitForMultipleObjects(2, ThreadHandles, TRUE, INFINITE);
+	dwWaitResult = WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
 
 	switch (dwWaitResult)
 	{
 	case WAIT_OBJECT_0:
-		xlog(LOG_SUCCESS, L"All threads ended, cleaning up for application exit...\n");
+		xlog(LOG_SUCCESS, L"All threads ended, cleaning up...\n");
 		break;
 
 	default:

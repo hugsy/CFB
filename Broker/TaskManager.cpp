@@ -3,12 +3,7 @@
 
 TaskManager::TaskManager()
 {
-	m_hPushEvent = CreateEvent(
-		NULL,
-		FALSE,
-		FALSE,
-		NULL
-	);
+	m_hPushEvent = CreateEvent(NULL, FALSE,	FALSE, NULL);
 
 	if(!m_hPushEvent)
 		throw std::runtime_error("CreateEvent(hPushEvent) failed");
@@ -24,6 +19,7 @@ TaskManager::~TaskManager()
 #endif // _DEBUG
 
 	CloseHandle(m_hPushEvent);
+	m_hPushEvent = INVALID_HANDLE_VALUE;
 }
 
 
@@ -52,10 +48,10 @@ void TaskManager::push(Task task)
 Task TaskManager::pop()
 {
 	std::unique_lock<std::mutex> mlock(m_mutex);
+	
 	while (m_task_queue.empty())
-	{
 		m_cond.wait(mlock);
-	}
+	
 
 	//
 	// copy-pop the top task, mark as delivered

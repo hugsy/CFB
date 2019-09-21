@@ -12,15 +12,11 @@ Session::Session()
 	//
 	// Create the main event to stop the running threads
 	//
-	m_hTerminationEvent = CreateEvent(
-		NULL,
-		TRUE,
-		FALSE,
-		NULL
-	);
+	m_hTerminationEvent = CreateEvent(NULL,	FALSE, FALSE, NULL);
 
 	if(!m_hTerminationEvent)
 		throw std::runtime_error("CreateEvent(hTerminationEvent) failed");
+
 
 	//
 	// Defining some attributes

@@ -192,16 +192,6 @@ BOOL FrontEndServer::ClosePipe()
 	return fSuccess;
 }
 
-BOOL FrontEndServer::ListenPipe()
-{
-	if (!::ConnectNamedPipe(m_hServerHandle, NULL))
-	{
-		PrintErrorWithFunctionName(L"ConnectNamedPipe");
-		return FALSE;
-	}
-
-	return TRUE;
-}
 
 
 HANDLE FrontEndServer::GetListeningSocketHandle()
@@ -468,16 +458,9 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 	DWORD dwNumberOfBytesWritten, dwWaitResult;
 	HANDLE Handles[2] = { 0 };
-	Handles[0] = Sess.m_hTerminationEvent;
+	
 	HANDLE hServer = Sess.FrontEndServer.GetListeningSocketHandle();
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Pipe mode listening...\n");
-#endif // _DEBUG
-
-
-	if (!Sess.FrontEndServer.ListenPipe())
-		return ERROR_INVALID_PARAMETER;
+	DWORD retcode = ERROR_SUCCESS;
 
 
 	while (Sess.IsRunning())
@@ -485,24 +468,36 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// Wait for the pipe to be written to, or a termination notification event
 		//
-
+		Handles[0] = Sess.m_hTerminationEvent;
 		Handles[1] = hServer;
 
-		dwWaitResult = ::WaitForMultipleObjects(
-			2,
-			Handles,
-			FALSE,
-			INFINITE
-		);
+		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"received termination Event\n");
+#endif // _DEBUG
+
 			Sess.Stop();
 			continue;
 
 		case WAIT_OBJECT_0 + 1:
-			// normal case
+			// 
+			// is the pipe already connected
+			// 
+			if (!::ConnectNamedPipe(hServer, NULL))
+			{
+				if (::GetLastError() != ERROR_PIPE_CONNECTED)
+				{
+					retcode = ERROR_PIPE_NOT_CONNECTED;
+				}
+			}
+			else
+			{
+				xlog(LOG_INFO, L"new client connected\n");
+			}
 			break;
 
 		default:
@@ -511,6 +506,9 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.Stop();
 			continue;
 		}
+
+		if (retcode != ERROR_SUCCESS)
+			break;
 
 
 		try
@@ -545,8 +543,8 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		}
 		catch (BrokenPipeException&)
 		{
-			xlog(LOG_WARNING, L"Broken pipe detected\n");
-			Sess.Stop(); // todo: handle reconnect
+			xlog(LOG_WARNING, L"Broken pipe detected...\n");
+			DisconnectNamedPipe(hServer);
 			continue;
 		}
 		catch (BaseException& e)
@@ -624,7 +622,11 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		}
 	}
 
-	return 0;
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"terminating thread TID=%d with retcode=%d\n", GetThreadId(GetCurrentThread()), retcode);
+#endif // _DEBUG
+
+	return retcode;
 }
 
 
@@ -671,8 +673,8 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 	xlog(LOG_DEBUG, "Created frontend thread as TID=%d\n", dwThreadId);
 #endif
 
-	Session* Sess = reinterpret_cast<Session*>(lpParameter);
-	Sess->m_hFrontendThreadHandle = hThread;
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
+	Sess.m_hFrontendThreadHandle = hThread;
 
 	return TRUE;
 }

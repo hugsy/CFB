@@ -202,6 +202,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 	DWORD dwRes;
+	DWORD retcode = ERROR_SUCCESS;
 
 
 	//
@@ -256,28 +257,40 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// Wait for a push event or a termination notification event
 		//
-		DWORD dwWaitResult = ::WaitForMultipleObjects(
-			3,
-			Handles,
-			FALSE,
-			INFINITE
-		);
+		DWORD dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"received termination Event\n");
+#endif // _DEBUG
+
 			// Termination Event
 			Sess.Stop();
 			continue;
 
 		case WAIT_OBJECT_0 + 1:
-			// new IRP data Event
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"new IRP data Event\n");
+#endif // _DEBUG
+
 			dwRes = FetchNextIrpFromDevice( hDevice.get(), hIrpDataEvent.get(), Sess );
 			continue;
 
-		default:
-			// new request
+		case WAIT_OBJECT_0 + 2:
+			// new request from front end
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"new request from FrontEnd\n");
+#endif // _DEBUG
+			
 			break;
+
+		default:
+			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
+			xlog(LOG_CRITICAL, "WaitForMultipleObjects(BackEnd) has failed, cannot proceed...\n");
+			Sess.Stop();
+			continue;
 		}
 
 		//
@@ -374,7 +387,11 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 	}
 
-	return ERROR_SUCCESS;
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"terminating thread TID=%d with retcode=%d\n", GetThreadId(GetCurrentThread()), retcode);
+#endif // _DEBUG
+
+	return retcode;
 }
 
 
@@ -423,8 +440,8 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 #endif // _DEBUG
 
 
-	Session* Sess = reinterpret_cast<Session*>(lpParameter);
-	Sess->m_hBackendThreadHandle = hThread;
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
+	Sess.m_hBackendThreadHandle = hThread;
 
 	return TRUE;
 }
