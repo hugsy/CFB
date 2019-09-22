@@ -15,12 +15,12 @@ public:
 
 	void push(Task t);
 	Task pop();
-	HANDLE GetPushEventHandle();
 	BOOL SetName(const std::wstring name);
+
+	HANDLE m_hPushEvent = INVALID_HANDLE_VALUE;
 
 
 private:
-	HANDLE m_hPushEvent = INVALID_HANDLE_VALUE;
 	std::wstring m_name;
 	std::queue<Task> m_task_queue;
 	std::mutex m_mutex;

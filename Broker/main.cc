@@ -258,6 +258,22 @@ int wmain(int argc, wchar_t** argv)
 	xlog(LOG_SUCCESS, L"Privilege check succeeded...\n");
 
 
+	//
+	// Extract the IrpDumper driver from the resources
+	//
+	if (!ServiceManager::ExtractDriverFromResource())
+	{
+		xlog(LOG_CRITICAL, L"Failed to extract driver from resource, aborting...\n");
+		return EXIT_FAILURE;
+	}
+
+	xlog(LOG_SUCCESS, L"Driver extracted...\n");
+
+
+	//
+	// The session is ready to be initialized
+	//
+
 	xlog(LOG_INFO, L"Initializing the session...\n");
 	
 	try
@@ -271,7 +287,6 @@ int wmain(int argc, wchar_t** argv)
 	}
 
 
-
 	//
 	// Install the Ctrl-C handler to clean up properly
 	//
@@ -283,62 +298,26 @@ int wmain(int argc, wchar_t** argv)
 	}
 	
 
-	//
-	// Extract the driver from the resources
-	//
-	if (!Sess->ServiceManager.ExtractDriverFromResource())
-	{
-		xlog(LOG_CRITICAL, L"Failed to extract driver from resource, aborting...\n");
-		delete Sess;
-		return EXIT_FAILURE;
-	}
-
-	xlog(LOG_SUCCESS, L"Driver extracted...\n");
-
 
 	//
-	// Create the frontend listening socket
-	//
-	
-	if (!Sess->FrontEndServer.CreatePipe())
-	{
-		retcode = EXIT_FAILURE;
-		goto __CreateServerPipeFailed;
-	}
-
-	xlog(LOG_SUCCESS, L"Named pipe '%s' created...\n", CFB_PIPE_NAME);
-
-	//
-	// Create the service and load the driver
-	//
-	if (!Sess->ServiceManager.LoadDriver())
-	{
-		retcode = EXIT_FAILURE;
-		goto __LoadDriverFailed;
-	}
-
-	xlog(LOG_SUCCESS, L"Service '%s' loaded and started\n", CFB_SERVICE_NAME);
-
-
-	//
-	// Start broker <-> driver thread
+	// Initialize the broker <-> driver thread
 	//
 
 	if (!StartBackendManagerThread(Sess))
 	{
 		retcode = EXIT_FAILURE;
-		goto __UnsetEnv;
+		goto __DestroyEnvironment;
 	}
 
 	
 	//
-	// Start gui <-> broker thread
+	// Initialize the gui <-> broker thread
 	//
 
 	if (!StartFrontendManagerThread(Sess))
 	{
 		retcode = EXIT_FAILURE;
-		goto __UnsetEnv;
+		goto __DestroyEnvironment;
 	}
 
 	xlog(LOG_SUCCESS, L"Threads started with TIDs %d and %d\n", GetThreadId(Sess->m_hFrontendThreadHandle), GetThreadId(Sess->m_hBackendThreadHandle));
@@ -373,49 +352,29 @@ int wmain(int argc, wchar_t** argv)
 	}
 
 
-__UnsetEnv:
-	
-	if (!Sess->ServiceManager.UnloadDriver())
-	{
-		xlog(LOG_CRITICAL, L"A critical error occured while unloading driver\n");
-		retcode = EXIT_FAILURE;
-	}
-	else
-	{
-		xlog(LOG_SUCCESS, L"Service '%s' unloaded and deleted\n", CFB_SERVICE_NAME);
-	}
-
-
-__LoadDriverFailed:
-
+__DestroyEnvironment:
 	//
-	// Flush and stop the pipe, then unload the service, and the driver
+	// Deleting the session will automatically destroy the FrontEnd/BackEnd server, along with 
+	// the service manager.
 	//
-	if (!Sess->FrontEndServer.ClosePipe())
-	{
-		xlog(LOG_CRITICAL, L"A critical error occured while closing named pipe\n");
-		retcode = EXIT_FAILURE;
-	} 
-	else
-	{
-		xlog(LOG_SUCCESS, L"Closed '%s' unloaded and deleted\n", CFB_PIPE_NAME);
-	}
-
-	
-
-__CreateServerPipeFailed:
-
-	if (!Sess->ServiceManager.DeleteDriverFromDisk())
-	{
-		xlog(LOG_CRITICAL, L"A critical error occured while deleting driver from disk\n");
-		retcode = EXIT_FAILURE;
-	}
-	else
-	{
-		xlog(LOG_SUCCESS, L"Driver deleted\n");
-	}
-
 	delete Sess;
+
+
+	//
+	// Cleanup
+	//
+	if (!ServiceManager::DeleteDriverFromDisk())
+	{
+		xlog(LOG_ERROR, L"An error occured while deleting driver from disk\n");
+		retcode = EXIT_FAILURE;
+	}
+#ifdef _DEBUG
+	else
+	{
+		xlog(LOG_DEBUG, L"Driver deleted\n");
+	}
+#endif // _DEBUG
+
 
 
 #ifdef _DEBUG

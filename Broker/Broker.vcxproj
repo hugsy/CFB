@@ -114,6 +114,7 @@
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>

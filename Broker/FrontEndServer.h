@@ -10,12 +10,16 @@ class FrontEndServer
 {
 
 public:
-	BOOL CreatePipe();
-	BOOL ClosePipe();
-	HANDLE GetListeningSocketHandle();
+	FrontEndServer() noexcept(false);
+	~FrontEndServer() noexcept(false);
+
+
+	HANDLE m_hServerHandle = INVALID_HANDLE_VALUE;
 
 private:
-	HANDLE m_hServerHandle = INVALID_HANDLE_VALUE;
+	BOOL CreatePipe();
+	BOOL ClosePipe();
+
 };
 
 

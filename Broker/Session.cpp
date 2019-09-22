@@ -15,7 +15,7 @@ Session::Session()
 	m_hTerminationEvent = CreateEvent(NULL,	FALSE, FALSE, NULL);
 
 	if(!m_hTerminationEvent)
-		throw std::runtime_error("CreateEvent(hTerminationEvent) failed");
+		RAISE_GENERIC_EXCEPTION("CreateEvent(hTerminationEvent) failed");
 
 
 	//

@@ -122,6 +122,55 @@ BOOL ServiceManager::DeleteDriverFromDisk()
 
 Routine Description:
 
+Creates the service manager object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Nothing, throw an exception on any error
+
+--*/
+ServiceManager::ServiceManager()
+{
+	if (!LoadDriver())
+		RAISE_GENERIC_EXCEPTION("LoadDriver() failed");
+
+}
+
+
+
+/*++
+
+Routine Description:
+
+Destroy the service manager object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Nothing, throw an exception on any error
+	
+--*/
+ServiceManager::~ServiceManager()
+{
+	if (!UnloadDriver())
+		RAISE_GENERIC_EXCEPTION("UnloadDriver() failed");
+
+}
+
+
+/*++
+
+Routine Description:
+
 Creates and starts a service for the IrpDumper driver.
 
 

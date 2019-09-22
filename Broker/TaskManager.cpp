@@ -69,11 +69,6 @@ Task TaskManager::pop()
 }
 
 
-HANDLE TaskManager::GetPushEventHandle()
-{
-	return m_hPushEvent;
-}
-
 
 BOOL TaskManager::SetName(const std::wstring name)
 {

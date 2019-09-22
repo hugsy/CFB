@@ -5,6 +5,30 @@
 /*++
 Routine Description:
 
+Creates the FrontEndServer object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	May throw an exception if the the allocation failed.
+
+--*/
+FrontEndServer::FrontEndServer()
+{
+	if (!CreatePipe())
+	{
+		RAISE_GENERIC_EXCEPTION("CreatePipe() failed");
+	}
+}
+
+
+/*++
+Routine Description:
+
 Create the named pipe responsible for the communication with the GUI. To do, a Security 
 Descriptor is created with Explicit Access set for Everyone (including remote clients),
 to Read/Write the pipe.
@@ -22,7 +46,7 @@ Return Value:
 	Returns TRUE upon successful creation of the pipe, FALSE if any error occured.
 
 --*/
-BOOL FrontEndServer::CreatePipe()
+BOOL FrontEndServer::CreatePipe() 
 {
 	BOOL fSuccess = FALSE;
 	SID_IDENTIFIER_AUTHORITY SidAuthWorld = SECURITY_WORLD_SID_AUTHORITY;
@@ -144,6 +168,30 @@ BOOL FrontEndServer::CreatePipe()
 
 
 /*++
+Routine Description:
+
+Destroys the FrontEndServer object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	May throw an exception if the the deallocation failed.
+
+--*/
+FrontEndServer::~FrontEndServer() noexcept(false)
+{
+	if (!ClosePipe())
+	{
+		RAISE_GENERIC_EXCEPTION("ClosePipe() failed");
+	}
+}
+
+
+/*++
 
 Routine Description:
 
@@ -172,7 +220,7 @@ BOOL FrontEndServer::ClosePipe()
 		//
 		// Wait until all data was consumed
 		//
-		if (!FlushFileBuffers(m_hServerHandle))
+		if (!::FlushFileBuffers(m_hServerHandle))
 		{
 			PrintErrorWithFunctionName(L"FlushFileBuffers()");
 			fSuccess = FALSE;
@@ -181,22 +229,17 @@ BOOL FrontEndServer::ClosePipe()
 		//
 		// Then close down the named pipe
 		//
-		if (!DisconnectNamedPipe(m_hServerHandle))
+		if (!::DisconnectNamedPipe(m_hServerHandle))
 		{
 			PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
 			fSuccess = FALSE;
 		}
+
+		fSuccess = ::CloseHandle(m_hServerHandle);
 	} 
 	while (FALSE);
 
 	return fSuccess;
-}
-
-
-
-HANDLE FrontEndServer::GetListeningSocketHandle()
-{
-	return m_hServerHandle;
 }
 
 
@@ -357,7 +400,7 @@ Return Value:
 --*/
 DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 {
-	HANDLE hServer = Session.FrontEndServer.GetListeningSocketHandle();
+	HANDLE hServer = Session.FrontEndServer.m_hServerHandle;
 	json j;
 
 	//
@@ -458,8 +501,6 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 	DWORD dwNumberOfBytesWritten, dwWaitResult;
 	HANDLE Handles[2] = { 0 };
-	
-	HANDLE hServer = Sess.FrontEndServer.GetListeningSocketHandle();
 	DWORD retcode = ERROR_SUCCESS;
 
 
@@ -469,7 +510,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// Wait for the pipe to be written to, or a termination notification event
 		//
 		Handles[0] = Sess.m_hTerminationEvent;
-		Handles[1] = hServer;
+		Handles[1] = Sess.FrontEndServer.m_hServerHandle;
 
 		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
@@ -487,17 +528,17 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			// 
 			// is the pipe already connected
 			// 
-			if (!::ConnectNamedPipe(hServer, NULL))
+
+			if (!::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, NULL))
 			{
 				if (::GetLastError() != ERROR_PIPE_CONNECTED)
 				{
 					retcode = ERROR_PIPE_NOT_CONNECTED;
+					continue;
 				}
 			}
-			else
-			{
-				xlog(LOG_INFO, L"new client connected\n");
-			}
+
+			xlog(LOG_INFO, L"new client connected\n");
 			break;
 
 		default:
@@ -516,7 +557,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			// Construct a Task object from the next message read from the pipe
 			//
-			auto task = ReadTlvMessage(hServer);
+			auto task = ReadTlvMessage(Sess.FrontEndServer.m_hServerHandle);
 
 #ifdef _DEBUG
 			xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
@@ -544,7 +585,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		catch (BrokenPipeException&)
 		{
 			xlog(LOG_WARNING, L"Broken pipe detected...\n");
-			DisconnectNamedPipe(hServer);
+			DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
 			continue;
 		}
 		catch (BaseException& e)
@@ -558,14 +599,10 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// Wait for either the response or a termination event
 		//
-		Handles[1] = Sess.ResponseTasks.GetPushEventHandle();
+		Handles[0] = Sess.m_hTerminationEvent;
+		Handles[1] = Sess.ResponseTasks.m_hPushEvent;
 
-		dwWaitResult = WaitForMultipleObjects(
-			2,
-			Handles,
-			FALSE,
-			INFINITE
-		);
+		dwWaitResult = WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
 		switch (dwWaitResult)
 		{
@@ -597,7 +634,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
 
 			BOOL bRes = ::WriteFile(
-				hServer,
+				Sess.FrontEndServer.m_hServerHandle,
 				msg,
 				msglen,
 				&dwNumberOfBytesWritten,
@@ -615,9 +652,15 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			delete[] msg;
 		}
-		catch (std::exception& e)
+		catch (BrokenPipeException&)
 		{
-			xlog(LOG_WARNING, L"Invalid message format, discarding: %S\n", e.what());
+			xlog(LOG_WARNING, L"Broken pipe detected...\n");
+			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
+			continue;
+		}
+		catch (BaseException& e)
+		{
+			xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
 			continue;
 		}
 	}
@@ -625,6 +668,8 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"terminating thread TID=%d with retcode=%d\n", GetThreadId(GetCurrentThread()), retcode);
 #endif // _DEBUG
+
+	::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
 
 	return retcode;
 }
