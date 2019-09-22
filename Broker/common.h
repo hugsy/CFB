@@ -10,3 +10,4 @@ extern "C"
 #include "..\Driver\IoctlCodes.h"
 }
 
+#include "CfbException.h"

@@ -159,7 +159,7 @@ Return Value:
 	Nothing, throw an exception on any error
 	
 --*/
-ServiceManager::~ServiceManager()
+ServiceManager::~ServiceManager() noexcept(false)
 {
 	if (!UnloadDriver())
 		RAISE_GENERIC_EXCEPTION("UnloadDriver() failed");

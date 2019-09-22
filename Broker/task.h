@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 
+
 enum TaskState : uint16_t
 {
 	Initialized,
@@ -14,6 +15,7 @@ enum TaskState : uint16_t
 	Delivered,
 	Completed
 };
+
 
 enum TaskType : uint32_t
 {
@@ -52,6 +54,7 @@ class Task
 public:
 
 	Task(TaskType type, byte* data, uint32_t datalen);
+	Task(HANDLE Handle);
 	~Task();
 
 	const wchar_t* StateAsString();

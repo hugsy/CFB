@@ -7,16 +7,95 @@ static std::mutex g_mutex;
 
 
 Task::Task(TaskType type, byte* data, uint32_t datalen)
+	:
+	m_Type(type), 
+	m_State(TaskState::Initialized), 
+	m_dwDataLength(datalen),
+	m_Data(new byte[datalen])
 {
 	std::lock_guard<std::mutex> guard(g_mutex);
 	m_dwId = g_id++;
-	m_Type = type;
-	m_State = TaskState::Initialized;
-	m_dwDataLength = datalen;
-	m_Data = new byte[datalen];
+
 	::memcpy(m_Data, data, datalen);
 }
 
+
+Task::Task(HANDLE Handle)
+	:
+	m_State(TaskState::Initialized)
+{
+	BOOL fSuccess = FALSE;
+	DWORD dwNbByteRead;
+	DWORD dwTlvHeaderSize = 2 * sizeof(DWORD);
+
+
+	//
+	// Read the header (Type, Length)
+	//
+	std::vector<DWORD> headers(2);
+
+	fSuccess = ::ReadFile(
+		Handle,
+		&headers[0],
+		dwTlvHeaderSize,
+		&dwNbByteRead,
+		NULL
+	);
+
+	if (!fSuccess)
+	{
+		switch (::GetLastError())
+		{
+		case ERROR_BROKEN_PIPE:
+			RAISE_EXCEPTION(BrokenPipeException, "ReadFile(1) failed");
+
+		default:
+			RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
+		}
+	}
+
+
+	if (dwNbByteRead != dwTlvHeaderSize)
+		RAISE_GENERIC_EXCEPTION("ReadFile(1): invalid size read");
+
+
+	if (headers[0] >= TaskType::TaskTypeMax)
+		RAISE_GENERIC_EXCEPTION("ReadFile(1): Message type is invalid");
+
+	TaskType Type = static_cast<TaskType>(headers[0]);
+
+
+	//
+	// then allocate, and read the data
+	//
+	DWORD dwDataLength = headers[1];
+	std::vector<byte> data(dwDataLength);
+
+	if (dwDataLength)
+	{
+		fSuccess = ::ReadFile(
+			Handle,
+			&data[0],
+			dwDataLength,
+			&dwNbByteRead,
+			NULL
+		);
+
+		if (!fSuccess)
+			RAISE_GENERIC_EXCEPTION("ReadFile(2) failed");
+
+		if (dwNbByteRead != dwDataLength)
+			RAISE_GENERIC_EXCEPTION("ReadFile(2): invalid size read");
+	}
+
+	std::lock_guard<std::mutex> guard(g_mutex);
+	m_dwId = g_id++;
+	m_Type = Type;
+	m_dwDataLength = dwDataLength;
+	m_Data = new byte[m_dwDataLength];
+	::memcpy(m_Data, m_Data, m_dwDataLength);
+	return;
+}
 
 
 Task::~Task()

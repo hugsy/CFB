@@ -17,12 +17,12 @@
 class ServiceManager 
 {
 public:
+	ServiceManager() noexcept(false);
+	~ServiceManager() noexcept(false);
+	
 	static BOOL ExtractDriverFromResource();
 	static BOOL DeleteDriverFromDisk();
 
-	ServiceManager();
-	~ServiceManager();
-	
 
 
 private:

@@ -345,7 +345,7 @@ Routine Description:
 
 Arguments:
 
-	task
+	task -
 
 
 Return Value:
@@ -557,7 +557,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			// Construct a Task object from the next message read from the pipe
 			//
-			auto task = ReadTlvMessage(Sess.FrontEndServer.m_hServerHandle);
+			auto task = Task(Sess.FrontEndServer.m_hServerHandle);
 
 #ifdef _DEBUG
 			xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
