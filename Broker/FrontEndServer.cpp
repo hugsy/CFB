@@ -243,116 +243,9 @@ BOOL FrontEndServer::ClosePipe()
 }
 
 
-/*++
-
-Routine Description:
-
-Reads and validate a message from the named pipe (from the frontend). Each message format must follow TLV type of format as follow:
-
-- Type as uint32_t
-- Length as uint32_t (the length of the field `Value`)
-- Value as uint8_t[Length]
-
-This means that each message has a TOTAL SIZE of at least 2*sizeof(uint32_t) bytes (i.e. 8 bytes), that is if Length=0
 
 
-Arguments:
 
-	hPipe - the handle to read data from
-
-
-Return Value:
-
-	a correctly formatted Task object on success, a C++ exception otherwise
-
---*/
-Task ReadTlvMessage(_In_ HANDLE hPipe) 
-{
-	BOOL bSuccess = FALSE;
-	DWORD dwNbByteRead;
-
-	//
-	// Read Type / Length
-	//
-	uint32_t tl[2] = { 0 };
-
-	bSuccess = ::ReadFile(
-		hPipe,
-		tl,
-		sizeof(tl),
-		&dwNbByteRead,
-		NULL
-	);
-
-	if (!bSuccess)
-	{
-		switch (::GetLastError())
-		{
-		case ERROR_BROKEN_PIPE:
-			RAISE_EXCEPTION(BrokenPipeException, "ReadFile(1) failed");
-
-		default:
-			RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
-		}
-	}
-		
-
-	if (dwNbByteRead != sizeof(tl))
-		RAISE_GENERIC_EXCEPTION("ReadFile(1): invalid size read");
-
-	if (tl[0] >= TaskType::TaskTypeMax)
-		RAISE_GENERIC_EXCEPTION("ReadFile(1): Message type is invalid");
-
-	TaskType type = static_cast<TaskType>(tl[0]);
-	uint32_t datalen = tl[1];
-
-
-	//
-	// then allocate, and read the data
-	//
-	byte* data = new byte[datalen];
-	if (data == nullptr)
-		RAISE_GENERIC_EXCEPTION("allocate failed");
-
-	if (datalen)
-	{
-		bSuccess = ::ReadFile(
-			hPipe,
-			data,
-			datalen,
-			&dwNbByteRead,
-			NULL
-		);
-
-		if (!bSuccess)
-			throw std::runtime_error("ReadFile(2) failed");
-
-		if (dwNbByteRead != datalen)
-			throw std::runtime_error("ReadFile(2): invalid size read");
-	}
-
-	Task task(type, data, datalen);
-	delete[] data;
-
-	return task;
-}
-
-
-/*++
-
-Routine Description:
-
-
-Arguments:
-
-	task -
-
-
-Return Value:
-
-	Returns 0 if successful.
-
---*/
 byte* PrepareTlvMessageFromTask(_In_ Task& task)
 {
 	byte* msg = nullptr;
@@ -630,7 +523,11 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			auto task = Sess.ResponseTasks.pop();
 
-			byte* msg = PrepareTlvMessageFromTask(task);
+
+			//
+			// write the message to the pipe
+			//
+			auto msg = task.AsTlv();
 			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
 
 			BOOL bRes = ::WriteFile(

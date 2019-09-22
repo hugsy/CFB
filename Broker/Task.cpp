@@ -93,7 +93,7 @@ Task::Task(HANDLE Handle)
 	m_Type = Type;
 	m_dwDataLength = dwDataLength;
 	m_Data = new byte[m_dwDataLength];
-	::memcpy(m_Data, m_Data, m_dwDataLength);
+	::memcpy(m_Data , &data[0], m_dwDataLength);
 	return;
 }
 
@@ -185,4 +185,49 @@ byte* Task::Data()
 const DWORD Task::Id()
 {
 	return m_dwId;
+}
+
+
+/*++
+
+Routine Description:
+
+	Serialize the current task as a TLV message.
+
+	Buffer must be free-ed by the caller.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+
+	Returns the allocated buffer with the task as TLV if successful.
+
+--*/
+const byte* Task::AsTlv()
+{
+	DWORD dwTlvHeaderSize = 2 * sizeof(DWORD);
+
+	byte* Msg = new byte[dwTlvHeaderSize + m_dwDataLength];
+	
+	//
+	// copy the header
+	//
+	PDWORD headers = reinterpret_cast<PDWORD>(Msg);
+	headers[0] = m_Type;
+	headers[1] = m_dwDataLength;
+
+
+	//
+	// copy the body
+	//
+	if (m_dwDataLength)
+	{
+		::memcpy(&Msg[2], m_Data, m_dwDataLength);
+	}
+
+	return Msg;
 }

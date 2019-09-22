@@ -65,6 +65,7 @@ public:
 	const uint32_t Length();
 	byte* Data();
 	const DWORD Id();
+	const byte* AsTlv();
 
 
 private:
