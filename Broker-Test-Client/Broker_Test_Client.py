@@ -71,12 +71,12 @@ def FormatMessage(dwMessageId):
     if nb_chars == 0:
         raise Exception("Failed to get message for error code: %d" % dwMessageId)
 
-    lpErrorMessage = lpSource.value[:nb_chars]
+    lpErrorMessage = lpSource.value[:].strip()
     windll.kernel32.LocalFree(lpSource)
     return lpErrorMessage
 
 
-TEST_DRIVER_NAME = r"\driver\vboxguest"
+TEST_DRIVER_NAME = "\\driver\\vboxguest"
 BUFSIZE = 4096
 
 
@@ -152,12 +152,13 @@ class BrokerTestMethods:
         
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(BUFSIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+        szBuf = create_string_buffer(12)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
          # hookdriver doesn't return any data (header only = 2*uint32_t + uint32_t for GLE)
         assert cbRead.value == 12
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
         assert u32(szBuf[4:8]) == 4
+        #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_HookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
 
@@ -171,11 +172,11 @@ class BrokerTestMethods:
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(BUFSIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+        szBuf = create_string_buffer(12)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
         assert cbRead.value == 12
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        assert u32(szBuf[4:8]) == 4
+        #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_UnhookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
 
@@ -188,11 +189,11 @@ class BrokerTestMethods:
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(BUFSIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
+        szBuf = create_string_buffer(12)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
         assert u32(szBuf[4:8]) == 4
-        assert u32(szBuf[8:12]) == ERROR_SUCCESS
+        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_EnableMonitoring::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
     
@@ -209,7 +210,7 @@ class BrokerTestMethods:
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
         assert u32(szBuf[4:8]) == 4
-        assert u32(szBuf[8:12]) == ERROR_SUCCESS
+        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_DisableMonitoring::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
 
@@ -225,9 +226,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(BUFSIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        #print(Hexdump(szBuf))
-        #input("> ")
-        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
+        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_GetInterceptedIrps::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         assert json.loads(szBuf[12:cbRead.value])
         return
 

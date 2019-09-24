@@ -26,7 +26,7 @@ TaskManager::~TaskManager()
 void TaskManager::push(Task task)
 {
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"pushing new task of type='%s' to %s\n", task.TypeAsString(), m_name.c_str());
+	xlog(LOG_DEBUG, L"%s pushes '%s' task (id=%d)\n", m_name.c_str(), task.TypeAsString(), task.Id());
 #endif // _DEBUG
 
 	//
@@ -62,7 +62,7 @@ Task TaskManager::pop()
 	t.SetState(TaskState::Delivered);
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"pop task of type='%s' to %s\n", t.TypeAsString(), m_name.c_str());
+	xlog(LOG_DEBUG, L"%s pops '%s' task ID=%d\n", m_name.c_str(), t.TypeAsString(), t.Id());
 #endif // _DEBUG
 
 	return t;
@@ -73,5 +73,10 @@ Task TaskManager::pop()
 BOOL TaskManager::SetName(const std::wstring name)
 {
 	m_name = name;
+
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"setting new name %s=%d\n", m_name.c_str());
+#endif // _DEBUG
+
 	return TRUE;
 }

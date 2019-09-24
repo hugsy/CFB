@@ -431,7 +431,6 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				}
 			}
 
-			xlog(LOG_INFO, L"new client connected\n");
 			break;
 
 		default:
@@ -543,11 +542,18 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				PrintErrorWithFunctionName(L"WriteFile()");
 			}
 
+			
 
 			//
 			// cleanup
 			//
 			delete[] msg;
+
+			task.SetState(TaskState::Completed);
+
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"task tid=%d sent to frontend (%dB), terminating...\n", task.Id(), dwNumberOfBytesWritten);
+#endif // _DEBUG
 		}
 		catch (BrokenPipeException&)
 		{

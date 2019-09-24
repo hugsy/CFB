@@ -246,7 +246,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	//
 
 	const HANDLE Handles[3] = { 
-		Sess.m_hTerminationEvent , 
+		Sess.m_hTerminationEvent, 
 		hIrpDataEvent.get(),
 		Sess.RequestTasks.m_hPushEvent
 	};

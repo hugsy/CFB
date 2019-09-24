@@ -10,12 +10,12 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 	:
 	m_Type(type), 
 	m_State(TaskState::Initialized), 
-	m_dwDataLength(datalen),
-	m_Data(new byte[datalen])
+	m_dwDataLength(datalen)
 {
 	std::lock_guard<std::mutex> guard(g_mutex);
 	m_dwId = g_id++;
 
+	m_Data = new byte[datalen];
 	::memcpy(m_Data, data, datalen);
 }
 
@@ -69,13 +69,15 @@ Task::Task(HANDLE Handle)
 	// then allocate, and read the data
 	//
 	DWORD dwDataLength = headers[1];
-	std::vector<byte> data(dwDataLength);
+	PVOID tmp_data = _malloca(dwDataLength);
+	if (!tmp_data)
+		RAISE_GENERIC_EXCEPTION("_malloca() failed");
 
 	if (dwDataLength)
 	{
 		fSuccess = ::ReadFile(
 			Handle,
-			&data[0],
+			tmp_data,
 			dwDataLength,
 			&dwNbByteRead,
 			NULL
@@ -93,7 +95,8 @@ Task::Task(HANDLE Handle)
 	m_Type = Type;
 	m_dwDataLength = dwDataLength;
 	m_Data = new byte[m_dwDataLength];
-	::memcpy(m_Data , &data[0], m_dwDataLength);
+	::memcpy(m_Data , tmp_data, m_dwDataLength);
+	_freea(tmp_data);
 	return;
 }
 
@@ -219,15 +222,15 @@ const byte* Task::AsTlv()
 	PDWORD headers = reinterpret_cast<PDWORD>(Msg);
 	headers[0] = m_Type;
 	headers[1] = m_dwDataLength;
-
+	
 
 	//
 	// copy the body
 	//
 	if (m_dwDataLength)
 	{
-		::memcpy(&Msg[2], m_Data, m_dwDataLength);
+		::memcpy(Msg + dwTlvHeaderSize, m_Data, m_dwDataLength);
 	}
-
+	
 	return Msg;
 }
