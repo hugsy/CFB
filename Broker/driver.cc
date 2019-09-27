@@ -243,9 +243,6 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	}
 
 
-	//
-	// todo: finish by adding the routine for reading IRP from the driver and storing them locally
-	//
 
 	const HANDLE Handles[3] = { 
 		Sess.m_hTerminationEvent, 
