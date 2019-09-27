@@ -53,6 +53,8 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 	if (bRes)
 		return hDataEvent;
 
+	::CloseHandle(hDataEvent);
+
 	return INVALID_HANDLE_VALUE;
 }
 
