@@ -69,10 +69,7 @@ NTSTATUS HandleIoGetDriverInfo(PIRP Irp, PIO_STACK_LOCATION Stack)
             break;
         }
 
-		
-
 		Status = GetDriverInfo(lpDriverName, lpDriverInfo);
-
 	}
 	while (0);
 
@@ -88,19 +85,16 @@ NTSTATUS HandleIoGetNumberOfHookedDrivers(PIRP Irp, PIO_STACK_LOCATION Stack)
 	UNREFERENCED_PARAMETER(Irp);
 	PAGED_CODE();
 
-	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
 	ULONG OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
 	if (OutputBufferLen < sizeof(UINT32))
 	{
-		Status = STATUS_BUFFER_TOO_SMALL;
-		return Status;
+		return STATUS_BUFFER_TOO_SMALL;
 	}
 
 	UINT32* u32Res = (UINT32*)Irp->AssociatedIrp.SystemBuffer;
 	*u32Res = GetNumberOfHookedDrivers();
-	Status = STATUS_SUCCESS;
 
-	return Status;
+	return STATUS_SUCCESS;
 }

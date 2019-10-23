@@ -330,7 +330,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			);
 
 #ifdef _DEBUG
-			xlog(LOG_DEBUG, L"DeviceIoControl(%x) returned: %d\n", in_task.IoctlCode(), bRes);
+			xlog(LOG_DEBUG, L"DeviceIoControl(0x%x) returned: %s\n", in_task.IoctlCode(), bRes ? L"TRUE" : L"FALSE");
 #endif // _DEBUG
 
 			//

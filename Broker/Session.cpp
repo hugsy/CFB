@@ -12,7 +12,7 @@ Session::Session()
 	//
 	// Create the main event to stop the running threads
 	//
-	m_hTerminationEvent = CreateEvent(NULL,	FALSE, FALSE, NULL);
+	m_hTerminationEvent = CreateEvent(NULL,	TRUE, FALSE, NULL);
 
 	if(!m_hTerminationEvent)
 		RAISE_GENERIC_EXCEPTION("CreateEvent(hTerminationEvent) failed");
@@ -29,6 +29,7 @@ Session::Session()
 Session::~Session()
 {
 	m_State = SessionState::Idle;
+	ResetEvent(m_hTerminationEvent);
 
 	CloseHandle(m_hTerminationEvent);
 
@@ -49,6 +50,7 @@ void Session::Start()
 void Session::Stop()
 {
 	m_State = SessionState::Idle;
+	ResetEvent(m_hTerminationEvent);
 	SetEvent(m_hTerminationEvent);
 }
 

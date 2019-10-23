@@ -457,17 +457,22 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 
 
 
-			if (task.Type() == TaskType::GetInterceptedIrps)
+			switch (task.Type())
 			{
+			case TaskType::GetInterceptedIrps:
 				//
 				// if the request is of type `GetInterceptedIrps`, the function
 				// exports in a JSON format all the IRPs from the IRP session queue
 				//
 				SendInterceptedIrpsAsJson(Sess);
 				continue;
-			}
-			else
-			{
+
+			case TaskType::ReplayIrp:
+				//
+				// Replay the IRP
+				//
+				// TODO
+			default:
 				//
 				// push the task to request task list
 				//
@@ -477,7 +482,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		catch (BrokenPipeException&)
 		{
 			xlog(LOG_WARNING, L"Broken pipe detected...\n");
-			DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
+			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
 			continue;
 		}
 		catch (BaseException& e)
@@ -494,7 +499,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		Handles[0] = Sess.m_hTerminationEvent;
 		Handles[1] = Sess.ResponseTasks.m_hPushEvent;
 
-		dwWaitResult = WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
+		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
 		switch (dwWaitResult)
 		{

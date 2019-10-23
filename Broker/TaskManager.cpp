@@ -75,7 +75,7 @@ BOOL TaskManager::SetName(const std::wstring name)
 	m_name = name;
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"setting new name %s=%d\n", m_name.c_str());
+	xlog(LOG_DEBUG, L"setting new name %s\n", m_name.c_str());
 #endif // _DEBUG
 
 	return TRUE;

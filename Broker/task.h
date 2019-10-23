@@ -30,7 +30,8 @@ enum TaskType : uint32_t
 	EnableMonitoring,
 	DisableMonitoring,
 	GetInterceptedIrps,
-	StoreTestCase = 10,
+	ReplayIrp,
+	StoreTestCase = 11,
 	TaskTypeMax
 };
 
