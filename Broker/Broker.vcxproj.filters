@@ -18,9 +18,6 @@
     <ClCompile Include="main.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="driver.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TaskManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +40,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

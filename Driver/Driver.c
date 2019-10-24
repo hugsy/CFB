@@ -30,7 +30,9 @@ extern PLIST_ENTRY g_HookedDriverHead;
 
 Routine Description:
 
-This routine is called when trying to ReadFile() from a handle to the device IrpDumper.
+This routine is called when trying to ReadFile() from a handle to the device IrpDumper. In a regular scenario,
+Broker will call ReadFile() on the device only when it was notified some new data was available. However, if
+the broker tries to read regardless of the event, the function returns successfully with any data back to userland.
 
 
 Arguments:
@@ -52,7 +54,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-	CfbDbgPrintInfo(L"0\n");
+
 	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( Irp );
 
 	if ( !pStack )
@@ -69,16 +71,11 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
 
-	CfbDbgPrintInfo(L"1\n");
-
 	if (!NT_SUCCESS(Status))
 	{
-		CfbDbgPrintInfo(L"2\n");
-
 		if (Status != STATUS_NO_MORE_ENTRIES)
 			return CompleteRequest(Irp, Status, 0);
 
-		CfbDbgPrintInfo(L"3\n");
         //
         // Second chance
         //
@@ -86,22 +83,15 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
         Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
         if (!NT_SUCCESS(Status))
 			return CompleteRequest(Irp, Status, 0);
-
 	}
 
-	CfbDbgPrintInfo(L"4\n");
 	if ( BufferSize == 0 )
 	{
-		CfbDbgPrintInfo(L"5\n");
 		//
-		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate
-		// We end the IRP with STATUS_BUFFER_TOO_SMALL and announce the expected size as Information
-		// The client can pick up that value by looking up a value for GetLastError() set to 
-		// ERROR_INSUFFICIENT_BUFFER
+		// If BufferSize == 0, the client is probing for the size of the IRP raw data to allocate.
 		//
-		return CompleteRequest(Irp, STATUS_BUFFER_TOO_SMALL, dwExpectedSize);
+		return CompleteRequest(Irp, STATUS_SUCCESS, dwExpectedSize);
 	}
-
 
 	if ( BufferSize != dwExpectedSize )
 	{
@@ -109,22 +99,18 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 		return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, dwExpectedSize);
 	}
 
+	NT_ASSERT(Irp->MdlAddress);
 
 	PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, HighPagePriority );
 
 	if ( !Buffer )
 		return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
-
+		
 
 	Status = PopFromQueue(&pInterceptedIrp);
 
 	if ( !NT_SUCCESS(Status) )
-	{
-		Status = STATUS_INSUFFICIENT_RESOURCES;
-		CompleteRequest(Irp, Status, 0);
-		return Status;
-	}
-
+		return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
 
 	//
 	// Copy header

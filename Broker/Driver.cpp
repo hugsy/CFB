@@ -63,14 +63,17 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 
 Routine Description:
 
-Fetch one IRP (metadata + data) temporarily stored in the driver.
+Fetch one IRP (metadata + data) temporarily from the IrpDumper driver, and stores it in memory.
 
 
 Arguments:
 
 	hDevice -
 
-	lpSession -
+	hEvent - 
+
+	Session -
+
 
 
 Return Value:
@@ -78,93 +81,86 @@ Return Value:
 	Returns ERROR_SUCCESS on success, GetLastError() otherwise
 
 --*/
-DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Session& Session)
+static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Session& Session)
 {
-	//
-	// Probe the size of the buffer
-	//
-	BOOL bRes = FALSE;
-	DWORD lpNumberOfBytesRead;
 	DWORD dwBufferSize = 0;
 	byte* lpBuffer = NULL;
+	DWORD lpNumberOfBytesRead;
 
-	do
+	BOOL bRes = ::ReadFile(hDevice, lpBuffer, dwBufferSize, &lpNumberOfBytesRead, NULL);
+
+	//
+	// Retrieve the expected buffer size
+	//
+	xlog(LOG_DEBUG, L"ReadFile(hDevice=%p, dwBufferSize=%d, lpNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, lpNumberOfBytesRead, bRes);
+	DWORD dwErrCode = ::GetLastError();
+
+	if (bRes == FALSE)
 	{
-		bRes = ::ReadFile(
-			hDevice,
-			lpBuffer,
-			dwBufferSize,
-			&lpNumberOfBytesRead,
-			NULL
+		PrintErrorWithFunctionName(L"ReadFile(GetBufferSize)");
+		return dwErrCode;
+	}
+
+	if (lpNumberOfBytesRead == 0)
+	{
+		return ERROR_NO_DATA;
+	}
+
+	//
+	// Create a buffer of the correct size, and fetch the raw IRP
+	//
+	dwBufferSize = lpNumberOfBytesRead;
+	lpBuffer = new byte[dwBufferSize];
+
+	bRes = ::ReadFile(hDevice, lpBuffer, dwBufferSize, &lpNumberOfBytesRead, NULL);
+	dwErrCode = ::GetLastError();
+
+	if (bRes == FALSE)
+	{
+		PrintErrorWithFunctionName(L"ReadFile(GetBufferData)");
+		return dwErrCode;
+	}
+
+
+	if (dwBufferSize == lpNumberOfBytesRead && dwBufferSize >= sizeof(INTERCEPTED_IRP_HEADER))
+	{
+		PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
+		PINTERCEPTED_IRP_BODY pIrpBody = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
+
+#ifdef _DEBUG
+		xlog(LOG_DEBUG, 
+			L"New IRP received:\n"
+			"\t- timestamp:%llx\n"
+			L"\t- IRQ level:%x\n"
+			L"\t- Major type:%x\n"
+			L"\t- IoctlCode:%x\n"
+			L"\t- PID=%d / TID=%d\n"
+			L"\t- InputBufferLength=%d / OutputBufferLength=%d\n"
+			L"\t- DriverName:%s\n"
+			L"\t- DeviceName:%s\n",
+			pIrpHeader->TimeStamp,
+			pIrpHeader->Irql,
+			pIrpHeader->Type,
+			pIrpHeader->IoctlCode,
+			pIrpHeader->Pid, 
+			pIrpHeader->Tid,
+			pIrpHeader->InputBufferLength, 
+			pIrpHeader->OutputBufferLength,
+			pIrpHeader->DriverName,
+			pIrpHeader->DeviceName
 		);
-
-		xlog(LOG_DEBUG, L"ReadFile(hDevice=%p, lpBuffer=%p, dwBufferSize=%d) -> %d\n", hDevice, lpBuffer, dwBufferSize, bRes);
-
-		if (bRes == TRUE)
-			//
-			// lpBuffer was correctly filled with the IRP, we can stop probing
-			//
-			break;
-
-
-		//
-		// Otherwise, check the error status
-		//
-		DWORD dwErrCode = ::GetLastError();
-		
-		if (dwErrCode != ERROR_INSUFFICIENT_BUFFER)
-		{
-			PrintErrorWithFunctionName(L"ReadFile(hDevice)");
-			if (lpBuffer)
-				delete[] lpBuffer;
-
-			return dwErrCode;
-		}
-
-
-		//
-		// Adjust the buffer and size, retry
-		//
-		if (lpBuffer)
-			delete[] lpBuffer;
-
-		lpBuffer = new byte[lpNumberOfBytesRead];
-		dwBufferSize = lpNumberOfBytesRead;
-
-#ifdef _DEBUG
-		xlog(LOG_DEBUG, L"adjusted buffer size to %d\n", dwBufferSize);
-#endif // _DEBUG
-
-	} 
-	while (bRes == FALSE);
-
-
-
-	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
-	PINTERCEPTED_IRP_BODY pIrpBody = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"New IRP received:\n");
-	xlog(LOG_DEBUG, L"\t- timestamp:%llx\n", pIrpHeader->TimeStamp);
-	xlog(LOG_DEBUG, L"\t- IRQ level:%x\n", pIrpHeader->Irql);
-	xlog(LOG_DEBUG, L"\t- Major type:%x\n", pIrpHeader->Type);
-	xlog(LOG_DEBUG, L"\t- IoctlCode:%x\n", pIrpHeader->IoctlCode);
-	xlog(LOG_DEBUG, L"\t- PID=%d / TID=%d\n", pIrpHeader->Pid, pIrpHeader->Tid);
-	xlog(LOG_DEBUG, L"\t- InputBufferLength=%d / OutputBufferLength=%d\n", pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength);
-	xlog(LOG_DEBUG, L"\t- DriverName:%s\n", pIrpHeader->DriverName);
-	xlog(LOG_DEBUG, L"\t- DeviceName:%s\n", pIrpHeader->DeviceName);
 #endif // _DEBUG
 
 
-	//
-	// pushing new IRP to the session queue\n");
-	//
+		//
+		// pushing new IRP to the session queue\n");
+		//
+		Irp irp(pIrpHeader, pIrpBody);
 
-	Irp irp(pIrpHeader, pIrpBody);
-
-	std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
-	Session.m_IrpQueue.push(irp);
-	mlock.unlock();
+		std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
+		Session.m_IrpQueue.push(irp);
+		mlock.unlock();
+	}
 
 	//
 	// Reset the event
@@ -173,6 +169,52 @@ DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Sessi
 
 	return ERROR_SUCCESS;
 }
+
+
+/*++
+
+Routine Description:
+
+Fetch all the IRP stored in the IrpDumper driver, and stores it in memory.
+
+
+Arguments:
+
+	hDevice -
+
+	hEvent -
+
+	Session -
+
+
+
+Return Value:
+
+	Returns ERROR_SUCCESS on success, GetLastError() otherwise
+
+--*/
+DWORD FetchAllIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Session& Session, _Out_ PDWORD lpdwNumberOfIrpDumped)
+{
+	DWORD dwRes = ERROR_SUCCESS;
+	*lpdwNumberOfIrpDumped = 0;
+
+	do
+	{
+		dwRes = FetchNextIrpFromDevice(hDevice, hEvent, Session);
+		
+		if (dwRes == ERROR_NO_DATA)
+			break;
+
+		(*lpdwNumberOfIrpDumped)++;
+
+		if (dwRes != ERROR_SUCCESS)
+			break;
+	} 
+	while (TRUE);
+
+	return dwRes;
+}
+
 
 
 /*++
@@ -210,19 +252,19 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	//
 	// Get a handle to the device
 	//
-	wil::unique_handle hDevice(
+	wil::unique_handle hIrpDumperDevice(
 		::CreateFile(
 			CFB_USER_DEVICE_NAME,
 			GENERIC_READ | GENERIC_WRITE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL,
 			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
+			FILE_ATTRIBUTE_NORMAL,
 			NULL
 		)
 	);
 
-	if (!hDevice)
+	if (!hIrpDumperDevice)
 	{
 		PrintErrorWithFunctionName(L"CreateFile(hDeviceObject)");
 		return ::GetLastError();
@@ -233,7 +275,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	// Create an event for the driver to notify the broker new data has arrived
 	//
 	wil::unique_handle hIrpDataEvent(
-		ShareHandleWithDriver(hDevice.get())
+		ShareHandleWithDriver(hIrpDumperDevice.get())
 	);
 
 	if (!hIrpDataEvent)
@@ -258,6 +300,8 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		DWORD dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
+		DWORD dwNbIrpDumped = 0;
+
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
@@ -274,7 +318,10 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			xlog(LOG_DEBUG, L"new IRP data Event\n");
 #endif // _DEBUG
 
-			dwRes = FetchNextIrpFromDevice( hDevice.get(), hIrpDataEvent.get(), Sess );
+			dwRes = FetchAllIrpFromDevice( hIrpDumperDevice.get(), hIrpDataEvent.get(), Sess, &dwNbIrpDumped);
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"fetched %d IRP from driver\n", dwNbIrpDumped);
+#endif // _DEBUG
 			continue;
 
 		case WAIT_OBJECT_0 + 2:
@@ -319,7 +366,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			dwErrCode = ERROR_SUCCESS;
 
 			bRes = ::DeviceIoControl(
-				hDevice.get(),
+				hIrpDumperDevice.get(),
 				in_task.IoctlCode(),
 				in_task.Data(),
 				in_task.Length(),

@@ -137,7 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CfbException.cpp" />
-    <ClCompile Include="driver.cc" />
+    <ClCompile Include="Driver.cpp" />
     <ClCompile Include="FrontEndServer.cpp" />
     <ClCompile Include="Irp.cpp" />
     <ClCompile Include="main.cc" />
