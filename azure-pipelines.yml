@@ -1,7 +1,3 @@
-#
-# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
-#
-
 trigger:
   batch: true
   branches:
@@ -14,8 +10,9 @@ pool:
 
 variables:
   solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+  buildPlatform: 'x86|x64'
+  buildConfiguration: 'Release|Debug'
+  appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
 
 
 steps:
@@ -35,7 +32,15 @@ steps:
     configuration: '$(buildConfiguration)'
     logFileVerbosity: 'detailed'
     
-   
+
+- task: VSBuild@1
+  inputs:
+    platform: 'x86|x64'
+    solution: '$(solution)'
+    configuration: '$(buildConfiguration)'
+    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Always /p:UapAppxPackageBuildMode=StoreUpload'
+    projectFile: '**/GUI.vcxproj'
+
 - task: VSTest@2
   inputs:
     platform: '$(buildPlatform)'
