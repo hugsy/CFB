@@ -359,10 +359,10 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 	if (!fSuccess)
 	{
 		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
-		return (DWORD)-1;
+		return ERROR_INVALID_DATA;
 	}
 
-	return 0;
+	return ERROR_SUCCESS;
 }
 
 

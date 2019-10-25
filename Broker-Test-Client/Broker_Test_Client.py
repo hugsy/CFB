@@ -22,6 +22,7 @@ GENERIC_READ = 0x80000000
 GENERIC_WRITE = 0x40000000
 OPEN_EXISTING = 0x3
 INVALID_HANDLE_VALUE = -1
+PIPE_READMODE_BYTE = 0x0
 PIPE_READMODE_MESSAGE = 0x2
 ERROR_SUCCESS = 0
 ERROR_PIPE_BUSY = 231
@@ -131,7 +132,7 @@ class BrokerTestMethods:
         )
         assert hPipe != INVALID_HANDLE_VALUE 
         assert windll.kernel32.GetLastError() != ERROR_PIPE_BUSY 
-        dwMode = c_ulong(PIPE_READMODE_MESSAGE)
+        dwMode = c_ulong(PIPE_READMODE_BYTE)
         windll.kernel32.SetNamedPipeHandleState(hPipe, byref(dwMode), None, None)
         self.hPipe = hPipe
         return
