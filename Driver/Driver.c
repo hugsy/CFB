@@ -10,11 +10,12 @@
 
 #endif
 
+UINT16 g_dwNumberOfHandle;
 
 static PDEVICE_OBJECT g_DeviceObject;
-static IO_REMOVE_LOCK g_DriverRemoveLock;
-static KSPIN_LOCK g_SpinLock;
-static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
+//static IO_REMOVE_LOCK g_DriverRemoveLock;
+//static KSPIN_LOCK g_SpinLock;
+//static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
 
 //
 // Not more than one process can interact with the device object
@@ -194,40 +195,9 @@ _Function_class_(DRIVER_DISPATCH)
 DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
 	UNREFERENCED_PARAMETER( DeviceObject );
+	UNREFERENCED_PARAMETER(Irp);
 
 	PAGED_CODE();
-
-	   
-	//
-	// Unswap all hooked drivers left to avoid new IRPs to be handled by us
-	//
-
-	KeEnterCriticalRegion();
-
-    {
-		ReleaseTestCaseStructures();
-        DisableMonitoring();
-        RemoveAllDrivers();
-        IoAcquireRemoveLock(&g_DriverRemoveLock, Irp);
-        IoReleaseRemoveLockAndWait(&g_DriverRemoveLock, Irp);
-    }
-
-    KeLeaveCriticalRegion();
-
-	FlushQueue();
-
-
-	//
-	// Disable events and clear the queue
-	//
-
-	ClearNotificationPointer();
-
-
-
-	//
-	// Context is clean, let's exit gracefully.
-	//
 
 	return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
@@ -281,7 +251,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 		&DeviceName,
 		FILE_DEVICE_UNKNOWN,
 		FILE_DEVICE_SECURE_OPEN,
-		TRUE,
+		FALSE,
 		&g_DeviceObject
 	);
 
@@ -332,7 +302,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     //
     // Initializing the locks and structures
     //
-	IoInitializeRemoveLock(&g_DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
+	g_dwNumberOfHandle = 0;
+	//IoInitializeRemoveLock(&g_DriverRemoveLock, CFB_DEVICE_TAG, 0, 0);
 	InitializeListHead(g_HookedDriverHead);
     KeInitializeSpinLock(&SpinLockOwner);
     InitializeMonitoringStructures();
@@ -375,12 +346,13 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     BOOLEAN Found = FALSE;
     PHOOKED_DRIVER curDriver = NULL;
 
-
+	/*
 	Status = IoAcquireRemoveLock( &g_DriverRemoveLock, Irp );
 	if ( !NT_SUCCESS( Status ) )
 	{
 		return Status;
 	}
+	*/
 
     PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -447,7 +419,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		Status = OldRoutine(DeviceObject, Irp);
 	}
 
-	IoReleaseRemoveLock( &g_DriverRemoveLock, Irp );
+	//IoReleaseRemoveLock( &g_DriverRemoveLock, Irp );
 
 	return Status;
 }
@@ -474,6 +446,25 @@ Return Value:
 --*/
 VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 {  
+
+	//
+	// Unswap all hooked drivers left to avoid new IRPs to be handled by the driver
+	//
+
+	KeEnterCriticalRegion();
+	DisableMonitoring();
+	ReleaseTestCaseStructures();
+	RemoveAllDrivers();
+	KeLeaveCriticalRegion();
+
+
+	//
+	// Disable events and clear the queue
+	//
+
+	ClearNotificationPointer();
+
+	FlushQueue();
 
 	//
 	// Delete the device object
@@ -533,15 +524,17 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
+NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
 {
-	UNREFERENCED_PARAMETER(pObject);
+	UNREFERENCED_PARAMETER(Device);
 
 	PAGED_CODE();
 
     KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
+	
+	g_dwNumberOfHandle--;
 
-    if (pCurrentOwnerProcess != NULL)
+    if (g_dwNumberOfHandle == 0 && pCurrentOwnerProcess != NULL)
     {
         pCurrentOwnerProcess = NULL;
         CfbDbgPrintOk(L"Unlocked device...\n");
@@ -581,7 +574,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
 	// Ensure the calling process has SeDebugPrivilege
 	//
 	PPRIVILEGE_SET lpRequiredPrivileges;
-	UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)];
+	UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)] = { 0 };
 
 	lpRequiredPrivileges = (PPRIVILEGE_SET)ucPrivilegesBuffer;
 	lpRequiredPrivileges->PrivilegeCount = 1;
@@ -601,23 +594,33 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
 	}
 	else
 	{
-		//
-		// Currently, we don't authorize more than one process, and one handle per process
-		//
+		PEPROCESS pCallingProcess = PsGetCurrentProcess();
+
 		KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
     
 		if (pCurrentOwnerProcess == NULL )
 		{
-			pCurrentOwnerProcess = PsGetCurrentProcess();
+			//
+			// if there's no process owner, affect one and increment the handle counter
+			//
+			pCurrentOwnerProcess = pCallingProcess;
 			CfbDbgPrintOk(L"Locked device to EPROCESS=%p...\n", pCurrentOwnerProcess);
+			g_dwNumberOfHandle++;
 			Status = STATUS_SUCCESS;
 		}   
-		else if (PsGetCurrentProcess() == pCurrentOwnerProcess)
+		else if (pCallingProcess == pCurrentOwnerProcess)
 		{
+			//
+			// if the CreateFile() originates from the owner process, increment the handle counter
+			//
+			g_dwNumberOfHandle++;
 			Status = STATUS_SUCCESS;
 		}
 		else
 		{
+			//
+			// in any other case, simply reject
+			//
 			Status = STATUS_DEVICE_ALREADY_ATTACHED;
 		}
 
@@ -655,12 +658,12 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 	PAGED_CODE();
 
     NTSTATUS Status = STATUS_SUCCESS;
-    ULONG_PTR Information = 0;
 
 
-    if ( pCurrentOwnerProcess != PsGetCurrentProcess() )
-        return CompleteRequest(Irp, STATUS_DEVICE_ALREADY_ATTACHED, Information);
-
+	if (pCurrentOwnerProcess != PsGetCurrentProcess())
+	{
+		return CompleteRequest(Irp, STATUS_DEVICE_ALREADY_ATTACHED, 0);
+	}
 	
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
@@ -727,7 +730,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 		CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
 	}
 	
-	return CompleteRequest(Irp, Status, Information);
+	return CompleteRequest(Irp, Status, 0);
 }
 
 

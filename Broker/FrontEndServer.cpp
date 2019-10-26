@@ -136,8 +136,8 @@ BOOL FrontEndServer::CreatePipe()
 
 		m_hServerHandle = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
-			PIPE_ACCESS_DUPLEX,
-			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_ACCEPT_REMOTE_CLIENTS,
+			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS,
 			CFB_PIPE_MAXCLIENTS,
 			CFB_PIPE_INBUFLEN,
 			CFB_PIPE_OUTBUFLEN,
@@ -396,14 +396,38 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	HANDLE Handles[2] = { 0 };
 	DWORD retcode = ERROR_SUCCESS;
 
+	OVERLAPPED ov = { 0 };
+	ov.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
+	if (!ov.hEvent)
+		return ::GetLastError();
+
+	DWORD err;
 
 	while (Sess.IsRunning())
 	{
+
+		//
+		// is there pending pipe connection
+		//
+
+		BOOL bRes = ::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, &ov);
+		if (bRes)
+		{
+			//
+			// a client has disconnected
+			//
+			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
+			continue;
+		}
+
+
 		//
 		// Wait for the pipe to be written to, or a termination notification event
 		//
+
 		Handles[0] = Sess.m_hTerminationEvent;
 		Handles[1] = Sess.FrontEndServer.m_hServerHandle;
+		//Handles[1] = ov.hEvent;
 
 		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
 
@@ -418,12 +442,31 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			continue;
 
 		case WAIT_OBJECT_0 + 1:
-			// 
-			// is the pipe already connected
-			// 
-
-			if (!::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, NULL))
+			xlog(LOG_DEBUG, L"in\n");
+			err = ::GetLastError();
+			if (err == ERROR_NO_DATA)
 			{
+				xlog(LOG_DEBUG, L"in1\n");
+				::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
+				ResetEvent(ov.hEvent);
+				continue;
+			}
+			else if (err == ERROR_PIPE_CONNECTED)
+			{
+				xlog(LOG_DEBUG, L"in2\n");
+				ResetEvent(ov.hEvent);
+				break;
+			}
+			else
+			{
+				retcode = ERROR_PIPE_NOT_CONNECTED;
+				continue;
+			}
+			/*
+			xlog(LOG_DEBUG, L"in\n");
+			if (!::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, &ov))
+			{
+				xlog(LOG_DEBUG, L"ConnectNamedPipe -> %x\n", ::GetLastError());
 				if (::GetLastError() != ERROR_PIPE_CONNECTED)
 				{
 					retcode = ERROR_PIPE_NOT_CONNECTED;
@@ -431,6 +474,10 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				}
 			}
 
+			xlog(LOG_DEBUG, L"out\n");
+
+			ResetEvent(ov.hEvent);
+			*/
 			break;
 
 		default:
@@ -627,7 +674,7 @@ BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
 #endif
 
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
-	Sess.m_hFrontendThreadHandle = hThread;
+	Sess.m_hFrontendThread = hThread;
 
 	return TRUE;
 }

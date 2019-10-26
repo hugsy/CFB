@@ -33,11 +33,11 @@ Session::~Session()
 
 	CloseHandle(m_hTerminationEvent);
 
-	if (m_hFrontendThreadHandle != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hFrontendThreadHandle);
+	if (m_hFrontendThread != INVALID_HANDLE_VALUE)
+		CloseHandle(m_hFrontendThread);
 
-	if (m_hBackendThreadHandle != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hBackendThreadHandle);
+	if (m_hBackendThread != INVALID_HANDLE_VALUE)
+		CloseHandle(m_hBackendThread);
 }
 
 

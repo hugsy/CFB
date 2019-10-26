@@ -53,14 +53,18 @@ public:
 	// Handle between frontend (GUI, TUI) and the broker
 	// For now this is done with NamedPipes
 	//
-	HANDLE m_hFrontendThreadHandle = INVALID_HANDLE_VALUE;
+	HANDLE m_hFrontendThread = INVALID_HANDLE_VALUE;
 
 
 	//
 	// Handle between the broker and the IrpDumper driver
 	// 
-	HANDLE m_hBackendThreadHandle = INVALID_HANDLE_VALUE;
+	HANDLE m_hBackendThread = INVALID_HANDLE_VALUE;
 
+	//
+	// Handle to the thread fetching the IRPs from the driver
+	//
+	HANDLE m_hIrpFetcherThread = INVALID_HANDLE_VALUE;
 
 	//
 	// This queue receives all the IRP intercepted by driver.

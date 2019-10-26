@@ -218,7 +218,7 @@ int wmain(int argc, wchar_t** argv)
 	int retcode = EXIT_SUCCESS;
 	HANDLE hDriver = INVALID_HANDLE_VALUE;
 	HANDLE hGui = INVALID_HANDLE_VALUE;
-	HANDLE ThreadHandles[2] = { 0 };
+	HANDLE ThreadHandles[3] = { 0 };
 	DWORD dwWaitResult = 0;
 	BOOL bHasDebugPriv = FALSE;
 	BOOL bHasLoadDriverPriv = FALSE;
@@ -320,24 +320,26 @@ int wmain(int argc, wchar_t** argv)
 		goto __DestroyEnvironment;
 	}
 
-	xlog(LOG_SUCCESS, L"Threads started with TIDs %d and %d\n", GetThreadId(Sess->m_hFrontendThreadHandle), GetThreadId(Sess->m_hBackendThreadHandle));
+	xlog(LOG_SUCCESS, L"ThreadIds[]=[Frontend=%d,Backend=%d,IrpFetcher=%d]\n", GetThreadId(Sess->m_hFrontendThread), GetThreadId(Sess->m_hBackendThread), GetThreadId(Sess->m_hIrpFetcherThread));
 
 
 	//
 	// Start everything
 	//
 	Sess->Start();
-	ResumeThread(Sess->m_hFrontendThreadHandle);
-	ResumeThread(Sess->m_hBackendThreadHandle);
+	ResumeThread(Sess->m_hFrontendThread);
+	ResumeThread(Sess->m_hBackendThread);
+	ResumeThread(Sess->m_hIrpFetcherThread);
 
 
 	//
 	// Wait for those 2 threads to finish
 	//
-	ThreadHandles[0] = Sess->m_hFrontendThreadHandle;
-	ThreadHandles[1] = Sess->m_hBackendThreadHandle;
+	ThreadHandles[0] = Sess->m_hFrontendThread;
+	ThreadHandles[1] = Sess->m_hBackendThread;
+	ThreadHandles[2] = Sess->m_hIrpFetcherThread;
 
-	dwWaitResult = WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
+	dwWaitResult = ::WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
 
 	switch (dwWaitResult)
 	{
