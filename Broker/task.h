@@ -54,9 +54,9 @@ static std::map<TaskType, DWORD> g_TaskIoctls =
 class Task
 {
 public:
-
+	Task(const Task& t);
 	Task(TaskType type, byte* data, uint32_t datalen);
-	Task(HANDLE Handle);
+	Task(HANDLE Handle, LPOVERLAPPED ov);
 	~Task();
 
 	const wchar_t* StateAsString();

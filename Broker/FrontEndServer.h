@@ -6,20 +6,46 @@
 #include <aclapi.h>
 
 
+enum ServerState : uint16_t
+{
+	Disconnected,
+	Connecting,
+	ReadyToReadFromClient,
+	ReadyToReadFromServer
+};
+
+
+class ServerTransportManager
+{
+public:
+	HANDLE m_hServer = INVALID_HANDLE_VALUE;
+	ServerState m_dwServerState = ServerState::Disconnected;
+};
+
+
+class PipeTransportManager : public ServerTransportManager
+{
+public:
+	OVERLAPPED m_oOverlap;
+	bool m_fPendingIo = false;
+};
+
+
 class FrontEndServer
 {
 
 public:
 	FrontEndServer() noexcept(false);
 	~FrontEndServer() noexcept(false);
+	
+	PipeTransportManager m_Transport;
 
-
-	HANDLE m_hServerHandle = INVALID_HANDLE_VALUE;
+	BOOL ConnectPipe();
+	BOOL DisconnectAndReconnectPipe();
 
 private:
 	BOOL CreatePipe();
 	BOOL ClosePipe();
-
 };
 
 

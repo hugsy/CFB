@@ -6,6 +6,19 @@ static DWORD g_id = 0;
 static std::mutex g_mutex;
 
 
+
+Task::Task(const Task &t)
+	:
+	m_Type(t.m_Type),
+	m_State(t.m_State),
+	m_dwDataLength(t.m_dwDataLength),
+	m_dwId(t.m_dwId)
+{
+		m_Data = new byte[t.m_dwDataLength];
+		::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
+}
+
+
 Task::Task(TaskType type, byte* data, uint32_t datalen)
 	:
 	m_Type(type), 
@@ -19,8 +32,7 @@ Task::Task(TaskType type, byte* data, uint32_t datalen)
 	::memcpy(m_Data, data, datalen);
 }
 
-
-Task::Task(HANDLE Handle)
+Task::Task(HANDLE Handle, LPOVERLAPPED ov)
 	:
 	m_State(TaskState::Initialized)
 {
@@ -50,6 +62,7 @@ Task::Task(HANDLE Handle)
 			RAISE_EXCEPTION(BrokenPipeException, "ReadFile(1) failed");
 
 		default:
+			PrintErrorWithFunctionName(L"ReadFile(1)");
 			RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
 		}
 	}
@@ -69,7 +82,7 @@ Task::Task(HANDLE Handle)
 	// then allocate, and read the data
 	//
 	DWORD dwDataLength = headers[1];
-	PVOID tmp_data = _malloca(dwDataLength);
+	PVOID tmp_data = new byte[dwDataLength];
 	if (!tmp_data)
 		RAISE_GENERIC_EXCEPTION("_malloca() failed");
 
@@ -96,7 +109,7 @@ Task::Task(HANDLE Handle)
 	m_dwDataLength = dwDataLength;
 	m_Data = new byte[m_dwDataLength];
 	::memcpy(m_Data , tmp_data, m_dwDataLength);
-	_freea(tmp_data);
+	delete[] tmp_data;
 	return;
 }
 

@@ -12,7 +12,7 @@ Session::Session()
 	//
 	// Create the main event to stop the running threads
 	//
-	m_hTerminationEvent = CreateEvent(NULL,	TRUE, FALSE, NULL);
+	m_hTerminationEvent = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	if(!m_hTerminationEvent)
 		RAISE_GENERIC_EXCEPTION("CreateEvent(hTerminationEvent) failed");
@@ -29,15 +29,15 @@ Session::Session()
 Session::~Session()
 {
 	m_State = SessionState::Idle;
-	ResetEvent(m_hTerminationEvent);
+	::ResetEvent(m_hTerminationEvent);
 
-	CloseHandle(m_hTerminationEvent);
+	::CloseHandle(m_hTerminationEvent);
 
 	if (m_hFrontendThread != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hFrontendThread);
+		::CloseHandle(m_hFrontendThread);
 
 	if (m_hBackendThread != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hBackendThread);
+		::CloseHandle(m_hBackendThread);
 }
 
 

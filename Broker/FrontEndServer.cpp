@@ -134,10 +134,13 @@ BOOL FrontEndServer::CreatePipe()
 		xlog(LOG_DEBUG, L"Creating named pipe '%s'...\n", CFB_PIPE_NAME);
 #endif
 
-		m_hServerHandle = ::CreateNamedPipe(
+		//
+		// create the overlapped pipe
+		//
+		m_Transport.m_hServer = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
 			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS,
+			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS | PIPE_WAIT,
 			CFB_PIPE_MAXCLIENTS,
 			CFB_PIPE_INBUFLEN,
 			CFB_PIPE_OUTBUFLEN,
@@ -145,16 +148,28 @@ BOOL FrontEndServer::CreatePipe()
 			&SecurityAttributes
 		);
 
-		if (m_hServerHandle == INVALID_HANDLE_VALUE)
+		HANDLE hServer = m_Transport.m_hServer;
+		if (hServer == INVALID_HANDLE_VALUE)
 		{
 			PrintErrorWithFunctionName(L"CreateNamedPipe()");
 			fSuccess = FALSE;
 			break;
 		}
 
-		fSuccess = TRUE;
+		m_Transport.m_oOverlap.hEvent = ::CreateEvent(nullptr, TRUE, TRUE, nullptr);
+		if (!m_Transport.m_oOverlap.hEvent)
+		{
+			xlog(LOG_CRITICAL, L"failed to create an event object for frontend thread\n");
+			return false;
+		}
+
+
+		//
+		// last, connect to the named pipe
+		//
+		fSuccess = ConnectPipe();
 	} 
-	while (FALSE);
+	while (false);
 
 	if (pEveryoneSid)
 		FreeSid(pEveryoneSid);
@@ -214,38 +229,143 @@ BOOL FrontEndServer::ClosePipe()
 #endif
 
 	BOOL fSuccess = TRUE;
+	HANDLE hServer = m_Transport.m_hServer;
+	ServerState State = m_Transport.m_dwServerState;
 
 	do
 	{
-		//
-		// Wait until all data was consumed
-		//
-		if (!::FlushFileBuffers(m_hServerHandle))
+		if (hServer == INVALID_HANDLE_VALUE)
 		{
-			PrintErrorWithFunctionName(L"FlushFileBuffers()");
-			fSuccess = FALSE;
+			//
+			// already closed
+			//
+			break;
 		}
 
-		//
-		// Then close down the named pipe
-		//
-		if (!::DisconnectNamedPipe(m_hServerHandle))
+		if (State != ServerState::Disconnected)
 		{
-			PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
-			fSuccess = FALSE;
+			//
+			// Wait until all data was consumed
+			//
+			if (!::FlushFileBuffers(hServer))
+			{
+				PrintErrorWithFunctionName(L"FlushFileBuffers()");
+				fSuccess = FALSE;
+			}
+
+			//
+			// Then close down the named pipe
+			//
+			if (!::DisconnectNamedPipe(hServer))
+			{
+				PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
+				fSuccess = FALSE;
+			}
 		}
 
-		fSuccess = ::CloseHandle(m_hServerHandle);
+		fSuccess = ::CloseHandle(hServer);
+		m_Transport.m_hServer = INVALID_HANDLE_VALUE;
 	} 
-	while (FALSE);
+	while (false);
 
 	return fSuccess;
 }
 
 
+/*++
+
+Routine Description:
 
 
+Arguments:
 
+
+Return Value:
+
+--*/
+BOOL FrontEndServer::DisconnectAndReconnectPipe()
+{
+
+	if (!DisconnectNamedPipe(m_Transport.m_hServer))
+	{
+		PrintErrorWithFunctionName(L"DisconnectNamedPipe");
+	}
+
+	if (!ConnectPipe())
+	{
+		xlog(LOG_ERROR, L"error in ConnectPipe()\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+/*++
+
+Routine Description:
+
+
+Arguments:
+
+
+Return Value:
+	
+	Returns TRUE on success, FALSE otherwise
+--*/
+BOOL FrontEndServer::ConnectPipe()
+{
+	HANDLE hServer = m_Transport.m_hServer;
+	LPOVERLAPPED ov = &m_Transport.m_oOverlap;
+
+	BOOL fSuccess = ::ConnectNamedPipe(hServer, ov);
+	if (fSuccess)
+	{
+		PrintErrorWithFunctionName(L"ConnectNamedPipe");
+		::DisconnectNamedPipe(hServer);
+		return FALSE;
+	}
+
+	DWORD gle = ::GetLastError();
+
+	switch (gle)
+	{
+	case ERROR_IO_PENDING:
+		m_Transport.m_fPendingIo = TRUE;
+		m_Transport.m_dwServerState = ServerState::Connecting;
+		break;
+
+	case ERROR_PIPE_CONNECTED:
+		m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
+		::SetEvent(ov->hEvent);
+		break;
+
+	default:
+		m_Transport.m_dwServerState = ServerState::Disconnected;
+		xlog(LOG_ERROR, L"ConnectNamedPipe failed with %d.\n", gle);
+		fSuccess = false;
+		break;
+	}
+
+	return TRUE;
+}
+
+
+/*++
+
+Routine Description:
+
+
+Arguments:
+
+	task -
+
+
+Return Value:
+
+	Returns an array of byte with the serialized TLV message
+
+--*/
 byte* PrepareTlvMessageFromTask(_In_ Task& task)
 {
 	byte* msg = nullptr;
@@ -293,7 +413,8 @@ Return Value:
 --*/
 DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 {
-	HANDLE hServer = Session.FrontEndServer.m_hServerHandle;
+	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
+	LPOVERLAPPED ov = &Session.FrontEndServer.m_Transport.m_oOverlap;
 	json j;
 
 	//
@@ -351,7 +472,7 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 		buf,
 		dwBufferSize,
 		&dwNbByteWritten,
-		NULL
+		ov
 	);
 
 	delete[] buf;
@@ -392,241 +513,220 @@ Return Value:
 DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
-	DWORD dwNumberOfBytesWritten, dwWaitResult;
-	HANDLE Handles[2] = { 0 };
+	DWORD dwNumberOfBytesWritten, dwIndexObject, cbRet;
 	DWORD retcode = ERROR_SUCCESS;
+	HANDLE hServerEvent = Sess.FrontEndServer.m_Transport.m_oOverlap.hEvent;
+	HANDLE hTermEvent = Sess.m_hTerminationEvent;
+	HANDLE hResEvent = Sess.ResponseTasks.m_hPushEvent;
+	BOOL fSuccess;
 
-	OVERLAPPED ov = { 0 };
-	ov.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
-	if (!ov.hEvent)
-		return ::GetLastError();
-
-	DWORD err;
+	const HANDLE Handles[3] = {
+		hTermEvent,
+		hServerEvent,
+		hResEvent
+	};
 
 	while (Sess.IsRunning())
 	{
-
-		//
-		// is there pending pipe connection
-		//
-
-		BOOL bRes = ::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, &ov);
-		if (bRes)
-		{
-			//
-			// a client has disconnected
-			//
-			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
-			continue;
-		}
-
-
 		//
 		// Wait for the pipe to be written to, or a termination notification event
 		//
 
-		Handles[0] = Sess.m_hTerminationEvent;
-		Handles[1] = Sess.FrontEndServer.m_hServerHandle;
-		//Handles[1] = ov.hEvent;
+		dwIndexObject = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE) - WAIT_OBJECT_0;
 
-		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
-
-		switch (dwWaitResult)
+		if (dwIndexObject < 0 || dwIndexObject >= _countof(Handles))
 		{
-		case WAIT_OBJECT_0:
+			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
+			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			Sess.Stop();
+			continue;
+		}
+
+
+		//
+		// if we received a termination event, stop everything
+		//
+		if (dwIndexObject == 0)
+		{
 #ifdef _DEBUG
 			xlog(LOG_DEBUG, L"received termination Event\n");
 #endif // _DEBUG
-
 			Sess.Stop();
 			continue;
+		}
 
-		case WAIT_OBJECT_0 + 1:
-			xlog(LOG_DEBUG, L"in\n");
-			err = ::GetLastError();
-			if (err == ERROR_NO_DATA)
+		HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
+		
+
+		//
+		// otherwise, start by checking for pending IOs and update the state if needed
+		//
+		LPOVERLAPPED ov = &Sess.FrontEndServer.m_Transport.m_oOverlap;
+
+		if (Sess.FrontEndServer.m_Transport.m_fPendingIo)
+		{
+			fSuccess = ::GetOverlappedResult(hServer, ov, &cbRet, FALSE);
+
+			if (!fSuccess)
 			{
-				xlog(LOG_DEBUG, L"in1\n");
-				::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
-				ResetEvent(ov.hEvent);
+				//
+				// assume the connection has closed
+				//
+				Sess.FrontEndServer.DisconnectAndReconnectPipe();
 				continue;
 			}
-			else if (err == ERROR_PIPE_CONNECTED)
+
+			//
+			// we know which IO operation finished, upgrade the state to the next one
+			//
+			switch (Sess.FrontEndServer.m_Transport.m_dwServerState)
 			{
-				xlog(LOG_DEBUG, L"in2\n");
-				ResetEvent(ov.hEvent);
+			case ServerState::Connecting:
+				xlog(LOG_DEBUG, L"new connection\n");
+				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
 				break;
-			}
-			else
-			{
-				retcode = ERROR_PIPE_NOT_CONNECTED;
+
+			case ServerState::ReadyToReadFromClient:
+				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromServer;
+				break;
+
+			case ServerState::ReadyToReadFromServer:
+				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
+				break;
+
+			default:
+				xlog(LOG_ERROR, L"Connection is in an invalid state, resetting...\n");
+				Sess.FrontEndServer.DisconnectAndReconnectPipe();
 				continue;
 			}
-			/*
-			xlog(LOG_DEBUG, L"in\n");
-			if (!::ConnectNamedPipe(Sess.FrontEndServer.m_hServerHandle, &ov))
+		}
+
+
+		//
+		// process the state itself
+		//	
+		ServerState State = Sess.FrontEndServer.m_Transport.m_dwServerState;
+		
+		if (State == ServerState::ReadyToReadFromClient && dwIndexObject == 1)
+		{
+			try
 			{
-				xlog(LOG_DEBUG, L"ConnectNamedPipe -> %x\n", ::GetLastError());
-				if (::GetLastError() != ERROR_PIPE_CONNECTED)
+				//
+				// build a Task object from the next message read from the pipe
+				//
+				Task task(Sess.FrontEndServer.m_Transport.m_hServer, &Sess.FrontEndServer.m_Transport.m_oOverlap);
+
+#ifdef _DEBUG
+				xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
+#endif // _DEBUG
+
+				switch (task.Type())
 				{
-					retcode = ERROR_PIPE_NOT_CONNECTED;
+				case TaskType::GetInterceptedIrps:
+					//
+					// if the request is of type `GetInterceptedIrps`, the function
+					// exports in a JSON format all the IRPs from the IRP session queue
+					//
+					SendInterceptedIrpsAsJson(Sess); 
 					continue;
+
+				case TaskType::ReplayIrp:
+					//
+					// Replay the IRP
+					//
+					// TODO
+				default:
+
+					// push the task to request task list
+					Sess.RequestTasks.push(task);
+
+					// change the state
+					Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromServer;
 				}
 			}
-
-			xlog(LOG_DEBUG, L"out\n");
-
-			ResetEvent(ov.hEvent);
-			*/
-			break;
-
-		default:
-			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
-			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
-			Sess.Stop();
-			continue;
-		}
-
-		if (retcode != ERROR_SUCCESS)
-			break;
-
-
-		try
-		{
-			//
-			// Construct a Task object from the next message read from the pipe
-			//
-			auto task = Task(Sess.FrontEndServer.m_hServerHandle);
-
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
-#endif // _DEBUG
-
-
-
-			switch (task.Type())
+			catch (BrokenPipeException&)
 			{
-			case TaskType::GetInterceptedIrps:
-				//
-				// if the request is of type `GetInterceptedIrps`, the function
-				// exports in a JSON format all the IRPs from the IRP session queue
-				//
-				SendInterceptedIrpsAsJson(Sess);
+				xlog(LOG_WARNING, L"Broken pipe detected...\n");
+				Sess.FrontEndServer.DisconnectAndReconnectPipe();
 				continue;
-
-			case TaskType::ReplayIrp:
-				//
-				// Replay the IRP
-				//
-				// TODO
-			default:
-				//
-				// push the task to request task list
-				//
-				Sess.RequestTasks.push(task);
 			}
-		}
-		catch (BrokenPipeException&)
-		{
-			xlog(LOG_WARNING, L"Broken pipe detected...\n");
-			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
-			continue;
-		}
-		catch (BaseException& e)
-		{
-			xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
-			continue;
-		}
-
-
-
-		//
-		// Wait for either the response or a termination event
-		//
-		Handles[0] = Sess.m_hTerminationEvent;
-		Handles[1] = Sess.ResponseTasks.m_hPushEvent;
-
-		dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, FALSE, INFINITE);
-
-		switch (dwWaitResult)
-		{
-		case WAIT_OBJECT_0:
-			Sess.Stop();
-			continue;
-
-		case WAIT_OBJECT_0 + 1:
-			// normal case
-			break;
-
-		default:
-			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
-			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
-			Sess.Stop();
-			continue;
-		}
-
-
-		try
-		{
-
-			//
-			// blocking-pop on response task list
-			//
-			auto task = Sess.ResponseTasks.pop();
-
-
-			//
-			// write the message to the pipe
-			//
-			auto msg = task.AsTlv();
-			DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
-
-			BOOL bRes = ::WriteFile(
-				Sess.FrontEndServer.m_hServerHandle,
-				msg,
-				msglen,
-				&dwNumberOfBytesWritten,
-				NULL
-			);
-
-			if (!bRes || dwNumberOfBytesWritten != msglen)
+			catch (BaseException & e)
 			{
-				PrintErrorWithFunctionName(L"WriteFile()");
+				xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
+				continue;
 			}
 
-			
+		}
+		else if (State == ServerState::ReadyToReadFromServer && dwIndexObject == 2)
+		{
+			try
+			{
 
-			//
-			// cleanup
-			//
-			delete[] msg;
+				//
+				// blocking-pop on response task list
+				//
+				auto task = Sess.ResponseTasks.pop();
 
-			task.SetState(TaskState::Completed);
+
+				//
+				// write the message to the pipe
+				//
+				auto msg = task.AsTlv();
+				DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
+
+				BOOL bRes = ::WriteFile(
+					hServer,
+					msg,
+					msglen,
+					&dwNumberOfBytesWritten,
+					NULL
+				);
+
+				if (!bRes || dwNumberOfBytesWritten != msglen)
+				{
+					PrintErrorWithFunctionName(L"WriteFile()");
+				}
+
+
+				//
+				// cleanup
+				//
+				delete[] msg;
+
+				task.SetState(TaskState::Completed);
 
 #ifdef _DEBUG
-			xlog(LOG_DEBUG, L"task tid=%d sent to frontend (%dB), terminating...\n", task.Id(), dwNumberOfBytesWritten);
+				xlog(LOG_DEBUG, L"task tid=%d sent to frontend (%dB), terminating...\n", task.Id(), dwNumberOfBytesWritten);
 #endif // _DEBUG
+
+				// change the state
+				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
+			}
+			catch (BrokenPipeException&)
+			{
+				xlog(LOG_WARNING, L"Broken pipe detected...\n");
+				Sess.FrontEndServer.DisconnectAndReconnectPipe();
+				continue;
+			}
+			catch (BaseException & e)
+			{
+				xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
+				continue;
+			}
 		}
-		catch (BrokenPipeException&)
+		else
 		{
-			xlog(LOG_WARNING, L"Broken pipe detected...\n");
-			::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
-			continue;
+			xlog(LOG_ERROR, L"Invalid state detected, resetting...\n");
+			Sess.FrontEndServer.DisconnectAndReconnectPipe();
 		}
-		catch (BaseException& e)
-		{
-			xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
-			continue;
-		}
+
 	}
 
 #ifdef _DEBUG
-	xlog(LOG_DEBUG, L"terminating thread TID=%d with retcode=%d\n", GetThreadId(GetCurrentThread()), retcode);
+	xlog(LOG_DEBUG, L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
 #endif // _DEBUG
 
-	::DisconnectNamedPipe(Sess.FrontEndServer.m_hServerHandle);
-
-	return retcode;
+	return ERROR_SUCCESS;
 }
 
 
