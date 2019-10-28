@@ -42,7 +42,7 @@ Task::Task(HANDLE Handle, LPOVERLAPPED ov)
 
 
 	//
-	// Read the header (Type, Length)
+	// Synchronously read the header (Type, Length)
 	//
 	std::vector<DWORD> headers(2);
 
@@ -79,7 +79,7 @@ Task::Task(HANDLE Handle, LPOVERLAPPED ov)
 
 
 	//
-	// then allocate, and read the data
+	// then allocate, and read the data synchronously
 	//
 	DWORD dwDataLength = headers[1];
 	PVOID tmp_data = new byte[dwDataLength];

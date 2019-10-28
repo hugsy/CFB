@@ -156,7 +156,7 @@ BOOL FrontEndServer::CreatePipe()
 			break;
 		}
 
-		m_Transport.m_oOverlap.hEvent = ::CreateEvent(nullptr, TRUE, TRUE, nullptr);
+		m_Transport.m_oOverlap.hEvent = ::CreateEvent(nullptr, FALSE, TRUE, nullptr);
 		if (!m_Transport.m_oOverlap.hEvent)
 		{
 			xlog(LOG_CRITICAL, L"failed to create an event object for frontend thread\n");
@@ -414,7 +414,6 @@ Return Value:
 DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 {
 	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
-	LPOVERLAPPED ov = &Session.FrontEndServer.m_Transport.m_oOverlap;
 	json j;
 
 	//
@@ -467,12 +466,15 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 	::memcpy(&p[3], result.c_str(), result.length());
 
 
+	//
+	// Sync write back the whole JSON message
+	//
 	BOOL fSuccess = ::WriteFile(
 		hServer,
 		buf,
 		dwBufferSize,
 		&dwNbByteWritten,
-		ov
+		NULL
 	);
 
 	delete[] buf;
@@ -516,14 +518,16 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 	DWORD dwNumberOfBytesWritten, dwIndexObject, cbRet;
 	DWORD retcode = ERROR_SUCCESS;
 	HANDLE hServerEvent = Sess.FrontEndServer.m_Transport.m_oOverlap.hEvent;
+	HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
 	HANDLE hTermEvent = Sess.m_hTerminationEvent;
 	HANDLE hResEvent = Sess.ResponseTasks.m_hPushEvent;
 	BOOL fSuccess;
 
-	const HANDLE Handles[3] = {
+	const HANDLE Handles[4] = {
 		hTermEvent,
 		hServerEvent,
-		hResEvent
+		hResEvent,
+		hServer
 	};
 
 	while (Sess.IsRunning())
@@ -555,16 +559,16 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			continue;
 		}
 
-		HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
+		//HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
 		
 
 		//
 		// otherwise, start by checking for pending IOs and update the state if needed
 		//
-		LPOVERLAPPED ov = &Sess.FrontEndServer.m_Transport.m_oOverlap;
 
-		if (Sess.FrontEndServer.m_Transport.m_fPendingIo)
+		if (Sess.FrontEndServer.m_Transport.m_dwServerState == ServerState::Connecting)
 		{
+			LPOVERLAPPED ov = &Sess.FrontEndServer.m_Transport.m_oOverlap;
 			fSuccess = ::GetOverlappedResult(hServer, ov, &cbRet, FALSE);
 
 			if (!fSuccess)
@@ -576,29 +580,12 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				continue;
 			}
 
-			//
-			// we know which IO operation finished, upgrade the state to the next one
-			//
-			switch (Sess.FrontEndServer.m_Transport.m_dwServerState)
-			{
-			case ServerState::Connecting:
-				xlog(LOG_DEBUG, L"new connection\n");
-				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
-				break;
+#ifdef _DEBUG
+			xlog(LOG_DEBUG, L"new pipe connection\n");
+#endif // _DEBUG
 
-			case ServerState::ReadyToReadFromClient:
-				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromServer;
-				break;
+			Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
 
-			case ServerState::ReadyToReadFromServer:
-				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
-				break;
-
-			default:
-				xlog(LOG_ERROR, L"Connection is in an invalid state, resetting...\n");
-				Sess.FrontEndServer.DisconnectAndReconnectPipe();
-				continue;
-			}
 		}
 
 
@@ -607,7 +594,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//	
 		ServerState State = Sess.FrontEndServer.m_Transport.m_dwServerState;
 		
-		if (State == ServerState::ReadyToReadFromClient && dwIndexObject == 1)
+		if (State == ServerState::ReadyToReadFromClient)
 		{
 			try
 			{
@@ -657,7 +644,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			}
 
 		}
-		else if (State == ServerState::ReadyToReadFromServer && dwIndexObject == 2)
+		else if (State == ServerState::ReadyToReadFromServer)
 		{
 			try
 			{
@@ -716,7 +703,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		}
 		else
 		{
-			xlog(LOG_ERROR, L"Invalid state detected, resetting...\n");
+			xlog(LOG_WARNING, L"Unexpected state (state=%d, fd=%d), invalid?\n", State, dwIndexObject);
 			Sess.FrontEndServer.DisconnectAndReconnectPipe();
 		}
 
