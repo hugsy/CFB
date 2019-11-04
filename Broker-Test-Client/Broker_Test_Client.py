@@ -12,7 +12,7 @@ from ctypes import *
 from ctypes.wintypes import *
 from struct import *
 
-import json, pprint, sys
+import json, pprint, sys, time
 
 
 #
@@ -77,7 +77,7 @@ def FormatMessage(dwMessageId):
     return lpErrorMessage
 
 
-TEST_DRIVER_NAME = "\\driver\\vboxguest"
+TEST_DRIVER_NAME = "\\driver\\lxss"
 BUFSIZE = 4096
 
 
@@ -228,7 +228,9 @@ class BrokerTestMethods:
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
         assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
         dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_GetInterceptedIrps::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
-        assert json.loads(szBuf[12:cbRead.value])
+        data = json.loads(szBuf[12:cbRead.value])
+        assert data
+        pprint.pprint(data)
         return
 
 
@@ -240,7 +242,12 @@ if __name__ == '__main__':
     print("HookDriver() success")
     r.test_EnableMonitoring()
     print("EnableMonitoring() success")
-    r.test_GetInterceptedIrps()
+    while True:
+        try:
+            r.test_GetInterceptedIrps()
+            time.sleep(1)
+        except KeyboardInterrupt:
+            break
     print("GetInterceptedIrps() success")
     r.test_DisableMonitoring()
     print("DisableMonitoring() success")
