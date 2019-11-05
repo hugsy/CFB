@@ -1,5 +1,10 @@
 #pragma once
 
+#ifndef _DRIVER
+#include <Windows.h>
+#include <stdio.h>
+#endif
+
 #define CFB_PROGRAM_NAME			L"Canadian Fuzzy Bear"
 #define CFB_PROGRAM_NAME_SHORT		L"CFB"
 #define CFB_AUTHOR					L"@_hugsy_"
@@ -32,14 +37,15 @@
 
 
 #ifdef _DEBUG
+
 /* Debug */
 #define GEN_FMT L"in '%s'(%s:%d) [%d] "
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
 #define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, FUNCTIONW, FILENAMEW, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
 
 #else
-/* Release */
 
+/* Release */
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
 
 #endif /* _DEBUG_ */
