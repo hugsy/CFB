@@ -1,47 +1,29 @@
+# https://aka.ms/yaml
+
 trigger:
   batch: true
   branches:
     include:
     - master
 
-pool:
-  vmImage: 'windows-latest'
-
-
 variables:
-  solution: '**/*.sln'
+  solution: 'CFB.sln'
   buildPlatform: 'x86|x64'
   buildConfiguration: 'Release|Debug'
   appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
 
-
-steps:
-- task: NuGetToolInstaller@0
-
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
-
-- task: VSBuild@1
-  displayName: 'Building Broker'
-  name: 'CompileBroker'
-  inputs:
-    solution: '$(solution)'
-    projectFile: '**/Broker.vcxproj'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
-    logFileVerbosity: 'detailed'
-    
-
-- task: VSBuild@1
-  inputs:
-    platform: 'x86|x64'
-    solution: '$(solution)'
-    configuration: '$(buildConfiguration)'
-    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Always /p:UapAppxPackageBuildMode=StoreUpload'
-    projectFile: '**/GUI.vcxproj'
-
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
+jobs:
+- job: 'Build_Broker_Windows64'
+  pool:
+    vmImage: 'windows-2019'
+  steps:
+  - task: MSBuild@1
+    displayName: 'Build Broker 64-bit'
+    inputs: 
+      msbuildArguments: '-nologo /m /p:Configuration=Release'
+      solution: CFB.sln
+  - task: PublishBuildArtifacts@1
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    inputs:
+      pathtoPublish: './build'
+      artifactName: win64build
