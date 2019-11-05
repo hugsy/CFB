@@ -23,7 +23,7 @@
                        Style="{ThemeResource TitleTextBlockStyle}"
                        Text="IRP Broker location" />
 
-            <TextBlock Text="The auto-fuzz policy automatically run fuzzing instances for each IRP received. Althouth this helps finding bugs automatically, it might make the system unstable."/>
+            <TextBlock Text="Specify here the path to the named pipe of the CFB Broker. Default locations can be local (e.g. pipe:\\.\pipe\cfb) or remote (e.g. \\IP.ADDRESS\pipe\cfb or file://IP.ADDRESS/pipe/cfb)"/>
 
             <TextBox Margin="0,5,1000,0" 
                      BorderBrush="Green"

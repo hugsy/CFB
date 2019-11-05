@@ -77,6 +77,9 @@ def FormatMessage(dwMessageId):
     return lpErrorMessage
 
 
+PIPE_PATH_LOCAL = b"\\\\.\\pipe\\CFB"
+PIPE_PATH_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
+PIPE_PATH = PIPE_PATH_LOCAL
 TEST_DRIVER_NAME = "\\driver\\lxss"
 BUFSIZE = 4096
 
@@ -122,7 +125,7 @@ class BrokerTestMethods:
 
     def test_OpenPipe(self):
         hPipe = windll.kernel32.CreateFileA(
-            b"\\\\.\\pipe\\CFB", 
+            PIPE_PATH, 
             GENERIC_READ | GENERIC_WRITE, 
             0, 
             None, 

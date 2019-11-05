@@ -16,7 +16,7 @@ namespace GUI.Models
         /// <summary>
         /// 
         /// </summary>
-        public const string ProjectAuthor = "@_hugsy_";
+        public const string ProjectAuthor = "@hugsy";
 
         /// <summary>
         /// 

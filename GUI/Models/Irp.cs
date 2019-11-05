@@ -7,24 +7,11 @@ using System.Runtime.InteropServices;
 
 namespace GUI.Models
 {
+         
     /// <summary>
-    /// This structure mimics the structure SNIFFED_DATA_HEADER from the driver IrpDumper (IrpDumper\PipeComm.h)
+    /// Represents IRP
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct IrpHeader
-    {
-        public ulong TimeStamp;
-        public UInt32 Irql;
-        public UInt32 Type;
-        public UInt32 IoctlCode;
-        public UInt32 ProcessId;
-        public UInt32 ThreadId;
-        public UInt32 InputBufferLength;
-        public UInt32 OutputBufferLength;
-    }
-
-
-    public class Irp
+    public class Irp : DbObject, IEquatable<Irp>
     {
         public enum IrpMajorType : uint
         {
@@ -59,127 +46,91 @@ namespace GUI.Models
             IRP_MJ_PNP_POWER = IRP_MJ_PNP,
         };
 
-        public IrpHeader Header;
+        public DateTime TimeStamp;
+        public UInt32 IrqLevel;
+        public UInt32 Type;
+        public UInt32 IoctlCode;
+        public UInt32 ProcessId;
+        public UInt32 ThreadId;
+        public UInt32 InputBufferLength;
+        public UInt32 OutputBufferLength;
         public string DriverName;
         public string DeviceName;
         public string ProcessName;
         public byte[] Body;
 
-        public Irp()
-        {
-        }
+
+        public bool Equals(Irp other) =>
+            TimeStamp == other.TimeStamp &&
+            IrqLevel == other.IrqLevel &&
+            Type == other.Type &&
+            IoctlCode == other.IoctlCode &&
+            ProcessId == other.ProcessId && ThreadId == other.ThreadId &&
+            DriverName == other.DriverName && DeviceName == other.DeviceName &&
+            Body == other.Body;
 
 
-        protected Irp(Irp another)
-        {
-            Header = another.Header;
-            DriverName = another.DriverName;
-            DeviceName = another.DeviceName;
-            ProcessName = another.ProcessName;
-            Body = another.Body.ToArray();
-        }
+        public override string ToString() => 
+            $"IRP{{'{DeviceName}', Type:{TypeAsString(this.Type)}, PID:#{this.ProcessId} }}";
 
-
-        public Irp Clone()
-        {
-            return new Irp(this);
-        }
-
-
-        public override string ToString()
-        {
-            return $"IRP{{'{DeviceName}', Type:{TypeAsString(this.Header.Type)}, PID:#{Header.ProcessId} }}";
-        }
 
         public static string TypeAsString(UInt32 type)
         {
             switch ((Irp.IrpMajorType)type)
             {
-                case IrpMajorType.IRP_MJ_CREATE:
-                    return "IRP_MJ_CREATE"; //00
-                case IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE:
-                    return "IRP_MJ_CREATE_NAMED_PIPE"; //01,
-                case IrpMajorType.IRP_MJ_CLOSE:
-                    return "IRP_MJ_CLOSE"; //02,
-                case IrpMajorType.IRP_MJ_READ:
-                    return "IRP_MJ_READ"; //03,
-                case IrpMajorType.IRP_MJ_WRITE:
-                    return "IRP_MJ_WRITE"; //04,
-                case IrpMajorType.IRP_MJ_QUERY_INFORMATION:
-                    return "IRP_MJ_QUERY_INFORMATION"; //05,
-                case IrpMajorType.IRP_MJ_SET_INFORMATION:
-                    return "IRP_MJ_SET_INFORMATION"; //06,
-                case IrpMajorType.IRP_MJ_QUERY_EA:
-                    return "IRP_MJ_QUERY_EA"; //07,
-                case IrpMajorType.IRP_MJ_SET_EA:
-                    return "IRP_MJ_SET_EA"; //08,
-                case IrpMajorType.IRP_MJ_FLUSH_BUFFERS:
-                    return "IRP_MJ_FLUSH_BUFFERS"; //09,
-                case IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION:
-                    return "IRP_MJ_QUERY_VOLUME_INFORMATION"; //0a,
-                case IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION:
-                    return "IRP_MJ_SET_VOLUME_INFORMATION"; //0b,
-                case IrpMajorType.IRP_MJ_DIRECTORY_CONTROL:
-                    return "IRP_MJ_DIRECTORY_CONTROL"; //0c,
-                case IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL:
-                    return "IRP_MJ_FILE_SYSTEM_CONTROL"; //0d,
-                case IrpMajorType.IRP_MJ_DEVICE_CONTROL:
-                    return "IRP_MJ_DEVICE_CONTROL"; //0e,
-                case IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:
-                    return "IRP_MJ_INTERNAL_DEVICE_CONTROL"; //0f,
-                case IrpMajorType.IRP_MJ_SHUTDOWN:
-                    return "IRP_MJ_SHUTDOWN"; //10,
-                case IrpMajorType.IRP_MJ_LOCK_CONTROL:
-                    return "IRP_MJ_LOCK_CONTROL"; //11,
-                case IrpMajorType.IRP_MJ_CLEANUP:
-                    return "IRP_MJ_CLEANUP"; //12,
-                case IrpMajorType.IRP_MJ_CREATE_MAILSLOT:
-                    return "IRP_MJ_CREATE_MAILSLOT"; //13,
-                case IrpMajorType.IRP_MJ_QUERY_SECURITY:
-                    return "IRP_MJ_QUERY_SECURITY"; //14,
-                case IrpMajorType.IRP_MJ_SET_SECURITY:
-                    return "IRP_MJ_SET_SECURITY"; //15,
-                case IrpMajorType.IRP_MJ_POWER:
-                    return "IRP_MJ_POWER"; //16,
-                case IrpMajorType.IRP_MJ_SYSTEM_CONTROL:
-                    return "IRP_MJ_SYSTEM_CONTROL"; //17,
-                case IrpMajorType.IRP_MJ_DEVICE_CHANGE:
-                    return "IRP_MJ_DEVICE_CHANGE"; //18,
-                case IrpMajorType.IRP_MJ_QUERY_QUOTA:
-                    return "IRP_MJ_QUERY_QUOTA"; //19,
-                case IrpMajorType.IRP_MJ_SET_QUOTA:
-                    return "IRP_MJ_SET_QUOTA"; //1a,
-                case IrpMajorType.IRP_MJ_PNP:
-                    return "IRP_MJ_PNP";//0x1b,
+                case IrpMajorType.IRP_MJ_CREATE:                    return "IRP_MJ_CREATE"; //00
+                case IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE:         return "IRP_MJ_CREATE_NAMED_PIPE"; //01,
+                case IrpMajorType.IRP_MJ_CLOSE:                     return "IRP_MJ_CLOSE"; //02,
+                case IrpMajorType.IRP_MJ_READ:                      return "IRP_MJ_READ"; //03,
+                case IrpMajorType.IRP_MJ_WRITE:                     return "IRP_MJ_WRITE"; //04,
+                case IrpMajorType.IRP_MJ_QUERY_INFORMATION:         return "IRP_MJ_QUERY_INFORMATION"; //05,
+                case IrpMajorType.IRP_MJ_SET_INFORMATION:           return "IRP_MJ_SET_INFORMATION"; //06,
+                case IrpMajorType.IRP_MJ_QUERY_EA:                  return "IRP_MJ_QUERY_EA"; //07,
+                case IrpMajorType.IRP_MJ_SET_EA:                    return "IRP_MJ_SET_EA"; //08,
+                case IrpMajorType.IRP_MJ_FLUSH_BUFFERS:             return "IRP_MJ_FLUSH_BUFFERS"; //09,
+                case IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION:  return "IRP_MJ_QUERY_VOLUME_INFORMATION"; //0a,
+                case IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION:    return "IRP_MJ_SET_VOLUME_INFORMATION"; //0b,
+                case IrpMajorType.IRP_MJ_DIRECTORY_CONTROL:         return "IRP_MJ_DIRECTORY_CONTROL"; //0c,
+                case IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL:       return "IRP_MJ_FILE_SYSTEM_CONTROL"; //0d,
+                case IrpMajorType.IRP_MJ_DEVICE_CONTROL:            return "IRP_MJ_DEVICE_CONTROL"; //0e,
+                case IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:   return "IRP_MJ_INTERNAL_DEVICE_CONTROL"; //0f,
+                case IrpMajorType.IRP_MJ_SHUTDOWN:                  return "IRP_MJ_SHUTDOWN"; //10,
+                case IrpMajorType.IRP_MJ_LOCK_CONTROL:              return "IRP_MJ_LOCK_CONTROL"; //11,
+                case IrpMajorType.IRP_MJ_CLEANUP:                   return "IRP_MJ_CLEANUP"; //12,
+                case IrpMajorType.IRP_MJ_CREATE_MAILSLOT:           return "IRP_MJ_CREATE_MAILSLOT"; //13,
+                case IrpMajorType.IRP_MJ_QUERY_SECURITY:            return "IRP_MJ_QUERY_SECURITY"; //14,
+                case IrpMajorType.IRP_MJ_SET_SECURITY:              return "IRP_MJ_SET_SECURITY"; //15,
+                case IrpMajorType.IRP_MJ_POWER:                     return "IRP_MJ_POWER"; //16,
+                case IrpMajorType.IRP_MJ_SYSTEM_CONTROL:            return "IRP_MJ_SYSTEM_CONTROL"; //17,
+                case IrpMajorType.IRP_MJ_DEVICE_CHANGE:             return "IRP_MJ_DEVICE_CHANGE"; //18,
+                case IrpMajorType.IRP_MJ_QUERY_QUOTA:               return "IRP_MJ_QUERY_QUOTA"; //19,
+                case IrpMajorType.IRP_MJ_SET_QUOTA:                 return "IRP_MJ_SET_QUOTA"; //1a,
+                case IrpMajorType.IRP_MJ_PNP:                       return "IRP_MJ_PNP";//0x1b,
             }
-            return $"<UNKNOWN_MJ_{type}>";
+            return $"IRP_MJ_UNKNOWN_NUM_{type}";
         }
+
 
         public string TypeAsString()
         {
-            return TypeAsString(this.Header.Type);
+            return TypeAsString(this.Type);
         }
+
 
         public static string IrqlAsString(UInt32 irql)
         {
             switch (irql)
             {
-                case 0:
-                    return "PASSIVE_LEVEL";
-
-                case 1:
-                    return "APC_LEVEL";
-
-                case 2:
-                    return "DPC_LEVEL";
+                case 0:                    return "PASSIVE_LEVEL";
+                case 1:                    return "APC_LEVEL";
+                case 2:                    return "DPC_LEVEL";
             }
-
             return "<unknown>";
         }
 
         public string IrqlAsString()
         {
-            return IrqlAsString(this.Header.Irql);
+            return IrqlAsString(this.IrqLevel);
         }
 
     }

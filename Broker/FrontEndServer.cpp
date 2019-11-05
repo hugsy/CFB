@@ -137,7 +137,7 @@ BOOL FrontEndServer::CreatePipe()
 		//
 		// create the overlapped pipe
 		//
-		m_Transport.m_hServer = ::CreateNamedPipe(
+		HANDLE hServer = ::CreateNamedPipe(
 			CFB_PIPE_NAME,
 			PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
 			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_ACCEPT_REMOTE_CLIENTS | PIPE_WAIT,
@@ -148,13 +148,14 @@ BOOL FrontEndServer::CreatePipe()
 			&SecurityAttributes
 		);
 
-		HANDLE hServer = m_Transport.m_hServer;
 		if (hServer == INVALID_HANDLE_VALUE)
 		{
 			PrintErrorWithFunctionName(L"CreateNamedPipe()");
 			fSuccess = FALSE;
 			break;
 		}
+
+		m_Transport.m_hServer = hServer;
 
 		m_Transport.m_oOverlap.hEvent = ::CreateEvent(nullptr, FALSE, TRUE, nullptr);
 		if (!m_Transport.m_oOverlap.hEvent)

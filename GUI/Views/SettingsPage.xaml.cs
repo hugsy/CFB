@@ -15,7 +15,6 @@ using Windows.UI.Xaml.Navigation;
 using Windows.Storage;
 
 
-
 namespace GUI.Views
 {
     /// <summary>
@@ -29,11 +28,6 @@ namespace GUI.Views
         public SettingsPage()
         {
             this.InitializeComponent();
-        }
-
-        public bool IsBrokerLocationValid()
-        {
-            return true;
         }
 
 
@@ -58,7 +52,7 @@ namespace GUI.Views
             {
                 var uri = new Uri(location);
 
-                if (uri.Scheme != "tcp" && uri.Scheme != "pipe")
+                if (uri.Scheme != "file")
                     return false;
 
                 return true;
