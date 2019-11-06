@@ -542,7 +542,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		if (dwIndexObject < 0 || dwIndexObject >= _countof(Handles))
 		{
 			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
-			xlog(LOG_CRITICAL, "WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			xlog(LOG_CRITICAL, L"WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
 			Sess.Stop();
 			continue;
 		}

@@ -6,6 +6,7 @@
     xmlns:uc="using:GUI.UserControls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:Microsoft.Toolkit.Uwp.UI.Controls"
     mc:Ignorable="d"
     NavigationCacheMode="Required"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
@@ -18,7 +19,7 @@
                 Tag="&#xE1A5;"
                 Text="Show IRP Details" />
 
-                <!-- Click="SaveAsRawFile_Click" -->
+            <!-- Click="SaveAsRawFile_Click" -->
             <MenuFlyoutItem               
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
@@ -39,13 +40,62 @@
         </MenuFlyout>
     </Page.Resources>
 
-    <uc:IrpSearchBox
-        x:Name="IrpSearchBox"
-        Width="240"
-        HorizontalAlignment="Right"
-        Margin="12,8,12,0"
-        Loaded="IrpSearchBox_Loaded"
-        RelativePanel.AlignRightWithPanel="True" />
-    
+    <Grid
+        x:Name="LayoutRoot"
+        Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+
+
+        <RelativePanel>
+
+            <TextBlock
+                x:Name="PageTitle"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="Intercepted IRPs" />
+
+            <uc:IrpSearchBox
+                x:Name="IrpSearchBox"
+                Width="240"
+                HorizontalAlignment="Right"
+                Margin="12,8,12,0"
+                Loaded="IrpSearchBox_Loaded"
+                RelativePanel.AlignRightWithPanel="True" />
+            
+            <Grid
+                    Margin="0,20,0,0"
+                    RelativePanel.AlignLeftWithPanel="True"
+                    RelativePanel.AlignRightWithPanel="True"
+                    RelativePanel.Below="PageTitle">
+
+                <toolkit:DataGrid
+                        CanUserReorderColumns="False"
+                        CanUserResizeColumns="False"
+                        AutoGenerateColumns="False"
+                        Sorting="DataGrid_Sorting"
+                        BorderThickness="0"
+                        GridLinesVisibility="None"
+                        ItemsSource="{x:Bind ViewModel.Irps}"
+                        SelectedItem="{x:Bind ViewModel.SelectedIrp, Mode=TwoWay}"
+                        ContextFlyout="{StaticResource DataGridContextMenu}">
+                    <toolkit:DataGrid.Columns>
+                        <toolkit:DataGridTextColumn Header="TimeStamp" Tag="TimeStamp" Binding="{Binding TimeStamp}" />
+                        <toolkit:DataGridTextColumn Header="Driver Name" Tag="DriverName" Binding="{Binding DriverName}" />
+                        <toolkit:DataGridTextColumn Header="Device Name" Tag="DeviceName" Binding="{Binding DeviceName}" />
+                        <toolkit:DataGridTextColumn Header="Process ID" Tag="ProcessId" Binding="{Binding ProcessId}" />
+                        <toolkit:DataGridTextColumn Header="Thread ID" Tag="ThreadId" Binding="{Binding ThreadId}" />
+                        <toolkit:DataGridTextColumn Header="IOCTL Code" Tag="IoctlCode" Binding="{Binding IoctlCode}" />
+                        <!-- add the rest -->
+                    </toolkit:DataGrid.Columns>
+                </toolkit:DataGrid>
+
+                <ProgressBar
+                        Margin="0,50,0,0"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        IsIndeterminate="True"
+                       />
+            </Grid>
+        </RelativePanel>
+    </Grid>
 
 </Page>

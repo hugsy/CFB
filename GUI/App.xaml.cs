@@ -15,6 +15,9 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
+using GUI.ViewModels;
+using GUI.Models;
+
 namespace GUI
 {
     /// <summary>
@@ -80,5 +83,12 @@ namespace GUI
             //TODO: Save application state and stop any background activity
             deferral.Complete();
         }
+
+        /// <summary>
+        /// Static reference to the IRP list view model (main model)
+        /// </summary>
+        public static MainViewModel ViewModel { get; } = new MainViewModel();
+
+        public static IAsyncIrpDatabase Irps { get; private set; }
     }
 }

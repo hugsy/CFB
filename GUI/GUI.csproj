@@ -124,6 +124,7 @@
     </Compile>
     <Compile Include="Models\Constants.cs" />
     <Compile Include="Models\DbObject.cs" />
+    <Compile Include="Models\IAsyncIrpDatabase.cs" />
     <Compile Include="Models\Irp.cs" />
     <Compile Include="Models\MonitoredIrps.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -131,10 +132,13 @@
     <Compile Include="UserControls\IrpSearchBox.xaml.cs">
       <DependentUpon>IrpSearchBox.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ViewModels\BindableBase.cs" />
+    <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\MonitoredIrpViewModel.cs" />
     <Compile Include="Views\AboutPage.xaml.cs">
       <DependentUpon>AboutPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\DataGridHelper.cs" />
     <Compile Include="Views\MonitoredIrpsPage.xaml.cs">
       <DependentUpon>MonitoredIrpsPage.xaml</DependentUpon>
     </Compile>
@@ -185,7 +189,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
-      <Version>6.2.8</Version>
+      <Version>6.2.9</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Toolkit.Uwp">
+      <Version>5.1.1</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Toolkit.Uwp.UI.Controls.DataGrid">
       <Version>5.1.0</Version>

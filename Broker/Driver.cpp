@@ -544,10 +544,7 @@ _Success_(return)
 BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 {
 	HANDLE hThread;
-
-#ifdef _DEBUG
 	DWORD dwThreadId;
-#endif // _DEBUG
 
 	//
 	// Starts the thread that communicates with the driver

@@ -8,16 +8,11 @@ namespace GUI.Models
 {
     public class MonitoredIrps
     {
-        private List<Irp> IrpList;
+
 
         public MonitoredIrps()
         {
-            IrpList = new List<Irp>();
-        }
 
-        public List<Irp> GetIrps()
-        {
-            return this.IrpList;
         }
     }
 }
