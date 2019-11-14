@@ -15,7 +15,17 @@
             <CommandBar.Content>
                 <Grid/>
             </CommandBar.Content>
-
+            
+            <AppBarButton Label="{x:Bind DisconnectedStatusLabel}" 
+                          ToolTipService.ToolTip="{x:Bind DisconnectedStatusLabel}"
+                          Click="ToggleConnectButton_Click"
+                          >
+                <AppBarButton.Icon>
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE91F;" Foreground="Red" />
+                </AppBarButton.Icon>
+            </AppBarButton>
+            
+            
             <AppBarButton Icon="Play" 
                           Label="{x:Bind StartMonitoringLabel}" 
                           ToolTipService.ToolTip="{x:Bind StartMonitoringLabel}"/>

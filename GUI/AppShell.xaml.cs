@@ -38,6 +38,9 @@ namespace GUI
         public readonly string StopMonitoringLabel = "Stop Monitoring IRPs";
         public readonly string ClearGridLabel = "Clear all intercepted IRPs";
 
+        public readonly string ConnectedStatusLabel = "Connected, click to disconnect...";
+        public readonly string DisconnectedStatusLabel = "Disconnected, click to connect...";
+
 
         public Frame AppFrame => frame;
 
@@ -144,6 +147,9 @@ namespace GUI
         }
 
 
+        private void ToggleConnectButton_Click(object sender, RoutedEventArgs e)
+        {
 
+        }
     }
 }

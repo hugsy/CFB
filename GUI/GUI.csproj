@@ -122,11 +122,13 @@
     <Compile Include="AppShell.xaml.cs">
       <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\Nt.cs" />
     <Compile Include="Models\Constants.cs" />
     <Compile Include="Models\DbObject.cs" />
     <Compile Include="Models\IAsyncIrpDatabase.cs" />
     <Compile Include="Models\Irp.cs" />
     <Compile Include="Models\MonitoredIrps.cs" />
+    <Compile Include="Native\Win32.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\BooleanToVisibilityConverter.cs" />
     <Compile Include="UserControls\IrpSearchBox.xaml.cs">
