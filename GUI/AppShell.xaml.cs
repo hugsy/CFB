@@ -75,10 +75,12 @@ namespace GUI
                 }
                 else if (label == OpenIrpDbLabel)
                 {
-                    InsertIrpsFromPickedFile();
-                    targetPage = typeof(Views.MonitoredIrpsPage);
+                    targetPage = typeof(Views.LoadIrpsFromFilePage);
                 }
-
+                else if (label == SaveIrpDbLabel)
+                {
+                    targetPage = typeof(Views.SaveIrpsToFilePage);
+                }
                 //
                 // TODO: Add other pages
                 //
@@ -86,28 +88,6 @@ namespace GUI
 
             NavView.IsPaneOpen = false;
             AppFrame.Navigate(targetPage);
-        }
-
-
-        private async void InsertIrpsFromPickedFile()
-        {
-            try
-            {
-                var picker = new Windows.Storage.Pickers.FileOpenPicker();
-                picker.ViewMode = Windows.Storage.Pickers.PickerViewMode.Thumbnail;
-                picker.FileTypeFilter.Add(".cfb");
-                Windows.Storage.StorageFile file = await picker.PickSingleFileAsync();
-
-                var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);              
-                byte[] fileContent = buffer.ToArray(); 
-
-                // todo implement
-            }
-            catch(Exception)
-            {
-            }
-            
-            return;
         }
 
 
@@ -129,6 +109,11 @@ namespace GUI
                 else if (e.SourcePageType == typeof(Views.AboutPage))
                     NavView.SelectedItem = AboutMenuItem;
 
+                else if (e.SourcePageType == typeof(Views.LoadIrpsFromFilePage))
+                    NavView.SelectedItem = OpenIrpDbMenuItem;
+
+                else if (e.SourcePageType == typeof(Views.SaveIrpsToFilePage))
+                    NavView.SelectedItem = SaveIrpDbMenuItem;
                 //
                 // TODO add other pages
                 //

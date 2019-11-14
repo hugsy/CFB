@@ -71,6 +71,7 @@
                 </NavigationViewItem>
 
                 <NavigationViewItem
+                    x:Name="AddRemoveDriversMenuItem"
                     Content="{x:Bind ManageDriversLabel}"
                     ToolTipService.ToolTip="Add or remove IRP drivers.">
                     <NavigationViewItem.Icon>
@@ -79,6 +80,7 @@
                 </NavigationViewItem>
 
                 <NavigationViewItem
+                    x:Name="AddRemoveFiltersMenuItem"
                     Content="{x:Bind ManageFiltersLabel}"
                     ToolTipService.ToolTip="Add or remove IRP capture filters.">
                     <NavigationViewItem.Icon>

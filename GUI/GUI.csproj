@@ -139,8 +139,14 @@
       <DependentUpon>AboutPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DataGridHelper.cs" />
+    <Compile Include="Views\LoadIrpsFromFilePage.xaml.cs">
+      <DependentUpon>LoadIrpsFromFilePage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\MonitoredIrpsPage.xaml.cs">
       <DependentUpon>MonitoredIrpsPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\SaveIrpsToFilePage.xaml.cs">
+      <DependentUpon>SaveIrpsToFilePage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
@@ -178,7 +184,15 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Views\LoadIrpsFromFilePage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\MonitoredIrpsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SaveIrpsToFilePage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
