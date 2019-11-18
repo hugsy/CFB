@@ -415,7 +415,13 @@ Return Value:
 DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 {
 	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
-	json j;
+
+	json j = {
+		{"header", {
+			{"success", true},
+			{"gle", ERROR_SUCCESS}
+		}
+	} };
 
 	//
 	// Make sure no element are being added concurrently
@@ -423,7 +429,7 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 	std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
 	size_t i = 0;
 
-	j["entries"] = json::array();
+	j["body"]["entries"] = json::array();
 
 	while(!Session.m_IrpQueue.empty())
 	{
@@ -436,7 +442,7 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 		//
 		// format a new JSON entry
 		//
-		j["entries"].push_back(irp.AsJson());
+		j["body"]["entries"].push_back(irp.AsJson());
 
 
 		//
@@ -449,13 +455,23 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 
 	mlock.unlock();
 
-	j["nb_entries"] = i;
+	j["body"]["nb_entries"] = i;
 
 
 	//
 	// Write the data back
 	//
 
+	DWORD dwNbByteWritten;
+	std::string data = j.dump();
+	BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNbByteWritten, NULL);
+
+	if (!fSuccess)
+	{
+		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+		return ERROR_INVALID_DATA;
+	}
+	/*
 	std::string result(j.dump().c_str());
 	DWORD dwNbByteWritten;
 	DWORD dwBufferSize = (DWORD)result.length() + 3 * sizeof(uint32_t);
@@ -485,10 +501,61 @@ DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
 		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
 		return ERROR_INVALID_DATA;
 	}
-
+	*/
 	return ERROR_SUCCESS;
 }
 
+
+
+/*++
+
+Routine Description:
+
+
+Arguments:
+
+	Session -
+
+
+Return Value:
+
+	Returns 0 on success, -1 on failure.
+
+--*/
+DWORD SendDriverList(_In_ Session& Session)
+{
+	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
+	int i=0;
+	
+	json j = {
+		{"header", {
+			{"success", true},
+			{"gle", ERROR_SUCCESS}
+		}
+	}};
+
+
+	j["body"] = json::array();
+	j["body"]["drivers"] = json::array();
+
+	for (auto &driver_name : Utils::EnumerateDriversFromRoot())
+	{
+		j["body"]["drivers"].push_back(driver_name.c_str());
+		i++;
+	}
+
+	DWORD dwNbByteWritten;
+	std::string data = j.dump();
+	BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNbByteWritten, NULL);
+
+	if (!fSuccess)
+	{
+		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+		return ERROR_INVALID_DATA;
+	}
+
+	return ERROR_SUCCESS;
+}
 
 
 /*++
@@ -513,6 +580,8 @@ Return Value:
 	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
+#define MAX_REQUEST_SIZE 65536
+
 DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
@@ -530,6 +599,11 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		hResEvent,
 		hServer
 	};
+
+	PCHAR lpRequest = (PCHAR)::LocalAlloc(LPTR, MAX_REQUEST_SIZE);
+	if (!lpRequest)
+		return ::GetLastError();
+	DWORD dwRequestSize;
 
 	while (Sess.IsRunning())
 	{
@@ -597,12 +671,29 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		
 		if (State == ServerState::ReadyToReadFromClient)
 		{
+			RtlZeroMemory(lpRequest, MAX_REQUEST_SIZE);
+
 			try
 			{
 				//
+				// read the json message
+				//
+				
+				HANDLE Handle = Sess.FrontEndServer.m_Transport.m_hServer;
+				BOOL fSuccess = ::ReadFile(Handle, lpRequest, MAX_REQUEST_SIZE, &dwRequestSize, NULL);
+				if (!fSuccess)
+					RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
+				
+				auto json_request = json::parse(std::string(lpRequest));
+				TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
+				DWORD dwDataLength = json_request["body"]["data_length"];
+				const byte* lpData = Utils::base64_decode(json_request["body"]["data"]);
+				 
+
+				//
 				// build a Task object from the next message read from the pipe
 				//
-				Task task(Sess.FrontEndServer.m_Transport.m_hServer, &Sess.FrontEndServer.m_Transport.m_oOverlap);
+				Task task(type, lpData, dwDataLength);
 
 #ifdef _DEBUG
 				xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
@@ -611,11 +702,11 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				switch (task.Type())
 				{
 				case TaskType::GetInterceptedIrps:
-					//
-					// if the request is of type `GetInterceptedIrps`, the function
-					// exports in a JSON format all the IRPs from the IRP session queue
-					//
 					SendInterceptedIrpsAsJson(Sess); 
+					continue;
+
+				case TaskType::EnumerateDrivers:
+					SendDriverList(Sess);
 					continue;
 
 				case TaskType::ReplayIrp:
@@ -709,6 +800,8 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		}
 
 	}
+
+	LocalFree(lpRequest);
 
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));

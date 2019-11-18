@@ -84,6 +84,10 @@ namespace GUI
                 {
                     targetPage = typeof(Views.SaveIrpsToFilePage);
                 }
+                else if (label == ManageDriversLabel)
+                {
+                    targetPage = typeof(Views.DriverListPage);
+                }
                 //
                 // TODO: Add other pages
                 //
@@ -95,7 +99,7 @@ namespace GUI
 
 
         /// <summary>
-        /// When navigating to a new page in the root frame, keep track of the 
+        /// When navigating to a new page in the root frame, keep track of the previous page
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -117,6 +121,9 @@ namespace GUI
 
                 else if (e.SourcePageType == typeof(Views.SaveIrpsToFilePage))
                     NavView.SelectedItem = SaveIrpDbMenuItem;
+
+                else if (e.SourcePageType == typeof(Views.DriverListPage))
+                    NavView.SelectedItem = AddRemoveDriversMenuItem;
                 //
                 // TODO add other pages
                 //

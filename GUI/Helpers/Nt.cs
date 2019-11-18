@@ -17,12 +17,13 @@ namespace GUI.Helpers
         /// </summary>
         /// <param name="RootPath"></param>
         /// <returns>A generator of string with Objects name</returns>
-        public static IEnumerable<string> EnumerateDirectoryObjects(string RootPath = "\\.")
+        public static IEnumerable<string> EnumerateDirectoryObjects(string RootPath = "\\")
         {
+            /*
 #pragma warning disable IDE0018 // Inline variable declaration
             SafeFileHandle Handle;
 #pragma warning restore IDE0018 // Inline variable declaration            
-
+            
             do
             {
                 var ObjAttr = new Win32.OBJECT_ATTRIBUTES(RootPath, Win32.OBJ_CASE_INSENSITIVE);
@@ -54,8 +55,12 @@ namespace GUI.Helpers
                 Handle.Dispose();
             }
             while (false);
+            */
 
+            yield return "\\driver\\foobar";
+            yield return "\\driver\\foobaz";
         }
+
 
     }
 }

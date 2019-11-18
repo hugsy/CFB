@@ -1,0 +1,186 @@
+﻿<Page
+    x:Class="GUI.Views.DriverListPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:GUI.Models"
+    xmlns:local="using:GUI.Views"
+    xmlns:vm="using:GUI.ViewModels"
+    xmlns:uc="using:GUI.UserControls"
+    xmlns:sys="using:System"
+    xmlns:toolkit="using:Microsoft.Toolkit.Uwp.UI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Page.Resources>
+        <MenuFlyout x:Key="DataGridContextMenu">
+            <MenuFlyoutItem
+                Click="MenuFlyoutViewDetails_Click"
+                Tag="&#xE1A5;"
+                Text="View details" />
+        </MenuFlyout>
+
+        <Style
+            x:Key="SearchSuggestionItemStyle"
+            TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <DataTemplate
+            x:Key="SearchSuggestionItemTemplate"
+            x:DataType="models:Driver">
+            <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="8,0,0,0" />
+                    </Style>
+                </Grid.Resources>
+                <CheckBox
+                    Grid.Column="0"
+                    Margin="0,0,20,0"
+                    Padding="0"
+                    HorizontalAlignment="Stretch"
+                    IsChecked="{x:Bind IsHooked}" />
+                <TextBlock
+                    Grid.Column="1"
+                    Margin="0,0,20,0"
+                    HorizontalAlignment="Stretch"
+                    Text="{x:Bind DriverName}" />
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+    
+    <Grid>
+        <RelativePanel>
+
+            <TextBlock
+                x:Name="PageTitle"
+                Style="{StaticResource HeaderTextBlockStyle}"
+                Text="Drivers" />
+
+            <CommandBar
+                x:Name="mainCommandBar"
+                HorizontalAlignment="Stretch"
+                Background="Transparent"
+                RelativePanel.LeftOf="DriverSearchBox"
+                RelativePanel.RightOf="PageTitle">
+                <AppBarButton
+                    x:Name="CommandBarDriverInfoButton"
+                    Click="CommandBarDriverInfoButton_Click"
+                    Icon="Edit"
+                    IsEnabled="{x:Bind vm:Converters.IsNotNull(ViewModel.SelectedDriver), Mode=OneWay}"
+                    Label="Edit" />
+                <AppBarButton
+                    Click="{x:Bind ViewModel.LoadDrivers}"
+                    Icon="Refresh"
+                    Label="Refresh" />
+            </CommandBar>
+            
+            <uc:CollapsibleSearchBox
+                x:Name="DriverSearchBox"
+                Width="240"
+                Margin="12,8,12,0"
+                Loaded="DriverSearchBox_Loaded"
+                RelativePanel.AlignRightWithPanel="True" />
+
+            <SplitView
+                x:Name="listSplitView"
+                DisplayMode="Inline"
+                IsPaneOpen="{x:Bind vm:Converters.IsNotNull(ViewModel.SelectedDriver), Mode=OneWay}"
+                OpenPaneLength="260"
+                PanePlacement="Right"
+                RelativePanel.AlignBottomWithPanel="True"
+                RelativePanel.AlignLeftWithPanel="True"
+                RelativePanel.AlignRightWithPanel="True"
+                RelativePanel.Below="PageTitle">
+
+                <!--  Displays details about the currently selected driver.  -->
+                <SplitView.Pane>
+                    <StackPanel
+                        x:Name="DriverInfoPanel"
+                        Margin="24,28,24,0"
+                        Visibility="{x:Bind vm:Converters.CollapsedIfNull(ViewModel.SelectedDriver), Mode=OneWay}">
+                        <StackPanel.Resources>
+                            <Style TargetType="TextBox">
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="TextWrapping" Value="Wrap" />
+                            </Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="TextWrapping" Value="Wrap" />
+                            </Style>
+                        </StackPanel.Resources>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="Driver Name" />
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="{x:Bind ViewModel.SelectedDriver.DriverName, Mode=OneWay}" />
+                        </StackPanel>
+                        
+                        <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold">
+                                Number of devices                                
+                            </TextBlock>
+                            <TextBlock
+                                IsTextSelectionEnabled="True"
+                                Text="{x:Bind ViewModel.SelectedDriver.Devices.Count, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <TextBlock
+                            Margin="0,20,0,0"
+                            FontWeight="SemiBold"
+                            Text="Is hooked?">
+                        </TextBlock>
+                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsHooked, Mode=OneWay}" />
+
+                    </StackPanel>
+                </SplitView.Pane>
+
+                <SplitView.Content>
+                    <Grid>
+
+                        <toolkit:DataGrid
+                            BorderThickness="0"
+                            CanUserReorderColumns="False"
+                            CanUserResizeColumns="False"
+                            GridLinesVisibility="None"
+                            IsReadOnly="True"
+                            AutoGenerateColumns="False"
+                            Margin="0,10,0,0"
+                            ItemsSource="{x:Bind ViewModel.Drivers, Mode=OneWay}"
+                            SelectedItem="{x:Bind ViewModel.SelectedDriver, Mode=TwoWay}"
+                            KeyDown="DataGrid_KeyDown"
+                            ContextFlyout="{StaticResource DataGridContextMenu}">
+                            <toolkit:DataGrid.Columns>
+                                <toolkit:DataGridTextColumn
+                                    Header="Driver"
+                                    Tag="DriverName"
+                                    Binding="{Binding DriverName}"/>
+                                <toolkit:DataGridCheckBoxColumn 
+                                    Header="Is Hooked?"
+                                    Tag="IsHooked"
+                                    Binding="{Binding IsHooked}"
+                                    />
+                            </toolkit:DataGrid.Columns>
+                        </toolkit:DataGrid>
+
+                        <ProgressBar
+                            Margin="0,50,0,0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Top"
+                            IsIndeterminate="True"
+                            Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                    </Grid>
+                </SplitView.Content>
+            </SplitView>
+        </RelativePanel>
+
+    </Grid>
+</Page>

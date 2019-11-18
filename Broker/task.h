@@ -31,7 +31,8 @@ enum TaskType : uint32_t
 	DisableMonitoring,
 	GetInterceptedIrps,
 	ReplayIrp,
-	StoreTestCase = 11,
+	StoreTestCase,
+	EnumerateDrivers = 12,
 	TaskTypeMax
 };
 
@@ -55,7 +56,7 @@ class Task
 {
 public:
 	Task(const Task& t);
-	Task(TaskType type, byte* data, uint32_t datalen);
+	Task(TaskType type, const byte* data, uint32_t datalen);
 	Task(HANDLE Handle, LPOVERLAPPED ov);
 	~Task();
 

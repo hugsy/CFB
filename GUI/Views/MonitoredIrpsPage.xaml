@@ -53,7 +53,7 @@
                 Style="{ThemeResource TitleTextBlockStyle}"
                 Text="Intercepted IRPs" />
 
-            <uc:IrpSearchBox
+            <uc:CollapsibleSearchBox
                 x:Name="IrpSearchBox"
                 Width="240"
                 HorizontalAlignment="Right"

@@ -19,7 +19,7 @@ Task::Task(const Task &t)
 }
 
 
-Task::Task(TaskType type, byte* data, uint32_t datalen)
+Task::Task(TaskType type, const byte* data, uint32_t datalen)
 	:
 	m_Type(type), 
 	m_State(TaskState::Initialized), 

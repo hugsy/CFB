@@ -12,8 +12,9 @@ from ctypes import *
 from ctypes.wintypes import *
 from struct import *
 
-import json, pprint, sys, time
+import base64, json, pprint, sys, time
 
+MAX_MESSAGE_SIZE = 65536
 
 #
 # some windows constants
@@ -99,20 +100,27 @@ class TaskType(Enum):
     EnableMonitoring = 7
     DisableMonitoring = 8
     GetInterceptedIrps = 9
+    ReplayIrp = 10
+    StoreTestCase = 11
+    EnumerateDrivers = 12
 
 
 
-def PrepareTlvMessage(dwType, *args):
-    length = 0
-    value = b""
+def PrepareRequest(dwType, *args):
+    j = {
+        "header": {},
+        "body":{
+            "type": dwType,
+        }
+    }
+    data_length = 0
+    data = b""
     for arg in args:
-        length += len(arg)
-        value += arg
-    msg = b""
-    msg+= p32(dwType.value)
-    msg+= p32(length)
-    msg+= value
-    return msg
+        data_length += len(arg)
+        data += arg
+    j["body"]["data_length"] = data_length
+    j["body"]["data"] = base64.b64encode(data)
+    return j.dumps()
 
 
 
@@ -149,19 +157,21 @@ class BrokerTestMethods:
     def test_HookDriver(self):
         ## send request
         lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        tlv_msg = PrepareTlvMessage(TaskType.HookDriver, lpszDriverName)
+        req = PrepareRequest(TaskType.HookDriver, lpszDriverName)
         cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-        assert len(tlv_msg) == cbWritten.value
+        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) == cbWritten.value
         
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(12)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
-         # hookdriver doesn't return any data (header only = 2*uint32_t + uint32_t for GLE)
-        assert cbRead.value == 12
-        assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        assert u32(szBuf[4:8]) == 4
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf)
+        print(res)
+        # hookdriver doesn't return any data (header only = 2*uint32_t + uint32_t for GLE)
+        #assert cbRead.value == 12
+        #assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+        #assert u32(szBuf[4:8]) == 4
         #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_HookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
@@ -169,24 +179,26 @@ class BrokerTestMethods:
     def test_UnhookDriver(self):
         ## send request
         lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        tlv_msg = PrepareTlvMessage(TaskType.UnhookDriver, lpszDriverName)
+        req = PrepareRequest(TaskType.UnhookDriver, lpszDriverName)
         cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-        assert len(tlv_msg) ==  cbWritten.value
+        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) ==  cbWritten.value
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(12)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
-        assert cbRead.value == 12
-        assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf)
+        print(res)
+        #assert cbRead.value == 12
+        #assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
         #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_UnhookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
         return
 
 
     def test_EnableMonitoring(self):
         ## send request
-        tlv_msg = PrepareTlvMessage(TaskType.EnableMonitoring)
+        tlv_msg = PrepareRequest(TaskType.EnableMonitoring)
         cbWritten = c_ulong(0)
         assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
         assert len(tlv_msg) ==  cbWritten.value
@@ -203,7 +215,7 @@ class BrokerTestMethods:
     
     def test_DisableMonitoring(self):
         ## send request
-        tlv_msg = PrepareTlvMessage(TaskType.DisableMonitoring)
+        tlv_msg = PrepareRequest(TaskType.DisableMonitoring)
         cbWritten = c_ulong(0)  
         assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
         assert len(tlv_msg) == cbWritten.value
@@ -220,7 +232,7 @@ class BrokerTestMethods:
 
     def test_GetInterceptedIrps(self):
         ## send request
-        tlv_msg = PrepareTlvMessage(TaskType.GetInterceptedIrps)
+        tlv_msg = PrepareRequest(TaskType.GetInterceptedIrps)
         cbWritten = c_ulong(0)  
         assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
         assert len(tlv_msg) == cbWritten.value
@@ -243,17 +255,17 @@ if __name__ == '__main__':
     print("OpenPipe() success")
     r.test_HookDriver()
     print("HookDriver() success")
-    r.test_EnableMonitoring()
-    print("EnableMonitoring() success")
-    while True:
-        try:
-            r.test_GetInterceptedIrps()
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
-    print("GetInterceptedIrps() success")
-    r.test_DisableMonitoring()
-    print("DisableMonitoring() success")
+    #r.test_EnableMonitoring()
+    #print("EnableMonitoring() success")
+    #while True:
+    #    try:
+    #        r.test_GetInterceptedIrps()
+    #        time.sleep(1)
+    #    except KeyboardInterrupt:
+    #        break
+    #print("GetInterceptedIrps() success")
+    #r.test_DisableMonitoring()
+    #print("DisableMonitoring() success")
     r.test_UnhookDriver()
     print("UnhookDriver() success")
     r.test_ClosePipe()
