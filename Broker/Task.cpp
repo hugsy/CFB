@@ -158,12 +158,12 @@ const wchar_t* Task::TypeAsString()
 		ToString(EnableMonitoring);
 		ToString(DisableMonitoring);
 		ToString(GetInterceptedIrps);
+		ToString(ReplayIrp);
+		ToString(StoreTestCase);
+		ToString(EnumerateDrivers);
 	}
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, "Undeclared TaskType %d\n", m_Type);
-#endif // _DEBUG
-
+	dbg(L"Undeclared TaskType %d\n", m_Type);
 	return L"(UnknownType)";
 }
 
@@ -205,51 +205,6 @@ byte* Task::Data()
 const DWORD Task::Id()
 {
 	return m_dwId;
-}
-
-
-/*++
-
-Routine Description:
-
-	Serialize the current task as a TLV message.
-
-	Buffer must be free-ed by the caller.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-
-	Returns the allocated buffer with the task as TLV if successful.
-
---*/
-const byte* Task::AsTlv()
-{
-	DWORD dwTlvHeaderSize = 2 * sizeof(DWORD);
-
-	byte* Msg = new byte[dwTlvHeaderSize + m_dwDataLength];
-	
-	//
-	// copy the header
-	//
-	PDWORD headers = reinterpret_cast<PDWORD>(Msg);
-	headers[0] = m_Type;
-	headers[1] = m_dwDataLength;
-	
-
-	//
-	// copy the body
-	//
-	if (m_dwDataLength)
-	{
-		::memcpy(Msg + dwTlvHeaderSize, m_Data, m_dwDataLength);
-	}
-	
-	return Msg;
 }
 
 

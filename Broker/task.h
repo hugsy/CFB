@@ -8,7 +8,6 @@
 #include <vector>
 #include <array>
 
-
 enum TaskState : uint16_t
 {
 	Initialized,

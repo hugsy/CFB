@@ -168,7 +168,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
         res = json.loads(szBuf.value)
-        print("hook >" + json.dumps(res, indent=4, sort_keys=True))
+        print("hook -> " + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
@@ -185,7 +185,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
         res = json.loads(szBuf.value)
-        print("unhook >" + json.dumps(res, indent=4, sort_keys=True))
+        print("unhook -> " + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
@@ -201,7 +201,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
         res = json.loads(szBuf.value)
-        print("enable_monitoring >" + json.dumps(res, indent=4, sort_keys=True))
+        print("enable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
         return
 
     
@@ -217,7 +217,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
         res = json.loads(szBuf.value)
-        print("disable_monitoring >" + json.dumps(res, indent=4, sort_keys=True))
+        print("disable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
@@ -233,7 +233,7 @@ class BrokerTestMethods:
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
         assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
         res = json.loads(szBuf.value)
-        print("get)irps >" + json.dumps(res, indent=4, sort_keys=True))
+        print("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
