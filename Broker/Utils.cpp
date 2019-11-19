@@ -60,18 +60,18 @@ std::string Utils::base64_encode(unsigned char const* bytes_to_encode, unsigned 
 	}
 
 	return ret;
-
 }
 
 
-const byte* Utils::base64_decode(std::string const& encoded_string)
+std::vector<BYTE> Utils::base64_decode(std::string const& encoded_string)
 {
 	size_t in_len = encoded_string.size();
 	int i = 0;
 	int j = 0;
 	int in_ = 0;
 	unsigned char char_array_4[4], char_array_3[3];
-	std::string ret;
+	//std::string ret;
+	std::vector<BYTE> ret;
 
 	while (in_len-- && (encoded_string[in_] != '=') && is_base64(encoded_string[in_])) 
 	{
@@ -86,7 +86,7 @@ const byte* Utils::base64_decode(std::string const& encoded_string)
 			char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
 			for (i = 0; (i < 3); i++)
-				ret += char_array_3[i];
+				ret.push_back(char_array_3[i]);
 			i = 0;
 		}
 	}
@@ -103,10 +103,11 @@ const byte* Utils::base64_decode(std::string const& encoded_string)
 		char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
 		char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
 
-		for (j = 0; (j < i - 1); j++) ret += char_array_3[j];
+		for (j = 0; (j < i - 1); j++) 
+			ret.push_back(char_array_3[j]);
 	}
 
-	return (const byte*)(ret.c_str());
+	return ret;
 }
 
 

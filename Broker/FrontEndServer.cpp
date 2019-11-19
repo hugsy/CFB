@@ -2,6 +2,7 @@
 
 
 
+
 /*++
 Routine Description:
 
@@ -580,7 +581,9 @@ Return Value:
 	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
-#define MAX_REQUEST_SIZE 65536
+#define MAX_ACCEPTABLE_MESSAGE_SIZE 65534
+#define MAX_MESSAGE_SIZE (MAX_ACCEPTABLE_MESSAGE_SIZE+2)
+
 
 DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
@@ -600,7 +603,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		hServer
 	};
 
-	PCHAR lpRequest = (PCHAR)::LocalAlloc(LPTR, MAX_REQUEST_SIZE);
+	PCHAR lpRequest = (PCHAR)::LocalAlloc(LPTR, MAX_MESSAGE_SIZE);
 	if (!lpRequest)
 		return ::GetLastError();
 	DWORD dwRequestSize;
@@ -671,7 +674,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		
 		if (State == ServerState::ReadyToReadFromClient)
 		{
-			RtlZeroMemory(lpRequest, MAX_REQUEST_SIZE);
+			RtlZeroMemory(lpRequest, MAX_MESSAGE_SIZE);
 
 			try
 			{
@@ -680,24 +683,30 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				//
 				
 				HANDLE Handle = Sess.FrontEndServer.m_Transport.m_hServer;
-				BOOL fSuccess = ::ReadFile(Handle, lpRequest, MAX_REQUEST_SIZE, &dwRequestSize, NULL);
+				BOOL fSuccess = ::ReadFile(Handle, lpRequest, MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
 				if (!fSuccess)
-					RAISE_GENERIC_EXCEPTION("ReadFile(1) failed");
-				
+					RAISE_GENERIC_EXCEPTION("ReadFile() failed");
+
+#ifdef _DEBUG
+				dbg(L"new pipe message (len=%d)\n", dwRequestSize);
+				hexdump(lpRequest, dwRequestSize);
+#endif // _DEBUG
+
 				auto json_request = json::parse(std::string(lpRequest));
 				TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
 				DWORD dwDataLength = json_request["body"]["data_length"];
-				const byte* lpData = Utils::base64_decode(json_request["body"]["data"]);
-				 
+				auto data = json_request["body"]["data"].get<std::string>();
+				auto lpData = Utils::base64_decode(data);
+
+				assert(lpData.size() == dwDataLength);
 
 				//
 				// build a Task object from the next message read from the pipe
 				//
-				Task task(type, lpData, dwDataLength);
+				Task task(type, lpData.data(), dwDataLength, -1);
 
-#ifdef _DEBUG
-				xlog(LOG_DEBUG, L"new task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
-#endif // _DEBUG
+
+				dbg(L"new request task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
 
 				switch (task.Type())
 				{
@@ -729,9 +738,10 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				Sess.FrontEndServer.DisconnectAndReconnectPipe();
 				continue;
 			}
-			catch (BaseException & e)
+			catch (BaseException &e)
 			{
 				xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
+				Sess.FrontEndServer.DisconnectAndReconnectPipe();
 				continue;
 			}
 
@@ -742,37 +752,34 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			{
 
 				//
-				// blocking-pop on response task list
+				// pop the response task and build the json message
 				//
 				auto task = Sess.ResponseTasks.pop();
 
+				dbg(L"new response task (id=%d, type='%s', length=%d, gle=%d)\n", task.Id(), task.TypeAsString(), task.Length(), task.ErrCode());
 
-				//
-				// write the message to the pipe
-				//
-				auto msg = task.AsTlv();
-				DWORD msglen = task.Length() + 2 * sizeof(uint32_t);
+				json json_response = {
+					{"header", {
+						{"success", task.ErrCode()==ERROR_SUCCESS},
+						{"gle", task.ErrCode()},
+					}
+				} };
 
-				BOOL bRes = ::WriteFile(
-					hServer,
-					msg,
-					msglen,
-					&dwNumberOfBytesWritten,
-					NULL
-				);
+				json_response["body"]["data_length"] = task.Length();
+				if (task.Length() > 0)
+					json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
 
-				if (!bRes || dwNumberOfBytesWritten != msglen)
+				std::string data = json_response.dump();
+				BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNumberOfBytesWritten, NULL);
+				if (!fSuccess)
 				{
-					PrintErrorWithFunctionName(L"WriteFile()");
+					PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+				}
+				else
+				{
+					task.SetState(TaskState::Completed);
 				}
 
-
-				//
-				// cleanup
-				//
-				delete[] msg;
-
-				task.SetState(TaskState::Completed);
 
 #ifdef _DEBUG
 				xlog(LOG_DEBUG, L"task tid=%d sent to frontend (%dB), terminating...\n", task.Id(), dwNumberOfBytesWritten);

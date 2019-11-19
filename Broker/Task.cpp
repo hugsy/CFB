@@ -12,18 +12,20 @@ Task::Task(const Task &t)
 	m_Type(t.m_Type),
 	m_State(t.m_State),
 	m_dwDataLength(t.m_dwDataLength),
-	m_dwId(t.m_dwId)
+	m_dwId(t.m_dwId),
+	m_dwErrCode(t.m_dwErrCode)
 {
 		m_Data = new byte[t.m_dwDataLength];
 		::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
 }
 
 
-Task::Task(TaskType type, const byte* data, uint32_t datalen)
+Task::Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode)
 	:
 	m_Type(type), 
 	m_State(TaskState::Initialized), 
-	m_dwDataLength(datalen)
+	m_dwDataLength(datalen),
+	m_dwErrCode(errcode)
 {
 	std::lock_guard<std::mutex> guard(g_mutex);
 	m_dwId = g_id++;
@@ -32,6 +34,8 @@ Task::Task(TaskType type, const byte* data, uint32_t datalen)
 	::memcpy(m_Data, data, datalen);
 }
 
+
+// obsolete (remove?)
 Task::Task(HANDLE Handle, LPOVERLAPPED ov)
 	:
 	m_State(TaskState::Initialized)
@@ -246,4 +250,13 @@ const byte* Task::AsTlv()
 	}
 	
 	return Msg;
+}
+
+
+const DWORD Task::ErrCode()
+{
+	if (m_Type != TaskType::IoctlResponse)
+		return -1;
+
+	return m_dwErrCode;
 }

@@ -56,7 +56,7 @@ class Task
 {
 public:
 	Task(const Task& t);
-	Task(TaskType type, const byte* data, uint32_t datalen);
+	Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode);
 	Task(HANDLE Handle, LPOVERLAPPED ov);
 	~Task();
 
@@ -69,6 +69,7 @@ public:
 	byte* Data();
 	const DWORD Id();
 	const byte* AsTlv();
+	const DWORD ErrCode();
 
 
 private:
@@ -77,4 +78,5 @@ private:
 	byte* m_Data = nullptr;
 	uint32_t m_dwDataLength;
 	DWORD m_dwId;
+	DWORD m_dwErrCode;
 };

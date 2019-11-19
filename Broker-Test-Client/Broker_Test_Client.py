@@ -15,6 +15,7 @@ from struct import *
 import base64, json, pprint, sys, time
 
 MAX_MESSAGE_SIZE = 65536
+MAX_ACCEPTABLE_MESSAGE_SIZE = MAX_MESSAGE_SIZE-2
 
 #
 # some windows constants
@@ -46,7 +47,7 @@ def u16(x): return unpack("<H", x)[0]
 def u32(x): return unpack("<I", x)[0]
 
 
-def Hexdump(source, length=0x10, separator=".", base=0x00, align=10):
+def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
     result = []
     for i in range(0, len(source), length):
         chunk = bytearray(source[i:i + length])
@@ -81,8 +82,8 @@ def FormatMessage(dwMessageId):
 PIPE_PATH_LOCAL = b"\\\\.\\pipe\\CFB"
 PIPE_PATH_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
 PIPE_PATH = PIPE_PATH_LOCAL
-TEST_DRIVER_NAME = "\\driver\\lxss"
-BUFSIZE = 4096
+TEST_DRIVER_NAME = "\\driver\\lxss\0"
+BUFSIZE = MAX_MESSAGE_SIZE
 
 
 
@@ -110,7 +111,7 @@ def PrepareRequest(dwType, *args):
     j = {
         "header": {},
         "body":{
-            "type": dwType,
+            "type": dwType.value,
         }
     }
     data_length = 0
@@ -119,8 +120,8 @@ def PrepareRequest(dwType, *args):
         data_length += len(arg)
         data += arg
     j["body"]["data_length"] = data_length
-    j["body"]["data"] = base64.b64encode(data)
-    return j.dumps()
+    j["body"]["data"] = base64.b64encode(data).decode("utf-8")
+    return json.dumps(j).encode("ascii")
 
 
 
@@ -165,14 +166,9 @@ class BrokerTestMethods:
         ## recv response
         cbRead = c_ulong(0)
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf)
-        print(res)
-        # hookdriver doesn't return any data (header only = 2*uint32_t + uint32_t for GLE)
-        #assert cbRead.value == 12
-        #assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        #assert u32(szBuf[4:8]) == 4
-        #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_HookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        print("hook >" + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
@@ -187,65 +183,57 @@ class BrokerTestMethods:
         ## recv response
         cbRead = c_ulong(0)
         szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf)
-        print(res)
-        #assert cbRead.value == 12
-        #assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        #dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_UnhookDriver::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        print("unhook >" + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
     def test_EnableMonitoring(self):
         ## send request
-        tlv_msg = PrepareRequest(TaskType.EnableMonitoring)
+        req = PrepareRequest(TaskType.EnableMonitoring)
         cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-        assert len(tlv_msg) ==  cbWritten.value
+        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) ==  cbWritten.value
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(12)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, 12, byref(cbRead), None)
-        assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        assert u32(szBuf[4:8]) == 4
-        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_EnableMonitoring::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        print("enable_monitoring >" + json.dumps(res, indent=4, sort_keys=True))
         return
 
     
     def test_DisableMonitoring(self):
         ## send request
-        tlv_msg = PrepareRequest(TaskType.DisableMonitoring)
+        req = PrepareRequest(TaskType.DisableMonitoring)
         cbWritten = c_ulong(0)  
-        assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-        assert len(tlv_msg) == cbWritten.value
+        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) == cbWritten.value
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(BUFSIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
-        assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        assert u32(szBuf[4:8]) == 4
-        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_DisableMonitoring::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        print("disable_monitoring >" + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
     def test_GetInterceptedIrps(self):
         ## send request
-        tlv_msg = PrepareRequest(TaskType.GetInterceptedIrps)
+        req = PrepareRequest(TaskType.GetInterceptedIrps)
         cbWritten = c_ulong(0)  
-        assert windll.kernel32.WriteFile(self.hPipe, tlv_msg, len(tlv_msg), byref(cbWritten), None)
-        assert len(tlv_msg) == cbWritten.value
+        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) == cbWritten.value
 
         ## recv response
         cbRead = c_ulong(0)
-        szBuf = create_string_buffer(BUFSIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, BUFSIZE, byref(cbRead), None)
-        assert u32(szBuf[0:4]) == TaskType.IoctlResponse.value
-        dwGle = u32(szBuf[8:12]); assert dwGle == ERROR_SUCCESS, "test_GetInterceptedIrps::GetLastError() = 0x%x (%s)" % (dwGle, FormatMessage(dwGle))
-        data = json.loads(szBuf[12:cbRead.value])
-        assert data
-        pprint.pprint(data)
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        print("get)irps >" + json.dumps(res, indent=4, sort_keys=True))
         return
 
 
@@ -255,17 +243,17 @@ if __name__ == '__main__':
     print("OpenPipe() success")
     r.test_HookDriver()
     print("HookDriver() success")
-    #r.test_EnableMonitoring()
-    #print("EnableMonitoring() success")
-    #while True:
-    #    try:
-    #        r.test_GetInterceptedIrps()
-    #        time.sleep(1)
-    #    except KeyboardInterrupt:
-    #        break
-    #print("GetInterceptedIrps() success")
-    #r.test_DisableMonitoring()
-    #print("DisableMonitoring() success")
+    r.test_EnableMonitoring()
+    print("EnableMonitoring() success")
+    while True:
+        try:
+            r.test_GetInterceptedIrps()
+            time.sleep(1)
+        except KeyboardInterrupt:
+            break
+    print("GetInterceptedIrps() success")
+    r.test_DisableMonitoring()
+    print("DisableMonitoring() success")
     r.test_UnhookDriver()
     print("UnhookDriver() success")
     r.test_ClosePipe()

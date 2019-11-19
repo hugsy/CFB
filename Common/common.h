@@ -43,10 +43,13 @@
 #define __xlog(t, ...) _xlog(t, __VA_ARGS__)
 #define xlog(t, _f, ...) __xlog(t, GEN_FMT _f, FUNCTIONW, FILENAMEW, __LINE__, GetThreadId(GetCurrentThread()), __VA_ARGS__)
 
+#define dbg(...) _xlog(LOG_DEBUG, __VA_ARGS__)
+
 #else
 
 /* Release */
 #define xlog(t, ...) _xlog(t, __VA_ARGS__)
+#define dbg(...) 
 
 #endif /* _DEBUG_ */
 

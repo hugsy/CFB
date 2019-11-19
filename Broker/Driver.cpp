@@ -336,9 +336,7 @@ also builds a response Task from the response of the  DeviceIoControl().
 static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 {
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Sending to device Task=%d (Type: %s, Length: %d)\n", task.Id(), task.TypeAsString(), task.Length());
-#endif // _DEBUG
+	dbg(L"Sending to device Task=%d (Type: %s, Length: %d)\n", task.Id(), task.TypeAsString(), task.Length());
 
 	byte* lpOutputBuffer = nullptr;
 	DWORD dwOutputBufferSize = 0;
@@ -363,9 +361,7 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 			NULL
 		);
 
-#ifdef _DEBUG
-		xlog(LOG_DEBUG, L"DeviceIoControl(0x%x) returned: %s\n", task.IoctlCode(), bRes ? L"TRUE" : L"FALSE");
-#endif // _DEBUG
+		dbg(L"DeviceIoControl(0x%x) returned: %s\n", task.IoctlCode(), bRes ? L"TRUE" : L"FALSE");
 
 		//
 		// If the ioctl was ok, we exit
@@ -398,23 +394,12 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 	//
 	task.SetState(TaskState::Completed);
 
-
 	//
-	// Prepare the response task
-	// A response task always starts with the response code (DWORD), then optionally the data if any
+	// Create the response task object, and specify the ioctl retcode
 	//
-	DWORD dwResponseBufferSize = dwOutputBufferSize + sizeof(DWORD);
-	byte* lpResponseBuffer = new byte[dwResponseBufferSize];
-	::memcpy(lpResponseBuffer, &dwErrCode, sizeof(DWORD));
-	if (lpOutputBuffer)
-	{
-		::memcpy(lpResponseBuffer + sizeof(DWORD), lpOutputBuffer, dwOutputBufferSize);
-		delete[] lpOutputBuffer;
-	}
+	Task response_task(TaskType::IoctlResponse, lpOutputBuffer, dwOutputBufferSize, dwErrCode);
 
-
-	Task response_task(TaskType::IoctlResponse, lpResponseBuffer, dwResponseBufferSize);
-	delete[] lpResponseBuffer;
+	delete[] lpOutputBuffer;
 
 	return response_task;
 }

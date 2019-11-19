@@ -46,11 +46,11 @@ namespace GUI.Views
                 FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
                 if (status == FileUpdateStatus.Complete)
                 {
-                    Status = "File " + file.Name + " was saved.";
+                    Status = $"File {file.Name} was saved.";
                 }
                 else
                 {
-                    Status = "File " + file.Name + " couldn't be saved.";
+                    Status = $"File {file.Name} couldn't be saved.";
                 }
             }
             else
