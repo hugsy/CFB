@@ -82,6 +82,7 @@ def FormatMessage(dwMessageId):
 PIPE_PATH_LOCAL = b"\\\\.\\pipe\\CFB"
 PIPE_PATH_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
 PIPE_PATH = PIPE_PATH_LOCAL
+PIPE_PATH = PIPE_PATH_REMOTE
 TEST_DRIVER_NAME = "\\driver\\lxss\0"
 
 
@@ -122,6 +123,19 @@ def PrepareRequest(dwType, *args):
     return json.dumps(j).encode("ascii")
 
 
+def SendAndReceive(hPipe, _type, *args):
+    ## send
+    req = PrepareRequest(_type, *args)
+    cbWritten = c_ulong(0)
+    assert windll.kernel32.WriteFile(hPipe, req, len(req), byref(cbWritten), None)
+    assert len(req) == cbWritten.value
+        
+    ## recv response
+    cbRead = c_ulong(0)
+    szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+    assert windll.kernel32.ReadFile(hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+    res = json.loads(szBuf.value)
+    return res
 
 
 class BrokerTestMethods:
@@ -150,6 +164,12 @@ class BrokerTestMethods:
 
     def test_ClosePipe(self):
         assert windll.kernel32.CloseHandle(self.hPipe)
+        return
+
+
+    def test_EnumerateDrivers(self):
+        js = SendAndReceive(self.hPipe, TaskType.EnumerateDrivers)
+        print("EnumerateDrivers -> " + json.dumps(js, indent=4, sort_keys=True))
         return
 
 
@@ -239,21 +259,23 @@ if __name__ == '__main__':
     r = BrokerTestMethods()
     r.test_OpenPipe()
     print("OpenPipe() success")
-    r.test_HookDriver()
-    print("HookDriver() success")
-    r.test_EnableMonitoring()
-    print("EnableMonitoring() success")
-    while True:
-        try:
-            r.test_GetInterceptedIrps()
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
-    print("GetInterceptedIrps() success")
-    r.test_DisableMonitoring()
-    print("DisableMonitoring() success")
-    r.test_UnhookDriver()
-    print("UnhookDriver() success")
+    r.test_EnumerateDrivers()
+    print("EnumerateDrivers() success")
+    #r.test_HookDriver()
+    #print("HookDriver() success")
+    #r.test_EnableMonitoring()
+    #print("EnableMonitoring() success")
+    #while True:
+    #    try:
+    #        r.test_GetInterceptedIrps()
+    #        time.sleep(1)
+    #    except KeyboardInterrupt:
+    #        break
+    #print("GetInterceptedIrps() success")
+    #r.test_DisableMonitoring()
+    #print("DisableMonitoring() success")
+    #r.test_UnhookDriver()
+    #print("UnhookDriver() success")
     r.test_ClosePipe()
     print("ClosePipe() success")
     input("test end...")

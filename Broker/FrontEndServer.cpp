@@ -359,51 +359,6 @@ Routine Description:
 
 
 Arguments:
-
-	task -
-
-
-Return Value:
-
-	Returns an array of byte with the serialized TLV message
-
---*/
-byte* PrepareTlvMessageFromTask(_In_ Task& task)
-{
-	byte* msg = nullptr;
-
-	//
-	// write response to pipe
-	//
-	uint32_t msglen = 2 * sizeof(uint32_t) + task.Length();
-	
-	if (msglen >= 2 * sizeof(uint32_t))
-	{
-		msg = new byte[msglen];
-
-		// copy header
-		uint32_t* tl = reinterpret_cast<uint32_t*>(msg);
-		tl[0] = task.Type();
-		tl[1] = task.Length();
-
-		// copy the body
-		::memcpy(msg + 2 * sizeof(uint32_t), task.Data(), task.Length());
-	}
-	else
-	{
-		throw std::runtime_error("arithmetic overflow");
-	}
-
-	return msg;
-}
-
-
-/*++
-
-Routine Description:
-
-
-Arguments:
 	
 	Session -
 
@@ -413,7 +368,7 @@ Return Value:
 	Returns 0 on success, -1 on failure.
 
 --*/
-DWORD SendInterceptedIrpsAsJson(_In_ Session& Session)
+DWORD SendInterceptedIrps(_In_ Session& Session)
 {
 	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
 
@@ -536,12 +491,15 @@ DWORD SendDriverList(_In_ Session& Session)
 	}};
 
 
-	j["body"] = json::array();
 	j["body"]["drivers"] = json::array();
+	
+	// wstring -> string converter
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wide_converter;
 
-	for (auto &driver_name : Utils::EnumerateDrivers())
+	for (auto driver : Utils::EnumerateObjectDirectory(L"\\driver"))
 	{
-		j["body"]["drivers"].push_back(driver_name.c_str());
+		std::string driver_name = wide_converter.to_bytes(driver.first);
+		j["body"]["drivers"].push_back(driver_name);
 		i++;
 	}
 
@@ -709,7 +667,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				switch (task.Type())
 				{
 				case TaskType::GetInterceptedIrps:
-					SendInterceptedIrpsAsJson(Sess); 
+					SendInterceptedIrps(Sess);
 					continue;
 
 				case TaskType::EnumerateDrivers:

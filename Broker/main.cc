@@ -225,16 +225,6 @@ int wmain(int argc, wchar_t** argv)
 	Sess = nullptr;
 
 
-	for (auto obj : Utils::EnumerateObjectDirectory(L"\\driver"))
-	{
-		std::wcout << obj.first << L"," << obj.second << L"\n";
-	}
-
-	system("pause");
-
-	return 0;
-
-
 	HANDLE hStdErr = GetStdHandle(STD_ERROR_HANDLE);
 	DWORD dwConsoleMode;
 
