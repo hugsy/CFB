@@ -50,6 +50,11 @@ namespace GUI.Models
 
         private JObject SendAndReceive(MessageType type, byte[] args = null)
         {
+            if (PipeClient == null || !IsConnected)
+            {
+                Reconnect();
+            }
+
             BrokerMessage req = new BrokerMessage(type, args);
             using (StreamWriter sw = new StreamWriter(PipeClient))
             {

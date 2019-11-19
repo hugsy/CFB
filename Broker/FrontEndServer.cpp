@@ -427,37 +427,7 @@ DWORD SendInterceptedIrps(_In_ Session& Session)
 		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
 		return ERROR_INVALID_DATA;
 	}
-	/*
-	std::string result(j.dump().c_str());
-	DWORD dwNbByteWritten;
-	DWORD dwBufferSize = (DWORD)result.length() + 3 * sizeof(uint32_t);
-	byte* buf = new byte[dwBufferSize];
-	uint32_t* p = (uint32_t*)buf;
-	p[0] = TaskType::IoctlResponse;
-	p[1] = (uint32_t)( ((DWORD)result.length()) + 2 * sizeof(uint32_t) );
-	p[2] = ::GetLastError();
-	::memcpy(&p[3], result.c_str(), result.length());
 
-
-	//
-	// Sync write back the whole JSON message
-	//
-	BOOL fSuccess = ::WriteFile(
-		hServer,
-		buf,
-		dwBufferSize,
-		&dwNbByteWritten,
-		NULL
-	);
-
-	delete[] buf;
-
-	if (!fSuccess)
-	{
-		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
-		return ERROR_INVALID_DATA;
-	}
-	*/
 	return ERROR_SUCCESS;
 }
 

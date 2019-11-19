@@ -27,8 +27,8 @@ namespace GUI.Models
 
     public class BrokerMessageHeader
     {
-
     }
+    
 
     public class BrokerMessageBody
     {
@@ -45,6 +45,9 @@ namespace GUI.Models
 
         public BrokerMessage(MessageType type, byte[] args)
         {
+            headers = new BrokerMessageHeader();
+            body = new BrokerMessageBody();
+
             body.type = type;
             if(args == null)
             {
