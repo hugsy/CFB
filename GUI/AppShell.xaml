@@ -15,13 +15,14 @@
             <CommandBar.Content>
                 <Grid/>
             </CommandBar.Content>
-            
-            <AppBarButton Label="{x:Bind DisconnectedStatusLabel}" 
-                          ToolTipService.ToolTip="{x:Bind DisconnectedStatusLabel}"
-                          Click="ToggleConnectButton_Click"
-                          >
+
+            <AppBarButton 
+                x:Name="IsConnectedAppBarButton"
+                Label="{x:Bind DisconnectedStatusLabel}" 
+                ToolTipService.ToolTip="{x:Bind DisconnectedStatusLabel}"
+                Click="ToggleConnectButton_Click">
                 <AppBarButton.Icon>
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE91F;" Foreground="Red" />
+                    <FontIcon x:Name="IsConnectedAppBarButtonFont" FontFamily="Segoe MDL2 Assets" Glyph="&#xE91F;" Foreground="Red" />
                 </AppBarButton.Icon>
             </AppBarButton>
             

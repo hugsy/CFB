@@ -55,6 +55,9 @@ namespace GUI.Views
                 if (uri.Scheme != "file")
                     return false;
 
+                if (uri.AbsolutePath.ToLower() != "/pipe/cfb")
+                    return false;
+
                 return true;
             }
             catch(Exception)

@@ -154,9 +154,27 @@ namespace GUI
         }
 
 
-        private void ToggleConnectButton_Click(object sender, RoutedEventArgs e)
+        private async void ToggleConnectButton_Click(object sender, RoutedEventArgs e)
         {
-
+            try 
+            {
+                await Task.Run(App.BrokerSession.Reconnect);
+                if (App.BrokerSession.IsConnected)
+                {
+                    IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
+                }
+            }
+            catch(System.IO.IOException ex)
+            {
+                var dialog = new ContentDialog()
+                {
+                    Title = "Unable to connect to remote pipe",
+                    Content = "There was an error attempting to the remote pipe. Please check your settings, and that the broker is running.\n" +
+                    $"Reason:\n{ex.Message}",
+                    PrimaryButtonText = "OK"
+                };
+                await dialog.ShowAsync();
+            }
         }
     }
 }

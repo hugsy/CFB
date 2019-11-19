@@ -84,11 +84,15 @@ namespace GUI
             deferral.Complete();
         }
 
+
         /// <summary>
         /// Static reference to the IRP list view model (main model)
         /// </summary>
         public static MainViewModel ViewModel { get; } = new MainViewModel();
 
         public static IAsyncIrpDatabase Irps { get; private set; }
+
+        public static ConnectionManager BrokerSession = new ConnectionManager();
+        
     }
 }

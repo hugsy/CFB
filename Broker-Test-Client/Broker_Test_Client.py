@@ -161,99 +161,35 @@ class BrokerTestMethods:
         self.hPipe = hPipe
         return
 
-
     def test_ClosePipe(self):
         assert windll.kernel32.CloseHandle(self.hPipe)
-        return
-
 
     def test_EnumerateDrivers(self):
         js = SendAndReceive(self.hPipe, TaskType.EnumerateDrivers)
         print("EnumerateDrivers -> " + json.dumps(js, indent=4, sort_keys=True))
-        return
-
 
     def test_HookDriver(self):
-        ## send request
         lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        req = PrepareRequest(TaskType.HookDriver, lpszDriverName)
-        cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
-        assert len(req) == cbWritten.value
-        
-        ## recv response
-        cbRead = c_ulong(0)
-        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf.value)
+        res = SendAndReceive(self.hPipe, TaskType.HookDriver, lpszDriverName)
         print("hook -> " + json.dumps(res, indent=4, sort_keys=True))
-        return
-
 
     def test_UnhookDriver(self):
-        ## send request
         lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        req = PrepareRequest(TaskType.UnhookDriver, lpszDriverName)
-        cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
-        assert len(req) ==  cbWritten.value
-
-        ## recv response
-        cbRead = c_ulong(0)
-        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf.value)
+        res = SendAndReceive(self.hPipe, TaskType.UnhookDriver, lpszDriverName)
         print("unhook -> " + json.dumps(res, indent=4, sort_keys=True))
-        return
-
 
     def test_EnableMonitoring(self):
-        ## send request
-        req = PrepareRequest(TaskType.EnableMonitoring)
-        cbWritten = c_ulong(0)
-        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
-        assert len(req) ==  cbWritten.value
-
-        ## recv response
-        cbRead = c_ulong(0)
-        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf.value)
+        res = SendAndReceive(self.hPipe, TaskType.EnableMonitoring)
         print("enable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
-        return
-
     
     def test_DisableMonitoring(self):
-        ## send request
-        req = PrepareRequest(TaskType.DisableMonitoring)
-        cbWritten = c_ulong(0)  
-        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
-        assert len(req) == cbWritten.value
-
-        ## recv response
-        cbRead = c_ulong(0)
-        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf.value)
+        res = SendAndReceive(self.hPipe, TaskType.DisableMonitoring)
         print("disable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
-        return
-
 
     def test_GetInterceptedIrps(self):
-        ## send request
-        req = PrepareRequest(TaskType.GetInterceptedIrps)
-        cbWritten = c_ulong(0)  
-        assert windll.kernel32.WriteFile(self.hPipe, req, len(req), byref(cbWritten), None)
-        assert len(req) == cbWritten.value
-
-        ## recv response
-        cbRead = c_ulong(0)
-        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-        assert windll.kernel32.ReadFile(self.hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-        res = json.loads(szBuf.value)
+        res = SendAndReceive(self.hPipe, TaskType.GetInterceptedIrps)
         print("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
-        return
-
+    
 
 if __name__ == '__main__':
     r = BrokerTestMethods()
