@@ -70,7 +70,6 @@ std::vector<BYTE> Utils::base64_decode(std::string const& encoded_string)
 	int j = 0;
 	int in_ = 0;
 	unsigned char char_array_4[4], char_array_3[3];
-	//std::string ret;
 	std::vector<BYTE> ret;
 
 	while (in_len-- && (encoded_string[in_] != '=') && is_base64(encoded_string[in_])) 
@@ -112,7 +111,7 @@ std::vector<BYTE> Utils::base64_decode(std::string const& encoded_string)
 
 
 
-std::vector<std::string> Utils::EnumerateDriversFromRoot()
+std::vector<std::string> Utils::EnumerateDrivers()
 {
 	DWORD cbNeeded=0, dwSize=0, dwNbDrivers=0;
 
@@ -155,3 +154,66 @@ std::vector<std::string> Utils::EnumerateDriversFromRoot()
 	return DriverList;
 }
 
+
+
+std::vector<std::pair<std::wstring, std::wstring>> Utils::EnumerateObjectDirectory(std::wstring const& Root = L"\\")
+{
+	std::vector<std::pair<std::wstring, std::wstring>> ObjectList;
+
+	HANDLE hDirectory;
+	OBJECT_ATTRIBUTES ObjAttr;
+	UNICODE_STRING usName;
+
+	RtlInitUnicodeString(&usName, Root.c_str());
+	InitializeObjectAttributes(&ObjAttr, &usName, OBJ_CASE_INSENSITIVE, nullptr, nullptr);
+
+	NTSTATUS Status = NtOpenDirectoryObject(&hDirectory, DIRECTORY_QUERY| DIRECTORY_TRAVERSE, &ObjAttr);
+	if (!NT_SUCCESS(Status))
+		RAISE_GENERIC_EXCEPTION("NtOpenDirectoryObject");
+
+
+	ULONG ctx = 0;
+
+	do 
+	{
+		ULONG rlen = 0;
+
+		Status = NtQueryDirectoryObject(hDirectory, NULL, 0, TRUE, FALSE, &ctx, &rlen);
+		if (Status != 0xC0000023) // BUFFER_TOO_SMALL
+			break;
+
+		POBJECT_DIRECTORY_INFORMATION pObjDirInfo = (POBJECT_DIRECTORY_INFORMATION)::LocalAlloc(LPTR, rlen);
+		if (!pObjDirInfo)
+			break;
+
+		Status = NtQueryDirectoryObject(hDirectory, pObjDirInfo, rlen, TRUE, FALSE, &ctx, &rlen);
+		if (NT_SUCCESS(Status))
+		{
+			for (ULONG i = 0; i < ctx; i++)
+			{
+				if (!pObjDirInfo[i].Name.Buffer || !pObjDirInfo[i].TypeName.Buffer)
+					break;
+
+				ObjectList.push_back(
+					std::make_pair(
+						std::wstring(pObjDirInfo[i].Name.Buffer),
+						std::wstring(pObjDirInfo[i].TypeName.Buffer)
+					)
+				);
+			}
+		}
+		else
+		{
+			::LocalFree(pObjDirInfo);
+			break;
+		}
+
+		::LocalFree(pObjDirInfo);
+	} 
+	while (true);
+
+	NtClose(hDirectory);
+
+
+	return ObjectList;
+}

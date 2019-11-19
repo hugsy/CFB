@@ -539,7 +539,7 @@ DWORD SendDriverList(_In_ Session& Session)
 	j["body"] = json::array();
 	j["body"]["drivers"] = json::array();
 
-	for (auto &driver_name : Utils::EnumerateDriversFromRoot())
+	for (auto &driver_name : Utils::EnumerateDrivers())
 	{
 		j["body"]["drivers"].push_back(driver_name.c_str());
 		i++;
@@ -636,9 +636,7 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.Stop();
 			continue;
 		}
-
-		//HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
-		
+	
 
 		//
 		// otherwise, start by checking for pending IOs and update the state if needed

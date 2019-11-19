@@ -157,6 +157,7 @@
     <ClInclude Include="Irp.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="nt.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ServiceManager.h" />
     <ClInclude Include="Session.h" />

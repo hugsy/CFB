@@ -83,8 +83,6 @@ PIPE_PATH_LOCAL = b"\\\\.\\pipe\\CFB"
 PIPE_PATH_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
 PIPE_PATH = PIPE_PATH_LOCAL
 TEST_DRIVER_NAME = "\\driver\\lxss\0"
-BUFSIZE = MAX_MESSAGE_SIZE
-
 
 
 @unique
