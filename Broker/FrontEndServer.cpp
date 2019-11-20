@@ -20,11 +20,42 @@ Return Value:
 --*/
 FrontEndServer::FrontEndServer()
 {
-	if (!CreatePipe())
+	if (!m_Transport.Initialize())
+		RAISE_GENERIC_EXCEPTION("m_Transport.Initialize() failed");
+	
+}
+
+
+/*++
+Routine Description:
+
+Destroys the FrontEndServer object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	May throw an exception if the the deallocation failed.
+
+--*/
+FrontEndServer::~FrontEndServer() noexcept(false)
+{
+	if (!m_Transport.Terminate())
 	{
-		RAISE_GENERIC_EXCEPTION("CreatePipe() failed");
+		RAISE_GENERIC_EXCEPTION("m_Transport.Terminate() failed");
 	}
 }
+
+
+
+ServerTransportManager FrontEndServer::Transport()
+{
+	return m_Transport;
+}
+
 
 
 /*++
@@ -47,7 +78,7 @@ Return Value:
 	Returns TRUE upon successful creation of the pipe, FALSE if any error occured.
 
 --*/
-BOOL FrontEndServer::CreatePipe() 
+BOOL PipeTransportManager::CreatePipe()
 {
 	BOOL fSuccess = FALSE;
 	SID_IDENTIFIER_AUTHORITY SidAuthWorld = SECURITY_WORLD_SID_AUTHORITY;
@@ -59,10 +90,7 @@ BOOL FrontEndServer::CreatePipe()
 
 	do
 	{
-#ifdef _DEBUG
-		xlog(LOG_DEBUG, L"Defining new SD for pipe\n");
-#endif // _DEBUG
-	
+		dbg(L"Defining new SD for pipe\n");
 
 		//
 		// For now, SD is set for Everyone to have RW access 
@@ -156,10 +184,10 @@ BOOL FrontEndServer::CreatePipe()
 			break;
 		}
 
-		m_Transport.m_hServer = hServer;
+		m_hServer = hServer;
 
-		m_Transport.m_oOverlap.hEvent = ::CreateEvent(nullptr, FALSE, TRUE, nullptr);
-		if (!m_Transport.m_oOverlap.hEvent)
+		m_oOverlap.hEvent = ::CreateEvent(nullptr, FALSE, TRUE, nullptr);
+		if (!m_oOverlap.hEvent)
 		{
 			xlog(LOG_CRITICAL, L"failed to create an event object for frontend thread\n");
 			return false;
@@ -184,28 +212,7 @@ BOOL FrontEndServer::CreatePipe()
 }
 
 
-/*++
-Routine Description:
 
-Destroys the FrontEndServer object.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-	May throw an exception if the the deallocation failed.
-
---*/
-FrontEndServer::~FrontEndServer() noexcept(false)
-{
-	if (!ClosePipe())
-	{
-		RAISE_GENERIC_EXCEPTION("ClosePipe() failed");
-	}
-}
 
 
 /*++
@@ -224,19 +231,16 @@ Return Value:
 	Returns TRUE upon successful termination of the pipe, FALSE if any error occured.
 
 --*/
-BOOL FrontEndServer::ClosePipe()
+BOOL PipeTransportManager::ClosePipe()
 {
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"Closing named pipe '%s'...\n", CFB_PIPE_NAME);
-#endif
+	dbg(L"Closing NamedPipe '%s'...\n", CFB_PIPE_NAME);
+
 
 	BOOL fSuccess = TRUE;
-	HANDLE hServer = m_Transport.m_hServer;
-	ServerState State = m_Transport.m_dwServerState;
 
 	do
 	{
-		if (hServer == INVALID_HANDLE_VALUE)
+		if (m_hServer == INVALID_HANDLE_VALUE)
 		{
 			//
 			// already closed
@@ -244,12 +248,12 @@ BOOL FrontEndServer::ClosePipe()
 			break;
 		}
 
-		if (State != ServerState::Disconnected)
+		if (m_dwServerState != ServerState::Disconnected)
 		{
 			//
 			// Wait until all data was consumed
 			//
-			if (!::FlushFileBuffers(hServer))
+			if (!::FlushFileBuffers(m_hServer))
 			{
 				PrintErrorWithFunctionName(L"FlushFileBuffers()");
 				fSuccess = FALSE;
@@ -258,15 +262,15 @@ BOOL FrontEndServer::ClosePipe()
 			//
 			// Then close down the named pipe
 			//
-			if (!::DisconnectNamedPipe(hServer))
+			if (!::DisconnectNamedPipe(m_hServer))
 			{
 				PrintErrorWithFunctionName(L"DisconnectNamedPipe()");
 				fSuccess = FALSE;
 			}
 		}
 
-		fSuccess = ::CloseHandle(hServer);
-		m_Transport.m_hServer = INVALID_HANDLE_VALUE;
+		fSuccess = ::CloseHandle(m_hServer);
+		m_hServer = INVALID_HANDLE_VALUE;
 	} 
 	while (false);
 
@@ -285,12 +289,12 @@ Arguments:
 Return Value:
 
 --*/
-BOOL FrontEndServer::DisconnectAndReconnectPipe()
+BOOL PipeTransportManager::DisconnectAndReconnectPipe()
 {
-
-	if (!DisconnectNamedPipe(m_Transport.m_hServer))
+	if (!DisconnectNamedPipe(m_hServer))
 	{
 		PrintErrorWithFunctionName(L"DisconnectNamedPipe");
+		return false;
 	}
 
 	if (!ConnectPipe())
@@ -315,16 +319,15 @@ Return Value:
 	
 	Returns TRUE on success, FALSE otherwise
 --*/
-BOOL FrontEndServer::ConnectPipe()
+BOOL PipeTransportManager::ConnectPipe()
 {
-	HANDLE hServer = m_Transport.m_hServer;
-	LPOVERLAPPED ov = &m_Transport.m_oOverlap;
+	dbg(L"Connecting NamedPipe '%s'...\n", CFB_PIPE_NAME);
 
-	BOOL fSuccess = ::ConnectNamedPipe(hServer, ov);
+	BOOL fSuccess = ::ConnectNamedPipe(m_hServer, &m_oOverlap);
 	if (fSuccess)
 	{
 		PrintErrorWithFunctionName(L"ConnectNamedPipe");
-		::DisconnectNamedPipe(hServer);
+		::DisconnectNamedPipe(m_hServer);
 		return FALSE;
 	}
 
@@ -333,17 +336,17 @@ BOOL FrontEndServer::ConnectPipe()
 	switch (gle)
 	{
 	case ERROR_IO_PENDING:
-		m_Transport.m_fPendingIo = TRUE;
-		m_Transport.m_dwServerState = ServerState::Connecting;
+		m_fPendingIo = TRUE;
+		m_dwServerState = ServerState::Connecting;
 		break;
 
 	case ERROR_PIPE_CONNECTED:
-		m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
-		::SetEvent(ov->hEvent);
+		m_dwServerState = ServerState::ReadyToReadFromClient;
+		::SetEvent(m_oOverlap.hEvent);
 		break;
 
 	default:
-		m_Transport.m_dwServerState = ServerState::Disconnected;
+		m_dwServerState = ServerState::Disconnected;
 		xlog(LOG_ERROR, L"ConnectNamedPipe failed with %d.\n", gle);
 		fSuccess = false;
 		break;
@@ -351,6 +354,24 @@ BOOL FrontEndServer::ConnectPipe()
 
 	return TRUE;
 }
+
+
+
+static DWORD SendSynchronous(_In_ HANDLE Handle, _In_ const std::string& str)
+{
+	if (str.size() >= MAX_ACCEPTABLE_MESSAGE_SIZE)
+		return ERROR_BAD_LENGTH;
+
+	LPCVOID lpData = str.c_str();
+	DWORD dwDataLength = (DWORD)str.size(), dwNbByteWritten;
+
+	BOOL fSuccess = ::WriteFile(Handle, lpData, dwDataLength, &dwNbByteWritten, NULL);
+	if (!fSuccess || dwDataLength != dwNbByteWritten)
+		return ERROR_NET_WRITE_FAULT;
+
+	return ERROR_SUCCESS;
+}
+
 
 
 /*++
@@ -370,7 +391,7 @@ Return Value:
 --*/
 DWORD SendInterceptedIrps(_In_ Session& Session)
 {
-	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
+	HANDLE hServer = Session.FrontEndServer.Transport().m_hServer;
 
 	json j = {
 		{"header", {
@@ -418,13 +439,11 @@ DWORD SendInterceptedIrps(_In_ Session& Session)
 	// Write the data back
 	//
 
-	DWORD dwNbByteWritten;
-	std::string data = j.dump();
-	BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNbByteWritten, NULL);
+	const std::string& str = j.dump();
 
-	if (!fSuccess)
+	if (!SendSynchronous(hServer, str))
 	{
-		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+		PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
 		return ERROR_INVALID_DATA;
 	}
 
@@ -448,9 +467,9 @@ Return Value:
 	Returns 0 on success, -1 on failure.
 
 --*/
-DWORD SendDriverList(_In_ Session& Session)
+DWORD SendDriverList(_In_ Session& Sess)
 {
-	HANDLE hServer = Session.FrontEndServer.m_Transport.m_hServer;
+	HANDLE hServer = Sess.FrontEndServer.Transport().m_hServer;
 	int i=0;
 	
 	json j = {
@@ -466,20 +485,17 @@ DWORD SendDriverList(_In_ Session& Session)
 	// wstring -> string converter
 	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wide_converter;
 
-	for (auto driver : Utils::EnumerateObjectDirectory(L"\\driver"))
+	for (auto driver : Utils::EnumerateObjectDirectory(L"\\Driver"))
 	{
 		std::string driver_name = wide_converter.to_bytes(driver.first);
 		j["body"]["drivers"].push_back(driver_name);
 		i++;
 	}
 
-	DWORD dwNbByteWritten;
-	std::string data = j.dump();
-	BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNbByteWritten, NULL);
-
-	if (!fSuccess)
+	const std::string& str = j.dump();
+	if (!SendSynchronous(hServer, str))
 	{
-		PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+		PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
 		return ERROR_INVALID_DATA;
 	}
 
@@ -487,21 +503,16 @@ DWORD SendDriverList(_In_ Session& Session)
 }
 
 
+
 /*++
 
 Routine Description:
 
-This routine handles the communication with the front-end of CFB (for now, the only one implemented
-is the GUI).
-
-Once a message from the frontend is received, it is parsed and pushed as an incoming Task, and notify
-the BackEnd driver thread, then wait for an event from that same thread, notifying a response. Once the
-response is popped from the outgoing Task list, the data is sent back to the frontend.
-
+	The MainLoop function for the NamedPipe connector.
 
 Arguments:
 
-	lpParameter - the thread parameter
+	Sess - the current session
 
 
 Return Value:
@@ -509,26 +520,19 @@ Return Value:
 	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
 
 --*/
-#define MAX_ACCEPTABLE_MESSAGE_SIZE 65534
-#define MAX_MESSAGE_SIZE (MAX_ACCEPTABLE_MESSAGE_SIZE+2)
-
-
-DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
+DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 {
-	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
-	DWORD dwNumberOfBytesWritten, dwIndexObject, cbRet;
+	DWORD dwIndexObject, cbRet;
 	DWORD retcode = ERROR_SUCCESS;
-	HANDLE hServerEvent = Sess.FrontEndServer.m_Transport.m_oOverlap.hEvent;
-	HANDLE hServer = Sess.FrontEndServer.m_Transport.m_hServer;
 	HANDLE hTermEvent = Sess.m_hTerminationEvent;
 	HANDLE hResEvent = Sess.ResponseTasks.m_hPushEvent;
 	BOOL fSuccess;
 
 	const HANDLE Handles[4] = {
 		hTermEvent,
-		hServerEvent,
+		m_oOverlap.hEvent,
 		hResEvent,
-		hServer
+		m_hServer
 	};
 
 	PCHAR lpRequest = (PCHAR)::LocalAlloc(LPTR, MAX_MESSAGE_SIZE);
@@ -570,25 +574,23 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		// otherwise, start by checking for pending IOs and update the state if needed
 		//
 
-		if (Sess.FrontEndServer.m_Transport.m_dwServerState == ServerState::Connecting)
+		if (m_dwServerState == ServerState::Connecting)
 		{
-			LPOVERLAPPED ov = &Sess.FrontEndServer.m_Transport.m_oOverlap;
-			fSuccess = ::GetOverlappedResult(hServer, ov, &cbRet, FALSE);
+			LPOVERLAPPED ov = &m_oOverlap;
+			fSuccess = ::GetOverlappedResult(m_hServer, ov, &cbRet, FALSE);
 
 			if (!fSuccess)
 			{
 				//
 				// assume the connection has closed
 				//
-				Sess.FrontEndServer.DisconnectAndReconnectPipe();
+				DisconnectAndReconnectPipe();
 				continue;
 			}
 
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"new pipe connection\n");
-#endif // _DEBUG
+			dbg(L"new pipe connection\n");
 
-			Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
+			m_dwServerState = ServerState::ReadyToReadFromClient;
 
 		}
 
@@ -596,9 +598,9 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		//
 		// process the state itself
 		//	
-		ServerState State = Sess.FrontEndServer.m_Transport.m_dwServerState;
+		ServerState State = m_dwServerState;
 		
-		if (State == ServerState::ReadyToReadFromClient)
+		if (m_dwServerState == ServerState::ReadyToReadFromClient)
 		{
 			RtlZeroMemory(lpRequest, MAX_MESSAGE_SIZE);
 
@@ -608,10 +610,10 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				// read the json message
 				//
 				
-				HANDLE Handle = Sess.FrontEndServer.m_Transport.m_hServer;
-				BOOL fSuccess = ::ReadFile(Handle, lpRequest, MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
+				HANDLE Handle = m_hServer;
+				BOOL fSuccess = ::ReadFile(m_hServer, lpRequest, MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
 				if (!fSuccess)
-					RAISE_GENERIC_EXCEPTION("ReadFile() failed");
+					RAISE_GENERIC_EXCEPTION("ReadFile() client message failed");
 
 #ifdef _DEBUG
 				dbg(L"new pipe message (len=%d)\n", dwRequestSize);
@@ -655,19 +657,19 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 					Sess.RequestTasks.push(task);
 
 					// change the state
-					Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromServer;
+					m_dwServerState = ServerState::ReadyToReadFromServer;
 				}
 			}
 			catch (BrokenPipeException&)
 			{
 				xlog(LOG_WARNING, L"Broken pipe detected...\n");
-				Sess.FrontEndServer.DisconnectAndReconnectPipe();
+				DisconnectAndReconnectPipe();
 				continue;
 			}
 			catch (BaseException &e)
 			{
 				xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
-				Sess.FrontEndServer.DisconnectAndReconnectPipe();
+				DisconnectAndReconnectPipe();
 				continue;
 			}
 
@@ -695,29 +697,25 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 				if (task.Length() > 0)
 					json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
 
-				std::string data = json_response.dump();
-				BOOL fSuccess = ::WriteFile(hServer, data.c_str(), data.size(), &dwNumberOfBytesWritten, NULL);
-				if (!fSuccess)
+				const std::string& data = json_response.dump();
+				if (!SendSynchronous(m_hServer, data))
 				{
-					PrintErrorWithFunctionName(L"WriteFile(hDevice)");
+					PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
 				}
 				else
 				{
 					task.SetState(TaskState::Completed);
 				}
 
-
-#ifdef _DEBUG
-				xlog(LOG_DEBUG, L"task tid=%d sent to frontend (%dB), terminating...\n", task.Id(), dwNumberOfBytesWritten);
-#endif // _DEBUG
+				dbg(L"task tid=%d sent to frontend, terminating...\n", task.Id());
 
 				// change the state
-				Sess.FrontEndServer.m_Transport.m_dwServerState = ServerState::ReadyToReadFromClient;
+				m_dwServerState = ServerState::ReadyToReadFromClient;
 			}
 			catch (BrokenPipeException&)
 			{
 				xlog(LOG_WARNING, L"Broken pipe detected...\n");
-				Sess.FrontEndServer.DisconnectAndReconnectPipe();
+				DisconnectAndReconnectPipe();
 				continue;
 			}
 			catch (BaseException & e)
@@ -729,18 +727,46 @@ DWORD FrontendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		else
 		{
 			xlog(LOG_WARNING, L"Unexpected state (state=%d, fd=%d), invalid?\n", State, dwIndexObject);
-			Sess.FrontEndServer.DisconnectAndReconnectPipe();
+			DisconnectAndReconnectPipe();
 		}
 
 	}
 
 	LocalFree(lpRequest);
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
-#endif // _DEBUG
+	dbg(L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
 
 	return ERROR_SUCCESS;
+}
+
+
+
+/*++
+
+Routine Description:
+
+This routine handles the communication with the front-end of CFB (for now, the only one implemented
+is the GUI).
+
+Once a message from the frontend is received, it is parsed and pushed as an incoming Task, and notify
+the BackEnd driver thread, then wait for an event from that same thread, notifying a response. Once the
+response is popped from the outgoing Task list, the data is sent back to the frontend.
+
+
+Arguments:
+
+	lpParameter - the thread parameter
+
+
+Return Value:
+
+	Returns 0 the thread execution went successfully, the value from GetLastError() otherwise.
+
+--*/
+static DWORD ServerThreadRoutine(_In_ LPVOID lpParameter)
+{
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
+	return Sess.FrontEndServer.Transport().RunForever(Sess);
 }
 
 
@@ -763,14 +789,14 @@ Return Value:
 
 --*/
 _Success_(return)
-BOOL StartFrontendManagerThread(_In_ LPVOID lpParameter)
+BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter)
 {
 	DWORD dwThreadId;
 
 	HANDLE hThread = ::CreateThread(
 		NULL,
 		0,
-		FrontendConnectionHandlingThread,
+		ServerThreadRoutine,
 		lpParameter,
 		CREATE_SUSPENDED,
 		&dwThreadId

@@ -1,18 +1,22 @@
 #pragma once
 
 #include "common.h"
+
+#include <queue>
+
 #include "TaskManager.h"
 #include "ServiceManager.h"
 #include "FrontEndServer.h"
 #include "Irp.h"
 
-#include <queue>
 
-enum SessionState : uint16_t
+
+enum class SessionState
 {
 	Idle,
 	Running
 };
+
 
 class Session
 {
@@ -78,3 +82,5 @@ private:
 	//
 	SessionState m_State = SessionState::Idle;
 };
+
+

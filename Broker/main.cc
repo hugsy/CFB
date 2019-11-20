@@ -314,7 +314,7 @@ int wmain(int argc, wchar_t** argv)
 	// Initialize the gui <-> broker thread
 	//
 
-	if (!StartFrontendManagerThread(Sess))
+	if (!FrontendThreadRoutine(Sess))
 	{
 		retcode = EXIT_FAILURE;
 		goto __DestroyEnvironment;
