@@ -50,10 +50,15 @@ FrontEndServer::~FrontEndServer() noexcept(false)
 }
 
 
-
-ServerTransportManager FrontEndServer::Transport()
+DWORD FrontEndServer::RunForever(_In_ Session& s)
 {
-	return m_Transport;
+	return m_Transport.RunForever(s);
+}
+
+
+HANDLE FrontEndServer::TransportHandle()
+{
+	return m_Transport.GetHandle();
 }
 
 
@@ -289,7 +294,7 @@ Arguments:
 Return Value:
 
 --*/
-BOOL PipeTransportManager::DisconnectAndReconnectPipe()
+BOOL PipeTransportManager::DisconnectAndReconnect()
 {
 	if (!DisconnectNamedPipe(m_hServer))
 	{
@@ -391,7 +396,7 @@ Return Value:
 --*/
 DWORD SendInterceptedIrps(_In_ Session& Session)
 {
-	HANDLE hServer = Session.FrontEndServer.Transport().m_hServer;
+	HANDLE hServer = Session.FrontEndServer.TransportHandle();
 
 	json j = {
 		{"header", {
@@ -441,9 +446,9 @@ DWORD SendInterceptedIrps(_In_ Session& Session)
 
 	const std::string& str = j.dump();
 
-	if (!SendSynchronous(hServer, str))
+	if (SendSynchronous(hServer, str))
 	{
-		PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
+		PrintErrorWithFunctionName(L"SendSynchronous(Irps)");
 		return ERROR_INVALID_DATA;
 	}
 
@@ -469,7 +474,7 @@ Return Value:
 --*/
 DWORD SendDriverList(_In_ Session& Sess)
 {
-	HANDLE hServer = Sess.FrontEndServer.Transport().m_hServer;
+	HANDLE hServer = Sess.FrontEndServer.TransportHandle();
 	int i=0;
 	
 	json j = {
@@ -493,9 +498,9 @@ DWORD SendDriverList(_In_ Session& Sess)
 	}
 
 	const std::string& str = j.dump();
-	if (!SendSynchronous(hServer, str))
+	if (SendSynchronous(hServer, str))
 	{
-		PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
+		PrintErrorWithFunctionName(L"SendSynchronous(Drivers)");
 		return ERROR_INVALID_DATA;
 	}
 
@@ -535,10 +540,8 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 		m_hServer
 	};
 
-	PCHAR lpRequest = (PCHAR)::LocalAlloc(LPTR, MAX_MESSAGE_SIZE);
-	if (!lpRequest)
-		return ::GetLastError();
-	DWORD dwRequestSize;
+
+	
 
 	while (Sess.IsRunning())
 	{
@@ -584,7 +587,7 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 				//
 				// assume the connection has closed
 				//
-				DisconnectAndReconnectPipe();
+				DisconnectAndReconnect();
 				continue;
 			}
 
@@ -597,31 +600,30 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 
 		//
 		// process the state itself
-		//	
-		ServerState State = m_dwServerState;
-		
+		//
 		if (m_dwServerState == ServerState::ReadyToReadFromClient)
 		{
-			RtlZeroMemory(lpRequest, MAX_MESSAGE_SIZE);
-
+			DWORD dwRequestSize;
+			auto RequestBuffer = std::make_unique<BYTE[]>(MAX_MESSAGE_SIZE);
+			RtlZeroMemory(RequestBuffer.get(), MAX_MESSAGE_SIZE);
+			
 			try
 			{
 				//
 				// read the json message
 				//
-				
-				HANDLE Handle = m_hServer;
-				BOOL fSuccess = ::ReadFile(m_hServer, lpRequest, MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
+				BOOL fSuccess = ::ReadFile(m_hServer, RequestBuffer.get(), MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
 				if (!fSuccess)
 					RAISE_GENERIC_EXCEPTION("ReadFile() client message failed");
 
 #ifdef _DEBUG
 				dbg(L"new pipe message (len=%d)\n", dwRequestSize);
-				hexdump(lpRequest, dwRequestSize);
+				hexdump(RequestBuffer.get(), dwRequestSize);
 #endif // _DEBUG
 
-				auto json_request = json::parse(std::string(lpRequest));
-				TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
+				auto request_str = std::string(reinterpret_cast<char const*>(RequestBuffer.get()), dwRequestSize);
+				auto json_request = json::parse(request_str);
+				const TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
 				DWORD dwDataLength = json_request["body"]["data_length"];
 				auto data = json_request["body"]["data"].get<std::string>();
 				auto lpData = Utils::base64_decode(data);
@@ -663,18 +665,18 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 			catch (BrokenPipeException&)
 			{
 				xlog(LOG_WARNING, L"Broken pipe detected...\n");
-				DisconnectAndReconnectPipe();
+				DisconnectAndReconnect();
 				continue;
 			}
 			catch (BaseException &e)
 			{
 				xlog(LOG_ERROR, L"An exception occured while processing incoming message:\n%S\n", e.what());
-				DisconnectAndReconnectPipe();
+				DisconnectAndReconnect();
 				continue;
 			}
 
 		}
-		else if (State == ServerState::ReadyToReadFromServer)
+		else if (m_dwServerState == ServerState::ReadyToReadFromServer)
 		{
 			try
 			{
@@ -698,9 +700,9 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 					json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
 
 				const std::string& data = json_response.dump();
-				if (!SendSynchronous(m_hServer, data))
+				if (SendSynchronous(m_hServer, data))
 				{
-					PrintErrorWithFunctionName(L"SendSynchronous(hDevice)");
+					PrintErrorWithFunctionName(L"SendSynchronous(Ioctl)");
 				}
 				else
 				{
@@ -715,7 +717,7 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 			catch (BrokenPipeException&)
 			{
 				xlog(LOG_WARNING, L"Broken pipe detected...\n");
-				DisconnectAndReconnectPipe();
+				DisconnectAndReconnect();
 				continue;
 			}
 			catch (BaseException & e)
@@ -726,13 +728,11 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 		}
 		else
 		{
-			xlog(LOG_WARNING, L"Unexpected state (state=%d, fd=%d), invalid?\n", State, dwIndexObject);
-			DisconnectAndReconnectPipe();
+			xlog(LOG_WARNING, L"Unexpected state (state=%d, fd=%d), invalid?\n", m_dwServerState, dwIndexObject);
+			DisconnectAndReconnect();
 		}
 
 	}
-
-	LocalFree(lpRequest);
 
 	dbg(L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
 
@@ -766,7 +766,7 @@ Return Value:
 static DWORD ServerThreadRoutine(_In_ LPVOID lpParameter)
 {
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
-	return Sess.FrontEndServer.Transport().RunForever(Sess);
+	return Sess.FrontEndServer.RunForever(Sess);
 }
 
 
@@ -817,4 +817,31 @@ BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter)
 	Sess.m_hFrontendThread = hThread;
 
 	return TRUE;
+}
+
+
+
+BOOL TcpSocketTransportManager::Initialize()
+{
+	return false;
+}
+
+BOOL TcpSocketTransportManager::Terminate()
+{
+	return false;
+}
+
+BOOL TcpSocketTransportManager::Connect()
+{
+	return false;
+}
+
+BOOL TcpSocketTransportManager::Reconnect()
+{
+	return false;
+}
+
+DWORD TcpSocketTransportManager::RunForever(Session& CurrentSession)
+{
+	return ERROR_INVALID_FUNCTION;
 }
