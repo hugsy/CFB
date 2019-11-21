@@ -46,9 +46,7 @@ static inline HANDLE ShareHandleWithDriver(_In_ HANDLE hDevice)
 		NULL
 	);
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"ShareHandleWithDriver() returned: %s\n", bRes ? L"TRUE" : L"FALSE");
-#endif
+	dbg(L"ShareHandleWithDriver() returned: %s\n", bRes ? L"TRUE" : L"FALSE");
 
 	if (bRes)
 		return hDataEvent;
@@ -92,7 +90,7 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 	//
 	// Retrieve the expected buffer size
 	//
-	xlog(LOG_DEBUG, L"ReadFile(hDevice=%p, dwBufferSize=%d, lpNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, lpNumberOfBytesRead, bRes);
+	dbg(L"ReadFile(hDevice=%p, dwBufferSize=%d, lpNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, lpNumberOfBytesRead, bRes);
 	DWORD dwErrCode = ::GetLastError();
 
 	if (bRes == FALSE)
@@ -127,9 +125,7 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 		PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
 		PINTERCEPTED_IRP_BODY pIrpBody = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
 
-#ifdef _DEBUG
-		xlog(LOG_DEBUG, 
-			L"New IRP received:\n"
+		dbg(L"New IRP received:\n"
 			L" - timestamp:%llu\n"
 			L" - IRQ level:%x\n"
 			L" - Major type:%x\n"
@@ -149,8 +145,6 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 			pIrpHeader->DriverName,
 			pIrpHeader->DeviceName
 		);
-#endif // _DEBUG
-
 
 		//
 		// pushing new IRP to the session queue\n");
@@ -287,24 +281,18 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 		switch (dwWaitResult)
 		{
 		case WAIT_OBJECT_0:
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"[IrpCollectorThreadRoutine] received termination Event\n");
-#endif // _DEBUG
-
+			dbg(L"[IrpCollectorThreadRoutine] received termination Event\n");
 			Sess.Stop();
 			break;
 
 		case WAIT_OBJECT_0 + 1:
 		{
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"new IRP data Event\n");
-#endif // _DEBUG
+			dbg(L"new IRP data Event\n");
 
 			DWORD dwNbIrpDumped = 0;
 			DWORD dwRes = FetchAllIrpFromDevice(hIrpDumperDevice.get(), hIrpDataEvent.get(), Sess, &dwNbIrpDumped);
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"fetched %d IRP from driver\n", dwNbIrpDumped);
-#endif // _DEBUG
+			
+			dbg(L"fetched %d IRP from driver\n", dwNbIrpDumped);
 			break;
 		}
 
@@ -315,11 +303,7 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 		}
 	}
 
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
-#endif // _DEBUG
-
+	dbg(L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
 	return ERROR_SUCCESS;
 }
 
@@ -465,10 +449,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		{
 		case WAIT_OBJECT_0:
 		{
-#ifdef _DEBUG
-			xlog(LOG_DEBUG, L"[BackendConnectionHandlingThread] received termination Event\n");
-#endif // _DEBUG
-
+			dbg(L"[BackendConnectionHandlingThread] received termination Event\n");
 			Sess.Stop();
 			continue;
 		}
@@ -481,6 +462,9 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			auto request_task = Sess.RequestTasks.pop();
 
+			//
+			// send the request to the driver
+			//
 			auto response_task = SendTaskToDriver(request_task, hIrpDumperDevice.get());
 
 			//
@@ -495,13 +479,9 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			Sess.Stop();
 			continue;
 		}
-
 	}
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
-#endif // _DEBUG
-
+	dbg(L"terminating thread TID=%d\n", GetThreadId(GetCurrentThread()));
 	return ERROR_SUCCESS;
 }
 
@@ -530,6 +510,7 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 {
 	HANDLE hThread;
 	DWORD dwThreadId;
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 
 	//
 	// Starts the thread that communicates with the driver
@@ -549,13 +530,7 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 		return FALSE;
 	}
 
-	
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, "CreateThread(Driver) created as TID=%d\n", dwThreadId);
-#endif // _DEBUG
-
-
-	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
+	dbg(L"CreateThread(Driver) created as TID=%d\n", dwThreadId);
 	Sess.m_hBackendThread = hThread;
 
 
@@ -577,11 +552,8 @@ BOOL StartBackendManagerThread(_In_ PVOID lpParameter)
 		return FALSE;
 	}
 
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, "CreateThread(Irp) created as TID=%d\n", dwThreadId);
-#endif // _DEBUG
 
-
+	dbg(L"CreateThread(Irp) created as TID=%d\n", dwThreadId);
 	Sess.m_hIrpFetcherThread = hThread;
 
 	return TRUE;

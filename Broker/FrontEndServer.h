@@ -81,6 +81,9 @@ Communication via TCP socket.
 class TcpSocketTransportManager : public ServerTransportManager
 {
 public:
+	TcpSocketTransportManager();
+	~TcpSocketTransportManager();
+
 	BOOL Initialize();
 	BOOL Terminate();
 	BOOL Connect();
@@ -90,6 +93,7 @@ public:
 
 private:
 	SOCKET m_Socket;
+	WSADATA m_WsaData;
 };
 
 

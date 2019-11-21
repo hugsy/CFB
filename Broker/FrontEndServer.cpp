@@ -529,12 +529,11 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 {
 	DWORD dwIndexObject, cbRet;
 	DWORD retcode = ERROR_SUCCESS;
-	HANDLE hTermEvent = Sess.m_hTerminationEvent;
 	HANDLE hResEvent = Sess.ResponseTasks.m_hPushEvent;
 	BOOL fSuccess;
 
 	const HANDLE Handles[4] = {
-		hTermEvent,
+		Sess.m_hTerminationEvent,
 		m_oOverlap.hEvent,
 		hResEvent,
 		m_hServer
@@ -820,6 +819,16 @@ BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter)
 }
 
 
+
+TcpSocketTransportManager::TcpSocketTransportManager()
+{
+	WSAStartup(MAKEWORD(2, 0), &m_WsaData);
+}
+
+TcpSocketTransportManager::~TcpSocketTransportManager()
+{
+	WSACleanup();
+}
 
 BOOL TcpSocketTransportManager::Initialize()
 {
