@@ -821,36 +821,48 @@ BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter)
 
 
 TcpSocketTransportManager::TcpSocketTransportManager()
+	: m_Socket(INVALID_SOCKET)
 {
-	WSAStartup(MAKEWORD(2, 0), &m_WsaData);
+	RtlZeroMemory(&m_WsaData, sizeof(WSADATA));
+	if (WSAStartup(MAKEWORD(2, 2), &m_WsaData))
+		RAISE_GENERIC_EXCEPTION("TcpSocketTransportManager::WSAStartup()");
+
+	if (LOBYTE(m_WsaData.wVersion) != 2 || HIBYTE(m_WsaData.wVersion) != 2) 
+		RAISE_GENERIC_EXCEPTION("TcpSocketTransportManager - version check");
 }
+
 
 TcpSocketTransportManager::~TcpSocketTransportManager()
 {
 	WSACleanup();
 }
 
+
 BOOL TcpSocketTransportManager::Initialize()
 {
 	return false;
 }
 
+
 BOOL TcpSocketTransportManager::Terminate()
 {
-	return false;
+	return closesocket(m_Socket) == 0;
 }
+
 
 BOOL TcpSocketTransportManager::Connect()
 {
 	return false;
 }
 
+
 BOOL TcpSocketTransportManager::Reconnect()
 {
 	return false;
 }
 
-DWORD TcpSocketTransportManager::RunForever(Session& CurrentSession)
+
+DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 {
 	return ERROR_INVALID_FUNCTION;
 }

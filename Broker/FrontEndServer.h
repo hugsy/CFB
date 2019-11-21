@@ -36,7 +36,6 @@ class ServerTransportManager
 {
 protected:
 	ServerState m_dwServerState = ServerState::Disconnected;
-	HANDLE m_hServer;
 
 public:
 	virtual BOOL Initialize() = 0;
@@ -63,6 +62,7 @@ public:
 	HANDLE GetHandle() { return m_hServer; }
 
 private:
+	HANDLE m_hServer;
 	OVERLAPPED m_oOverlap;
 	bool m_fPendingIo = false;
 
