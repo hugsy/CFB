@@ -1,6 +1,20 @@
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+
 #include "FrontEndServer.h"
 
+#include <aclapi.h>
+#include <psapi.h>
+#include <iostream>
+#include <locale>
+#include <codecvt>
 
+#include "taskmanager.h"
+#include "Session.h"
+
+
+#include "json.hpp"
+using json = nlohmann::json;
 
 
 /*++
@@ -47,18 +61,6 @@ FrontEndServer::~FrontEndServer() noexcept(false)
 	{
 		RAISE_GENERIC_EXCEPTION("m_Transport.Terminate() failed");
 	}
-}
-
-
-DWORD FrontEndServer::RunForever(_In_ Session& s)
-{
-	return m_Transport.RunForever(s);
-}
-
-
-HANDLE FrontEndServer::TransportHandle()
-{
-	return m_Transport.GetHandle();
 }
 
 
@@ -361,21 +363,45 @@ BOOL PipeTransportManager::ConnectPipe()
 }
 
 
+/*++
 
-static DWORD SendSynchronous(_In_ HANDLE Handle, _In_ const std::string& str)
+Synchronous send for named pipe
+
+--*/
+BOOL PipeTransportManager::SendSynchronous(_In_ const std::vector<byte>& data)
 {
-	if (str.size() >= MAX_ACCEPTABLE_MESSAGE_SIZE)
-		return ERROR_BAD_LENGTH;
+	if (data.size() >= MAX_ACCEPTABLE_MESSAGE_SIZE)
+		return false;
 
-	LPCVOID lpData = str.c_str();
-	DWORD dwDataLength = (DWORD)str.size(), dwNbByteWritten;
-
-	BOOL fSuccess = ::WriteFile(Handle, lpData, dwDataLength, &dwNbByteWritten, NULL);
+	DWORD dwDataLength = (DWORD)data.size(), dwNbByteWritten;
+	BOOL fSuccess = ::WriteFile(m_hServer, data.data(), dwDataLength, &dwNbByteWritten, NULL);
 	if (!fSuccess || dwDataLength != dwNbByteWritten)
-		return ERROR_NET_WRITE_FAULT;
+		return false;
 
-	return ERROR_SUCCESS;
+	return true;
 }
+
+
+/*++
+
+Synchronous receive for named pipe
+
+--*/
+std::vector<byte> PipeTransportManager::ReceiveSynchronous()
+{
+	auto buf = std::make_unique<byte[]>(MAX_MESSAGE_SIZE);
+	RtlZeroMemory(buf.get(), MAX_MESSAGE_SIZE);
+
+	DWORD dwRequestSize;
+	BOOL fSuccess = ::ReadFile(m_hServer, buf.get(), MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
+	if (!fSuccess)
+		RAISE_GENERIC_EXCEPTION("ReceiveSynchronous");
+
+	std::vector<byte> res; 
+	for (DWORD i = 0; i < dwRequestSize; i++) res.push_back(buf[i]);
+	return res;
+}
+
 
 
 
@@ -396,8 +422,6 @@ Return Value:
 --*/
 DWORD SendInterceptedIrps(_In_ Session& Session)
 {
-	HANDLE hServer = Session.FrontEndServer.TransportHandle();
-
 	json j = {
 		{"header", {
 			{"success", true},
@@ -445,8 +469,9 @@ DWORD SendInterceptedIrps(_In_ Session& Session)
 	//
 
 	const std::string& str = j.dump();
+	const std::vector<byte> raw(str.begin(), str.end());
 
-	if (SendSynchronous(hServer, str))
+	if (!Session.FrontEndServer.Send(raw))
 	{
 		PrintErrorWithFunctionName(L"SendSynchronous(Irps)");
 		return ERROR_INVALID_DATA;
@@ -461,6 +486,7 @@ DWORD SendInterceptedIrps(_In_ Session& Session)
 
 Routine Description:
 
+	Sends the list of drivers
 
 Arguments:
 
@@ -474,7 +500,6 @@ Return Value:
 --*/
 DWORD SendDriverList(_In_ Session& Sess)
 {
-	HANDLE hServer = Sess.FrontEndServer.TransportHandle();
 	int i=0;
 	
 	json j = {
@@ -498,7 +523,9 @@ DWORD SendDriverList(_In_ Session& Sess)
 	}
 
 	const std::string& str = j.dump();
-	if (SendSynchronous(hServer, str))
+	const std::vector<byte> raw(str.begin(), str.end());
+
+	if (!Sess.FrontEndServer.Send(raw))
 	{
 		PrintErrorWithFunctionName(L"SendSynchronous(Drivers)");
 		return ERROR_INVALID_DATA;
@@ -602,25 +629,20 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 		//
 		if (m_dwServerState == ServerState::ReadyToReadFromClient)
 		{
-			DWORD dwRequestSize;
-			auto RequestBuffer = std::make_unique<BYTE[]>(MAX_MESSAGE_SIZE);
-			RtlZeroMemory(RequestBuffer.get(), MAX_MESSAGE_SIZE);
-			
 			try
 			{
 				//
 				// read the json message
 				//
-				BOOL fSuccess = ::ReadFile(m_hServer, RequestBuffer.get(), MAX_ACCEPTABLE_MESSAGE_SIZE, &dwRequestSize, NULL);
-				if (!fSuccess)
-					RAISE_GENERIC_EXCEPTION("ReadFile() client message failed");
+				auto RequestBufferRaw = Sess.FrontEndServer.Receive();
 
 #ifdef _DEBUG
-				dbg(L"new pipe message (len=%d)\n", dwRequestSize);
-				hexdump(RequestBuffer.get(), dwRequestSize);
+				SIZE_T dwRequestSize = RequestBufferRaw.size();
+				dbg(L"new pipe message (len=%lu)\n", dwRequestSize);
+				hexdump(RequestBufferRaw.data(), dwRequestSize);
 #endif // _DEBUG
 
-				auto request_str = std::string(reinterpret_cast<char const*>(RequestBuffer.get()), dwRequestSize);
+				const std::string request_str(RequestBufferRaw.begin(), RequestBufferRaw.end());
 				auto json_request = json::parse(request_str);
 				const TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
 				DWORD dwDataLength = json_request["body"]["data_length"];
@@ -698,8 +720,9 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 				if (task.Length() > 0)
 					json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
 
-				const std::string& data = json_response.dump();
-				if (SendSynchronous(m_hServer, data))
+				const std::string& str = json_response.dump();
+				const std::vector<byte> raw(str.begin(), str.end());
+				if (!Sess.FrontEndServer.Send(raw))
 				{
 					PrintErrorWithFunctionName(L"SendSynchronous(Ioctl)");
 				}
@@ -823,11 +846,12 @@ BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter)
 TcpSocketTransportManager::TcpSocketTransportManager()
 	: m_Socket(INVALID_SOCKET)
 {
-	RtlZeroMemory(&m_WsaData, sizeof(WSADATA));
-	if (WSAStartup(MAKEWORD(2, 2), &m_WsaData))
+	WSADATA WsaData = { 0, };
+	
+	if (WSAStartup(MAKEWORD(2, 2), &WsaData))
 		RAISE_GENERIC_EXCEPTION("TcpSocketTransportManager::WSAStartup()");
 
-	if (LOBYTE(m_WsaData.wVersion) != 2 || HIBYTE(m_WsaData.wVersion) != 2) 
+	if (LOBYTE(WsaData.wVersion) != 2 || HIBYTE(WsaData.wVersion) != 2)
 		RAISE_GENERIC_EXCEPTION("TcpSocketTransportManager - version check");
 }
 
@@ -838,9 +862,54 @@ TcpSocketTransportManager::~TcpSocketTransportManager()
 }
 
 
+/*++
+
+Prepare the socket: init + bind + listen
+
+--*/
 BOOL TcpSocketTransportManager::Initialize()
 {
-	return false;
+	WSAPROTOCOL_INFO info = {0, };
+	info.dwServiceFlags1 |= XP1_IFS_HANDLES;
+
+	m_Socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT);
+	if (m_Socket == INVALID_SOCKET)
+	{
+		xlog(LOG_CRITICAL, L"Cannot create socket (WSAGetLastError=0x%x)\n", ::WSAGetLastError());
+		return false;
+	}
+
+	return true;
+}
+
+
+/*++
+
+Prepare the socket: bind + listen
+
+--*/
+BOOL TcpSocketTransportManager::Connect()
+{
+	SOCKADDR_IN sa = { 0, };
+	InetPtonW(AF_INET, L"0.0.0.0", &sa.sin_addr.s_addr);
+	sa.sin_family = AF_INET;
+	sa.sin_port = htons(TCP_LISTEN_PORT);
+
+	if (bind(m_Socket, (PSOCKADDR)&sa, sizeof(SOCKADDR_IN)) == SOCKET_ERROR)
+	{
+		xlog(LOG_CRITICAL, L"Cannot bind socket (WSAGetLastError=0x%x)\n", ::WSAGetLastError());
+		Terminate();
+		return false;
+	}
+
+	if (listen(m_Socket, SOMAXCONN_HINT(TCP_MAX_CONNECTIONS)))
+	{
+		xlog(LOG_CRITICAL, L"Cannot listen socket (WSAGetLastError=0x%x)\n", ::WSAGetLastError());
+		Terminate();
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -850,19 +919,139 @@ BOOL TcpSocketTransportManager::Terminate()
 }
 
 
-BOOL TcpSocketTransportManager::Connect()
+BOOL TcpSocketTransportManager::Reconnect()
 {
-	return false;
+	return Terminate() && Initialize() && Connect();
 }
 
 
-BOOL TcpSocketTransportManager::Reconnect()
+/*++
+
+Accept a client socket
+
+--*/
+BOOL TcpSocketTransportManager::Accept(_Out_ SOCKET *NewClient)
 {
-	return false;
+	SOCKET ClientSocket = INVALID_SOCKET;
+	SOCKADDR_IN SockInfoClient = { 0 };
+	INT dwSockInfoClientSize = sizeof(SOCKADDR_IN);
+
+	ClientSocket = WSAAccept(m_Socket, (SOCKADDR*)&SockInfoClient, &dwSockInfoClientSize, NULL, 0); // todo: add a lpfnCondition
+	if (ClientSocket == INVALID_SOCKET)
+	{
+		xlog(LOG_ERROR, L"Cannot accept from server socket (WSAGetLastError=0x%x)\n", ::WSAGetLastError());
+		return false;
+	}
+
+	dbg(L"New TCP client %s:%d\n", SockInfoClient.sin_addr.s_addr, ntohs(SockInfoClient.sin_port));
+	*NewClient = ClientSocket;
+	m_dwServerState = ServerState::Connecting;
+	return true;
+}
+
+
+static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
+{
+	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
+	dbg(L"in request handler\n");
+	return 0;
 }
 
 
 DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 {
-	return ERROR_INVALID_FUNCTION;
+	if (!Initialize())
+		return ERROR_INVALID_PARAMETER;
+
+	if (!Connect())
+		return ERROR_INVALID_PARAMETER;
+
+	dbg(L"TCP socket ready\n");
+
+	DWORD retcode = ERROR_SUCCESS;
+	HANDLE hEvent = INVALID_HANDLE_VALUE;
+
+	std::vector<HANDLE> handles;
+	handles.push_back(CurrentSession.m_hTerminationEvent);
+
+	hEvent = ::WSACreateEvent();
+	::WSAEventSelect(m_Socket, hEvent, FD_READ | FD_WRITE);
+	handles.push_back(hEvent);
+
+
+	while (CurrentSession.IsRunning())
+	{
+		DWORD dwIndexObject = ::WSAWaitForMultipleEvents((DWORD)handles.size(), handles.data(), false, INFINITE, false) - WSA_WAIT_EVENT_0;
+
+		if (dwIndexObject < 0 || dwIndexObject >= handles.size())
+		{
+			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
+			xlog(LOG_CRITICAL, L"WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			CurrentSession.Stop();
+			continue;
+		}
+
+		SOCKET ClientSocket;
+		HANDLE hClientThread;
+		DWORD dwClientTid;
+
+		switch (dwIndexObject)
+		{
+		case 0:
+			dbg(L"received termination event\n");
+			CurrentSession.Stop();
+			break;
+
+		case 1:
+			// accept the connection
+			if (!Accept(&ClientSocket))
+				continue;
+
+			// start a thread to handle the requests
+			hClientThread = ::CreateThread(nullptr, 0, HandleTcpRequestsRtn, &CurrentSession, 0, &dwClientTid);
+			if (!hClientThread)
+			{
+				PrintErrorWithFunctionName(L"CreateThread");
+			}
+			else
+			{
+				dbg(L"event on handle %s\n", dwIndexObject);
+				handles.push_back(hClientThread);
+			}
+			break;
+
+		default:
+			dbg(L"event on handle %s\n", dwIndexObject);
+			::CloseHandle(handles.at(dwIndexObject));
+			break;
+		}
+
+
+	}
+
+
+	return retcode;
+}
+
+
+/*++
+
+Synchronous send for TCP streams
+
+--*/
+BOOL TcpSocketTransportManager::SendSynchronous(_In_ const std::vector<byte>& data)
+{
+	return false;
+}
+
+
+/*++
+
+Synchronous receive for TCP streams
+
+--*/
+std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
+{
+	std::vector<byte> res;
+	return res;
 }

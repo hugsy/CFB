@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 #include <array>
+#include <cstddef>
+
 
 enum TaskState : uint16_t
 {
@@ -56,7 +58,6 @@ class Task
 public:
 	Task(const Task& t);
 	Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode);
-	Task(HANDLE Handle, LPOVERLAPPED ov);
 	~Task();
 
 	const wchar_t* StateAsString();
@@ -67,7 +68,6 @@ public:
 	const uint32_t Length();
 	byte* Data();
 	const DWORD Id();
-	const byte* AsTlv();
 	const DWORD ErrCode();
 
 

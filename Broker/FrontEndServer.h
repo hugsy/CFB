@@ -2,12 +2,6 @@
 
 #include "common.h"
 
-#include <aclapi.h>
-#include <psapi.h>
-#include <iostream>
-#include <locale>
-#include <codecvt>
-
 #include "task.h"
 
 #define MAX_ACCEPTABLE_MESSAGE_SIZE 65534
@@ -19,10 +13,10 @@ class Session;
 
 enum class ServerState
 {
-	Disconnected = 0,
-	Connecting = 1,
-	ReadyToReadFromClient = 2,
-	ReadyToReadFromServer = 3
+	Disconnected,
+	Connecting,
+	ReadyToReadFromClient,
+	ReadyToReadFromServer
 };
 
 
@@ -43,6 +37,8 @@ public:
 	virtual BOOL Connect() = 0;
 	virtual BOOL Reconnect() = 0;
 	virtual DWORD RunForever(_In_ Session& CurrentSession) = 0;
+	virtual BOOL SendSynchronous(_In_ const std::vector<byte>& data) = 0;
+	virtual std::vector<byte> ReceiveSynchronous() = 0;
 };
 
 
@@ -59,7 +55,8 @@ public:
 	BOOL Connect() { return ConnectPipe(); }
 	BOOL Reconnect() { return DisconnectAndReconnect(); }
 	DWORD RunForever(_In_ Session& CurrentSession);
-	HANDLE GetHandle() { return m_hServer; }
+	BOOL SendSynchronous(_In_ const std::vector<byte>& data);
+	std::vector<byte> ReceiveSynchronous();
 
 private:
 	HANDLE m_hServer;
@@ -78,6 +75,11 @@ private:
 Communication via TCP socket.
 
 --*/
+
+#define TCP_LISTEN_PORT 1337
+#define TCP_MAX_CONNECTIONS 10
+
+
 class TcpSocketTransportManager : public ServerTransportManager
 {
 public:
@@ -89,11 +91,14 @@ public:
 	BOOL Connect();
 	BOOL Reconnect();
 	DWORD RunForever(_In_ Session& CurrentSession);
-	HANDLE GetHandle() { return (HANDLE)m_Socket; }
+	BOOL SendSynchronous(_In_ const std::vector<byte>& data);
+	std::vector<byte> ReceiveSynchronous();
+
 
 private:
+	BOOL Accept(_Out_ SOCKET* NewClient);
+
 	SOCKET m_Socket;
-	WSADATA m_WsaData;
 };
 
 
@@ -104,20 +109,14 @@ public:
 	FrontEndServer() noexcept(false);
 	~FrontEndServer() noexcept(false);
 	
-	DWORD RunForever(_In_ Session& Sess);
-	HANDLE TransportHandle();
+	DWORD RunForever(_In_ Session& Sess) { return m_Transport.RunForever(Sess); }
+	BOOL Send(_In_ const std::vector<byte>& data) { return m_Transport.SendSynchronous(data); }
+	std::vector<byte> Receive() { return m_Transport.ReceiveSynchronous(); }
 
 private:
-	PipeTransportManager m_Transport;
+	//PipeTransportManager m_Transport;
+	TcpSocketTransportManager m_Transport;
 };
 
 
 _Success_(return) BOOL FrontendThreadRoutine(_In_ LPVOID lpParameter);
-
-
-#include "taskmanager.h"
-#include "CfbException.h"
-#include "Session.h"
-
-#include "json.hpp"
-using json = nlohmann::json;
