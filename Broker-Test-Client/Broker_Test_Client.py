@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 
 """
 
@@ -8,11 +9,9 @@ This shouldn't be used in other cases than testing.
 """
 
 from enum import Enum, unique
-from ctypes import *
-from ctypes.wintypes import *
 from struct import *
 
-import base64, json, pprint, sys, time
+import base64, json, pprint, sys, time, socket
 
 MAX_MESSAGE_SIZE = 65536
 MAX_ACCEPTABLE_MESSAGE_SIZE = MAX_MESSAGE_SIZE-2
@@ -40,11 +39,23 @@ LCID_ENGLISH = (0x00 & 0xFF) | (0x01 & 0xFF) << 16
 #
 # some helpers
 #
-def ok(x): print("[+] {0}".format(x))
-def p16(x): return pack("<H", x)
-def p32(x): return pack("<I", x)
-def u16(x): return unpack("<H", x)[0]
-def u32(x): return unpack("<I", x)[0]
+DEBUG = True
+
+def u8 (x): return struct.unpack("<B", x)[0]
+def u16(x): return struct.unpack("<H", x)[0]
+def u32(x): return struct.unpack("<I", x)[0]
+def u64(x): return struct.unpack("<Q", x)[0]
+
+def p8 (x): return struct.pack("<B", x)
+def p16(x): return struct.pack("<H", x)
+def p32(x): return struct.pack("<I", x)
+def p64(x): return struct.pack("<Q", x)
+
+def log(x): print(x)
+def dbg(x): log(f"[*] {x}") if DEBUG else None
+def ok(x): log(f"[+] {x}")
+def err(x): log(f"[-] {x}")
+def warn(x): log(f"[!] {x}")
 
 
 def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
@@ -58,31 +69,10 @@ def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
     return "\n".join(result)
 
 
-def FormatMessage(dwMessageId):
-    lpSource = LPWSTR()
+PATH_PIPE_LOCAL = b"\\\\.\\pipe\\CFB"
+PATH_PIPE_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
+PATH_TCP_REMOTE = ("10.0.0.63", 1337)
 
-    nb_chars = windll.kernel32.FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, 
-        None, 
-        dwMessageId, 
-        LCID_ENGLISH, 
-        byref(lpSource), 
-        0, 
-        None
-    )
-
-    if nb_chars == 0:
-        raise Exception("Failed to get message for error code: %d" % dwMessageId)
-
-    lpErrorMessage = lpSource.value[:].strip()
-    windll.kernel32.LocalFree(lpSource)
-    return lpErrorMessage
-
-
-PIPE_PATH_LOCAL = b"\\\\.\\pipe\\CFB"
-PIPE_PATH_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
-PIPE_PATH = PIPE_PATH_LOCAL
-PIPE_PATH = PIPE_PATH_REMOTE
 TEST_DRIVER_NAME = "\\driver\\lxss\0"
 
 
@@ -123,37 +113,88 @@ def PrepareRequest(dwType, *args):
     return json.dumps(j).encode("ascii")
 
 
-def SendAndReceive(hPipe, _type, *args):
-    ## send
-    req = PrepareRequest(_type, *args)
-    cbWritten = c_ulong(0)
-    assert windll.kernel32.WriteFile(hPipe, req, len(req), byref(cbWritten), None)
-    assert len(req) == cbWritten.value
-        
-    ## recv response
-    cbRead = c_ulong(0)
-    szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
-    assert windll.kernel32.ReadFile(hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
-    res = json.loads(szBuf.value)
-    return res
-
 
 class BrokerTestMethods:
-    def __init__(self):
-        self.hPipe = None
-        return
-    
 
     def test_OpenPipe(self):
-        hPipe = windll.kernel32.CreateFileA(
-            PIPE_PATH, 
-            GENERIC_READ | GENERIC_WRITE, 
-            0, 
+        raise NotImplementedError("OpenPipe() must be redefined")
+
+    def test_ClosePipe(self):
+        raise NotImplementedError("ClosePipe() must be redefined")
+
+    def sr(self, _type, *args):
+        raise NotImplementedError("sr() must be redefined")
+
+    def test_EnumerateDrivers(self):
+        js = self.sr(TaskType.EnumerateDrivers)
+        ok("EnumerateDrivers -> " + json.dumps(js, indent=4, sort_keys=True))
+
+    def test_HookDriver(self):
+        lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
+        res = self.sr(TaskType.HookDriver, lpszDriverName)
+        ok("hook -> " + json.dumps(res, indent=4, sort_keys=True))
+
+    def test_UnhookDriver(self):
+        lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
+        res = self.sr(TaskType.UnhookDriver, lpszDriverName)
+        ok("unhook -> " + json.dumps(res, indent=4, sort_keys=True))
+
+    def test_EnableMonitoring(self):
+        res = self.sr(TaskType.EnableMonitoring)
+        ok("enable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
+    
+    def test_DisableMonitoring(self):
+        res = SendAndReceive(TaskType.DisableMonitoring)
+        ok("disable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
+
+    def test_GetInterceptedIrps(self):
+        res = self.sr(TaskType.GetInterceptedIrps)
+        ok("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
+
+
+
+class BrokerTestPipeMethods(BrokerTestMethods):
+    def __init__(self):
+        from ctypes import c_ulong, create_string_buffer, windll
+        self.hPipe = None
+        return
+
+    def FormatMessage(self, dwMessageId):
+        lpSource = LPWSTR()
+
+        nb_chars = windll.kernel32.FormatMessageW(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, 
             None, 
-            OPEN_EXISTING, 
+            dwMessageId, 
+            LCID_ENGLISH, 
+            byref(lpSource), 
             0, 
             None
         )
+        if nb_chars == 0:
+            raise Exception("Failed to get message for error code: %d" % dwMessageId)
+
+        lpErrorMessage = lpSource.value[:].strip()
+        windll.kernel32.LocalFree(lpSource)
+        return lpErrorMessage
+
+    def sr(self, _type, *args):
+        hPipe = self.hPipe
+        ## send
+        req = PrepareRequest(_type, *args)
+        cbWritten = c_ulong(0)
+        assert windll.kernel32.WriteFile(hPipe, req, len(req), byref(cbWritten), None)
+        assert len(req) == cbWritten.value
+        
+        ## recv response
+        cbRead = c_ulong(0)
+        szBuf = create_string_buffer(MAX_MESSAGE_SIZE)
+        assert windll.kernel32.ReadFile(hPipe, szBuf, MAX_ACCEPTABLE_MESSAGE_SIZE, byref(cbRead), None)
+        res = json.loads(szBuf.value)
+        return res
+
+    def test_OpenPipe(self):
+        hPipe = windll.kernel32.CreateFileA(PATH_PIPE_REMOTE, GENERIC_READ | GENERIC_WRITE, 0, None, OPEN_EXISTING, 0, None)
         assert hPipe != INVALID_HANDLE_VALUE 
         assert windll.kernel32.GetLastError() != ERROR_PIPE_BUSY 
         dwMode = c_ulong(PIPE_READMODE_BYTE)
@@ -164,54 +205,86 @@ class BrokerTestMethods:
     def test_ClosePipe(self):
         assert windll.kernel32.CloseHandle(self.hPipe)
 
-    def test_EnumerateDrivers(self):
-        js = SendAndReceive(self.hPipe, TaskType.EnumerateDrivers)
-        print("EnumerateDrivers -> " + json.dumps(js, indent=4, sort_keys=True))
 
-    def test_HookDriver(self):
-        lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        res = SendAndReceive(self.hPipe, TaskType.HookDriver, lpszDriverName)
-        print("hook -> " + json.dumps(res, indent=4, sort_keys=True))
-
-    def test_UnhookDriver(self):
-        lpszDriverName = TEST_DRIVER_NAME.encode("utf-16")[2:]
-        res = SendAndReceive(self.hPipe, TaskType.UnhookDriver, lpszDriverName)
-        print("unhook -> " + json.dumps(res, indent=4, sort_keys=True))
-
-    def test_EnableMonitoring(self):
-        res = SendAndReceive(self.hPipe, TaskType.EnableMonitoring)
-        print("enable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
-    
-    def test_DisableMonitoring(self):
-        res = SendAndReceive(self.hPipe, TaskType.DisableMonitoring)
-        print("disable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
-
-    def test_GetInterceptedIrps(self):
-        res = SendAndReceive(self.hPipe, TaskType.GetInterceptedIrps)
-        print("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
-    
-
-if __name__ == '__main__':
-    r = BrokerTestMethods()
+def test_pipe():
+    """
+    test all the methods for the named pipe connection
+    """
+    r = BrokerTestTcpMethods()
     r.test_OpenPipe()
     print("OpenPipe() success")
     r.test_EnumerateDrivers()
     print("EnumerateDrivers() success")
-    #r.test_HookDriver()
-    #print("HookDriver() success")
-    #r.test_EnableMonitoring()
-    #print("EnableMonitoring() success")
-    #while True:
-    #    try:
-    #        r.test_GetInterceptedIrps()
-    #        time.sleep(1)
-    #    except KeyboardInterrupt:
-    #        break
-    #print("GetInterceptedIrps() success")
-    #r.test_DisableMonitoring()
-    #print("DisableMonitoring() success")
-    #r.test_UnhookDriver()
-    #print("UnhookDriver() success")
+    r.test_HookDriver()
+    print("HookDriver() success")
+    r.test_EnableMonitoring()
+    print("EnableMonitoring() success")
+    while True:
+        try:
+            r.test_GetInterceptedIrps()
+            time.sleep(1)
+        except KeyboardInterrupt:
+            break
+    print("GetInterceptedIrps() success")
+    r.test_DisableMonitoring()
+    print("DisableMonitoring() success")
+    r.test_UnhookDriver()
+    print("UnhookDriver() success")
     r.test_ClosePipe()
     print("ClosePipe() success")
+    return
+
+
+class BrokerTestTcpMethods(BrokerTestMethods):
+    def __init__(self):
+        import socket, signal, errno
+        self.hSock = None
+        self.dwTimeout = 5
+        signal.signal(signal.SIGALRM, self.throw_timeout_exception)
+        return
+
+    def throw_timeout_exception(self, signum, frame):
+        raise socket.timeout(os.strerror(errno.ETIME))
+
+    def sr(self, _type, *args):
+        ## send
+        req = PrepareRequest(_type, *args)
+        signal.alarm(self.dwTimeout)
+        ret = self.hSock.sendall(req)
+        signal.alarm(0)
+        assert ret is None
+        
+        ## recv response
+        signal.alarm(self.dwTimeout)
+        res = self.hSock.recv(MAX_MESSAGE_SIZE)
+        assert res is not None
+        return json.loads(res)
+
+    def test_OpenPipe(self):
+        self.hSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.hSock.connect(PATH_TCP_REMOTE)
+        ok("tcp socket connected")
+        return
+
+    def test_ClosePipe(self):
+        self.hSock.close()
+        ok("tcp socket disconnect")
+        return
+
+
+def test_tcp():
+    ## test tcp connection
+    r = BrokerTestTcpMethods()
+    r.test_OpenPipe()
+    r.test_EnumerateDrivers()
+    r.test_ClosePipe()
+    return
+
+
+
+if __name__ == '__main__':
+    test_tcp()
+    #test_pipe()
+
     input("test end...")
+    sys.exit(0)

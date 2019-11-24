@@ -2,6 +2,7 @@
 
 
 Session::Session()
+	: FrontEndServer(*this)
 {
 	//
 	// Initial state has to be idle

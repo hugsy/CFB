@@ -145,10 +145,12 @@
     <ClCompile Include="FrontEndServer.cpp" />
     <ClCompile Include="Irp.cpp" />
     <ClCompile Include="main.cc" />
+    <ClCompile Include="PipeTransportManager.cpp" />
     <ClCompile Include="ServiceManager.cpp" />
     <ClCompile Include="Session.cpp" />
     <ClCompile Include="Task.cpp" />
     <ClCompile Include="TaskManager.cpp" />
+    <ClCompile Include="TcpSocketTransportManager.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -160,11 +162,14 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="main.h" />
     <ClInclude Include="nt.h" />
+    <ClInclude Include="PipeTransportManager.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="ServerTransportManager.h" />
     <ClInclude Include="ServiceManager.h" />
     <ClInclude Include="Session.h" />
     <ClInclude Include="Task.h" />
     <ClInclude Include="TaskManager.h" />
+    <ClInclude Include="TcpSocketTransportManager.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
