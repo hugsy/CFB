@@ -36,7 +36,7 @@ PVOID Irp::Data()
 json Irp::HeaderAsJson()
 {
 	json header;
-	header["TimeStamp"] = m_Header.TimeStamp.LowPart;
+	header["TimeStamp"] = m_Header.TimeStamp.QuadPart;
 	header["Irql"] = m_Header.Irql;
 	header["Type"] = m_Header.Type;
 	header["IoctlCode"] = m_Header.IoctlCode;

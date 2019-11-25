@@ -363,8 +363,12 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 		}
 
 		default:
-			dbg(L"default event on handle %d\n", dwIndexObject);
+			//
+			// if here, we've received the event of EOL from the client thread, so we clean up and continue looping
+			//
+			dbg(L"default event_handle[%d], closing tcp client thread...\n", dwIndexObject);
 			::CloseHandle(handles.at(dwIndexObject));
+			handles.erase(handles.begin() + dwIndexObject);
 			break;
 		}
 	}

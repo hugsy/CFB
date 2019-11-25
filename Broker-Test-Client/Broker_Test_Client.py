@@ -16,25 +16,6 @@ import base64, json, pprint, sys, time, socket
 MAX_MESSAGE_SIZE = 65536
 MAX_ACCEPTABLE_MESSAGE_SIZE = MAX_MESSAGE_SIZE-2
 
-#
-# some windows constants
-#
-GENERIC_READ = 0x80000000
-GENERIC_WRITE = 0x40000000
-OPEN_EXISTING = 0x3
-INVALID_HANDLE_VALUE = -1
-PIPE_READMODE_BYTE = 0x0
-PIPE_READMODE_MESSAGE = 0x2
-ERROR_SUCCESS = 0
-ERROR_PIPE_BUSY = 231
-ERROR_MORE_DATA = 234
-
-FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
-FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
-FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
-
-LCID_ENGLISH = (0x00 & 0xFF) | (0x01 & 0xFF) << 16
-
 
 #
 # some helpers
@@ -56,6 +37,32 @@ def dbg(x): log(f"[*] {x}") if DEBUG else None
 def ok(x): log(f"[+] {x}")
 def err(x): log(f"[-] {x}")
 def warn(x): log(f"[!] {x}")
+
+
+#
+# some windows constants
+#
+GENERIC_READ = 0x80000000
+GENERIC_WRITE = 0x40000000
+OPEN_EXISTING = 0x3
+INVALID_HANDLE_VALUE = -1
+PIPE_READMODE_BYTE = 0x0
+PIPE_READMODE_MESSAGE = 0x2
+ERROR_SUCCESS = 0
+ERROR_PIPE_BUSY = 231
+ERROR_MORE_DATA = 234
+
+FORMAT_MESSAGE_ALLOCATE_BUFFER = 0x00000100
+FORMAT_MESSAGE_FROM_SYSTEM = 0x00001000
+FORMAT_MESSAGE_IGNORE_INSERTS = 0x00000200
+
+LCID_ENGLISH = (0x00 & 0xFF) | (0x01 & 0xFF) << 16
+
+
+def convert_GetSystemTime(t):
+    unix_ts = (t / 10000000) - 11644473600
+    return datetime.datetime.fromtimestamp(unix_ts)
+
 
 
 def hexdump(source, length=0x10, separator=".", base=0x00, align=10):
@@ -144,7 +151,7 @@ class BrokerTestMethods:
         ok("enable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
     
     def test_DisableMonitoring(self):
-        res = SendAndReceive(TaskType.DisableMonitoring)
+        res = self.sr(TaskType.DisableMonitoring)
         ok("disable_monitoring -> " + json.dumps(res, indent=4, sort_keys=True))
 
     def test_GetInterceptedIrps(self):
@@ -209,8 +216,6 @@ class BrokerTestPipeMethods(BrokerTestMethods):
 
 
 class BrokerTestTcpMethods(BrokerTestMethods):
-    
-
     def __init__(self):
         import signal
         self.hSock = None
@@ -234,6 +239,7 @@ class BrokerTestTcpMethods(BrokerTestMethods):
         ## recv response
         signal.alarm(self.dwTimeout)
         res = self.hSock.recv(MAX_MESSAGE_SIZE)
+        print(len(res))
         assert res is not None
         return json.loads(res)
 
@@ -253,26 +259,26 @@ class BrokerTestTcpMethods(BrokerTestMethods):
 
 def test_method(r):
     r.test_OpenPipe()
-    print("OpenPipe() success")
+    ok("OpenPipe() success")
     r.test_EnumerateDrivers()
-    print("EnumerateDrivers() success")
-    #r.test_HookDriver()
-    #print("HookDriver() success")
-    #r.test_EnableMonitoring()
-    #print("EnableMonitoring() success")
-    #while True:
-    #    try:
-    #        r.test_GetInterceptedIrps()
-    #        time.sleep(1)
-    #    except KeyboardInterrupt:
-    #        break
-    #print("GetInterceptedIrps() success")
-    #r.test_DisableMonitoring()
-    #print("DisableMonitoring() success")
-    #r.test_UnhookDriver()
-    #print("UnhookDriver() success")
+    ok("EnumerateDrivers() success")
+    r.test_HookDriver()
+    ok("HookDriver() success")
+    r.test_EnableMonitoring()
+    ok("EnableMonitoring() success")
+    while True:
+        try:
+            r.test_GetInterceptedIrps()
+            time.sleep(1)
+        except KeyboardInterrupt:
+            break
+    ok("GetInterceptedIrps() success")
+    r.test_DisableMonitoring()
+    ok("DisableMonitoring() success")
+    r.test_UnhookDriver()
+    ok("UnhookDriver() success")
     r.test_ClosePipe()
-    print("ClosePipe() success")
+    ok("ClosePipe() success")
     return
 
 def test_pipe(r):
