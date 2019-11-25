@@ -32,7 +32,7 @@ public:
 
 
 private:
-	BOOL Accept(_Out_ SOCKET* NewClient);
+	BOOL Accept(_Out_ SOCKET NewClient);
 
 	SOCKET m_Socket;
 };

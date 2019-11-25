@@ -206,47 +206,24 @@ class BrokerTestPipeMethods(BrokerTestMethods):
         assert windll.kernel32.CloseHandle(self.hPipe)
 
 
-def test_pipe():
-    """
-    test all the methods for the named pipe connection
-    """
-    r = BrokerTestTcpMethods()
-    r.test_OpenPipe()
-    print("OpenPipe() success")
-    r.test_EnumerateDrivers()
-    print("EnumerateDrivers() success")
-    r.test_HookDriver()
-    print("HookDriver() success")
-    r.test_EnableMonitoring()
-    print("EnableMonitoring() success")
-    while True:
-        try:
-            r.test_GetInterceptedIrps()
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
-    print("GetInterceptedIrps() success")
-    r.test_DisableMonitoring()
-    print("DisableMonitoring() success")
-    r.test_UnhookDriver()
-    print("UnhookDriver() success")
-    r.test_ClosePipe()
-    print("ClosePipe() success")
-    return
 
 
 class BrokerTestTcpMethods(BrokerTestMethods):
+    
+
     def __init__(self):
-        import socket, signal, errno
+        import signal
         self.hSock = None
         self.dwTimeout = 5
         signal.signal(signal.SIGALRM, self.throw_timeout_exception)
         return
 
     def throw_timeout_exception(self, signum, frame):
+        import socket, errno, os
         raise socket.timeout(os.strerror(errno.ETIME))
 
     def sr(self, _type, *args):
+        import signal
         ## send
         req = PrepareRequest(_type, *args)
         signal.alarm(self.dwTimeout)
@@ -261,6 +238,7 @@ class BrokerTestTcpMethods(BrokerTestMethods):
         return json.loads(res)
 
     def test_OpenPipe(self):
+        import signal
         self.hSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.hSock.connect(PATH_TCP_REMOTE)
         ok("tcp socket connected")
@@ -272,14 +250,36 @@ class BrokerTestTcpMethods(BrokerTestMethods):
         return
 
 
-def test_tcp():
-    ## test tcp connection
-    r = BrokerTestTcpMethods()
+
+def test_method(r):
     r.test_OpenPipe()
+    print("OpenPipe() success")
     r.test_EnumerateDrivers()
+    print("EnumerateDrivers() success")
+    #r.test_HookDriver()
+    #print("HookDriver() success")
+    #r.test_EnableMonitoring()
+    #print("EnableMonitoring() success")
+    #while True:
+    #    try:
+    #        r.test_GetInterceptedIrps()
+    #        time.sleep(1)
+    #    except KeyboardInterrupt:
+    #        break
+    #print("GetInterceptedIrps() success")
+    #r.test_DisableMonitoring()
+    #print("DisableMonitoring() success")
+    #r.test_UnhookDriver()
+    #print("UnhookDriver() success")
     r.test_ClosePipe()
+    print("ClosePipe() success")
     return
 
+def test_pipe(r):
+    test_method( BrokerTestTcpMethods() )
+
+def test_tcp():
+    test_method( BrokerTestTcpMethods() )
 
 
 if __name__ == '__main__':

@@ -95,7 +95,7 @@ BOOL TcpSocketTransportManager::Reconnect()
 Accept a client socket
 
 --*/
-BOOL TcpSocketTransportManager::Accept(_Out_ SOCKET* NewClient)
+BOOL TcpSocketTransportManager::Accept(_Out_ SOCKET NewClient)
 {
 	SOCKET ClientSocket = INVALID_SOCKET;
 	SOCKADDR_IN SockInfoClient = { 0 };
@@ -109,7 +109,7 @@ BOOL TcpSocketTransportManager::Accept(_Out_ SOCKET* NewClient)
 	}
 
 	dbg(L"New TCP client %s:%d\n", SockInfoClient.sin_addr.s_addr, ntohs(SockInfoClient.sin_port));
-	*NewClient = ClientSocket;
+	NewClient = ClientSocket;
 	m_dwServerState = ServerState::Connecting;
 	return true;
 }
@@ -170,7 +170,7 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 {
 	PULONG_PTR lpParameters = (PULONG_PTR)lpParameter;
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameters[0]));
-	SOCKET Sock = (SOCKET)lpParameters[1];
+	SOCKET ClientSocket = (SOCKET)lpParameters[1];
 	DWORD dwRetCode = ERROR_SUCCESS;
 
 	dbg(L"in request handler\n");
@@ -179,7 +179,12 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 	handles.push_back(Sess.m_hTerminationEvent);
 
 	HANDLE hEvent = ::WSACreateEvent();
-	::WSAEventSelect(Sock, hEvent, FD_READ | FD_WRITE);
+	if (::WSAEventSelect(ClientSocket, hEvent, FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR)
+	{
+		PrintErrorWithFunctionName(L"WSAEventSelect(TcpClient)");
+		return ::WSAGetLastError();
+	}
+
 	handles.push_back(hEvent);
 	bool fContinue = true;
 
@@ -189,7 +194,7 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 
 		if (dwIndexObject < 0 || dwIndexObject >= handles.size())
 		{
-			PrintErrorWithFunctionName(L"WSAWaitForMultipleEvents()");
+			PrintErrorWithFunctionName(L"WSAWaitForMultipleEvents(TcpClient)");
 			fContinue = false;
 			dwRetCode = ::WSAGetLastError();
 			continue;
@@ -200,16 +205,37 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 		case 0:
 			dbg(L"received termination event\n");
 			Sess.Stop();
-			break;
+			fContinue = false;
+			continue;
 
 		case 1:
 			break;
 
-		default:
+ 		default:
 			xlog(LOG_ERROR, L"fail\n");
 			fContinue = false;
-			break;
+			continue;
 		}
+
+		//
+		// handle the data sent / recv
+		//
+
+		WSANETWORKEVENTS Events = { 0, };
+		::WSAEnumNetworkEvents(ClientSocket, hEvent, &Events);
+
+		if (Events.lNetworkEvents & FD_CLOSE)
+		{
+			dbg(L"gracefully disconnecting %x\n", ClientSocket);
+			::CloseHandle(hEvent);
+			::closesocket(ClientSocket);
+			fContinue = false;
+			continue;
+		}
+
+		//
+		// if here, it's a read/write
+		// 
 	}
 
 	dbg(L"terminating thread TID=%d\n", ::GetThreadId(::GetCurrentThread()));
@@ -234,7 +260,11 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 	handles.push_back(CurrentSession.m_hTerminationEvent);
 
 	hEvent = ::WSACreateEvent();
-	::WSAEventSelect(m_Socket, hEvent, FD_READ | FD_WRITE);
+	if(::WSAEventSelect(m_Socket, hEvent, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR)
+	{
+		PrintErrorWithFunctionName(L"WSAEventSelect(TcpServer)");
+		return ::WSAGetLastError();
+	}
 	handles.push_back(hEvent);
 
 
@@ -244,8 +274,7 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 
 		if (dwIndexObject < 0 || dwIndexObject >= handles.size())
 		{
-			PrintErrorWithFunctionName(L"WaitForMultipleObjects()");
-			xlog(LOG_CRITICAL, L"WaitForMultipleObjects(FrontEnd) has failed, cannot proceed...\n");
+			PrintErrorWithFunctionName(L"WSAWaitForMultipleEvents(TcpServer)");
 			CurrentSession.Stop();
 			continue;
 		}
@@ -253,6 +282,8 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 		SOCKET ClientSocket;
 		HANDLE hClientThread;
 		DWORD dwClientTid;
+
+		dbg(L"TcpServer: event %d\n", dwIndexObject);
 
 		switch (dwIndexObject)
 		{
@@ -263,24 +294,34 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 
 		case 1:
 		{
-			// accept the connection
-			if (!Accept(&ClientSocket))
-				continue;
+			WSANETWORKEVENTS Events = { 0, };
+			::WSAEnumNetworkEvents(m_Socket, hEvent, &Events);
 
-			std::vector<PVOID> args(2);
-			args.push_back((PVOID)&CurrentSession);
-			args.push_back((PVOID)ClientSocket);
-
-			// start a thread to handle the requests
-			hClientThread = ::CreateThread(nullptr, 0, HandleTcpRequestsRtn, args.data(), 0, &dwClientTid);
-			if (!hClientThread)
-			{
-				PrintErrorWithFunctionName(L"CreateThread");
-			}
+			if (Events.lNetworkEvents & FD_CLOSE)
+				// is a an TCP_CLOSE ?
+				::CloseHandle(handles.at(dwIndexObject));
+			
 			else
 			{
-				dbg(L"event on handle %s\n", dwIndexObject);
-				handles.push_back(hClientThread);
+				// it's a TCP_SYN, so accept the connection and spawn the thread handling the requests
+				if (!Accept(ClientSocket))
+					continue;
+
+				std::vector<PVOID> args(2);
+				args.push_back((PVOID)&CurrentSession);
+				args.push_back((PVOID)ClientSocket);
+
+				// start a thread to handle the requests
+				hClientThread = ::CreateThread(nullptr, 0, HandleTcpRequestsRtn, args.data(), 0, &dwClientTid);
+				if (!hClientThread)
+				{
+					PrintErrorWithFunctionName(L"CreateThread");
+				}
+				else
+				{
+					dbg(L"event on handle %s\n", dwIndexObject);
+					handles.push_back(hClientThread);
+				}
 			}
 			break;
 		}
