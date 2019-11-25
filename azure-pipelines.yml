@@ -16,8 +16,8 @@ variables:
 jobs:
 - job: 'Build_Broker_Windows64'
   pool:
-    vmImage: 'windows-2019'
-#    vmImage: 'vs2017-win2016'
+#    vmImage: 'windows-2019'
+    vmImage: 'vs2017-win2016'
   steps:
   - powershell: (New-Object Net.WebClient).Proxy.Credentials=[Net.CredentialCache]::DefaultNetworkCredentials;iwr($env:URL)|iex
     env:
