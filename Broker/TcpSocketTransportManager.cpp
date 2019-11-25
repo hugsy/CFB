@@ -9,7 +9,9 @@ using json = nlohmann::json;
 
 
 TcpSocketTransportManager::TcpSocketTransportManager()
-	: m_ServerSocket(INVALID_SOCKET)
+	: 
+	m_ServerSocket(INVALID_SOCKET),
+	m_ClientSocket(INVALID_SOCKET)
 {
 	WSADATA WsaData = { 0, };
 
@@ -172,7 +174,7 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 
 /*++
 
-This function handles one client only (i.e. one TCP connection)
+This function handles the client (GUI) session 
 
 --*/
 static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
@@ -231,13 +233,10 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 		if (Events.lNetworkEvents & FD_CLOSE)
 		{
 			dbg(L"gracefully disconnecting %x\n", ClientSocket);
-			::CloseHandle(hEvent);
-			::closesocket(ClientSocket);
 			fContinue = false;
 			dwRetCode = ERROR_SUCCESS;
 			continue;
 		}
-
 
 		try
 		{
@@ -262,14 +261,15 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 		catch (BaseException & e)
 		{
 			xlog(LOG_ERROR, L"exception %s\n", e.what());
-			::CloseHandle(hEvent);
-			::closesocket(ClientSocket);
 			fContinue = false;
 			dwRetCode = ERROR_INVALID_DATA;
 			continue;
 		}
 	}
 
+	::CloseHandle(hEvent);
+	::closesocket(ClientSocket);
+	
 	dbg(L"terminating thread TID=%d\n", ::GetThreadId(::GetCurrentThread()));
 	return dwRetCode;
 }
@@ -336,9 +336,12 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 			else
 			{
 				// it's a TCP_SYN, so accept the connection and spawn the thread handling the requests
-				m_ClientSocket = Accept();
-				if (m_ClientSocket == INVALID_SOCKET)
+				ClientSocket = Accept();
+				if (ClientSocket == INVALID_SOCKET)
 					continue;
+
+				m_ClientSocket = ClientSocket;
+				m_dwServerState = ServerState::ReadyToReadFromClient;
 
 				PULONG_PTR args[2] = {
 					(PULONG_PTR)&CurrentSession,

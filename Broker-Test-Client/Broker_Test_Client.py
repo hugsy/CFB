@@ -276,9 +276,16 @@ def test_method(r):
     return
 
 def test_pipe(r):
+    if len(sys.argv) == 2:
+        PATH_PIPE_REMOTE = sys.argv[1]
+    ok("connecting to {:s}".format(PATH_PIPE_REMOTE))
     test_method( BrokerTestTcpMethods() )
 
 def test_tcp():
+    global PATH_TCP_REMOTE
+    if len(sys.argv) == 3:
+        PATH_TCP_REMOTE = (sys.argv[1], int(sys.argv[2]))
+    ok("connecting to {:s}:{:d}".format(*PATH_TCP_REMOTE))
     test_method( BrokerTestTcpMethods() )
 
 
