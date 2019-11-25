@@ -12,7 +12,7 @@ variables:
   buildConfiguration: 'Release|Debug'
   appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
 #  WdkInstallScriptUrl: 'https://raw.githubusercontent.com/microsoft/azure-pipelines-image-generation/master/images/win/scripts/Installers/Vs2019/Install-WDK.ps1'
-  WdkInstallScriptUrl: 'https://gist.githubusercontent.com/hugsy/eb46d4f776d35ed00418c3d47051c9b0/raw/af503e6344a8473c80ebbfb40b877ff30f615d62/Install-WDK.ps1 '
+  WdkInstallScriptUrl: 'https://gist.githubusercontent.com/hugsy/eb46d4f776d35ed00418c3d47051c9b0/raw/Install-WDK.ps1'
   
 jobs:
 - job: 'Build_Broker_Windows64'
