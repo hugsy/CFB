@@ -214,7 +214,7 @@ class BrokerTestTcpMethods(BrokerTestMethods):
     def __init__(self):
         import signal
         self.hSock = None
-        self.dwTimeout = 5
+        self.dwTimeout = 20
         signal.signal(signal.SIGALRM, self.throw_timeout_exception)
         return
 

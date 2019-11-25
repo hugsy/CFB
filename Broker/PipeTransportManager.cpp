@@ -456,7 +456,6 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 				DisconnectAndReconnect();
 				continue;
 			}
-
 		}
 		else if (m_dwServerState == ServerState::ReadyToReadFromServer)
 		{

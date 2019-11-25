@@ -13,7 +13,7 @@ Communication via TCP socket.
 --*/
 
 #define TCP_LISTEN_PORT 1337
-#define TCP_MAX_CONNECTIONS 10
+#define TCP_MAX_CONNECTIONS 1
 
 
 class TcpSocketTransportManager : public ServerTransportManager
@@ -32,7 +32,8 @@ public:
 
 
 private:
-	BOOL Accept(_Out_ SOCKET NewClient);
+	SOCKET Accept();
 
-	SOCKET m_Socket;
+	SOCKET m_ServerSocket;
+	SOCKET m_ClientSocket;
 };

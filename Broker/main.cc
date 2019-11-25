@@ -255,7 +255,7 @@ int wmain(int argc, wchar_t** argv)
 		}
 	}
 
-	xlog(LOG_SUCCESS, L"Privilege check succeeded...\n");
+	dbg(L"Privilege check succeeded...\n");
 
 
 	//
@@ -267,14 +267,14 @@ int wmain(int argc, wchar_t** argv)
 		return EXIT_FAILURE;
 	}
 
-	xlog(LOG_SUCCESS, L"Driver extracted...\n");
+	dbg(L"Driver extracted...\n");
 
 
 	//
 	// The session is ready to be initialized
 	//
 
-	xlog(LOG_INFO, L"Initializing the session...\n");
+	dbg(L"Initializing the session...\n");
 	
 	try
 	{
@@ -283,6 +283,7 @@ int wmain(int argc, wchar_t** argv)
 	catch (std::runtime_error& e)
 	{
 		xlog(LOG_CRITICAL, L"Failed to initialize the session, reason: %S\n", e.what());
+		ServiceManager::DeleteDriverFromDisk();
 		return EXIT_FAILURE;
 	}
 
@@ -294,6 +295,7 @@ int wmain(int argc, wchar_t** argv)
 	{
 		xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
 		delete Sess;
+		ServiceManager::DeleteDriverFromDisk();
 		return EXIT_FAILURE;
 	}
 	
@@ -328,16 +330,16 @@ int wmain(int argc, wchar_t** argv)
 	//
 	Sess->Start();
 	ResumeThread(Sess->m_hFrontendThread);
-	ResumeThread(Sess->m_hBackendThread);
 	ResumeThread(Sess->m_hIrpFetcherThread);
+	ResumeThread(Sess->m_hBackendThread);
 
 
 	//
 	// Wait for those 2 threads to finish
 	//
 	ThreadHandles[0] = Sess->m_hFrontendThread;
-	ThreadHandles[1] = Sess->m_hBackendThread;
-	ThreadHandles[2] = Sess->m_hIrpFetcherThread;
+	ThreadHandles[1] = Sess->m_hIrpFetcherThread;
+	ThreadHandles[2] = Sess->m_hBackendThread;
 
 	dwWaitResult = ::WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
 
@@ -372,11 +374,8 @@ __DestroyEnvironment:
 	}
 #ifdef _DEBUG
 	else
-	{
-		xlog(LOG_DEBUG, L"Driver deleted\n");
-	}
-#endif // _DEBUG
-
+		dbg(L"Driver deleted\n");
+#endif
 
 
 #ifdef _DEBUG
