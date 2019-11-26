@@ -25,7 +25,6 @@ typedef struct
 HOOKED_DRIVER, *PHOOKED_DRIVER;
 
 
-
 void InitializeHookedDriverStructures();
 UINT32 GetNumberOfHookedDrivers();
 BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverName);

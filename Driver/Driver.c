@@ -27,6 +27,7 @@ static KLOCK_QUEUE_HANDLE SpinLockQueueOwner;
 extern PLIST_ENTRY g_HookedDriverHead;
 
 
+
 /*++
 
 Routine Description:
@@ -71,20 +72,9 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	UINT32 dwExpectedSize;
 
 	Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
-
 	if (!NT_SUCCESS(Status))
-	{
-		if (Status != STATUS_NO_MORE_ENTRIES)
-			return CompleteRequest(Irp, Status, 0);
+		return CompleteRequest(Irp, Status, 0);
 
-        //
-        // Second chance
-        //
-        KeWaitForSingleObject(g_EventNotificationPointer, UserRequest, KernelMode, FALSE, NULL);
-        Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
-        if (!NT_SUCCESS(Status))
-			return CompleteRequest(Irp, Status, 0);
-	}
 
 	if ( BufferSize == 0 )
 	{
@@ -342,17 +332,9 @@ typedef NTSTATUS(*PDRIVER_DISPATCH)(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP 
 
 NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
-	NTSTATUS Status = STATUS_UNSUCCESSFUL;
     BOOLEAN Found = FALSE;
     PHOOKED_DRIVER curDriver = NULL;
 
-	/*
-	Status = IoAcquireRemoveLock( &g_DriverRemoveLock, Irp );
-	if ( !NT_SUCCESS( Status ) )
-	{
-		return Status;
-	}
-	*/
 
     PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
@@ -389,39 +371,29 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		//
 
 		CfbDbgPrintErr(L"Failed to find a DriverObject associated to the received IRP\n");
-		Status = CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
-
+		return CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
 	} 
-	else
+
+	//
+	// Capture the IRP data
+	//
+
+	if (IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
 	{
+		NTSTATUS Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
 
-		//
-		// Capture the IRP data
-		//
-
-		if (IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
+		if (!NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
 		{
-			Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
-
-			if (!NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
-			{
-				CfbDbgPrintWarn(L"HandleInterceptedIrp() failed (status=0x%X)\n", Status);
-			}
+			CfbDbgPrintWarn(L"HandleInterceptedIrp() failed (status=0x%X)\n", Status);
 		}
-
-
-		//
-		// Call the original routine
-		//
-
-		DWORD dwIndex = Stack->MajorFunction;
-		PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)curDriver->OriginalRoutines[dwIndex];
-		Status = OldRoutine(DeviceObject, Irp);
 	}
 
-	//IoReleaseRemoveLock( &g_DriverRemoveLock, Irp );
-
-	return Status;
+	//
+	// And call the original routine
+	//
+	PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)curDriver->OriginalRoutines[Stack->MajorFunction];
+	
+	return OldRoutine(DeviceObject, Irp);
 }
 
 
@@ -654,17 +626,16 @@ Return Value:
 NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
-
 	PAGED_CODE();
 
-    NTSTATUS Status = STATUS_SUCCESS;
-
-
+	//
+	// this should never happen as we checked the process when getting the handle, but still
+	//
 	if (pCurrentOwnerProcess != PsGetCurrentProcess())
-	{
 		return CompleteRequest(Irp, STATUS_DEVICE_ALREADY_ATTACHED, 0);
-	}
-	
+
+
+	NTSTATUS Status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
 	ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
 
@@ -726,9 +697,8 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 	}
 
 	if (!NT_SUCCESS(Status))
-	{
 		CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
-	}
+
 	
 	return CompleteRequest(Irp, Status, 0);
 }

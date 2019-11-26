@@ -238,10 +238,17 @@ class BrokerTestTcpMethods(BrokerTestMethods):
         
         ## recv response
         signal.alarm(self.dwTimeout)
-        res = self.hSock.recv(MAX_MESSAGE_SIZE)
-        print(len(res))
-        assert res is not None
-        return json.loads(res)
+        res = b""
+        while True:
+            # fucking ip fragmentation
+            res += self.hSock.recv(MAX_MESSAGE_SIZE)
+            assert res is not None
+            res = res[::]
+            try:
+                js = json.loads(res)
+                return js
+            except Exception as e:
+                err("Exception {:s} when parsing '''\n{:s}\n'''".format(str(e),res.decode("utf-8")))
 
     def test_OpenPipe(self):
         import signal
