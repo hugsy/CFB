@@ -50,7 +50,39 @@ extern NTSYSAPI NTSTATUS NTAPI ObReferenceObjectByName(
 //
 NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
+BOOLEAN InterceptGenericFastIoRead(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+);
 
+BOOLEAN InterceptGenericFastIoWrite(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+);
+
+BOOLEAN InterceptGenericFastIoDeviceControl(
+	IN PFILE_OBJECT FileObject,
+	IN BOOLEAN Wait,
+	IN PVOID InputBuffer OPTIONAL,
+	IN ULONG InputBufferLength,
+	OUT PVOID OutputBuffer OPTIONAL,
+	IN ULONG OutputBufferLength,
+	IN ULONG IoControlCode,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+);
 
 NTSTATUS EnableMonitoring();
 NTSTATUS DisableMonitoring();

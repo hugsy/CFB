@@ -307,6 +307,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
 
 
+
+
 /*++
 
 Routine Description:
@@ -320,7 +322,9 @@ Links:
 
 Arguments:
 
+	- DeviceObject
 
+	- Irp
 
 
 Return Value:
@@ -331,39 +335,10 @@ Return Value:
 typedef NTSTATUS(*PDRIVER_DISPATCH)(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
 
 NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{
-    BOOLEAN Found = FALSE;
-    PHOOKED_DRIVER curDriver = NULL;
+{ 
 
-
-    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
-
-	//
-	// Find the original function for the driver
-	//
-
-    if( !IsListEmpty(g_HookedDriverHead) )
-    {
-        PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
-
-	    do 
-	    {
-            curDriver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
-
-		    if (curDriver->DriverObject == DeviceObject->DriverObject)
-		    {
-			    Found = TRUE;
-			    break;
-		    }
-
-            Entry = Entry->Flink;
-
-        } 
-        while (Entry != g_HookedDriverHead);
-    }
-
-
-	if (!Found)
+	PHOOKED_DRIVER curDriver = GetHookedDriverFromDeviceObject(DeviceObject);
+	if (!curDriver)
 	{
 		//
 		// This is really bad: it means our interception routine got called by a non-hooked driver
@@ -374,10 +349,10 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		return CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
 	} 
 
+
 	//
 	// Capture the IRP data
 	//
-
 	if (IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
 	{
 		NTSTATUS Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
@@ -391,9 +366,9 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	// And call the original routine
 	//
-	PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)curDriver->OriginalRoutines[Stack->MajorFunction];
-	
-	return OldRoutine(DeviceObject, Irp);
+	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+	PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
+	return OriginalIoctlDeviceControl(DeviceObject, Irp);
 }
 
 
@@ -778,3 +753,204 @@ NTSTATUS InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	return InterceptGenericRoutine(DeviceObject, Irp);
 }
 
+
+/*++
+
+Routine Description:
+
+The InterceptGenericFastIoDeviceControl() interception routine wrapper.
+
+```c
+	typedef BOOLEAN (*PFAST_IO_DEVICE_CONTROL) (
+		IN struct _FILE_OBJECT *FileObject,
+		IN BOOLEAN Wait,
+		IN PVOID InputBuffer OPTIONAL,
+		IN ULONG InputBufferLength,
+		OUT PVOID OutputBuffer OPTIONAL,
+		IN ULONG OutputBufferLength,
+		IN ULONG IoControlCode,
+		OUT PIO_STATUS_BLOCK IoStatus,
+		IN struct _DEVICE_OBJECT *DeviceObject
+	);
+```
+
+Arguments:
+	- FileObject
+	- Wait
+	- InputBuffer
+	- InputBufferLength
+	- OutputBuffer
+	- OutputBufferLength
+	- IoControlCode
+	- IoStatus
+	- DeviceObject
+
+Return Value:
+
+	Returns TRUE on success.
+
+--*/
+BOOLEAN InterceptGenericFastIoDeviceControl(
+	IN PFILE_OBJECT FileObject,
+	IN BOOLEAN Wait,
+	IN PVOID InputBuffer OPTIONAL,
+	IN ULONG InputBufferLength,
+	OUT PVOID OutputBuffer OPTIONAL,
+	IN ULONG OutputBufferLength,
+	IN ULONG IoControlCode,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
+	if (!Driver)
+		return FALSE;
+
+	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl()\n");
+	
+	PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
+	return OriginalFastIoDeviceControl(
+		FileObject,
+		Wait,
+		InputBuffer,
+		InputBufferLength,
+		OutputBuffer,
+		OutputBufferLength,
+		IoControlCode,
+		IoStatus,
+		DeviceObject
+	);
+}
+
+
+/*++
+
+Routine Description:
+
+The InterceptGenericFastIoRead() interception routine wrapper.
+
+```c
+	typedef BOOLEAN (*PFAST_IO_READ) (
+		IN struct _FILE_OBJECT *FileObject,
+		IN PLARGE_INTEGER FileOffset,
+		IN ULONG Length,
+		IN BOOLEAN Wait,
+		IN ULONG LockKey,
+		OUT PVOID Buffer,
+		OUT PIO_STATUS_BLOCK IoStatus,
+		IN struct _DEVICE_OBJECT *DeviceObject
+	);
+```
+
+Arguments:
+	- FileObject
+	- FileOffset
+	- Length
+	- Wait
+	- LockKey
+	- Buffer
+	- IoStatus
+	- DeviceObject
+
+Return Value:
+
+	Returns TRUE on success.
+
+--*/
+BOOLEAN InterceptGenericFastIoRead(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
+	if (!Driver)
+		return FALSE;
+
+	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoRead()\n");
+
+	PFAST_IO_READ OriginalFastIoRead = Driver->FastIoRead;
+	return OriginalFastIoRead(
+		FileObject,
+		FileOffset,
+		Length,
+		Wait,
+		LockKey,
+		Buffer,
+		IoStatus,
+		DeviceObject
+	);
+}
+
+
+
+
+
+/*++
+
+Routine Description:
+
+The InterceptGenericFastIoWrite() interception routine wrapper.
+
+```c
+	typedef BOOLEAN (*PFAST_IO_READ) (
+		IN struct _FILE_OBJECT *FileObject,
+		IN PLARGE_INTEGER FileOffset,
+		IN ULONG Length,
+		IN BOOLEAN Wait,
+		IN ULONG LockKey,
+		OUT PVOID Buffer,
+		OUT PIO_STATUS_BLOCK IoStatus,
+		IN struct _DEVICE_OBJECT *DeviceObject
+	);
+```
+
+Arguments:
+	- FileObject
+	- FileOffset
+	- Length
+	- Wait
+	- LockKey
+	- Buffer
+	- IoStatus
+	- DeviceObject
+
+Return Value:
+
+	Returns TRUE on success.
+
+--*/
+BOOLEAN InterceptGenericFastIoWrite(
+	IN PFILE_OBJECT FileObject,
+	IN PLARGE_INTEGER FileOffset,
+	IN ULONG Length,
+	IN BOOLEAN Wait,
+	IN ULONG LockKey,
+	OUT PVOID Buffer,
+	OUT PIO_STATUS_BLOCK IoStatus,
+	IN PDEVICE_OBJECT DeviceObject
+)
+{
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
+	if (!Driver)
+		return FALSE;
+
+	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoWrite()\n");
+
+	PFAST_IO_WRITE OriginalFastIoWrite = Driver->FastIoWrite;
+	return OriginalFastIoWrite(
+		FileObject,
+		FileOffset,
+		Length,
+		Wait,
+		LockKey,
+		Buffer,
+		IoStatus,
+		DeviceObject
+	);
+}

@@ -127,7 +127,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	//
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
-        PVOID OldRoutine = InterlockedExchangePointer(
+        PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
             (PVOID*)&pDriver->MajorFunction[i],
             (PVOID)InterceptGenericRoutine
         );
@@ -139,31 +139,32 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	//
 	// Exchange pointer for Fast IO dispatcher
 	//
-	/*
+	
 	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
 
+	if (FastIoDispatch)
+	{
+		PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
+			(PVOID*)&FastIoDispatch->FastIoDeviceControl,
+			(PVOID)InterceptGenericFastIoDeviceControl
+		);
 
-	PVOID OldRoutine = InterlockedExchangePointer(
-		(PVOID*)&FastIoDispatch->FastIoDeviceControl,
-		(PVOID)InterceptGenericFastIoDeviceControl
-	);
+		NewDriver->FastIoDeviceControl = OldFastIoDeviceControl;
 
-	NewDriver->OriginalFastIoDispatch[FASTIO_DEVICE_CONTROL] = OldRoutine;
+		PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
+			(PVOID*)&FastIoDispatch->FastIoRead,
+			(PVOID)InterceptGenericFastIoRead
+		);
 
-	OldRoutine = InterlockedExchangePointer(
-		(PVOID*)&FastIoDispatch->FastIoRead,
-		(PVOID)InterceptGenericFastIoRead
-	);
+		NewDriver->FastIoRead = OldFastIoRead;
 
-	NewDriver->OriginalFastIoDispatch[FASTIO_READ] = OldRoutine;
+		PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
+			(PVOID*)&FastIoDispatch->FastIoWrite,
+			(PVOID)InterceptGenericFastIoWrite
+		);
 
-	OldRoutine = InterlockedExchangePointer(
-		(PVOID*)&FastIoDispatch->FastIoWrite,
-		(PVOID)InterceptGenericFastIoWrite
-	);
-
-	NewDriver->OriginalFastIoDispatch[FASTIO_WRITE] = OldRoutine;
-	*/
+		NewDriver->FastIoWrite = OldFastIoWrite;
+	}
 
 	//
 	// add it to the list

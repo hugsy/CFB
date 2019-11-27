@@ -134,6 +134,7 @@ NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHook
 {
 	NTSTATUS Status = STATUS_OBJECT_NAME_NOT_FOUND;
 
+	CfbDbgPrintInfo(L"GetHookedDriverByName(lpDriverName='%s')\n", lpDriverName);
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
@@ -144,7 +145,7 @@ NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHook
         do
         {
             PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
-			CfbDbgPrintInfo(L"trying to remove %p (%s)\n", CurDrv, CurDrv->Name);
+
             if (_wcsicmp(CurDrv->Name, lpDriverName) == 0)
             {
 				*pHookedDrv = CurDrv;
@@ -165,3 +166,48 @@ NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHook
 }
 
 
+
+/*++
+
+Routine Description:
+
+ Find the original function for the driver
+
+
+Arguments:
+
+	- DeviceObject
+
+Return Value:
+
+	Returns a pointer to the hooked driver on success, NULL otherwise
+
+--*/
+PHOOKED_DRIVER GetHookedDriverFromDeviceObject(IN PDEVICE_OBJECT DeviceObject)
+{
+	if (IsListEmpty(g_HookedDriverHead))
+		return NULL;
+
+	BOOLEAN Found = FALSE;
+	PHOOKED_DRIVER Driver = NULL;
+	PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
+
+	do
+	{
+		Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
+
+		if (Driver->DriverObject == DeviceObject->DriverObject)
+		{
+			Found = TRUE;
+			break;
+		}
+
+		Entry = Entry->Flink;
+
+	} while (Entry != g_HookedDriverHead);
+
+	if (Found)
+		return Driver;
+	else
+		return NULL;
+}

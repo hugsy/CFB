@@ -330,9 +330,10 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 			::WSAEnumNetworkEvents(m_ServerSocket, hEvent, &Events);
 
 			if (Events.lNetworkEvents & FD_CLOSE)
+			{
 				// is a an TCP_CLOSE ?
 				::CloseHandle(handles.at(dwIndexObject));
-			
+			}
 			else
 			{
 				// it's a TCP_SYN, so accept the connection and spawn the thread handling the requests
@@ -352,7 +353,9 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 				hClientThread = ::CreateThread(nullptr, 0, HandleTcpRequestsRtn, args, 0, &dwClientTid);
 				if (!hClientThread)
 				{
-					PrintErrorWithFunctionName(L"CreateThread");
+					::closesocket(ClientSocket);
+					m_ClientSocket = INVALID_SOCKET;
+					PrintErrorWithFunctionName(L"CreateThread(TcpCli)");
 					continue;
 				}
 
