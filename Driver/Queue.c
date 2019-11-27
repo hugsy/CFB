@@ -1,9 +1,10 @@
 #include "Queue.h"
 
 
-static KSPIN_LOCK IrpQueueSpinLock;
-static KLOCK_QUEUE_HANDLE IrpQueueSpinLockQueue;
-static FAST_MUTEX FlushQueueMutex;
+//static KSPIN_LOCK IrpQueueSpinLock;
+//static KLOCK_QUEUE_HANDLE IrpQueueSpinLockQueue;
+//static FAST_MUTEX FlushQueueMutex;
+static FAST_MUTEX QueueMutex;
 static LIST_ENTRY InterceptedIrpHead;
 LIST_ENTRY* g_InterceptedIrpHead = &InterceptedIrpHead;
 UINT32 InterceptedIrpListSize;
@@ -17,8 +18,9 @@ Initialize the structure of the queue.
 --*/
 void InitializeQueueStructures()
 {
-	KeInitializeSpinLock(&IrpQueueSpinLock);
-	ExInitializeFastMutex(&FlushQueueMutex);
+	//KeInitializeSpinLock(&IrpQueueSpinLock);
+	//ExInitializeFastMutex(&FlushQueueMutex);
+	ExInitializeFastMutex(&QueueMutex);
 	InitializeListHead(g_InterceptedIrpHead); 
 	InterceptedIrpListSize = 0;
 	return;
@@ -45,7 +47,7 @@ NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData)
 {
 	NTSTATUS Status;
 
-	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
+	ExAcquireFastMutex(&QueueMutex);
 
 	if (InterceptedIrpListSize < CFB_QUEUE_SIZE)
 	{
@@ -58,7 +60,7 @@ NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData)
 		Status = STATUS_INSUFFICIENT_RESOURCES;
 	}
 
-	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
+	ExReleaseFastMutex(&QueueMutex);
 
 	return Status;
 }
@@ -74,7 +76,7 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
     
-	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
+	ExAcquireFastMutex(&QueueMutex);
 
 	if (IsListEmpty(g_InterceptedIrpHead))
 	{
@@ -84,11 +86,13 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 	else
 	{
 		PINTERCEPTED_IRP pFirstIrp = CONTAINING_RECORD(g_InterceptedIrpHead->Flink, INTERCEPTED_IRP, ListEntry);
-		*pdwExpectedSize = sizeof(INTERCEPTED_IRP_HEADER) + pFirstIrp->Header->InputBufferLength;
+		*pdwExpectedSize = sizeof(INTERCEPTED_IRP_HEADER) + \
+			pFirstIrp->Header->InputBufferLength;
+			pFirstIrp->Header->OutputBufferLength;
 		Status = STATUS_SUCCESS;
 	}
 
-	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
+	ExReleaseFastMutex(&QueueMutex);
     
 	return Status;
 }
@@ -103,7 +107,7 @@ NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData)
 {
 	NTSTATUS Status;
 
-	KeAcquireInStackQueuedSpinLock(&IrpQueueSpinLock, &IrpQueueSpinLockQueue);
+	ExAcquireFastMutex(&QueueMutex);
 
 	if (!IsListEmpty(g_InterceptedIrpHead))
 	{
@@ -118,7 +122,7 @@ NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData)
 		Status = STATUS_NO_MORE_ENTRIES;
 	}
 
-	KeReleaseInStackQueuedSpinLock(&IrpQueueSpinLockQueue);
+	ExReleaseFastMutex(&QueueMutex);
 
 	return Status;
 }
@@ -133,7 +137,7 @@ NTSTATUS FlushQueue()
 {
 	NTSTATUS Status = STATUS_SUCCESS; 
 
-	ExAcquireFastMutex(&FlushQueueMutex);
+	ExAcquireFastMutex(&QueueMutex);
 
 	while (!IsListEmpty(g_InterceptedIrpHead))
 	{
@@ -156,7 +160,7 @@ NTSTATUS FlushQueue()
         }
 	}
 
-	ExReleaseFastMutex(&FlushQueueMutex);
+	ExReleaseFastMutex(&QueueMutex);
 	
 	CfbDbgPrintOk( L"Message queue flushed...\n" );
 

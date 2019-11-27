@@ -86,7 +86,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	if ( BufferSize != dwExpectedSize )
 	{
-		CfbDbgPrintErr( L"Buffer is too small, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
+		CfbDbgPrintErr( L"Buffer size is invalid, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
 		return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, dwExpectedSize);
 	}
 
@@ -117,6 +117,19 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	{
         PVOID RawBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(INTERCEPTED_IRP_HEADER) );
 		RtlCopyMemory(RawBuffer, pInterceptedIrp->InputBuffer, pInterceptedIrpHeader->InputBufferLength);
+	}
+
+	//
+	// Copy the IRP output buffer (if any)
+	//
+	if (pInterceptedIrpHeader->OutputBufferLength && pInterceptedIrp->OutputBuffer)
+	{
+		PVOID RawBuffer = (PVOID)(
+			(ULONG_PTR)(Buffer)+ \
+			sizeof(INTERCEPTED_IRP_HEADER) + \
+			pInterceptedIrpHeader->InputBufferLength
+		);
+		RtlCopyMemory(RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
 	}
 
 	FreeInterceptedIrp(pInterceptedIrp);
@@ -369,19 +382,20 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 	PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
-	NTSTATUS Status = OriginalIoctlDeviceControl(DeviceObject, Irp);
+	NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
+
 
 	//
 	// Collect the result from the result
 	//
-	if (Status != STATUS_PENDING && 
+	if (IoctlStatus != STATUS_PENDING &&
 		IsMonitoringEnabled() && 
 		curDriver->Enabled == TRUE && 
 		pCurrentOwnerProcess != PsGetCurrentProcess() &&
 		pIrpInfo != NULL
 	)
 	{
-		if (!NT_SUCCESS(CompleteHandleInterceptedIrp(Irp, Status, pIrpInfo)))
+		if (!NT_SUCCESS(CompleteHandleInterceptedIrp(Irp, IoctlStatus, pIrpInfo)))
 		{
 			CfbDbgPrintErr(L"CompleteHandleInterceptedIrp() failed\n");
 		}
@@ -393,9 +407,10 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	if (pIrpInfo)
 	{
-		if (!NT_SUCCESS(PushToQueue(pIrpInfo)))
+		NTSTATUS Status = PushToQueue(pIrpInfo);
+		if (!NT_SUCCESS(Status))
 		{
-			CfbDbgPrintErr(L"PushToQueue(%p) failed \n", pIrpInfo);
+			CfbDbgPrintErr(L"PushToQueue(%p) failed, status=0x%x\n", pIrpInfo, Status);
 			FreeInterceptedIrp(pIrpInfo);
 		}
 		else
@@ -405,7 +420,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		}
 	}
 
-	return Status;
+	return IoctlStatus;
 }
 
 

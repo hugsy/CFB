@@ -372,6 +372,7 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 	//
 	pIrpInfo->Header->Status = IrpStatus;
 
+
 	//
 	// Allocate (if necessary) and copy (if necessary) the content of the output buffer
 	//

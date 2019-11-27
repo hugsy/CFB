@@ -6,6 +6,8 @@ PLIST_ENTRY g_HookedDriverHead = &HookedDriversHead;
 static KSPIN_LOCK HookedDriverSpinLock;
 static KLOCK_QUEUE_HANDLE HookedDriverSpinLockQueue;
 
+static FAST_MUTEX DriverListMutex;
+
 
 /*++
 
@@ -25,6 +27,7 @@ Return Value:
 void InitializeHookedDriverStructures()
 {
     KeInitializeSpinLock(&HookedDriverSpinLock);
+	ExInitializeFastMutex(&DriverListMutex);
     return;
 }
 
