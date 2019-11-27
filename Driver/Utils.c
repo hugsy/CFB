@@ -118,3 +118,45 @@ NTSTATUS GetDeviceNameFromDeviceObject( _In_ PVOID pDeviceObject, _Out_ WCHAR* D
 	RtlCopyMemory( DeviceNameBuffer, pDeviceNameInfo->Name.Buffer, pDeviceNameInfo->Name.Length );
 	return STATUS_SUCCESS;
 }
+
+
+
+/*++
+
+Routine Description:
+
+A convenience function to the name as a UNICODE_STRING from its PID.
+
+
+Arguments:
+
+	- Pid is the process ID
+
+	- StrDst is a pointer to the UNICODE_STRING receiving the result if successful
+
+Return Value:
+
+	Returns STATUS_SUCCESS on success.
+
+--*/
+NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING StrDst)
+{
+	PEPROCESS Process;
+
+	if (PsLookupProcessByProcessId(UlongToHandle(Pid), &Process) != STATUS_INVALID_PARAMETER)
+	{
+		PSTR lpProcessName = PsGetProcessImageFileName(Process);
+		if (lpProcessName)
+		{
+			UNICODE_STRING us = { 0, };
+			CANSI_STRING as = { 0 };
+			RtlInitAnsiStringEx(&as, lpProcessName);
+			if (NT_SUCCESS(RtlAnsiStringToUnicodeString(&us, &as, FALSE)))
+			{
+				RtlCopyUnicodeString(StrDst, &us);
+				return STATUS_SUCCESS;
+			}
+		}
+	}
+	return STATUS_UNSUCCESSFUL;
+}

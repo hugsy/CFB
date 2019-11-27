@@ -13,7 +13,7 @@ using json = nlohmann::json;
 class Irp
 {
 public:
-	Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY Body);
+	Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY InputBuffer);
 	~Irp();
 	
 	void Dispose();
@@ -31,7 +31,8 @@ public:
 
 private:
 	INTERCEPTED_IRP_HEADER m_Header;
-	byte* m_Body = nullptr;
+	byte* m_InputBuffer = nullptr;
+	byte* m_OutputBuffer = nullptr;
 	BOOL m_fShouldDelete = false;
 };
 

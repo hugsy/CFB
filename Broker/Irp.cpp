@@ -7,15 +7,15 @@ Irp::Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY Body)
 	PINTERCEPTED_IRP_HEADER hdr = &m_Header;
 	::memcpy(hdr, Header, sizeof(INTERCEPTED_IRP_HEADER));
 
-	m_Body = new byte[Header->InputBufferLength];
-	::memcpy(m_Body, Body, Header->InputBufferLength);
+	m_InputBuffer = new byte[Header->InputBufferLength];
+	::memcpy(m_InputBuffer, Body, Header->InputBufferLength);
 }
 
 
 Irp::~Irp() 
 {
 	if(m_fShouldDelete)
-		delete[] m_Body;
+		delete[] m_InputBuffer;
 }
 
 
@@ -27,7 +27,7 @@ void Irp::Dispose()
 
 PVOID Irp::Data()
 {
-	return (PVOID)m_Body;
+	return (PVOID)m_InputBuffer;
 }
 
 
@@ -57,7 +57,7 @@ std::string Irp::ExportHeaderAsJson()
 json Irp::BodyAsJson()
 {
 	std::vector<byte> body;
-	for (DWORD i = 0; i < m_Header.InputBufferLength; i++) body.push_back(m_Body[i]);
+	for (DWORD i = 0; i < m_Header.InputBufferLength; i++) body.push_back(m_InputBuffer[i]);
 	json js_body(body);
 	return js_body;
 }

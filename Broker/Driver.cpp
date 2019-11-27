@@ -123,7 +123,8 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 	if (dwBufferSize == lpNumberOfBytesRead && dwBufferSize >= sizeof(INTERCEPTED_IRP_HEADER))
 	{
 		PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
-		PINTERCEPTED_IRP_BODY pIrpBody = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
+		PINTERCEPTED_IRP_BODY pIrpBodyIn = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
+		PINTERCEPTED_IRP_BODY pIrpBodyOut = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER) + sizeof(PINTERCEPTED_IRP_BODY));
 
 		dbg(L"New IRP received:\n"
 			L" - timestamp:%llu\n"
@@ -131,7 +132,9 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 			L" - Major type:%x\n"
 			L" - IoctlCode:%x\n"
 			L" - PID=%d / TID=%d\n"
+			L" - Status=%d\n"
 			L" - InputBufferLength=%d / OutputBufferLength=%d\n"
+			L" - ProcessName:%s\n"
 			L" - DriverName:%s\n"
 			L" - DeviceName:%s\n",
 			pIrpHeader->TimeStamp,
@@ -140,8 +143,10 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 			pIrpHeader->IoctlCode,
 			pIrpHeader->Pid, 
 			pIrpHeader->Tid,
+			pIrpHeader->Status,
 			pIrpHeader->InputBufferLength, 
 			pIrpHeader->OutputBufferLength,
+			pIrpHeader->ProcessName,
 			pIrpHeader->DriverName,
 			pIrpHeader->DeviceName
 		);
@@ -149,7 +154,7 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 		//
 		// pushing new IRP to the session queue\n");
 		//
-		Irp irp(pIrpHeader, pIrpBody);
+		Irp irp(pIrpHeader, pIrpBodyIn);
 
 		std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
 		Session.m_IrpQueue.push(irp);

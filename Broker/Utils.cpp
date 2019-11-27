@@ -217,3 +217,4 @@ std::vector<std::pair<std::wstring, std::wstring>> Utils::EnumerateObjectDirecto
 
 	return ObjectList;
 }
+

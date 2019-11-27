@@ -353,9 +353,10 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	// Capture the IRP data
 	//
+	PINTERCEPTED_IRP pIrpInfo = NULL;
 	if (IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess())
 	{
-		NTSTATUS Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp);
+		NTSTATUS Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp, &pIrpInfo);
 
 		if (!NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED)
 		{
@@ -371,11 +372,37 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	NTSTATUS Status = OriginalIoctlDeviceControl(DeviceObject, Irp);
 
 	//
-	// Collect the result for 
+	// Collect the result from the result
 	//
-	if (Status != STATUS_PENDING)
+	if (Status != STATUS_PENDING && 
+		IsMonitoringEnabled() && 
+		curDriver->Enabled == TRUE && 
+		pCurrentOwnerProcess != PsGetCurrentProcess() &&
+		pIrpInfo != NULL
+	)
 	{
+		if (!NT_SUCCESS(CompleteHandleInterceptedIrp(Irp, Status, pIrpInfo)))
+		{
+			CfbDbgPrintErr(L"CompleteHandleInterceptedIrp() failed\n");
+		}
+	}
 
+
+	//
+	// Push the new irp to the queue and notify the broker
+	//
+	if (pIrpInfo)
+	{
+		if (!NT_SUCCESS(PushToQueue(pIrpInfo)))
+		{
+			CfbDbgPrintErr(L"PushToQueue(%p) failed \n", pIrpInfo);
+			FreeInterceptedIrp(pIrpInfo);
+		}
+		else
+		{
+			SetNewIrpInQueueAlert();
+			CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrpInfo, GetIrpListSize());
+		}
 	}
 
 	return Status;

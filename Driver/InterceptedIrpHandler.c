@@ -215,24 +215,14 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	size_t szDeviceNameLength = wcslen( pIn->DeviceName );
 	szDeviceNameLength = szDeviceNameLength > MAX_PATH ? MAX_PATH : szDeviceNameLength + 1;
 
-	PEPROCESS Process;
-	PWCHAR szProcessName = L"unknown\0";
+	PWCHAR lpswProcessName = L"unknown\0";
 	size_t szProcessNameLength = 8;
-	if (PsLookupProcessByProcessId((HANDLE)pIn->Pid, &Process) != STATUS_INVALID_PARAMETER)
+	UNICODE_STRING us = { 0, };
+
+	if (NT_SUCCESS(GetProcessNameFromPid(pIn->Pid, &us)) && us.Length)
 	{
-		PSTR lpProcessName = PsGetProcessImageFileName(Process);
-		if (lpProcessName)
-		{
-			UNICODE_STRING us = { 0, };
-			CANSI_STRING as = { 0 };
-			RtlInitAnsiStringEx(&as, lpProcessName);
-			if (NT_SUCCESS(RtlAnsiStringToUnicodeString(&us, &as, FALSE)))
-			{
-				szProcessName = us.Buffer;
-				szProcessNameLength = us.Length;
-				szProcessNameLength = szProcessNameLength >= MAX_PATH ? MAX_PATH : szProcessNameLength;
-			}
-		}
+		lpswProcessName = us.Buffer;
+		szProcessNameLength = us.Length < MAX_PATH ? us.Length : MAX_PATH;
 	}
 
 
@@ -253,7 +243,7 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	wcscpy_s(pIrpHeader->DriverName, szDriverNameLength, pIn->DriverName );
 	wcscpy_s(pIrpHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
 
-	wcscpy_s(pIrpHeader->ProcessName, szProcessNameLength, szProcessName);
+	wcscpy_s(pIrpHeader->ProcessName, szProcessNameLength, lpswProcessName);
 
 
 	//
@@ -305,7 +295,7 @@ from the IRP packet (depending on its method), and build a SNIFFED_DATA packet t
 written back to the userland client.
 
 --*/
-NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp)
+NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp, OUT PINTERCEPTED_IRP *pIrpOut)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 	PINTERCEPTED_IRP pIrp = NULL;
@@ -318,6 +308,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
     temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
 	wcsncpy( temp.DriverName, Driver->Name, wcslen( Driver->Name ) );
+
 	Status = GetDeviceNameFromDeviceObject( pDeviceObject, temp.DeviceName, MAX_PATH );
 
 	if ( !NT_SUCCESS( Status ) )
@@ -356,31 +347,47 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 		if (temp.InputBuffer)
 		{
 			ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
+			temp.InputBuffer = NULL;
 		}
 			
 		return Status;
 	}
 
+	*pIrpOut = pIrp;
+
+	return STATUS_SUCCESS;
+}
+
+
+/*++
+
+This function is called when a synchronous IRP is done being processed, so we can
+collect additional info about the result.
+
+--*/
+NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _Inout_ PINTERCEPTED_IRP pIrpInfo)
+{
+	//
+	// Complete the info
+	//
+	pIrpInfo->Header->Status = IrpStatus;
 
 	//
-	// push the new message with dumped IRP to the queue
+	// Allocate (if necessary) and copy (if necessary) the content of the output buffer
 	//
-	Status = PushToQueue( pIrp );
-
-	if ( !NT_SUCCESS( Status ) )
+	if (pIrpInfo->Header->OutputBufferLength)
 	{
-		CfbDbgPrintErr( L"PushToQueue(%p) failed, discarding message = %x\n", pIrp, Status );
-		FreeInterceptedIrp( pIrp );
+		pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
+			NonPagedPool, 
+			pIrpInfo->Header->OutputBufferLength, 
+			CFB_DEVICE_TAG
+		);
+		if (!pIrpInfo->OutputBuffer)
+		{
+			return STATUS_INSUFFICIENT_RESOURCES;
+		}
+
+		return ExtractDeviceIoctlIrpData(Irp, pIrpInfo->OutputBuffer, (PULONG)&pIrpInfo->Header->OutputBufferLength);
 	}
-    else
-    {
-	    //
-	    // and last, notify the client in UM of the new message posted
-	    //
-
-        SetNewIrpInQueueAlert();
-        CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrp, GetIrpListSize());
-    }
-
-	return Status;
+	return STATUS_SUCCESS;
 }

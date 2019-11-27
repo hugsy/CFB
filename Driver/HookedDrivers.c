@@ -188,7 +188,6 @@ PHOOKED_DRIVER GetHookedDriverFromDeviceObject(IN PDEVICE_OBJECT DeviceObject)
 	if (IsListEmpty(g_HookedDriverHead))
 		return NULL;
 
-	BOOLEAN Found = FALSE;
 	PHOOKED_DRIVER Driver = NULL;
 	PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
 
@@ -197,17 +196,12 @@ PHOOKED_DRIVER GetHookedDriverFromDeviceObject(IN PDEVICE_OBJECT DeviceObject)
 		Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
 		if (Driver->DriverObject == DeviceObject->DriverObject)
-		{
-			Found = TRUE;
-			break;
-		}
+			return Driver;
 
 		Entry = Entry->Flink;
 
-	} while (Entry != g_HookedDriverHead);
+	} 
+	while (Entry != g_HookedDriverHead);
 
-	if (Found)
-		return Driver;
-	else
-		return NULL;
+	return NULL;
 }
