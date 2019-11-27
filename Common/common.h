@@ -116,6 +116,8 @@ typedef struct
     UINT32 OutputBufferLength;
 	WCHAR DriverName[MAX_PATH];
 	WCHAR DeviceName[MAX_PATH];
+	WCHAR ProcessName[MAX_PATH];
+	NTSTATUS Status;
 }
 INTERCEPTED_IRP_HEADER, *PINTERCEPTED_IRP_HEADER;
 # pragma pack ()
@@ -125,7 +127,8 @@ typedef PVOID PINTERCEPTED_IRP_BODY;
 typedef struct 
 {
 	PINTERCEPTED_IRP_HEADER Header;
-	PINTERCEPTED_IRP_BODY RawBuffer;
+	PINTERCEPTED_IRP_BODY InputBuffer;
+	PINTERCEPTED_IRP_BODY OutputBuffer;
 	LIST_ENTRY ListEntry;
 }
 INTERCEPTED_IRP, *PINTERCEPTED_IRP;

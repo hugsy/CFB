@@ -32,4 +32,3 @@ extern NTKERNELAPI NTSTATUS ObQueryNameString(
 
 NTSTATUS GetDeviceNameFromDeviceObject( _In_ PVOID pDeviceObject, _Out_ WCHAR* DeviceNameBuffer, _In_ ULONG DeviceNameBufferSize );
 
-

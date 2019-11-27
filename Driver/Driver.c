@@ -113,10 +113,10 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	//
 	// Copy the IRP input buffer (if any)
 	//
-	if(pInterceptedIrpHeader->InputBufferLength && pInterceptedIrp->RawBuffer)
+	if(pInterceptedIrpHeader->InputBufferLength && pInterceptedIrp->InputBuffer)
 	{
         PVOID RawBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(INTERCEPTED_IRP_HEADER) );
-		RtlCopyMemory(RawBuffer, pInterceptedIrp->RawBuffer, pInterceptedIrpHeader->InputBufferLength);
+		RtlCopyMemory(RawBuffer, pInterceptedIrp->InputBuffer, pInterceptedIrpHeader->InputBufferLength);
 	}
 
 	FreeInterceptedIrp(pInterceptedIrp);
@@ -368,7 +368,17 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 	PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
-	return OriginalIoctlDeviceControl(DeviceObject, Irp);
+	NTSTATUS Status = OriginalIoctlDeviceControl(DeviceObject, Irp);
+
+	//
+	// Collect the result for 
+	//
+	if (Status != STATUS_PENDING)
+	{
+
+	}
+
+	return Status;
 }
 
 
@@ -806,7 +816,7 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 	if (!Driver)
 		return FALSE;
 
-	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl()\n");
+	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl(0x%x)\n", IoControlCode);
 	
 	PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
 	return OriginalFastIoDeviceControl(

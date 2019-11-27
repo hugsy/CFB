@@ -15,7 +15,9 @@ typedef struct
 	ULONG InputBufferLen;
 	ULONG OutputBufferLen;
 }
-IRP_DATA_ENTRY, *PIRP_DATA_ENTRY;
+HOOKED_IRP_INFO, *PHOOKED_IRP_INFO;
+
+
 
 
 /*++
@@ -179,7 +181,7 @@ NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OU
 Move the message from the stack to kernel pool.
 
 --*/
-NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
+NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
 	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -213,6 +215,26 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 	size_t szDeviceNameLength = wcslen( pIn->DeviceName );
 	szDeviceNameLength = szDeviceNameLength > MAX_PATH ? MAX_PATH : szDeviceNameLength + 1;
 
+	PEPROCESS Process;
+	PWCHAR szProcessName = L"unknown\0";
+	size_t szProcessNameLength = 8;
+	if (PsLookupProcessByProcessId((HANDLE)pIn->Pid, &Process) != STATUS_INVALID_PARAMETER)
+	{
+		PSTR lpProcessName = PsGetProcessImageFileName(Process);
+		if (lpProcessName)
+		{
+			UNICODE_STRING us = { 0, };
+			CANSI_STRING as = { 0 };
+			RtlInitAnsiStringEx(&as, lpProcessName);
+			if (NT_SUCCESS(RtlAnsiStringToUnicodeString(&us, &as, FALSE)))
+			{
+				szProcessName = us.Buffer;
+				szProcessNameLength = us.Length;
+				szProcessNameLength = szProcessNameLength >= MAX_PATH ? MAX_PATH : szProcessNameLength;
+			}
+		}
+	}
+
 
 	//
 	// ... and fill it up
@@ -231,18 +253,17 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 	wcscpy_s(pIrpHeader->DriverName, szDriverNameLength, pIn->DriverName );
 	wcscpy_s(pIrpHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
 
+	wcscpy_s(pIrpHeader->ProcessName, szProcessNameLength, szProcessName);
+
 
 	//
 	// fill up the message structure
 	//
 
 	(*pIrp)->Header = pIrpHeader;
-	(*pIrp)->RawBuffer = pIn->InputBuffer;
+	(*pIrp)->InputBuffer = pIn->InputBuffer;
 
-
-	Status = STATUS_SUCCESS;
-
-	return Status;
+	return STATUS_SUCCESS;
 }
 
 
@@ -252,15 +273,19 @@ NTSTATUS PreparePipeMessage(IN PIRP_DATA_ENTRY pIn, OUT PINTERCEPTED_IRP *pIrp)
 VOID FreeInterceptedIrp(IN PINTERCEPTED_IRP pIrp)
 {
     UINT32 dwBodyLen = pIrp->Header->InputBufferLength;
-
-	if (pIrp->RawBuffer && dwBodyLen)
+	if (pIrp->InputBuffer && dwBodyLen)
 	{
-		//
-		// We need to check because RawBuffer can be NULL
-		//
-        RtlSecureZeroMemory(pIrp->RawBuffer, dwBodyLen);
-		ExFreePoolWithTag(pIrp->RawBuffer, CFB_DEVICE_TAG);
-        pIrp->RawBuffer = NULL;
+        RtlSecureZeroMemory(pIrp->InputBuffer, dwBodyLen);
+		ExFreePoolWithTag(pIrp->InputBuffer, CFB_DEVICE_TAG);
+        pIrp->InputBuffer = NULL;
+	}
+
+	dwBodyLen = pIrp->Header->OutputBufferLength;
+	if (pIrp->OutputBuffer && dwBodyLen)
+	{
+		RtlSecureZeroMemory(pIrp->OutputBuffer, dwBodyLen);
+		ExFreePoolWithTag(pIrp->OutputBuffer, CFB_DEVICE_TAG);
+		pIrp->OutputBuffer = NULL;
 	}
 
     RtlSecureZeroMemory(pIrp->Header, sizeof(INTERCEPTED_IRP_HEADER));
@@ -284,7 +309,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 	PINTERCEPTED_IRP pIrp = NULL;
-	IRP_DATA_ENTRY temp = { 0, };
+	HOOKED_IRP_INFO temp = { 0, };
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation( Irp );
 	
 	temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
