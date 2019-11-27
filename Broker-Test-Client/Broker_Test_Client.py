@@ -11,7 +11,7 @@ This shouldn't be used in other cases than testing.
 from enum import Enum, unique
 from struct import *
 
-import base64, json, pprint, sys, time, socket
+import base64, json, pprint, sys, time, socket, datetime
 
 MAX_MESSAGE_SIZE = 65536
 MAX_ACCEPTABLE_MESSAGE_SIZE = MAX_MESSAGE_SIZE-2
@@ -81,6 +81,7 @@ PATH_PIPE_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
 PATH_TCP_REMOTE = ("10.0.0.63", 1337)
 
 TEST_DRIVER_NAME = "\\driver\\lxss\0"
+TEST_DRIVER_NAME = "\\driver\\condrv\0"
 
 
 @unique
@@ -101,6 +102,44 @@ class TaskType(Enum):
     StoreTestCase = 11
     EnumerateDrivers = 12
 
+
+IrpMajorTypes = [
+    ("IRP_MJ_CREATE"                   , 0x00),
+    ("IRP_MJ_CREATE_NAMED_PIPE"        , 0x01),
+    ("IRP_MJ_CLOSE"                    , 0x02),
+    ("IRP_MJ_READ"                     , 0x03),
+    ("IRP_MJ_WRITE"                    , 0x04),
+    ("IRP_MJ_QUERY_INFORMATION"        , 0x05),
+    ("IRP_MJ_SET_INFORMATION"          , 0x06),
+    ("IRP_MJ_QUERY_EA"                 , 0x07),
+    ("IRP_MJ_SET_EA"                   , 0x08),
+    ("IRP_MJ_FLUSH_BUFFERS"            , 0x09),
+    ("IRP_MJ_QUERY_VOLUME_INFORMATION" , 0x0a),
+    ("IRP_MJ_SET_VOLUME_INFORMATION"   , 0x0b),
+    ("IRP_MJ_DIRECTORY_CONTROL"        , 0x0c),
+    ("IRP_MJ_FILE_SYSTEM_CONTROL"      , 0x0d),
+    ("IRP_MJ_DEVICE_CONTROL"           , 0x0e),
+    ("IRP_MJ_INTERNAL_DEVICE_CONTROL"  , 0x0f),
+    ("IRP_MJ_SHUTDOWN"                 , 0x10),
+    ("IRP_MJ_LOCK_CONTROL"             , 0x11),
+    ("IRP_MJ_CLEANUP"                  , 0x12),
+    ("IRP_MJ_CREATE_MAILSLOT"          , 0x13),
+    ("IRP_MJ_QUERY_SECURITY"           , 0x14),
+    ("IRP_MJ_SET_SECURITY"             , 0x15),
+    ("IRP_MJ_POWER"                    , 0x16),
+    ("IRP_MJ_SYSTEM_CONTROL"           , 0x17),
+    ("IRP_MJ_DEVICE_CHANGE"            , 0x18),
+    ("IRP_MJ_QUERY_QUOTA"              , 0x19),
+    ("IRP_MJ_SET_QUOTA"                , 0x1a),
+    ("IRP_MJ_PNP"                      , 0x1b),
+]
+
+  
+def IrpMajorType(x):
+    for n, i in IrpMajorTypes:
+        if i == x: 
+            return n
+    return ""
 
 
 def PrepareRequest(dwType, *args):
@@ -156,6 +195,12 @@ class BrokerTestMethods:
 
     def test_GetInterceptedIrps(self):
         res = self.sr(TaskType.GetInterceptedIrps)
+        # sanitize some fields
+        for i in range(res["body"]["nb_entries"]):
+            res["body"]["entries"][i]["header"]["DeviceName"] = "'{}'".format("".join(map(chr, res["body"]["entries"][i]["header"]["DeviceName"])))
+            res["body"]["entries"][i]["header"]["DriverName"] = "'{}'".format("".join(map(chr, res["body"]["entries"][i]["header"]["DriverName"])))
+            res["body"]["entries"][i]["header"]["TimeStamp"] = "'{}'".format(convert_GetSystemTime(res["body"]["entries"][i]["header"]["TimeStamp"]).strftime("%F-%H-%m-%S"))
+            res["body"]["entries"][i]["header"]["Type"] = "'{}'".format(IrpMajorType(res["body"]["entries"][i]["header"]["Type"]))
         ok("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
 
 
