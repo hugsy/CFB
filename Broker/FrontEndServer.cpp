@@ -256,13 +256,18 @@ DWORD FrontEndServer::SendDriverList()
 	
 	// wstring -> string converter
 	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wide_converter;
-
-	for (auto driver : Utils::EnumerateObjectDirectory(L"\\Driver"))
+	std::vector<std::wstring> roots = { L"\\Driver" , L"\\FileSystem" };
+	for (auto root : roots)
 	{
-		std::string driver_name = wide_converter.to_bytes(driver.first);
-		j["body"]["drivers"].push_back(driver_name);
-		i++;
+		for (auto driver : Utils::EnumerateObjectDirectory(root))
+		{
+			std::wstring driver_abspath = root + std::wstring(L"\\") + driver.first;
+			std::string driver_name = wide_converter.to_bytes(driver_abspath);
+			j["body"]["drivers"].push_back(driver_name);
+			i++;
+		}
 	}
+
 
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
