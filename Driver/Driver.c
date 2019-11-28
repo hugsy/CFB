@@ -385,6 +385,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 	//
 	// And call the original routine
 	//
+	PVOID UserBuffer = Irp->UserBuffer;
 	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 	PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
 	NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
@@ -400,7 +401,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		pIrpInfo != NULL
 	)
 	{
-		NTSTATUS Status = CompleteHandleInterceptedIrp(Irp, IoctlStatus, pIrpInfo);
+		NTSTATUS Status = CompleteHandleInterceptedIrp(Stack, UserBuffer, IoctlStatus, pIrpInfo);
 		if (!NT_SUCCESS(Status))
 			CfbDbgPrintWarn(L"CompleteHandleInterceptedIrp() failed, Status=0x%x\n", Status);
 	}

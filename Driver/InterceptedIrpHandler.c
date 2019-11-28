@@ -27,29 +27,28 @@ https://www.codeproject.com/Articles/9504/Driver-Development-Part-1-Introduction
 https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-development
 
 --*/
-static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLength, IN BOOLEAN IsInput, OUT PVOID *OutBuffer)
+static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLength, OUT PVOID *OutBuffer)
 {
-
 	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, BufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
 	RtlSecureZeroMemory(Buffer, BufferLength);
 
-
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_STACK_LOCATION Stack = IsInput ? IoGetCurrentIrpStackLocation(Irp) : IoGetNextIrpStackLocation(Irp);
+    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
 	__try
 	{
 		do
 		{
-			if (Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL && Method == METHOD_NEITHER)
+			if ((Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL || Stack->MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) && \
+				Method == METHOD_NEITHER)
 			{
 				if (Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16))
 					RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, BufferLength);
 				else
-					Status = STATUS_UNSUCCESSFUL;
+					Status = STATUS_INVALID_PARAMETER;
 				break;
 			}
 
@@ -58,7 +57,7 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLeng
 				if (Irp->AssociatedIrp.SystemBuffer)
 					RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, BufferLength);
 				else
-					Status = STATUS_INVALID_PARAMETER;
+					Status = STATUS_INVALID_PARAMETER_1;
 				break;
 			}
 
@@ -66,14 +65,14 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLeng
             {
 			    if (!Irp->MdlAddress)
 			    {
-				    Status = STATUS_INVALID_PARAMETER;
+				    Status = STATUS_INVALID_PARAMETER_2;
 				    break;
 			    }
 
 			    PVOID pDataAddr = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
 			    if (!pDataAddr)
 			    {
-				    Status = STATUS_INVALID_PARAMETER;
+				    Status = STATUS_INVALID_PARAMETER_3;
 				    break;
 			    }
 
@@ -104,18 +103,18 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLeng
 
 
 
-NTSTATUS ExtractDeviceIoctlIrpData(IN PIRP Irp, IN BOOLEAN IsInput, OUT PVOID *Buffer, OUT PULONG BufferLength)
+NTSTATUS ExtractDeviceIoctlIrpData(IN PIRP Irp, OUT PVOID *Buffer, OUT PULONG BufferLength)
 {
-	PIO_STACK_LOCATION Stack = IsInput ? IoGetCurrentIrpStackLocation(Irp) : IoGetNextIrpStackLocation(Irp);
+	PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
-    *BufferLength = IsInput ? Stack->Parameters.DeviceIoControl.InputBufferLength : Stack->Parameters.DeviceIoControl.OutputBufferLength;
+    *BufferLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
     if( *BufferLength == 0 )
         return STATUS_SUCCESS;
 
     ULONG IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
     ULONG Method = METHOD_FROM_CTL_CODE(IoctlCode);
 
-    return ExtractIrpData(Irp, Method, *BufferLength, IsInput, Buffer);
+    return ExtractIrpData(Irp, Method, *BufferLength, Buffer);
 }
 
 
@@ -132,10 +131,13 @@ NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OU
 {
     PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
 
-    if(Stack->MajorFunction == IRP_MJ_READ)
-        *InputBufferLength = Stack->Parameters.Read.Length;
-    else
-        *InputBufferLength = Stack->Parameters.Write.Length;
+	if (Stack->MajorFunction == IRP_MJ_READ)
+	{
+		*InputBufferLength = Stack->Parameters.Read.Length;
+		return STATUS_SUCCESS;
+	}
+
+    *InputBufferLength = Stack->Parameters.Write.Length;
 
     if(*InputBufferLength == 0)
         return STATUS_SUCCESS;
@@ -152,8 +154,7 @@ NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OU
     else
         return STATUS_UNSUCCESSFUL;
 
-
-    return ExtractIrpData(Irp, Method, *InputBufferLength, TRUE, InputBuffer);
+    return ExtractIrpData(Irp, Method, *InputBufferLength, InputBuffer);
 }
 
 
@@ -298,7 +299,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
         case IRP_MJ_INTERNAL_DEVICE_CONTROL:
 			temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-            Status = ExtractDeviceIoctlIrpData(Irp, TRUE, &temp.InputBuffer, &temp.InputBufferLen);
+            Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
             if(!NT_SUCCESS(Status))
             {
                 CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() failed, Status=%#X\n", Status);
@@ -311,8 +312,8 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
             Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &temp.InputBuffer, &temp.InputBufferLen);
             break;
 
-        //default:
-        //    return STATUS_NOT_IMPLEMENTED;
+        default:
+            return STATUS_NOT_IMPLEMENTED;
 	}
 
 
@@ -342,7 +343,7 @@ This function is called when a synchronous IRP is done being processed, so we ca
 collect additional info about the result.
 
 --*/
-NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _Inout_ PINTERCEPTED_IRP pIrpInfo)
+NTSTATUS CompleteHandleInterceptedIrp(_In_ PIO_STACK_LOCATION Stack, _In_ PVOID UserBuffer, _In_ NTSTATUS IrpStatus, _Inout_ PINTERCEPTED_IRP pIrpInfo)
 {
 	//
 	// Complete the info
@@ -351,36 +352,39 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 
 
 	//
-	// Only collect output buffer for DeviceIoctlControl() requests
+	// For read and ioctls, update the OutputBufferLength
 	//
-	if (pIrpInfo->Header->Type != IRP_MJ_DEVICE_CONTROL && \
-		pIrpInfo->Header->Type != IRP_MJ_INTERNAL_DEVICE_CONTROL)
-		return STATUS_SUCCESS;
-
-
-	//
-	// Allocate (if necessary) and copy (if necessary) the content of the output buffer
-	//
-	if (pIrpInfo->Header->OutputBufferLength)
+	switch (pIrpInfo->Header->Type)
 	{
-		pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
-			NonPagedPool, 
-			pIrpInfo->Header->OutputBufferLength, 
-			CFB_DEVICE_TAG
-		);
-		if (!pIrpInfo->OutputBuffer)
-			return STATUS_INSUFFICIENT_RESOURCES;
+	case IRP_MJ_READ:
+		pIrpInfo->Header->OutputBufferLength = Stack->Parameters.Read.Length;
+		break;
 
-		RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
+	case IRP_MJ_DEVICE_CONTROL:
+	case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+		pIrpInfo->Header->OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
-		ULONG ulDummy = 0;
-		if (!NT_SUCCESS(ExtractDeviceIoctlIrpData(Irp, FALSE, &pIrpInfo->OutputBuffer, (PULONG)&ulDummy)))
-		{
-			ExFreePoolWithTag(pIrpInfo->OutputBuffer, CFB_DEVICE_TAG);
-			pIrpInfo->OutputBuffer = NULL;
-			return STATUS_UNSUCCESSFUL;
-		}
+	default:
+		return STATUS_SUCCESS;
 	}
+
+	if (UserBuffer == NULL)
+	{
+		pIrpInfo->OutputBuffer = NULL;
+		return STATUS_INVALID_PARAMETER_2;
+	}
+
+	pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
+		NonPagedPool, 
+		pIrpInfo->Header->OutputBufferLength, 
+		CFB_DEVICE_TAG
+	);
+	if (!pIrpInfo->OutputBuffer)
+		return STATUS_INSUFFICIENT_RESOURCES;
+
+	RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
+
+	RtlCopyMemory(pIrpInfo->OutputBuffer, UserBuffer, pIrpInfo->Header->OutputBufferLength);
 
 	return STATUS_SUCCESS;
 }
