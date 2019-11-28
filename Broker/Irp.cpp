@@ -8,11 +8,15 @@ Irp::Irp(_In_ PINTERCEPTED_IRP_HEADER Header, _In_ PINTERCEPTED_IRP_BODY InputBu
 	PINTERCEPTED_IRP_HEADER hdr = &m_Header;
 	::memcpy(hdr, Header, sizeof(INTERCEPTED_IRP_HEADER));
 
-	m_InputBuffer.reserve(Header->InputBufferLength);
-	::memcpy(m_InputBuffer.data(), InputBuffer, Header->InputBufferLength);
+	//m_InputBuffer.reserve(Header->InputBufferLength);
+	//::memcpy(m_InputBuffer.data(), InputBuffer, Header->InputBufferLength);
+	for (DWORD i = 0; i < Header->InputBufferLength; i++)
+		m_InputBuffer.push_back(((PBYTE)InputBuffer)[i]);
 
-	m_OutputBuffer.reserve(Header->OutputBufferLength);
-	::memcpy(m_OutputBuffer.data(), OutputBuffer, Header->OutputBufferLength);
+	//m_OutputBuffer.reserve(Header->OutputBufferLength);
+	//::memcpy(m_OutputBuffer.data(), OutputBuffer, Header->OutputBufferLength);
+	for (DWORD i = 0; i < Header->OutputBufferLength; i++)
+		m_OutputBuffer.push_back(((PBYTE)OutputBuffer)[i]);
 }
 
 Irp::Irp(const Irp& IrpOriginal) 
@@ -53,13 +57,17 @@ json Irp::IrpHeaderToJson()
 
 json Irp::InputBufferToJson()
 {
-	return json::parse(m_InputBuffer.begin(), m_InputBuffer.end());
+	//dbg(L"InputBufferToJson() -> %d\n", m_InputBuffer.size());
+	json j(m_InputBuffer);
+	return j;
 }
 
 
 json Irp::OutputBufferToJson()
 {
-	return json::parse(m_OutputBuffer.begin(), m_OutputBuffer.end());
+	//dbg(L"OutputBufferToJson() -> %d\n", m_OutputBuffer.size());
+	json j(m_OutputBuffer);
+	return j;
 }
 
 
