@@ -3,6 +3,8 @@
 #include "common.h"
 
 
+static HANDLE g_hLogMutex = NULL;
+
 
 
 /*++
@@ -10,11 +12,6 @@
 --*/
 void _xlog(log_level_t level, const wchar_t* format, ...)
 {
-	size_t fmt_len;
-	LPWSTR fmt;
-	va_list args;
-	const wchar_t* prio;
-
 #ifndef _DEBUG
 	//
 	// If we're not in Debug mode, we don't care about xlog(LOG_DEBUG) 
@@ -22,6 +19,15 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 	if (level == LOG_DEBUG)
 		return;
 #endif
+
+	if (g_hLogMutex == NULL)
+	{
+		g_hLogMutex = CreateMutex(NULL, FALSE, NULL);
+		if (g_hLogMutex == NULL)
+			return;
+	}
+
+	const wchar_t* prio;
 
 	switch (level)
 	{
@@ -47,28 +53,26 @@ void _xlog(log_level_t level, const wchar_t* format, ...)
 		return;
 	}
 
-	fmt_len = wcslen(format) + wcslen(prio) + 4;
-	fmt = LocalAlloc(LMEM_FIXED | LMEM_ZEROINIT, fmt_len*sizeof(wchar_t));
-	if (!fmt)
-		return;
+	WaitForSingleObject(g_hLogMutex, INFINITE);
 
-	va_start(args, format);
-	swprintf(fmt, fmt_len, L"%s %s", prio, format);
-
+	va_list args;
 	SYSTEMTIME lt;
 	GetLocalTime(&lt);
 
 #ifdef _DEBUG
-		fwprintf(stderr, L"%02d-%02d-%02d %02d:%02d:%02d ",
-			lt.wYear, lt.wMonth, lt.wDay,
-			lt.wHour, lt.wMinute, lt.wSecond);
+	fwprintf(stderr, L"%02d-%02d-%02d %02d:%02d:%02d ",
+		lt.wYear, lt.wMonth, lt.wDay,
+		lt.wHour, lt.wMinute, lt.wSecond);
 #endif
 
-	vfwprintf(stderr, fmt, args);
-	fflush(stderr);
-
+	fwprintf(stderr, L"%s ", prio);
+	va_start(args, format);
+	vfwprintf(stderr, format, args);
 	va_end(args);
-	LocalFree(fmt);
+	fflush(stderr);
+	
+	ReleaseMutex(g_hLogMutex);
+
 	return;
 }
 
@@ -90,7 +94,7 @@ void hexdump(PVOID data, SIZE_T size)
 		BYTE c = ptr[i];
 
 		if (!ascii[0])
-			wprintf(L"%Ix   ", i);
+			wprintf(L"%04Ix   ", i);
 
 		wprintf(L"%02X ", c);
 

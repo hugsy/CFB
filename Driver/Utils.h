@@ -13,6 +13,8 @@
 #define __WFILE__ WIDEN(__FILE__)
 #define __WFUNCTION__ WIDEN(__FUNCTION__)
 
+VOID CfbDbgLogInit();
+VOID CfbDbgLogFree();
 VOID CfbDbgPrint( IN const WCHAR* lpFormatString, ... );
 VOID CfbHexDump( IN PUCHAR Buffer, IN ULONG Length );
 

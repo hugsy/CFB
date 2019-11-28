@@ -27,52 +27,42 @@ https://www.codeproject.com/Articles/9504/Driver-Development-Part-1-Introduction
 https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-development
 
 --*/
-static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBufferLength, OUT PVOID *InputBuffer)
+static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLength, IN BOOLEAN IsInput, OUT PVOID *OutBuffer)
 {
 
-	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, InputBufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, BufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
-	{
 		return STATUS_INSUFFICIENT_RESOURCES;
-	}
+
+	RtlSecureZeroMemory(Buffer, BufferLength);
+
 
     NTSTATUS Status = STATUS_SUCCESS;
-    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+    PIO_STACK_LOCATION Stack = IsInput ? IoGetCurrentIrpStackLocation(Irp) : IoGetNextIrpStackLocation(Irp);
 
 	__try
 	{
-
 		do
 		{
 			if (Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL && Method == METHOD_NEITHER)
 			{
 				if (Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16))
-				{
-					RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, InputBufferLength);
-				}
+					RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, BufferLength);
 				else
-				{
 					Status = STATUS_UNSUCCESSFUL;
-				}
-
 				break;
 			}
 
 			if (Method == METHOD_BUFFERED)
 			{
-				if (!Irp->AssociatedIrp.SystemBuffer)
-				{
-					Status = STATUS_INVALID_PARAMETER;
-				}
+				if (Irp->AssociatedIrp.SystemBuffer)
+					RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, BufferLength);
 				else
-				{
-					RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, InputBufferLength );
-				}
-
+					Status = STATUS_INVALID_PARAMETER;
 				break;
 			}
 
-            if(Method == METHOD_IN_DIRECT)
+            if(Method == METHOD_IN_DIRECT || Method == METHOD_OUT_DIRECT)
             {
 			    if (!Irp->MdlAddress)
 			    {
@@ -86,10 +76,8 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBuffe
 				    Status = STATUS_INVALID_PARAMETER;
 				    break;
 			    }
-			    else
-			    {
-				    RtlCopyMemory(Buffer, pDataAddr, InputBufferLength );
-			    }
+
+			    RtlCopyMemory(Buffer, pDataAddr, BufferLength );
             }
 
 		} while (0);
@@ -108,7 +96,7 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBuffe
 	}
 	else
 	{
-		*InputBuffer = Buffer;
+		*OutBuffer = Buffer;
 	}
 
 	return Status;
@@ -116,20 +104,18 @@ static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG InputBuffe
 
 
 
-NTSTATUS ExtractDeviceIoctlIrpData(IN PIRP Irp, OUT PVOID *InputBuffer, OUT PULONG InputBufferLength)
+NTSTATUS ExtractDeviceIoctlIrpData(IN PIRP Irp, IN BOOLEAN IsInput, OUT PVOID *Buffer, OUT PULONG BufferLength)
 {
-    PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+	PIO_STACK_LOCATION Stack = IsInput ? IoGetCurrentIrpStackLocation(Irp) : IoGetNextIrpStackLocation(Irp);
 
-    *InputBufferLength = Stack->Parameters.DeviceIoControl.InputBufferLength;
-    if( *InputBufferLength == 0 )
-    {
+    *BufferLength = IsInput ? Stack->Parameters.DeviceIoControl.InputBufferLength : Stack->Parameters.DeviceIoControl.OutputBufferLength;
+    if( *BufferLength == 0 )
         return STATUS_SUCCESS;
-    }
 
     ULONG IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
     ULONG Method = METHOD_FROM_CTL_CODE(IoctlCode);
 
-    return ExtractIrpData(Irp, Method, *InputBufferLength, InputBuffer);
+    return ExtractIrpData(Irp, Method, *BufferLength, IsInput, Buffer);
 }
 
 
@@ -152,26 +138,22 @@ NTSTATUS ExtractReadWriteIrpData(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp, OU
         *InputBufferLength = Stack->Parameters.Write.Length;
 
     if(*InputBufferLength == 0)
-    {
         return STATUS_SUCCESS;
-    }
+
 
     ULONG Method;
 
     if(DeviceObject->Flags & DO_BUFFERED_IO)
-    {
         Method = METHOD_BUFFERED;
-    }
-    else if(DeviceObject->Flags & DO_DIRECT_IO)
-    {
-        Method = METHOD_IN_DIRECT;
-    }
-    else
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
 
-    return ExtractIrpData(Irp, Method, *InputBufferLength, InputBuffer);
+    else if(DeviceObject->Flags & DO_DIRECT_IO)
+        Method = METHOD_IN_DIRECT;
+
+    else
+        return STATUS_UNSUCCESSFUL;
+
+
+    return ExtractIrpData(Irp, Method, *InputBufferLength, TRUE, InputBuffer);
 }
 
 
@@ -183,14 +165,11 @@ Move the message from the stack to kernel pool.
 --*/
 NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
-	NTSTATUS Status = STATUS_INSUFFICIENT_RESOURCES;
-
-	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof( INTERCEPTED_IRP ), CFB_DEVICE_TAG );
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof(INTERCEPTED_IRP), CFB_DEVICE_TAG );
 	if ( !*pIrp)
-	{
-		return Status;
-	}
+		return STATUS_INSUFFICIENT_RESOURCES;
 
+	RtlSecureZeroMemory(*pIrp, sizeof(INTERCEPTED_IRP));
 
 	//
 	// Allocate the intercepted IRP header...
@@ -201,10 +180,10 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 		CFB_DEVICE_TAG 
 	);
 
-	if ( !pIrpHeader)
+	if (!pIrpHeader)
 	{
 		ExFreePoolWithTag( *pIrp, CFB_DEVICE_TAG );
-		return Status;
+		return STATUS_INSUFFICIENT_RESOURCES;
 	}
 
 	RtlSecureZeroMemory(pIrpHeader, sizeof(INTERCEPTED_IRP_HEADER) );
@@ -291,7 +270,7 @@ VOID FreeInterceptedIrp(IN PINTERCEPTED_IRP pIrp)
 /*++
 
 HandleInterceptedIrp is called every time we intercept an IRP. It will extract the data
-from the IRP packet (depending on its method), and build a SNIFFED_DATA packet that will
+from the IRP packet (depending on its method), and build a INTERCEPTED_IRP object that will
 written back to the userland client.
 
 --*/
@@ -305,23 +284,21 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
 	temp.Tid = HandleToULong(PsGetCurrentThreadId());
 	temp.Type = (UINT32)Stack->MajorFunction;
-    temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 
 	wcsncpy( temp.DriverName, Driver->Name, wcslen( Driver->Name ) );
 
 	Status = GetDeviceNameFromDeviceObject( pDeviceObject, temp.DeviceName, MAX_PATH );
-
 	if ( !NT_SUCCESS( Status ) )
-	{
 		CfbDbgPrintWarn( L"Cannot get device name, using empty string (Status=0x%#x)\n", Status );
-	}
+
 
 	switch (temp.Type)
 	{
         case IRP_MJ_DEVICE_CONTROL:
         case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+			temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
-            Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
+            Status = ExtractDeviceIoctlIrpData(Irp, TRUE, &temp.InputBuffer, &temp.InputBufferLen);
             if(!NT_SUCCESS(Status))
             {
                 CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() failed, Status=%#X\n", Status);
@@ -374,6 +351,13 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 
 
 	//
+	// Only collect output buffer for DeviceIoctlControl() requests
+	//
+	if (pIrpInfo->Header->Type != IRP_MJ_DEVICE_CONTROL && pIrpInfo->Header->Type != IRP_MJ_INTERNAL_DEVICE_CONTROL)
+		return STATUS_SUCCESS;
+
+
+	//
 	// Allocate (if necessary) and copy (if necessary) the content of the output buffer
 	//
 	if (pIrpInfo->Header->OutputBufferLength)
@@ -384,11 +368,17 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 			CFB_DEVICE_TAG
 		);
 		if (!pIrpInfo->OutputBuffer)
-		{
 			return STATUS_INSUFFICIENT_RESOURCES;
-		}
 
-		return ExtractDeviceIoctlIrpData(Irp, pIrpInfo->OutputBuffer, (PULONG)&pIrpInfo->Header->OutputBufferLength);
+		RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
+
+		UNREFERENCED_PARAMETER(Irp);
+		CfbDbgPrintInfo(L"adding outputbuffer of %u bytes to %p\n", pIrpInfo->Header->OutputBufferLength, pIrpInfo);
+		return STATUS_SUCCESS;
+
+		//ULONG ulDummy = 0;
+		//return ExtractDeviceIoctlIrpData(Irp, FALSE, &pIrpInfo->OutputBuffer, (PULONG)&ulDummy);
 	}
+
 	return STATUS_SUCCESS;
 }

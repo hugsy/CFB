@@ -81,50 +81,56 @@ Return Value:
 --*/
 static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Session& Session)
 {
-	DWORD dwBufferSize = 0;
-	byte* lpBuffer = NULL;
-	DWORD lpNumberOfBytesRead;
+	DWORD dwBufferSize = 0, dwNumberOfBytesRead = 0;
 
-	BOOL bRes = ::ReadFile(hDevice, lpBuffer, dwBufferSize, &lpNumberOfBytesRead, NULL);
+	BOOL bRes = ::ReadFile(hDevice, nullptr, dwBufferSize, &dwNumberOfBytesRead, NULL);
 
 	//
 	// Retrieve the expected buffer size
 	//
-	dbg(L"ReadFile(hDevice=%p, dwBufferSize=%d, lpNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, lpNumberOfBytesRead, bRes);
-	DWORD dwErrCode = ::GetLastError();
+	dbg(L"ReadFile(hDevice=%p, dwBufferSize=%d, dwNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, dwNumberOfBytesRead, bRes);
 
 	if (bRes == FALSE)
 	{
-		PrintErrorWithFunctionName(L"ReadFile(GetBufferSize)");
-		return dwErrCode;
+		DWORD errCode = ::GetLastError();
+		if (errCode != ERROR_NO_MORE_ITEMS)
+			PrintErrorWithFunctionName(L"ReadFile(GetBufferSize)");
+		return ::GetLastError();
 	}
 
-	if (lpNumberOfBytesRead == 0)
-	{
-		return ERROR_NO_DATA;
-	}
+	if (dwNumberOfBytesRead == 0)
+		return ERROR_NO_MORE_ITEMS;
 
 	//
 	// Create a buffer of the correct size, and fetch the raw IRP
 	//
-	dwBufferSize = lpNumberOfBytesRead;
-	lpBuffer = new byte[dwBufferSize];
+	dbg(L"dwBufferSize=%u dwNumberOfBytesRead=%u\n", dwBufferSize, dwNumberOfBytesRead);
+	dwBufferSize = dwNumberOfBytesRead;
+	auto lpBuffer = std::make_unique<byte[]>(dwBufferSize);
+	if (!lpBuffer)
+		return ::GetLastError();
 
-	bRes = ::ReadFile(hDevice, lpBuffer, dwBufferSize, &lpNumberOfBytesRead, NULL);
-	dwErrCode = ::GetLastError();
+	bRes = ::ReadFile(hDevice, lpBuffer.get(), dwBufferSize, &dwNumberOfBytesRead, NULL);
+
+	dbg(L"ReadFile2(hDevice=%p, dwBufferSize=%d, dwNumberOfBytesRead=%d) -> %d\n", hDevice, dwBufferSize, dwNumberOfBytesRead, bRes);
 
 	if (bRes == FALSE)
 	{
 		PrintErrorWithFunctionName(L"ReadFile(GetBufferData)");
-		return dwErrCode;
+		return ::GetLastError();
 	}
 
-
-	if (dwBufferSize == lpNumberOfBytesRead && dwBufferSize >= sizeof(INTERCEPTED_IRP_HEADER))
+	if (dwBufferSize == dwNumberOfBytesRead && dwBufferSize >= sizeof(INTERCEPTED_IRP_HEADER))
 	{
-		PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBuffer;
-		PINTERCEPTED_IRP_BODY pIrpBodyIn = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER));
-		PINTERCEPTED_IRP_BODY pIrpBodyOut = (PINTERCEPTED_IRP_BODY)(lpBuffer + sizeof(INTERCEPTED_IRP_HEADER) + sizeof(PINTERCEPTED_IRP_BODY));
+		PBYTE lpBufferOffset = lpBuffer.get();
+
+		const PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)lpBufferOffset;
+		lpBufferOffset += sizeof(INTERCEPTED_IRP_HEADER);
+
+		const PINTERCEPTED_IRP_BODY pIrpBodyIn = (PINTERCEPTED_IRP_BODY)lpBufferOffset;
+		lpBufferOffset += pIrpHeader->InputBufferLength;
+
+		const PINTERCEPTED_IRP_BODY pIrpBodyOut = (PINTERCEPTED_IRP_BODY)lpBufferOffset;
 
 		dbg(L"New IRP received:\n"
 			L" - timestamp:%llu\n"
@@ -132,8 +138,8 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 			L" - Major type:%x\n"
 			L" - IoctlCode:%x\n"
 			L" - PID=%d / TID=%d\n"
-			L" - Status=%d\n"
-			L" - InputBufferLength=%d / OutputBufferLength=%d\n"
+			L" - Status=%u\n"
+			L" - InputBufferLength=%u / OutputBufferLength=%u\n"
 			L" - ProcessName:%s\n"
 			L" - DriverName:%s\n"
 			L" - DeviceName:%s\n",
@@ -141,23 +147,21 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 			pIrpHeader->Irql,
 			pIrpHeader->Type,
 			pIrpHeader->IoctlCode,
-			pIrpHeader->Pid, 
-			pIrpHeader->Tid,
+			pIrpHeader->Pid, pIrpHeader->Tid,
 			pIrpHeader->Status,
-			pIrpHeader->InputBufferLength, 
-			pIrpHeader->OutputBufferLength,
+			pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength,
 			pIrpHeader->ProcessName,
 			pIrpHeader->DriverName,
 			pIrpHeader->DeviceName
 		);
 
 		//
-		// pushing new IRP to the session queue\n");
+		// pushing new IRP to the session queue
 		//
-		Irp irp(pIrpHeader, pIrpBodyIn);
+		Irp irp(pIrpHeader, pIrpBodyIn, pIrpBodyOut);
 
 		std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
-		Session.m_IrpQueue.push(irp);
+		//Session.m_IrpQueue.push(irp);
 		mlock.unlock();
 	}
 
@@ -201,7 +205,7 @@ DWORD FetchAllIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In_ Sessio
 	{
 		dwRes = FetchNextIrpFromDevice(hDevice, hEvent, Session);
 		
-		if (dwRes == ERROR_NO_DATA)
+		if (dwRes == ERROR_NO_MORE_ITEMS)
 			break;
 
 		(*lpdwNumberOfIrpDumped)++;

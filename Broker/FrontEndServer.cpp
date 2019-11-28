@@ -196,7 +196,7 @@ DWORD FrontEndServer::SendInterceptedIrps()
 		//
 		// format a new JSON entry
 		//
-		j["body"]["entries"].push_back(irp.AsJson());
+		j["body"]["entries"].push_back(irp.ToJson());
 
 
 		//

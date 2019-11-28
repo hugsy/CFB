@@ -1,5 +1,31 @@
 #include "Utils.h"
 
+#define CFB_DRIVER_LOG_BUFSIZE 4096
+
+static PWCHAR g_LogBuffer = NULL;
+static FAST_MUTEX g_LogMutex;
+
+
+VOID CfbDbgLogInit()
+{
+	if (!g_LogBuffer)
+	{
+		g_LogBuffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, CFB_DRIVER_LOG_BUFSIZE, CFB_DEVICE_TAG);
+		if (!g_LogBuffer)
+			return;
+		ExInitializeFastMutex(&g_LogMutex);
+	}
+}
+
+
+VOID CfbDbgLogFree()
+{
+	if (g_LogBuffer)
+	{
+		ExFreePoolWithTag(g_LogBuffer, CFB_DEVICE_TAG);
+	}
+}
+
 
 /*++
 Routine Description:
@@ -24,13 +50,16 @@ VOID CfbDbgPrint(IN const WCHAR* lpFormatString, ...)
 
 #ifdef _DEBUG
 	va_list args;
-    WCHAR buffer[1024] = { 0, };
+
+	ExAcquireFastMutex(&g_LogMutex);
+	RtlZeroMemory(g_LogBuffer, CFB_DRIVER_LOG_BUFSIZE);
 
 	va_start(args, lpFormatString);
-	vswprintf_s(buffer, sizeof(buffer) / sizeof(WCHAR), lpFormatString, args);
+	vswprintf_s(g_LogBuffer, CFB_DRIVER_LOG_BUFSIZE / sizeof(WCHAR), lpFormatString, args);
 	va_end(args);
 
-	KdPrint(("[%S] %S", CFB_PROGRAM_NAME_SHORT, buffer));
+	KdPrint(("[%S] %S", CFB_PROGRAM_NAME_SHORT, g_LogBuffer));
+	ExReleaseFastMutex(&g_LogMutex);
 
 #else
 	UNREFERENCED_PARAMETER( lpFormatString );
@@ -143,20 +172,16 @@ NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING StrDst)
 {
 	PEPROCESS Process;
 
-	if (PsLookupProcessByProcessId(UlongToHandle(Pid), &Process) != STATUS_INVALID_PARAMETER)
+	if (NT_SUCCESS(PsLookupProcessByProcessId(UlongToHandle(Pid), &Process)))
 	{
 		PSTR lpProcessName = PsGetProcessImageFileName(Process);
 		if (lpProcessName)
 		{
-			UNICODE_STRING us = { 0, };
-			CANSI_STRING as = { 0 };
-			RtlInitAnsiStringEx(&as, lpProcessName);
-			if (NT_SUCCESS(RtlAnsiStringToUnicodeString(&us, &as, FALSE)))
-			{
-				RtlCopyUnicodeString(StrDst, &us);
-				return STATUS_SUCCESS;
-			}
+			CANSI_STRING as = { 0, };
+			if (NT_SUCCESS(RtlInitAnsiStringEx(&as, lpProcessName)))
+				return RtlAnsiStringToUnicodeString(StrDst, &as, FALSE);
 		}
 	}
+
 	return STATUS_UNSUCCESSFUL;
 }

@@ -13,26 +13,23 @@ using json = nlohmann::json;
 class Irp
 {
 public:
-	Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY InputBuffer);
+	Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY InputBuffer, PINTERCEPTED_IRP_BODY OutputBuffer);
 	~Irp();
 	
 	void Dispose();
-	PVOID Data();
 
-	json HeaderAsJson();
-	std::string ExportHeaderAsJson();
-
-	json BodyAsJson();
-	std::string ExportBodyAsJson();
-
-	json AsJson();
-	std::string ExportAsJson();
+	json IrpHeaderToJson();
+	json InputBufferToJson();
+	json OutputBufferToJson();
+	json ToJson();
 
 
 private:
-	INTERCEPTED_IRP_HEADER m_Header;
-	byte* m_InputBuffer = nullptr;
-	byte* m_OutputBuffer = nullptr;
+	INTERCEPTED_IRP_HEADER m_Header = { 0, };
+	//byte* m_InputBuffer = nullptr;
+	//byte* m_OutputBuffer = nullptr;
+	std::vector<byte> m_InputBuffer;
+	std::vector<byte> m_OutputBuffer;
 	BOOL m_fShouldDelete = false;
 };
 

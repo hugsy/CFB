@@ -50,12 +50,13 @@ Return Value:
 UINT32 GetNumberOfHookedDrivers()
 {
     UINT32 i = 0;
-    PLIST_ENTRY Entry;
+    
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 
     if (!IsListEmpty(g_HookedDriverHead))
     {
+		PLIST_ENTRY Entry;
         for (i = 0, Entry = g_HookedDriverHead->Flink; 
             Entry != g_HookedDriverHead; 
             Entry = Entry->Flink, i++);

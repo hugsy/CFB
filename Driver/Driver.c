@@ -36,6 +36,7 @@ This routine is called when trying to ReadFile() from a handle to the device Irp
 Broker will call ReadFile() on the device only when it was notified some new data was available. However, if
 the broker tries to read regardless of the event, the function returns successfully with any data back to userland.
 
+The data sent back to the client is continuously following the sequence: header, inputbuffer, outputbuffer
 
 Arguments:
 
@@ -58,7 +59,6 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
 	PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation( Irp );
-
 	if ( !pStack )
 	{
 		CfbDbgPrintErr( L"IoGetCurrentIrpStackLocation() failed (IRP %p)\n", Irp );
@@ -92,8 +92,8 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 
 	NT_ASSERT(Irp->MdlAddress);
 
+	UINT32 BufferOffset = 0;
 	PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, HighPagePriority );
-
 	if ( !Buffer )
 		return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
 		
@@ -108,28 +108,28 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
 	//
 	PINTERCEPTED_IRP_HEADER pInterceptedIrpHeader = pInterceptedIrp->Header;
 	RtlCopyMemory( Buffer, pInterceptedIrpHeader, sizeof(INTERCEPTED_IRP_HEADER) );
-	
+	BufferOffset += sizeof(INTERCEPTED_IRP_HEADER);
+
 
 	//
 	// Copy the IRP input buffer (if any)
 	//
 	if(pInterceptedIrpHeader->InputBufferLength && pInterceptedIrp->InputBuffer)
 	{
-        PVOID RawBuffer = (PVOID) ( (ULONG_PTR) (Buffer) + sizeof(INTERCEPTED_IRP_HEADER) );
-		RtlCopyMemory(RawBuffer, pInterceptedIrp->InputBuffer, pInterceptedIrpHeader->InputBufferLength);
+		ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
+		RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->InputBuffer, pInterceptedIrpHeader->InputBufferLength);
+		BufferOffset += pInterceptedIrpHeader->InputBufferLength;
 	}
 
 	//
 	// Copy the IRP output buffer (if any)
 	//
 	if (pInterceptedIrpHeader->OutputBufferLength && pInterceptedIrp->OutputBuffer)
-	{
-		PVOID RawBuffer = (PVOID)(
-			(ULONG_PTR)(Buffer)+ \
-			sizeof(INTERCEPTED_IRP_HEADER) + \
-			pInterceptedIrpHeader->InputBufferLength
-		);
-		RtlCopyMemory(RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
+	{		
+		ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
+		CfbDbgPrintInfo(L"RawBuffer+%d=%p <- OutputBufferLength=%x, OutputBuffer=%p\n", BufferOffset, RawBuffer, pInterceptedIrpHeader->OutputBufferLength, pInterceptedIrp->OutputBuffer);
+		RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
+		BufferOffset += pInterceptedIrpHeader->OutputBufferLength;
 	}
 
 	FreeInterceptedIrp(pInterceptedIrp);
@@ -236,6 +236,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 	PAGED_CODE();
 
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
+	CfbDbgLogInit();
 
 	CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
 	pCurrentOwnerProcess = NULL;
@@ -395,10 +397,9 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		pIrpInfo != NULL
 	)
 	{
-		if (!NT_SUCCESS(CompleteHandleInterceptedIrp(Irp, IoctlStatus, pIrpInfo)))
-		{
-			CfbDbgPrintErr(L"CompleteHandleInterceptedIrp() failed\n");
-		}
+		NTSTATUS Status = CompleteHandleInterceptedIrp(Irp, IoctlStatus, pIrpInfo);
+		if (!NT_SUCCESS(Status))
+			CfbDbgPrintWarn(L"CompleteHandleInterceptedIrp() failed, Status=0x%x\n", Status);
 	}
 
 
@@ -416,7 +417,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		else
 		{
 			SetNewIrpInQueueAlert();
-			CfbDbgPrintOk(L"IRP %p queued (IrpQueueSize=%d)\n", pIrpInfo, GetIrpListSize());
+			CfbDbgPrintOk(L"pushed IRPs[%d] = %p\n", GetIrpListSize()-1, pIrpInfo);
 		}
 	}
 
@@ -476,6 +477,7 @@ VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT Dri
 
 	CfbDbgPrintOk(L"Success unloading '%s'\n", CFB_PROGRAM_NAME_SHORT);
 
+	CfbDbgLogFree();
 	return;
 }
 
@@ -671,54 +673,39 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 	{
 
 	case IOCTL_AddDriver:
-		CfbDbgPrintInfo(L"Received 'IoctlAddDrivers'\n");
 		Status = HandleIoAddDriver(Irp, CurrentStack);
 		break;
 
-
 	case IOCTL_RemoveDriver:
-		CfbDbgPrintInfo(L"Received 'IoctlRemoveDriver'\n");
 		Status = HandleIoRemoveDriver(Irp, CurrentStack);
 		break;
 
-
 	case IOCTL_EnableMonitoring:
-		CfbDbgPrintInfo( L"Received 'IoctlEnableMonitoring'\n" );
 		Status = HandleIoEnableMonitoring(Irp, CurrentStack );
 		break;
 
-
 	case IOCTL_DisableMonitoring:
-		CfbDbgPrintInfo( L"Received 'IoctlDisableMonitoring'\n" );
 		Status = HandleIoDisableMonitoring(Irp, CurrentStack );
 		break;
 
-
 	case IOCTL_GetNumberOfDrivers:
-		CfbDbgPrintInfo(L"Received 'IoctlGetNumberOfDrivers'\n");
 		Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack);
 		break;
 
-
 	case IOCTL_GetDriverInfo:
-		CfbDbgPrintInfo(L"Received 'IoctlGetDriverInfo'\n");
 		Status = HandleIoGetDriverInfo( Irp, CurrentStack );
 		break;
 
-
 	case IOCTL_SetEventPointer:
-		CfbDbgPrintInfo( L"Received 'IoctlSetEventPointer'\n" );
 		Status = HandleIoSetEventPointer(Irp, CurrentStack);
 		break;
 
     case IOCTL_StoreTestCase:
-		CfbDbgPrintInfo(L"Received 'IoctlStoreTestCase'\n");
         Status = HandleIoStoreTestCase(Irp, CurrentStack);
         break;
 
-
 	default:
-		CfbDbgPrintErr(L"Received invalid ioctl '%#X'\n", IoctlCode);
+		CfbDbgPrintErr(L"Received invalid ioctl code 0x%X\n", IoctlCode);
 		Status = STATUS_INVALID_DEVICE_REQUEST;
 		break;
 	}
@@ -858,7 +845,12 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 	if (!Driver)
 		return FALSE;
 
-	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl(0x%x)\n", IoControlCode);
+
+	if (IsMonitoringEnabled() && Driver->Enabled)
+	{
+		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl(0x%x)\n", IoControlCode);
+	}
+	
 	
 	PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
 	return OriginalFastIoDeviceControl(
@@ -924,7 +916,11 @@ BOOLEAN InterceptGenericFastIoRead(
 	if (!Driver)
 		return FALSE;
 
-	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoRead()\n");
+	if (IsMonitoringEnabled() && Driver->Enabled)
+	{
+		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoRead()\n");
+	}
+
 
 	PFAST_IO_READ OriginalFastIoRead = Driver->FastIoRead;
 	return OriginalFastIoRead(
@@ -940,9 +936,6 @@ BOOLEAN InterceptGenericFastIoRead(
 }
 
 
-
-
-
 /*++
 
 Routine Description:
@@ -950,7 +943,7 @@ Routine Description:
 The InterceptGenericFastIoWrite() interception routine wrapper.
 
 ```c
-	typedef BOOLEAN (*PFAST_IO_READ) (
+	typedef BOOLEAN (*PFAST_IO_WRITE) (
 		IN struct _FILE_OBJECT *FileObject,
 		IN PLARGE_INTEGER FileOffset,
 		IN ULONG Length,
@@ -992,7 +985,12 @@ BOOLEAN InterceptGenericFastIoWrite(
 	if (!Driver)
 		return FALSE;
 
-	CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoWrite()\n");
+
+	if (IsMonitoringEnabled() && Driver->Enabled)
+	{
+		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoWrite()\n");
+	}
+
 
 	PFAST_IO_WRITE OriginalFastIoWrite = Driver->FastIoWrite;
 	return OriginalFastIoWrite(
