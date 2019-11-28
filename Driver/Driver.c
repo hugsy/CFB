@@ -360,7 +360,10 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		// Could be a bad pointer restoration. Anyway, we log and fail for now.
 		//
 
-		CfbDbgPrintErr(L"Failed to find a DriverObject associated to the received IRP\n");
+		CfbDbgPrintErr(
+			L"Failed to find a HOOKED_DRIVER object associated to the received IRP.\n"
+			L"This could indicates a corruption of the hooked driver list, you should probably reboot...\n"
+		);
 		return CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
 	} 
 

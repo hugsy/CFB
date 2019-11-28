@@ -87,7 +87,7 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 	{
 		PINTERCEPTED_IRP pFirstIrp = CONTAINING_RECORD(g_InterceptedIrpHead->Flink, INTERCEPTED_IRP, ListEntry);
 		*pdwExpectedSize = sizeof(INTERCEPTED_IRP_HEADER) + \
-			pFirstIrp->Header->InputBufferLength;
+			pFirstIrp->Header->InputBufferLength + \
 			pFirstIrp->Header->OutputBufferLength;
 		Status = STATUS_SUCCESS;
 	}

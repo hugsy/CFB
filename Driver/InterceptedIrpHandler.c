@@ -218,10 +218,8 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	pIrpHeader->OutputBufferLength = pIn->OutputBufferLen;
 	pIrpHeader->IoctlCode = pIn->IoctlCode;
 
-
 	wcscpy_s(pIrpHeader->DriverName, szDriverNameLength, pIn->DriverName );
 	wcscpy_s(pIrpHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
-
 	wcscpy_s(pIrpHeader->ProcessName, szProcessNameLength, lpswProcessName);
 
 
@@ -237,6 +235,8 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 
 
 /*++
+
+Totally wipe all traces of the IRP.
 
 --*/
 VOID FreeInterceptedIrp(IN PINTERCEPTED_IRP pIrp)
@@ -353,7 +353,8 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 	//
 	// Only collect output buffer for DeviceIoctlControl() requests
 	//
-	if (pIrpInfo->Header->Type != IRP_MJ_DEVICE_CONTROL && pIrpInfo->Header->Type != IRP_MJ_INTERNAL_DEVICE_CONTROL)
+	if (pIrpInfo->Header->Type != IRP_MJ_DEVICE_CONTROL && \
+		pIrpInfo->Header->Type != IRP_MJ_INTERNAL_DEVICE_CONTROL)
 		return STATUS_SUCCESS;
 
 
@@ -372,12 +373,13 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIRP Irp, _In_ NTSTATUS IrpStatus, _I
 
 		RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
 
-		UNREFERENCED_PARAMETER(Irp);
-		CfbDbgPrintInfo(L"adding outputbuffer of %u bytes to %p\n", pIrpInfo->Header->OutputBufferLength, pIrpInfo);
-		return STATUS_SUCCESS;
-
-		//ULONG ulDummy = 0;
-		//return ExtractDeviceIoctlIrpData(Irp, FALSE, &pIrpInfo->OutputBuffer, (PULONG)&ulDummy);
+		ULONG ulDummy = 0;
+		if (!NT_SUCCESS(ExtractDeviceIoctlIrpData(Irp, FALSE, &pIrpInfo->OutputBuffer, (PULONG)&ulDummy)))
+		{
+			ExFreePoolWithTag(pIrpInfo->OutputBuffer, CFB_DEVICE_TAG);
+			pIrpInfo->OutputBuffer = NULL;
+			return STATUS_UNSUCCESSFUL;
+		}
 	}
 
 	return STATUS_SUCCESS;

@@ -193,10 +193,12 @@ class BrokerTestMethods:
         res = self.sr(TaskType.GetInterceptedIrps)
         # sanitize some fields
         for i in range(res["body"]["nb_entries"]):
-            res["body"]["entries"][i]["header"]["DeviceName"] = "'{}'".format("".join(map(chr, res["body"]["entries"][i]["header"]["DeviceName"])))
-            res["body"]["entries"][i]["header"]["DriverName"] = "'{}'".format("".join(map(chr, res["body"]["entries"][i]["header"]["DriverName"])))
-            res["body"]["entries"][i]["header"]["TimeStamp"] = "'{}'".format(convert_GetSystemTime(res["body"]["entries"][i]["header"]["TimeStamp"]).strftime("%F-%H-%m-%S"))
-            res["body"]["entries"][i]["header"]["Type"] = "'{}'".format(IrpMajorType(res["body"]["entries"][i]["header"]["Type"]))
+            res["body"]["entries"][i]["header"]["DeviceName"] = "{}".format("".join(map(chr, res["body"]["entries"][i]["header"]["DeviceName"])))
+            res["body"]["entries"][i]["header"]["DriverName"] = "{}".format("".join(map(chr, res["body"]["entries"][i]["header"]["DriverName"])))
+            res["body"]["entries"][i]["header"]["ProcessName"] = "{}".format("".join(map(chr, res["body"]["entries"][i]["header"]["ProcessName"])))
+            res["body"]["entries"][i]["header"]["TimeStamp"] = "{}".format(convert_GetSystemTime(res["body"]["entries"][i]["header"]["TimeStamp"]).strftime("%F-%H-%m-%S"))
+            res["body"]["entries"][i]["header"]["Type"] = "{}".format(IrpMajorType(res["body"]["entries"][i]["header"]["Type"]))
+            res["body"]["entries"][i]["header"]["Status"] = hex(res["body"]["entries"][i]["header"]["Status"])
         ok("get_irps -> " + json.dumps(res, indent=4, sort_keys=True))
 
 

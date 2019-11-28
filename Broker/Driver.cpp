@@ -161,7 +161,7 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 		Irp irp(pIrpHeader, pIrpBodyIn, pIrpBodyOut);
 
 		std::unique_lock<std::mutex> mlock(Session.m_IrpMutex);
-		//Session.m_IrpQueue.push(irp);
+		Session.m_IrpQueue.push(irp);
 		mlock.unlock();
 	}
 

@@ -13,11 +13,10 @@ using json = nlohmann::json;
 class Irp
 {
 public:
-	Irp(PINTERCEPTED_IRP_HEADER Header, PINTERCEPTED_IRP_BODY InputBuffer, PINTERCEPTED_IRP_BODY OutputBuffer);
+	Irp(_In_ PINTERCEPTED_IRP_HEADER Header, _In_ PINTERCEPTED_IRP_BODY InputBuffer, _In_ PINTERCEPTED_IRP_BODY OutputBuffer);
+	Irp(const Irp& Original);
 	~Irp();
 	
-	void Dispose();
-
 	json IrpHeaderToJson();
 	json InputBufferToJson();
 	json OutputBufferToJson();
@@ -26,10 +25,7 @@ public:
 
 private:
 	INTERCEPTED_IRP_HEADER m_Header = { 0, };
-	//byte* m_InputBuffer = nullptr;
-	//byte* m_OutputBuffer = nullptr;
 	std::vector<byte> m_InputBuffer;
 	std::vector<byte> m_OutputBuffer;
-	BOOL m_fShouldDelete = false;
 };
 

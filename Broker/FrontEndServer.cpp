@@ -198,12 +198,6 @@ DWORD FrontEndServer::SendInterceptedIrps()
 		//
 		j["body"]["entries"].push_back(irp.ToJson());
 
-
-		//
-		// The IRP is ready to be deleted
-		//
-		irp.Dispose();
-
 		i++;
 	}
 
