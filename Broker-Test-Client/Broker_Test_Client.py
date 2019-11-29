@@ -81,8 +81,9 @@ PATH_PIPE_REMOTE = b"\\\\10.0.0.63\\pipe\\CFB"
 PATH_TCP_REMOTE = ("10.0.0.63", 1337)
 
 
-TEST_DRIVER_NAME = "\\driver\\lxss\0" # test ioctl 
-#TEST_DRIVER_NAME = "\\driver\\condrv\0" # test fast ioctl
+TEST_DRIVER_NAME = "\\driver\\lxss\0" # test ioctl (wsl)
+#TEST_DRIVER_NAME = "\\driver\\afd\0" # test fastio + ioctl (winsock)
+#TEST_DRIVER_NAME = "\\driver\\condrv\0" # test fastio + ioctl (console)
 
 
 @unique

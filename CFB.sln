@@ -31,8 +31,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Broker", "Broker\Broker.vcx
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GUI", "GUI\GUI.csproj", "{73B379CD-0298-415B-AC8E-FC6D4A6721AB}"
 EndProject
-Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Broker-Test-Client", "Broker-Test-Client\Broker-Test-Client.pyproj", "{C144BA26-B954-4C36-B43E-C77E2487353A}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -154,16 +152,6 @@ Global
 		{73B379CD-0298-415B-AC8E-FC6D4A6721AB}.Release|x86.ActiveCfg = Release|x86
 		{73B379CD-0298-415B-AC8E-FC6D4A6721AB}.Release|x86.Build.0 = Release|x86
 		{73B379CD-0298-415B-AC8E-FC6D4A6721AB}.Release|x86.Deploy.0 = Release|x86
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Debug|ARM.ActiveCfg = Debug|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Debug|ARM64.ActiveCfg = Debug|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Release|ARM.ActiveCfg = Release|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Release|ARM64.ActiveCfg = Release|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Release|x64.ActiveCfg = Release|Any CPU
-		{C144BA26-B954-4C36-B43E-C77E2487353A}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
