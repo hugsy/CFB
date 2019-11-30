@@ -34,6 +34,4 @@ extern NTKERNELAPI NTSTATUS PsLookupProcessByProcessId(HANDLE ProcessId, PEPROCE
 extern NTKERNELAPI PSTR PsGetProcessImageFileName(IN PEPROCESS Process);
 
 NTSTATUS GetDeviceNameFromDeviceObject( _In_ PVOID pDeviceObject, _Out_ WCHAR* DeviceNameBuffer, _In_ ULONG DeviceNameBufferSize );
-
-
-NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING StrDst);
+NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING *StrDst);

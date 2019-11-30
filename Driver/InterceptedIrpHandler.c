@@ -197,12 +197,13 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 
 	PWCHAR lpswProcessName = L"unknown\0";
 	size_t szProcessNameLength = 8;
-	UNICODE_STRING us = { 0, };
+	UNICODE_STRING u = { 0 };
+	PUNICODE_STRING us = &u;
 
-	if (NT_SUCCESS(GetProcessNameFromPid(pIn->Pid, &us)) && us.Length)
+	if (NT_SUCCESS(GetProcessNameFromPid(pIn->Pid, &us)) && us->Length)
 	{
-		lpswProcessName = us.Buffer;
-		szProcessNameLength = us.Length < MAX_PATH ? us.Length : MAX_PATH;
+		lpswProcessName = us->Buffer;
+		szProcessNameLength = us->Length < MAX_PATH ? us->Length : MAX_PATH;
 	}
 
 
@@ -223,6 +224,8 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	wcscpy_s(pIrpHeader->DeviceName, szDeviceNameLength, pIn->DeviceName );
 	wcscpy_s(pIrpHeader->ProcessName, szProcessNameLength, lpswProcessName);
 
+	if (us)
+		RtlFreeUnicodeString(us);
 
 	//
 	// fill up the message structure
@@ -343,7 +346,13 @@ This function is called when a synchronous IRP is done being processed, so we ca
 collect additional info about the result.
 
 --*/
-NTSTATUS CompleteHandleInterceptedIrp(_In_ PIO_STACK_LOCATION Stack, _In_ PVOID UserBuffer, _In_ NTSTATUS IrpStatus, _Inout_ PINTERCEPTED_IRP pIrpInfo)
+NTSTATUS 
+CompleteHandleInterceptedIrp(
+	_In_ PIO_STACK_LOCATION Stack, 
+	_In_ PVOID UserBuffer, 
+	_In_ NTSTATUS IrpStatus, 
+	_Inout_ PINTERCEPTED_IRP pIrpInfo
+)
 {
 	//
 	// Complete the info
@@ -363,6 +372,7 @@ NTSTATUS CompleteHandleInterceptedIrp(_In_ PIO_STACK_LOCATION Stack, _In_ PVOID 
 	case IRP_MJ_DEVICE_CONTROL:
 	case IRP_MJ_INTERNAL_DEVICE_CONTROL:
 		pIrpInfo->Header->OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
+		break;
 
 	default:
 		return STATUS_SUCCESS;

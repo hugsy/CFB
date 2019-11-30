@@ -168,10 +168,10 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING StrDst)
+NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING *StrDst)
 {
 	PEPROCESS Process;
-
+	
 	if (NT_SUCCESS(PsLookupProcessByProcessId(UlongToHandle(Pid), &Process)))
 	{
 		PSTR lpProcessName = PsGetProcessImageFileName(Process);
@@ -179,7 +179,7 @@ NTSTATUS GetProcessNameFromPid(IN UINT32 Pid, OUT PUNICODE_STRING StrDst)
 		{
 			CANSI_STRING as = { 0, };
 			if (NT_SUCCESS(RtlInitAnsiStringEx(&as, lpProcessName)))
-				return RtlAnsiStringToUnicodeString(StrDst, &as, FALSE);
+				return RtlAnsiStringToUnicodeString(*StrDst, &as, TRUE);
 		}
 	}
 
