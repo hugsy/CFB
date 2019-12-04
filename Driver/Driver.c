@@ -801,6 +801,68 @@ NTSTATUS InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 
 Routine Description:
 
+The InterceptGenericFastIoRoutinePre() routine wrapper intercepts FastIOs input data.
+
+
+Arguments:
+
+	- DeviceObject
+	- InputBuffer
+	- InputBufferLength
+	- IoControlCode
+	- pIrpOut
+
+
+Return Value:
+
+	Returns TRUE on success.
+
+--*/
+BOOLEAN 
+InterceptGenericFastIoRoutine(
+	_In_ PDEVICE_OBJECT DeviceObject,
+	_In_opt_ PVOID Buffer,
+	_In_ ULONG BufferLength,
+	_In_ ULONG IoControlCode,
+	_In_ UINT32 Flags,
+	_Inout_ PINTERCEPTED_IRP *pIrpOut
+)
+{
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
+	if (!Driver)
+	{
+		CfbDbgPrintErr(
+			L"Failed to find driver for InterceptGenericFastIoRoutine(). "
+			L"This could mean a corrupted state of " CFB_DRIVER_NAME L". "
+			L"You should reboot to avoid further corruption...\n"
+		);
+		return FALSE;
+	}
+
+	NTSTATUS Status = STATUS_SUCCESS;
+
+	if (IsMonitoringEnabled() && Driver->Enabled)
+	{
+		Status = HandleInterceptedFastIo(
+			Driver,
+			DeviceObject,
+			1,
+			IoControlCode,
+			Buffer,
+			BufferLength,
+			Flags,
+			&*pIrpOut
+		);
+	}
+
+	return Status == STATUS_SUCCESS;
+}
+
+
+/*++
+
+Routine Description:
+
 The InterceptGenericFastIoDeviceControl() interception routine wrapper.
 
 ```c
@@ -845,29 +907,49 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 	IN PDEVICE_OBJECT DeviceObject
 )
 {
-	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
-	if (!Driver)
+	PINTERCEPTED_IRP pIrp = NULL;
+
+	//
+	// Capture the input
+	//
+	if (!InterceptGenericFastIoRoutine(
+		DeviceObject, 
+		InputBuffer, 
+		InputBufferLength, 
+		IoControlCode, 
+		CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
+		&pIrp)
+	)
 		return FALSE;
-
-
-	if (IsMonitoringEnabled() && Driver->Enabled)
-	{
-		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoDeviceControl(0x%x)\n", IoControlCode);
-	}
 	
-	
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
 	PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
-	return OriginalFastIoDeviceControl(
-		FileObject,
-		Wait,
-		InputBuffer,
-		InputBufferLength,
-		OutputBuffer,
-		OutputBufferLength,
-		IoControlCode,
-		IoStatus,
+	BOOLEAN bRes = OriginalFastIoDeviceControl(
+		FileObject, 
+		Wait, 
+		InputBuffer, 
+		InputBufferLength, 
+		OutputBuffer, 
+		OutputBufferLength, 
+		IoControlCode, 
+		IoStatus, 
 		DeviceObject
 	);
+	
+	//
+	// Capture the output - pIrp was already initialized
+	//
+	if (!InterceptGenericFastIoRoutine(
+		DeviceObject, 
+		OutputBuffer, 
+		OutputBufferLength, 
+		IoControlCode, 
+		CFB_FASTIO_USE_OUTPUT_BUFFER,
+		&pIrp
+	))
+		return FALSE;
+
+	return bRes;
 }
 
 
@@ -879,14 +961,14 @@ The InterceptGenericFastIoRead() interception routine wrapper.
 
 ```c
 	typedef BOOLEAN (*PFAST_IO_READ) (
-		IN struct _FILE_OBJECT *FileObject,
+		IN PFILE_OBJECT FileObject,
 		IN PLARGE_INTEGER FileOffset,
 		IN ULONG Length,
 		IN BOOLEAN Wait,
 		IN ULONG LockKey,
 		OUT PVOID Buffer,
 		OUT PIO_STATUS_BLOCK IoStatus,
-		IN struct _DEVICE_OBJECT *DeviceObject
+		IN PDEVICE_OBJECT DeviceObject
 	);
 ```
 
@@ -916,18 +998,13 @@ BOOLEAN InterceptGenericFastIoRead(
 	IN PDEVICE_OBJECT DeviceObject
 )
 {
+	PINTERCEPTED_IRP pIrp = NULL;
 	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
 	if (!Driver)
 		return FALSE;
 
-	if (IsMonitoringEnabled() && Driver->Enabled)
-	{
-		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoRead()\n");
-	}
-
-
 	PFAST_IO_READ OriginalFastIoRead = Driver->FastIoRead;
-	return OriginalFastIoRead(
+	BOOLEAN bRes = OriginalFastIoRead(
 		FileObject,
 		FileOffset,
 		Length,
@@ -937,6 +1014,19 @@ BOOLEAN InterceptGenericFastIoRead(
 		IoStatus,
 		DeviceObject
 	);
+
+	
+	if (!InterceptGenericFastIoRoutine(
+		DeviceObject, 
+		Buffer, 
+		Length, 
+		(ULONG)-1,
+		CFB_FASTIO_USE_OUTPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
+		&pIrp
+	))
+		return FALSE;
+	
+	return bRes;
 }
 
 
@@ -948,14 +1038,14 @@ The InterceptGenericFastIoWrite() interception routine wrapper.
 
 ```c
 	typedef BOOLEAN (*PFAST_IO_WRITE) (
-		IN struct _FILE_OBJECT *FileObject,
+		IN PFILE_OBJECT FileObject,
 		IN PLARGE_INTEGER FileOffset,
 		IN ULONG Length,
 		IN BOOLEAN Wait,
 		IN ULONG LockKey,
 		OUT PVOID Buffer,
 		OUT PIO_STATUS_BLOCK IoStatus,
-		IN struct _DEVICE_OBJECT *DeviceObject
+		IN PDEVICE_OBJECT DeviceObject
 	);
 ```
 
@@ -985,17 +1075,18 @@ BOOLEAN InterceptGenericFastIoWrite(
 	IN PDEVICE_OBJECT DeviceObject
 )
 {
-	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
-	if (!Driver)
+	PINTERCEPTED_IRP pIrp = NULL;
+	if (!InterceptGenericFastIoRoutine(
+		DeviceObject, 
+		Buffer, 
+		Length, 
+		(ULONG)-1,
+		CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
+		&pIrp
+	))
 		return FALSE;
 
-
-	if (IsMonitoringEnabled() && Driver->Enabled)
-	{
-		CfbDbgPrintInfo(L"TODO: in InterceptGenericFastIoWrite()\n");
-	}
-
-
+	PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
 	PFAST_IO_WRITE OriginalFastIoWrite = Driver->FastIoWrite;
 	return OriginalFastIoWrite(
 		FileObject,

@@ -1,8 +1,5 @@
 #include "InterceptedIrpHandler.h"
 
-///
-/// This is an internal structure to PipeComm. Don't use elsewhere.
-///
 typedef struct
 {
 	UINT32 Pid;
@@ -12,6 +9,7 @@ typedef struct
 	WCHAR DriverName[MAX_PATH];
 	WCHAR DeviceName[MAX_PATH];
 	PVOID InputBuffer;
+	PVOID OutputBuffer;
 	ULONG InputBufferLen;
 	ULONG OutputBufferLen;
 }
@@ -397,4 +395,123 @@ CompleteHandleInterceptedIrp(
 	RtlCopyMemory(pIrpInfo->OutputBuffer, UserBuffer, pIrpInfo->Header->OutputBufferLength);
 
 	return STATUS_SUCCESS;
+}
+
+
+
+NTSTATUS 
+HandleInterceptedFastIo(
+	_In_ PHOOKED_DRIVER Driver, 
+	_In_ PDEVICE_OBJECT pDeviceObject, 
+	_In_ UINT32 Type,
+	_In_ UINT32 IoctlCode,
+	_In_ PVOID Buffer,
+	_In_ ULONG BufferLength,
+	_In_ UINT32 Flags,
+	_Inout_ PINTERCEPTED_IRP* pIrpOut
+)
+{
+	NTSTATUS Status = STATUS_UNSUCCESSFUL;
+	PINTERCEPTED_IRP pIrp = NULL;
+	HOOKED_IRP_INFO temp = { 0, };
+
+	BOOLEAN IsInput = Flags & 1;
+
+
+	//
+	// prepare the metadata
+	//
+	temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
+	temp.Tid = HandleToULong(PsGetCurrentThreadId());
+	temp.Type = Type;
+	temp.IoctlCode = IoctlCode;
+
+	wcsncpy(temp.DriverName, Driver->Name, wcslen(Driver->Name));
+
+	Status = GetDeviceNameFromDeviceObject(pDeviceObject, temp.DeviceName, MAX_PATH);
+	if (!NT_SUCCESS(Status))
+		CfbDbgPrintWarn(L"Cannot get device name, using empty string (Status=0x%#x)\n", Status);
+
+
+	//
+	// Copy the input buffer
+	//
+	if (IsInput)
+	{
+		if (BufferLength && Buffer)
+		{
+			temp.InputBuffer = ExAllocatePoolWithTag(
+				PagedPool,
+				BufferLength,
+				CFB_DEVICE_TAG
+			);
+			if (!temp.InputBuffer)
+				return STATUS_INSUFFICIENT_RESOURCES;
+
+			RtlSecureZeroMemory(temp.InputBuffer, BufferLength);
+
+			RtlCopyMemory(temp.InputBuffer, Buffer, BufferLength);
+
+			temp.InputBufferLen = BufferLength;
+		}
+		else
+		{
+			temp.InputBufferLen = 0;
+			temp.InputBuffer = NULL;
+		}
+	}
+	else
+	{
+		if (BufferLength && Buffer)
+		{
+			temp.OutputBuffer = ExAllocatePoolWithTag(
+				PagedPool,
+				BufferLength,
+				CFB_DEVICE_TAG
+			);
+			if (!temp.OutputBuffer)
+				return STATUS_INSUFFICIENT_RESOURCES;
+
+			RtlSecureZeroMemory(temp.OutputBuffer, BufferLength);
+
+			RtlCopyMemory(temp.OutputBuffer, Buffer, BufferLength);
+
+			temp.OutputBufferLen = BufferLength;
+		}
+		else
+		{
+			temp.OutputBufferLen = 0;
+			temp.OutputBuffer = NULL;
+		}
+	}
+
+
+
+	if (Flags & 2)
+	{
+		//
+		// Prepare the message to be queued
+		//
+		Status = PreparePipeMessage(&temp, &pIrp);
+
+		if (!NT_SUCCESS(Status) || pIrp == NULL)
+		{
+			CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
+			if (IsInput && temp.InputBuffer)
+			{
+				ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
+				temp.InputBuffer = NULL;
+			}
+			else if (!IsInput && temp.OutputBuffer)
+			{
+				ExFreePoolWithTag(temp.OutputBuffer, CFB_DEVICE_TAG);
+				temp.OutputBuffer = NULL;
+			}
+
+			return Status;
+		}
+	}
+
+	*pIrpOut = pIrp;
+	return Status;
 }
