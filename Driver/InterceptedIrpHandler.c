@@ -285,7 +285,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	
 	temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
 	temp.Tid = HandleToULong(PsGetCurrentThreadId());
-	temp.Type = (UINT32)Stack->MajorFunction;
+	temp.Type = (CFB_INTERCEPTED_IRP_TYPE_IRP |(UINT32)Stack->MajorFunction);
 
 	wcsncpy( temp.DriverName, Driver->Name, wcslen( Driver->Name ) );
 
@@ -415,7 +415,7 @@ HandleInterceptedFastIo(
 	PINTERCEPTED_IRP pIrp = NULL;
 	HOOKED_IRP_INFO temp = { 0, };
 
-	BOOLEAN IsInput = Flags & 1;
+	BOOLEAN IsInput = Flags & CFB_FASTIO_USE_INPUT_BUFFER;
 
 
 	//
@@ -487,7 +487,7 @@ HandleInterceptedFastIo(
 
 
 
-	if (Flags & 2)
+	if (Flags & CFB_FASTIO_INIT_QUEUE_MESSAGE)
 	{
 		//
 		// Prepare the message to be queued

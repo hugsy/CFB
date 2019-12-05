@@ -821,6 +821,7 @@ Return Value:
 BOOLEAN 
 InterceptGenericFastIoRoutine(
 	_In_ PDEVICE_OBJECT DeviceObject,
+	_In_ UINT32 Type,
 	_In_opt_ PVOID Buffer,
 	_In_ ULONG BufferLength,
 	_In_ ULONG IoControlCode,
@@ -846,7 +847,7 @@ InterceptGenericFastIoRoutine(
 		Status = HandleInterceptedFastIo(
 			Driver,
 			DeviceObject,
-			1,
+			Type,
 			IoControlCode,
 			Buffer,
 			BufferLength,
@@ -914,6 +915,7 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 	//
 	if (!InterceptGenericFastIoRoutine(
 		DeviceObject, 
+		CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL,
 		InputBuffer, 
 		InputBufferLength, 
 		IoControlCode, 
@@ -941,6 +943,7 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
 	//
 	if (!InterceptGenericFastIoRoutine(
 		DeviceObject, 
+		CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL,
 		OutputBuffer, 
 		OutputBufferLength, 
 		IoControlCode, 
@@ -1018,6 +1021,7 @@ BOOLEAN InterceptGenericFastIoRead(
 	
 	if (!InterceptGenericFastIoRoutine(
 		DeviceObject, 
+		CFB_INTERCEPTED_IRP_TYPE_FASTIO_READ,
 		Buffer, 
 		Length, 
 		(ULONG)-1,
@@ -1078,6 +1082,7 @@ BOOLEAN InterceptGenericFastIoWrite(
 	PINTERCEPTED_IRP pIrp = NULL;
 	if (!InterceptGenericFastIoRoutine(
 		DeviceObject, 
+		CFB_INTERCEPTED_IRP_TYPE_FASTIO_WRITE,
 		Buffer, 
 		Length, 
 		(ULONG)-1,

@@ -8,13 +8,9 @@ Irp::Irp(_In_ PINTERCEPTED_IRP_HEADER Header, _In_ PINTERCEPTED_IRP_BODY InputBu
 	PINTERCEPTED_IRP_HEADER hdr = &m_Header;
 	::memcpy(hdr, Header, sizeof(INTERCEPTED_IRP_HEADER));
 
-	//m_InputBuffer.reserve(Header->InputBufferLength);
-	//::memcpy(m_InputBuffer.data(), InputBuffer, Header->InputBufferLength);
 	for (DWORD i = 0; i < Header->InputBufferLength; i++)
 		m_InputBuffer.push_back(((PBYTE)InputBuffer)[i]);
 
-	//m_OutputBuffer.reserve(Header->OutputBufferLength);
-	//::memcpy(m_OutputBuffer.data(), OutputBuffer, Header->OutputBufferLength);
 	for (DWORD i = 0; i < Header->OutputBufferLength; i++)
 		m_OutputBuffer.push_back(((PBYTE)OutputBuffer)[i]);
 }
@@ -42,6 +38,7 @@ json Irp::IrpHeaderToJson()
 	header["TimeStamp"] = m_Header.TimeStamp.QuadPart;
 	header["Irql"] = m_Header.Irql;
 	header["Type"] = m_Header.Type;
+	header["IsFastIo"] = (bool)(m_Header.Type & 0x80000000);
 	header["IoctlCode"] = m_Header.IoctlCode;
 	header["Pid"] = m_Header.Pid;
 	header["Tid"] = m_Header.Tid;

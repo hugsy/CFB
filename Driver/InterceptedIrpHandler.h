@@ -8,6 +8,17 @@
 #include "IoSetEventPointer.h"
 
 
+/**
+ * Value inserted in INTERCEPTED_IRP_HEADER.Type:
+ *  - for regular IRPs, the type from INTERCEPTED_IRP_HEADER.Type is CFB_INTERCEPTED_IRP_TYPE_IRP | Irp->Stack->MajorFunction
+ *  - for FastIos, the bit 24 is set, the lowest WORD is the function itself
+ */
+#define CFB_INTERCEPTED_IRP_TYPE_IRP           0x00000000
+#define CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL  0x80000000
+#define CFB_INTERCEPTED_IRP_TYPE_FASTIO_READ   0x80000002
+#define CFB_INTERCEPTED_IRP_TYPE_FASTIO_WRITE  0x80000001
+
+
 #define CFB_FASTIO_USE_OUTPUT_BUFFER 0
 #define CFB_FASTIO_USE_INPUT_BUFFER 1
 #define CFB_FASTIO_INIT_QUEUE_MESSAGE 2
