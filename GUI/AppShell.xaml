@@ -15,7 +15,7 @@
             <CommandBar.Content>
                 <Grid/>
             </CommandBar.Content>
-
+                      
             <AppBarButton 
                 x:Name="IsConnectedAppBarButton"
                 Label="{x:Bind DisconnectedStatusLabel}" 

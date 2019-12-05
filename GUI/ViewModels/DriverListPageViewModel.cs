@@ -40,8 +40,8 @@ namespace GUI.ViewModels
 
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
-                foreach (var driverName in App.BrokerSession.EnumerateDrivers())
-                    Drivers.Add( new Driver(driverName) );
+                foreach (var d in App.BrokerSession.EnumerateDrivers())
+                    Drivers.Add( d );
 
                 //foreach (var driverName in Nt.EnumerateDirectoryObjects("\\FileSystem"))
                 //    Drivers.Add(new Driver(driverName));

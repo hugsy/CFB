@@ -52,19 +52,18 @@ namespace GUI.Views
             {
                 var uri = new Uri(location);
 
-                if (uri.Scheme != "file")
+                if (uri.Scheme != "tcp")
                     return false;
 
-                if (uri.AbsolutePath.ToLower() != "/pipe/cfb")
+                if (uri.Port < 0)
                     return false;
-
-                return true;
             }
             catch(Exception)
             {
+                return false;
             }
-            
-            return false;
+
+            return true;
         }
 
 

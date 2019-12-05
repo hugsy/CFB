@@ -375,6 +375,9 @@ CompleteHandleInterceptedIrp(
 		break;
 
 	default:
+		//
+		// for any other type we don't care about the output, just return
+		//
 		return STATUS_SUCCESS;
 	}
 
