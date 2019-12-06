@@ -302,23 +302,32 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 			temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
             Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
+			if (!NT_SUCCESS(Status))
+			{
+				CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() returned 0x%x\n", Status);
+				return Status;
+			}
             break;
 
         case IRP_MJ_WRITE:
+			temp.InputBufferLen = Stack->Parameters.Write.Length;
+			temp.OutputBufferLen = 0;
             Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &temp.InputBuffer, &temp.InputBufferLen);
+			if (!NT_SUCCESS(Status))
+			{
+				CfbDbgPrintErr(L"ExtractReadWriteIrpData returned 0x%x\n", Status);
+				return Status;
+			}
             break;
 
+		case IRP_MJ_READ:
+			temp.InputBufferLen = 0;
+			temp.OutputBufferLen = Stack->Parameters.Read.Length;
+			break;
+
         default:
-            Status = STATUS_SUCCESS;
 			break;
 	}
-
-	if (!NT_SUCCESS(Status))
-	{
-		CfbDbgPrintErr(L"Extract*IrpData() failed, Status=0x%x\n", Status);
-		return Status;
-	}
-
 
 	Status = PreparePipeMessage(&temp, &pIrp);
 
@@ -361,17 +370,13 @@ CompleteHandleInterceptedIrp(
 
 
 	//
-	// For read and ioctls, update the OutputBufferLength
+	// Only filter the types we're interested in (read and ioctls for now)
 	//
 	switch (pIrpInfo->Header->Type)
 	{
 	case IRP_MJ_READ:
-		pIrpInfo->Header->OutputBufferLength = Stack->Parameters.Read.Length;
-		break;
-
 	case IRP_MJ_DEVICE_CONTROL:
 	case IRP_MJ_INTERNAL_DEVICE_CONTROL:
-		pIrpInfo->Header->OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		break;
 
 	default:
@@ -385,6 +390,9 @@ CompleteHandleInterceptedIrp(
 	//
 	// check the INTERCEPTED_IRP consistency 
 	//
+	if (pIrpInfo->Header->OutputBufferLength == 0)
+		return STATUS_SUCCESS;
+
 	if (UserBuffer == NULL)
 	{
 		pIrpInfo->OutputBuffer = NULL;
@@ -396,6 +404,9 @@ CompleteHandleInterceptedIrp(
 	}
 
 
+	//
+	// if there's data to copy, do it here
+	//
 	pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
 		NonPagedPool, 
 		pIrpInfo->Header->OutputBufferLength, 
@@ -403,6 +414,8 @@ CompleteHandleInterceptedIrp(
 	);
 	if (!pIrpInfo->OutputBuffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
+
+	// TODO: add protection since UserBuffer can point to UM
 
 	RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
 

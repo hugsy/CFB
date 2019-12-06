@@ -72,7 +72,7 @@ Task FrontEndServer::ProcessNextRequest()
 #ifdef _DEBUG
 	SIZE_T dwRequestSize = RequestBufferRaw.size();
 	dbg(L"new pipe message (len=%lu)\n", dwRequestSize);
-	hexdump(RequestBufferRaw.data(), dwRequestSize);
+	//hexdump(RequestBufferRaw.data(), dwRequestSize);
 #endif // _DEBUG
 
 	const std::string request_str(RequestBufferRaw.begin(), RequestBufferRaw.end());
