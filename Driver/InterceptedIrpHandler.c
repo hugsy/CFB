@@ -27,7 +27,7 @@ https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-developme
 --*/
 static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLength, OUT PVOID *OutBuffer)
 {
-	PVOID Buffer = ExAllocatePoolWithTag(PagedPool, BufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, BufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -164,7 +164,7 @@ Move the message from the stack to kernel pool.
 --*/
 NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
-	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( PagedPool, sizeof(INTERCEPTED_IRP), CFB_DEVICE_TAG );
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof(INTERCEPTED_IRP), CFB_DEVICE_TAG );
 	if ( !*pIrp)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -174,7 +174,7 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	// Allocate the intercepted IRP header...
 	//
 	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)ExAllocatePoolWithTag( 
-        PagedPool,
+        NonPagedPool,
 		sizeof( INTERCEPTED_IRP_HEADER ), 
 		CFB_DEVICE_TAG 
 	);
@@ -397,7 +397,7 @@ CompleteHandleInterceptedIrp(
 
 
 	pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
-		PagedPool, 
+		NonPagedPool, 
 		pIrpInfo->Header->OutputBufferLength, 
 		CFB_DEVICE_TAG
 	);
@@ -407,6 +407,15 @@ CompleteHandleInterceptedIrp(
 	RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
 
 	RtlCopyMemory(pIrpInfo->OutputBuffer, UserBuffer, pIrpInfo->Header->OutputBufferLength);
+
+#ifdef _DEBUG
+	if (pIrpInfo->OutputBuffer && Stack->MajorFunction)
+	{
+		UINT32 dwLength = pIrpInfo->Header->OutputBufferLength;
+		CfbDbgPrintOk(L"after copied output_buffer=%p, len=%u, type=%d\n", pIrpInfo->OutputBuffer, dwLength, pIrpInfo->Header->Type);
+		CfbHexDump(pIrpInfo->OutputBuffer, dwLength);
+	}
+#endif
 
 	return STATUS_SUCCESS;
 }
@@ -455,7 +464,7 @@ HandleInterceptedFastIo(
 		if (BufferLength && Buffer)
 		{
 			temp.InputBuffer = ExAllocatePoolWithTag(
-				PagedPool,
+				NonPagedPool,
 				BufferLength,
 				CFB_DEVICE_TAG
 			);
@@ -479,7 +488,7 @@ HandleInterceptedFastIo(
 		if (BufferLength && Buffer)
 		{
 			temp.OutputBuffer = ExAllocatePoolWithTag(
-				PagedPool,
+				NonPagedPool,
 				BufferLength,
 				CFB_DEVICE_TAG
 			);

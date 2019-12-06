@@ -16,7 +16,7 @@ NTSTATUS InitializeTestCaseStructures()
 
     ExAcquireFastMutex(&FastMutex);
 	{
-		g_LastTestCase = ExAllocatePoolWithTag(PagedPool, CFB_MAX_TESTCASE_SIZE, CFB_TESTCASE_TAG);
+		g_LastTestCase = ExAllocatePoolWithTag(NonPagedPool, CFB_MAX_TESTCASE_SIZE, CFB_TESTCASE_TAG);
 		if (!g_LastTestCase)
 		{
 			Status = STATUS_INSUFFICIENT_RESOURCES;

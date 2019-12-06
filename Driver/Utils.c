@@ -10,7 +10,7 @@ VOID CfbDbgLogInit()
 {
 	if (!g_LogBuffer)
 	{
-		g_LogBuffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, CFB_DRIVER_LOG_BUFSIZE, CFB_DEVICE_TAG);
+		g_LogBuffer = (PWCHAR)ExAllocatePoolWithTag(NonPagedPool, CFB_DRIVER_LOG_BUFSIZE, CFB_DEVICE_TAG);
 		if (!g_LogBuffer)
 			return;
 		ExInitializeFastMutex(&g_LogMutex);

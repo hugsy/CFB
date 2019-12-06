@@ -103,7 +103,6 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
     if ( !NT_SUCCESS(Status) )
         return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
 
-
     //
     // Copy the header (always)
     //
@@ -397,7 +396,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     if (UserBuffer && Stack->MajorFunction)
     {
         UINT32 dwLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
-        CfbDbgPrintOk(L"output_buffer=%p, len=%u\n", UserBuffer, dwLength);
+        CfbDbgPrintOk(L"before output_buffer=%p, len=%u, type=%d, status=0x%x\n", UserBuffer, dwLength, Stack->MajorFunction, IoctlStatus);
         CfbHexDump(UserBuffer, dwLength);
     }
 #endif
@@ -408,7 +407,6 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     if (IoctlStatus != STATUS_PENDING &&
         IsMonitoringEnabled() && 
         curDriver->Enabled == TRUE && 
-        pCurrentOwnerProcess != PsGetCurrentProcess() &&
         pIrpInfo != NULL
     )
     {
