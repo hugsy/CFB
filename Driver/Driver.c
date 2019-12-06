@@ -347,7 +347,9 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-typedef NTSTATUS(*PDRIVER_DISPATCH)(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp);
+#ifndef PDRIVER_DISPATCH
+typedef NTSTATUS(*PDRIVER_DISPATCH)(IN PDEVICE_OBJECT DeviceObject, OUT PIRP Irp);
+#endif
 
 NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 { 
@@ -421,7 +423,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 		else
 		{
 			SetNewIrpInQueueAlert();
-			CfbDbgPrintOk(L"pushed IRPs[%d] = %p\n", GetIrpListSize()-1, pIrpInfo);
+			CfbDbgPrintOk(L"pushed IRPs[%d] = %p\n", GetIrpListSize() ? GetIrpListSize() - 1 : 0, pIrpInfo);
 		}
 	}
 
@@ -822,7 +824,7 @@ BOOLEAN
 InterceptGenericFastIoRoutine(
 	_In_ PDEVICE_OBJECT DeviceObject,
 	_In_ UINT32 Type,
-	_In_opt_ PVOID Buffer,
+	_In_ PVOID Buffer,
 	_In_ ULONG BufferLength,
 	_In_ ULONG IoControlCode,
 	_In_ UINT32 Flags,

@@ -24,8 +24,8 @@
 #define CFB_FASTIO_INIT_QUEUE_MESSAGE 2
 
 
-extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
-extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
+//extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
+//extern NTKERNELAPI HANDLE PsGetProcessId(PEPROCESS Process);
 
 
 /**

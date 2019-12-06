@@ -19,7 +19,7 @@ enum TaskState : uint16_t
 };
 
 
-enum TaskType : uint32_t
+enum class TaskType : uint32_t
 {
 	TaskTypeMin = 0,
 	IoctlResponse = 1,
@@ -40,14 +40,14 @@ enum TaskType : uint32_t
 
 static std::map<TaskType, DWORD> g_TaskIoctls = 
 {
-	{HookDriver, IOCTL_AddDriver},
-	{UnhookDriver, IOCTL_RemoveDriver},
-	{GetNumberOfDriver, IOCTL_GetNumberOfDrivers},
-	{GetDriverInfo, IOCTL_ListAllDrivers},
-	{NotifyEventHandle, IOCTL_SetEventPointer},
-	{EnableMonitoring, IOCTL_EnableMonitoring},
-	{DisableMonitoring, IOCTL_DisableMonitoring},
-	{StoreTestCase, IOCTL_StoreTestCase},
+	{TaskType::HookDriver, IOCTL_AddDriver},
+	{TaskType::UnhookDriver, IOCTL_RemoveDriver},
+	{TaskType::GetNumberOfDriver, IOCTL_GetNumberOfDrivers},
+	{TaskType::GetDriverInfo, IOCTL_ListAllDrivers},
+	{TaskType::NotifyEventHandle, IOCTL_SetEventPointer},
+	{TaskType::EnableMonitoring, IOCTL_EnableMonitoring},
+	{TaskType::DisableMonitoring, IOCTL_DisableMonitoring},
+	{TaskType::StoreTestCase, IOCTL_StoreTestCase},
 };
 
 

@@ -78,6 +78,8 @@ SOFTWARE.
 
 // #include <nlohmann/detail/input/position_t.hpp>
 
+#pragma warning( disable : 26444 26451 28020; once : 4385; error : 164 )
+
 
 #include <cstddef> // size_t
 

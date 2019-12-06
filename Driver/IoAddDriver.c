@@ -106,7 +106,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	// create the new hooked driver pool object, and chain it to the rest
 	//
 
-	PHOOKED_DRIVER NewDriver = ExAllocatePoolWithTag(NonPagedPool, sizeof(HOOKED_DRIVER), CFB_DEVICE_TAG);
+	PHOOKED_DRIVER NewDriver = ExAllocatePoolWithTag(PagedPool, sizeof(HOOKED_DRIVER), CFB_DEVICE_TAG);
 	if (!NewDriver)
 	{
 		return STATUS_INSUFFICIENT_RESOURCES;

@@ -27,7 +27,7 @@ https://www.codeproject.com/Articles/8651/A-simple-demo-for-WDM-Driver-developme
 --*/
 static NTSTATUS ExtractIrpData(IN PIRP Irp, IN ULONG Method, IN ULONG BufferLength, OUT PVOID *OutBuffer)
 {
-	PVOID Buffer = ExAllocatePoolWithTag(NonPagedPool, BufferLength, CFB_DEVICE_TAG);
+	PVOID Buffer = ExAllocatePoolWithTag(PagedPool, BufferLength, CFB_DEVICE_TAG);
 	if (!Buffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -164,7 +164,7 @@ Move the message from the stack to kernel pool.
 --*/
 NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 {
-	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( NonPagedPool, sizeof(INTERCEPTED_IRP), CFB_DEVICE_TAG );
+	*pIrp = (PINTERCEPTED_IRP)ExAllocatePoolWithTag( PagedPool, sizeof(INTERCEPTED_IRP), CFB_DEVICE_TAG );
 	if ( !*pIrp)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -174,7 +174,7 @@ NTSTATUS PreparePipeMessage(IN PHOOKED_IRP_INFO pIn, OUT PINTERCEPTED_IRP *pIrp)
 	// Allocate the intercepted IRP header...
 	//
 	PINTERCEPTED_IRP_HEADER pIrpHeader = (PINTERCEPTED_IRP_HEADER)ExAllocatePoolWithTag( 
-        NonPagedPool,
+        PagedPool,
 		sizeof( INTERCEPTED_IRP_HEADER ), 
 		CFB_DEVICE_TAG 
 	);
@@ -379,14 +379,26 @@ CompleteHandleInterceptedIrp(
 		return STATUS_SUCCESS;
 	}
 
+
+	//
+	// check the INTERCEPTED_IRP consistency 
+	//
 	if (UserBuffer == NULL)
 	{
 		pIrpInfo->OutputBuffer = NULL;
-		return STATUS_INVALID_PARAMETER_2;
+
+		if (pIrpInfo->Header->OutputBufferLength > 0)
+		{
+			pIrpInfo->OutputBuffer = NULL;
+			return STATUS_INVALID_PARAMETER_2;
+		}
+
+		return STATUS_SUCCESS;
 	}
 
+
 	pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
-		NonPagedPool, 
+		PagedPool, 
 		pIrpInfo->Header->OutputBufferLength, 
 		CFB_DEVICE_TAG
 	);

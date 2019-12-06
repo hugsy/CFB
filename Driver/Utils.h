@@ -30,7 +30,7 @@ extern NTKERNELAPI NTSTATUS ObQueryNameString(
 	ULONG                    Length,
 	PULONG                   ReturnLength
 );
-extern NTKERNELAPI NTSTATUS PsLookupProcessByProcessId(HANDLE ProcessId, PEPROCESS* Process);
+//extern NTKERNELAPI NTSTATUS PsLookupProcessByProcessId(HANDLE ProcessId, PEPROCESS* Process);
 extern NTKERNELAPI PSTR PsGetProcessImageFileName(IN PEPROCESS Process);
 
 NTSTATUS GetDeviceNameFromDeviceObject( _In_ PVOID pDeviceObject, _Out_ WCHAR* DeviceNameBuffer, _In_ ULONG DeviceNameBufferSize );

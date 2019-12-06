@@ -66,18 +66,18 @@ const wchar_t* Task::TypeAsString()
 {
 	switch (m_Type)
 	{
-		ToString(IoctlResponse);
-		ToString(HookDriver);
-		ToString(UnhookDriver);
-		ToString(GetDriverInfo);
-		ToString(GetNumberOfDriver);
-		ToString(NotifyEventHandle);
-		ToString(EnableMonitoring);
-		ToString(DisableMonitoring);
-		ToString(GetInterceptedIrps);
-		ToString(ReplayIrp);
-		ToString(StoreTestCase);
-		ToString(EnumerateDrivers);
+		ToString(TaskType::IoctlResponse);
+		ToString(TaskType::HookDriver);
+		ToString(TaskType::UnhookDriver);
+		ToString(TaskType::GetDriverInfo);
+		ToString(TaskType::GetNumberOfDriver);
+		ToString(TaskType::NotifyEventHandle);
+		ToString(TaskType::EnableMonitoring);
+		ToString(TaskType::DisableMonitoring);
+		ToString(TaskType::GetInterceptedIrps);
+		ToString(TaskType::ReplayIrp);
+		ToString(TaskType::StoreTestCase);
+		ToString(TaskType::EnumerateDrivers);
 	}
 
 	dbg(L"Undeclared TaskType %d\n", m_Type);
