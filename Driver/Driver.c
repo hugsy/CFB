@@ -387,8 +387,13 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     //
     // And call the original routine
     //
-    PVOID UserBuffer = Irp->UserBuffer;
     PIO_STACK_LOCATION Stack = IoGetCurrentIrpStackLocation(Irp);
+    PVOID UserBuffer = NULL;
+    if (Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL || Stack->MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL)
+        UserBuffer = Irp->UserBuffer;
+    if (Stack->MajorFunction == IRP_MJ_READ && Irp->MdlAddress)
+        UserBuffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, HighPagePriority);
+
     PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
     NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
 

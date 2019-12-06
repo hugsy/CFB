@@ -533,12 +533,12 @@ HandleInterceptedFastIo(
 		if (!NT_SUCCESS(Status) || pIrp == NULL)
 		{
 			CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
-			if (IsInput && temp.InputBuffer)
+			if (IsInput==TRUE && temp.InputBuffer)
 			{
 				ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
 				temp.InputBuffer = NULL;
 			}
-			else if (!IsInput && temp.OutputBuffer)
+			else if (IsInput==FALSE && temp.OutputBuffer)
 			{
 				ExFreePoolWithTag(temp.OutputBuffer, CFB_DEVICE_TAG);
 				temp.OutputBuffer = NULL;

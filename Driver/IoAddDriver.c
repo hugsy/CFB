@@ -224,6 +224,15 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		// Add the driver
 		//
 
+		//
+		// Cannot hook itself
+		//
+		if (wcsncmp(lpObjectName, CFB_DRIVER_NAME, wcslen(CFB_DRIVER_NAME)) == 0)
+		{
+			Status = STATUS_INVALID_PARAMETER;
+			break;
+		}
+
         if (wcsncmp(lpObjectName, L"\\driver", 7) == 0)
         {
             Status = AddObjectByName(lpObjectName, Driver);

@@ -91,7 +91,7 @@ VOID CfbHexDump(IN PUCHAR Buffer, IN ULONG Length)
 #ifdef _DEBUG
 	for (ULONG i = 0; i < Length; i++)
 	{
-		if(i%16==0)	KdPrint(("\n"));
+		if(i%16==0 && i)	KdPrint(("\n"));
 		KdPrint(("%02x ", (UCHAR)Buffer[i]));
 	}
 	KdPrint(("\n"));
