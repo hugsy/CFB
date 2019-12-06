@@ -298,23 +298,25 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 	{
         case IRP_MJ_DEVICE_CONTROL:
         case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+			temp.InputBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
 			temp.OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		    temp.IoctlCode = Stack->Parameters.DeviceIoControl.IoControlCode;
             Status = ExtractDeviceIoctlIrpData(Irp, &temp.InputBuffer, &temp.InputBufferLen);
-            if(!NT_SUCCESS(Status))
-            {
-                CfbDbgPrintErr(L"ExtractDeviceIoctlIrpData() failed, Status=%#X\n", Status);
-                return Status;
-            }
             break;
 
-        case IRP_MJ_READ:
         case IRP_MJ_WRITE:
             Status = ExtractReadWriteIrpData(pDeviceObject, Irp, &temp.InputBuffer, &temp.InputBufferLen);
             break;
 
         default:
-            return STATUS_NOT_IMPLEMENTED;
+            Status = STATUS_SUCCESS;
+			break;
+	}
+
+	if (!NT_SUCCESS(Status))
+	{
+		CfbDbgPrintErr(L"Extract*IrpData() failed, Status=0x%x\n", Status);
+		return Status;
 	}
 
 
@@ -328,7 +330,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 			ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
 			temp.InputBuffer = NULL;
 		}
-			
+
 		return Status;
 	}
 
@@ -344,11 +346,11 @@ This function is called when a synchronous IRP is done being processed, so we ca
 collect additional info about the result.
 
 --*/
-NTSTATUS 
+NTSTATUS
 CompleteHandleInterceptedIrp(
-	_In_ PIO_STACK_LOCATION Stack, 
-	_In_ PVOID UserBuffer, 
-	_In_ NTSTATUS IrpStatus, 
+	_In_ PIO_STACK_LOCATION Stack,
+	_In_opt_ PVOID UserBuffer,
+	_In_ NTSTATUS IrpStatus,
 	_Inout_ PINTERCEPTED_IRP pIrpInfo
 )
 {
@@ -388,10 +390,7 @@ CompleteHandleInterceptedIrp(
 		pIrpInfo->OutputBuffer = NULL;
 
 		if (pIrpInfo->Header->OutputBufferLength > 0)
-		{
-			pIrpInfo->OutputBuffer = NULL;
 			return STATUS_INVALID_PARAMETER_2;
-		}
 
 		return STATUS_SUCCESS;
 	}

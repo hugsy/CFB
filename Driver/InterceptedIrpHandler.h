@@ -19,9 +19,9 @@
 #define CFB_INTERCEPTED_IRP_TYPE_FASTIO_WRITE  0x80000001
 
 
-#define CFB_FASTIO_USE_OUTPUT_BUFFER 0
-#define CFB_FASTIO_USE_INPUT_BUFFER 1
-#define CFB_FASTIO_INIT_QUEUE_MESSAGE 2
+#define CFB_FASTIO_USE_OUTPUT_BUFFER           0
+#define CFB_FASTIO_USE_INPUT_BUFFER            1
+#define CFB_FASTIO_INIT_QUEUE_MESSAGE          2
 
 
 //extern NTKERNELAPI HANDLE PsGetCurrentThreadId();
@@ -34,7 +34,14 @@
  *
  */
 NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDeviceObject, IN PIRP Irp, OUT PINTERCEPTED_IRP* pIrpOut);
-NTSTATUS CompleteHandleInterceptedIrp(_In_ PIO_STACK_LOCATION Stack, _In_ PVOID UserBuffer, _In_ NTSTATUS IrpStatus, _Inout_ PINTERCEPTED_IRP pIrpInfo);
+
+NTSTATUS 
+CompleteHandleInterceptedIrp(
+    _In_ PIO_STACK_LOCATION Stack, 
+    _In_opt_ PVOID UserBuffer, 
+    _In_ NTSTATUS IrpStatus, 
+    _Inout_ PINTERCEPTED_IRP pIrpInfo
+);
 
 
 /**

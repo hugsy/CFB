@@ -95,7 +95,7 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 		DWORD errCode = ::GetLastError();
 		if (errCode != ERROR_NO_MORE_ITEMS)
 			PrintErrorWithFunctionName(L"ReadFile(GetBufferSize)");
-		return ::GetLastError();
+		return errCode;
 	}
 
 	if (dwNumberOfBytesRead == 0)
