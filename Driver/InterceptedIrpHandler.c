@@ -420,7 +420,7 @@ CompleteHandleInterceptedIrp(
 	RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
 
 	RtlCopyMemory(pIrpInfo->OutputBuffer, UserBuffer, pIrpInfo->Header->OutputBufferLength);
-
+	/*
 #ifdef _DEBUG
 	if (pIrpInfo->OutputBuffer && Stack->MajorFunction)
 	{
@@ -429,6 +429,7 @@ CompleteHandleInterceptedIrp(
 		CfbHexDump(pIrpInfo->OutputBuffer, dwLength);
 	}
 #endif
+	*/
 
 	return STATUS_SUCCESS;
 }

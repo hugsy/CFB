@@ -32,7 +32,7 @@ Return Value:
 	May throw an exception if the the allocation failed.
 
 --*/
-FrontEndServer::FrontEndServer(Session& Session) noexcept(false)
+FrontEndServer::FrontEndServer(_In_ Session& Session) noexcept(false)
 	: m_Session(Session)
 {
 	if (!m_Transport.Initialize())

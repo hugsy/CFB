@@ -127,7 +127,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
     if (pInterceptedIrpHeader->OutputBufferLength && pInterceptedIrp->OutputBuffer)
     {		
         ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
-        CfbDbgPrintInfo(L"RawBuffer+%d=%p <- OutputBufferLength=%x, OutputBuffer=%p\n", BufferOffset, RawBuffer, pInterceptedIrpHeader->OutputBufferLength, pInterceptedIrp->OutputBuffer);
+        //CfbDbgPrintInfo(L"RawBuffer+%d=%p <- OutputBufferLength=%x, OutputBuffer=%p\n", BufferOffset, RawBuffer, pInterceptedIrpHeader->OutputBufferLength, pInterceptedIrp->OutputBuffer);
         RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
         BufferOffset += pInterceptedIrpHeader->OutputBufferLength;
     }
@@ -396,15 +396,6 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 
     PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
     NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
-
-#ifdef _DEBUG
-    if (UserBuffer && Stack->MajorFunction)
-    {
-        UINT32 dwLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
-        CfbDbgPrintOk(L"before output_buffer=%p, len=%u, type=%d, status=0x%x\n", UserBuffer, dwLength, Stack->MajorFunction, IoctlStatus);
-        CfbHexDump(UserBuffer, dwLength);
-    }
-#endif
 
     //
     // Collect the result from the result
