@@ -37,7 +37,6 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
 
 NTSTATUS 
 CompleteHandleInterceptedIrp(
-    _In_ PIO_STACK_LOCATION Stack, 
     _In_opt_ PVOID UserBuffer, 
     _In_ NTSTATUS IrpStatus, 
     _Inout_ PINTERCEPTED_IRP pIrpInfo

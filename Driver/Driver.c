@@ -406,7 +406,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         pIrpInfo != NULL
     )
     {
-        NTSTATUS Status = CompleteHandleInterceptedIrp(Stack, UserBuffer, IoctlStatus, pIrpInfo);
+        NTSTATUS Status = CompleteHandleInterceptedIrp(UserBuffer, IoctlStatus, pIrpInfo);
         if (!NT_SUCCESS(Status))
             CfbDbgPrintWarn(L"CompleteHandleInterceptedIrp() failed, Status=0x%x\n", Status);
     }

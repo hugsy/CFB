@@ -112,5 +112,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\x64\Release\IrpDumper.sys" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\Assets\img\logo\bear.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

@@ -182,7 +182,11 @@
     <ResourceCompile Include="Broker.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\x64\Release\IrpDumper.sys" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\Assets\img\logo\bear.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
