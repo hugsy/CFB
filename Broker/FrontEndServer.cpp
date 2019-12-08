@@ -185,7 +185,7 @@ DWORD FrontEndServer::SendInterceptedIrps()
 
 	j["body"]["entries"] = json::array();
 
-	while(!m_Session.m_IrpQueue.empty())
+	while(!m_Session.m_IrpQueue.empty() && i < CFB_FRONTEND_MAX_ENTRIES)
 	{
 		//
 		// pop an IRP

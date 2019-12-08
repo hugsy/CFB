@@ -6,6 +6,7 @@ using System.Data;
 using System.Windows.Forms;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Net.Sockets;
 
 namespace Fuzzer
 {
@@ -19,8 +20,9 @@ namespace Fuzzer
         private bool UpdateIrpDataView;
         private IrpMonitorForm RootForm;
         public List<Irp> Irps;
-        private ManualResetEvent NewMessageEvent;
-        private readonly IntPtr NewMessageEventHandler;
+        private Socket BrokerSocket;
+        //private ManualResetEvent NewMessageEvent;
+        //private readonly IntPtr NewMessageEventHandler;
         public DataTable IrpDataTable;
         public BindingSource DataBinder;
 
@@ -44,14 +46,19 @@ namespace Fuzzer
 
             Irps = new List<Irp>();
             NewItems = new BlockingCollection<Irp>();
-            AutoFuzzingQueue = new BlockingCollection<Irp>();
-            NewMessageEvent = new ManualResetEvent(false);
+            //AutoFuzzingQueue = new BlockingCollection<Irp>();
+            //NewMessageEvent = new ManualResetEvent(false);
             DataBinder = new BindingSource();
 
             InitializeIrpDataTable();
             ResetDataBinder();
 
-            NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
+            //NewMessageEventHandler = NewMessageEvent.SafeWaitHandle.DangerousGetHandle();
+            BrokerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            if (!ReconnectToBroker())
+            {
+                RootForm.Log($"Couldn't connect to broker, check the settings");
+            }
         }
 
 
@@ -65,11 +72,14 @@ namespace Fuzzer
             IrpDataTable.Columns.Add("ProcessId", typeof(UInt32));
             IrpDataTable.Columns.Add("ProcessName", typeof(string));
             IrpDataTable.Columns.Add("ThreadId", typeof(UInt32));
+            IrpDataTable.Columns.Add("Status", typeof(UInt32));
             IrpDataTable.Columns.Add("InputBufferLength", typeof(UInt32));
+            IrpDataTable.Columns.Add("OutputBufferLength", typeof(UInt32));
             IrpDataTable.Columns.Add("OutputBufferLength", typeof(UInt32));
             IrpDataTable.Columns.Add("DriverName", typeof(string));
             IrpDataTable.Columns.Add("DeviceName", typeof(string));
-            IrpDataTable.Columns.Add("Buffer", typeof(string));
+            IrpDataTable.Columns.Add("InputBuffer", typeof(string));
+            IrpDataTable.Columns.Add("OutputBuffer", typeof(string));
         }
 
 
@@ -201,14 +211,14 @@ namespace Fuzzer
             // src: http://www.yoda.arachsys.com/csharp/threads/waithandles.shtml
             // 
             
-            RootForm.Log($"Sending {NewMessageEventHandler:x} to driver...");
+            //RootForm.Log($"Sending {NewMessageEventHandler:x} to driver...");
             
-            if (Core.SetEventNotificationHandle(NewMessageEventHandler) == false)
-            {
-                int ErrNo = Marshal.GetLastWin32Error();
-                RootForm.Log($"Failed to pass the event handle to the driver, cannot pursue: GetLastError()=0x{ErrNo:x}");
-                return;
-            }
+            //if (Core.SetEventNotificationHandle(NewMessageEventHandler) == false)
+            //{
+            //    int ErrNo = Marshal.GetLastWin32Error();
+            //    RootForm.Log($"Failed to pass the event handle to the driver, cannot pursue: GetLastError()=0x{ErrNo:x}");
+            //    return;
+            //}
 
  
             UpdateDisplayThread = new Thread(RefreshDataGridViewThreadRoutine)
@@ -226,12 +236,12 @@ namespace Fuzzer
                 IsBackground = true
             };
 
-            AutoFuzzThread = new Thread(AutoFuzzThreadRoutine)
-            {
-                Name = "AutoFuzzThreadRoutine",
-                Priority = ThreadPriority.BelowNormal,
-                IsBackground = true
-            };
+            //AutoFuzzThread = new Thread(AutoFuzzThreadRoutine)
+            //{
+            //    Name = "AutoFuzzThreadRoutine",
+            //    Priority = ThreadPriority.BelowNormal,
+            //    IsBackground = true
+            //};
 
 
             CollectIrp = true;
@@ -239,9 +249,33 @@ namespace Fuzzer
 
             UpdateDisplayThread.Start();
             FetchIrpsFromDriverThread.Start();
-            AutoFuzzThread.Start();
+            //AutoFuzzThread.Start();
 
             RootForm.Log("Threads started!");
+        }
+
+        private bool ReconnectToBroker()
+        {
+            if(BrokerSocket.Connected)
+            {
+                return true;
+            }
+
+            try 
+            {
+                var uri = new Uri(Settings.BrokerUri);
+                IAsyncResult result = BrokerSocket.BeginConnect(uri.Host, uri.Port, null, null);
+                bool success = result.AsyncWaitHandle.WaitOne(5000, true);
+                if (!success || !BrokerSocket.Connected)
+                    return false;
+                BrokerSocket.EndConnect(result);
+            }
+            catch(Exception)
+            {
+                return false;
+            }
+
+            return true;
         }
 
 
@@ -302,6 +336,7 @@ namespace Fuzzer
         /// Read a message from the CFB driver. This function converts the raw bytes into a proper structure.
         /// </summary>
         /// <returns>An IRP struct object for the header and an array of byte for the body.</returns>
+        /*
         private bool PopIrpFromDriver(out Irp irp)
         {
             int HeaderSize;
@@ -423,6 +458,13 @@ namespace Fuzzer
             return true;
         }
 
+        */
+
+        private bool PopIrpFromDriver(out List<Irp> irps)
+        {
+            return false;
+        }
+
 
         /// <summary>
         /// Thread function that opens a handle to named pipe, and pop out intercepted IRPs from
@@ -439,28 +481,33 @@ namespace Fuzzer
                     // 
                     // Block on signaled event from the driver
                     //
-                    NewMessageEvent.WaitOne(-1);
+                    //NewMessageEvent.WaitOne(-1);
 
                     do
                     {
-                        if( PopIrpFromDriver(out Irp irp) )
+                        List<Irp> NewIrps = new List<Irp>();
+
+                        if( PopIrpFromDriver(out NewIrps) )
                         {
-                            Irps.Add(irp);
-
-                            //if(cfg.LogLevel > 1)
-                            //{
-                            //    RootForm.Log($"Poping IRP #{Irps.Count:d}");
-                            //}
-
-                            NewItems.Add(irp);
-
-                            // if(cfg.AutoFuzz)
-                            if (true)
+                            foreach (var irp in NewIrps)
                             {
-                                Irp.IrpMajorType MajorType = (Irp.IrpMajorType)irp.Header.Type;
-                                if (MajorType == Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+                                Irps.Add(irp);
+
+                                //if(cfg.LogLevel > 1)
+                                //{
+                                //    RootForm.Log($"Poping IRP #{Irps.Count:d}");
+                                //}
+
+                                NewItems.Add(irp);
+
+                                // if(cfg.AutoFuzz)
+                                if (true)
                                 {
-                                    AutoFuzzingQueue.Add(irp);
+                                    Irp.IrpMajorType MajorType = (Irp.IrpMajorType)irp.Header.Type;
+                                    if (MajorType == Irp.IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+                                    {
+                                        //AutoFuzzingQueue.Add(irp);
+                                    }
                                 }
                             }
                         }
@@ -470,12 +517,12 @@ namespace Fuzzer
                         }
 
                     }
-                    while( NewMessageEvent.WaitOne(0) );
+                    while( false);
 
                     //
                     // Clear the event for the driver to re-notify
                     //
-                    NewMessageEvent.Reset();
+                    //NewMessageEvent.Reset();
 
                     Thread.Sleep(500);
                 }

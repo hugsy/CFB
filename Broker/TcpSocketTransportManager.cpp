@@ -130,10 +130,10 @@ BOOL TcpSocketTransportManager::SendSynchronous(_In_ const std::vector<byte>& da
 {
 	if (m_ClientSocket == INVALID_SOCKET)
 		RAISE_GENERIC_EXCEPTION("not ready");
-
+	/*
 	if (data.size() >= MAX_ACCEPTABLE_MESSAGE_SIZE)
 		return false;
-
+	*/
 	DWORD dwNbSentBytes = 0, dwFlags = 0;
 	WSABUF DataBuf = { 0 };
 	DataBuf.len = (DWORD)data.size();

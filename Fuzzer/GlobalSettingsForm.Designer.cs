@@ -29,16 +29,18 @@
         private void InitializeComponent()
         {
             this.GeneralSettingsGroupBox = new System.Windows.Forms.GroupBox();
-            this.VerbosityLevelTextBox = new System.Windows.Forms.TextBox();
+            this.VerbosityLevelTextBox = new System.Windows.Forms.RichTextBox();
+            this.ServerUriTextBox = new System.Windows.Forms.TextBox();
+            this.lblServerUri = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.FuzzingGroupBox = new System.Windows.Forms.GroupBox();
+            this.AutoFuzzStrategiesCheckedListBox = new System.Windows.Forms.CheckedListBox();
             this.label3 = new System.Windows.Forms.Label();
             this.AutoFuzzNewIrpCheckBox = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
             this.CloseWindowButton = new System.Windows.Forms.Button();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.SettingsStatusBar = new System.Windows.Forms.ToolStripStatusLabel();
-            this.AutoFuzzStrategiesCheckedListBox = new System.Windows.Forms.CheckedListBox();
             this.GeneralSettingsGroupBox.SuspendLayout();
             this.FuzzingGroupBox.SuspendLayout();
             this.statusStrip1.SuspendLayout();
@@ -47,6 +49,8 @@
             // GeneralSettingsGroupBox
             // 
             this.GeneralSettingsGroupBox.Controls.Add(this.VerbosityLevelTextBox);
+            this.GeneralSettingsGroupBox.Controls.Add(this.ServerUriTextBox);
+            this.GeneralSettingsGroupBox.Controls.Add(this.lblServerUri);
             this.GeneralSettingsGroupBox.Controls.Add(this.label1);
             this.GeneralSettingsGroupBox.Location = new System.Drawing.Point(12, 12);
             this.GeneralSettingsGroupBox.Name = "GeneralSettingsGroupBox";
@@ -57,16 +61,33 @@
             // 
             // VerbosityLevelTextBox
             // 
-            this.VerbosityLevelTextBox.Location = new System.Drawing.Point(575, 43);
+            this.VerbosityLevelTextBox.Location = new System.Drawing.Point(575, 37);
             this.VerbosityLevelTextBox.Name = "VerbosityLevelTextBox";
-            this.VerbosityLevelTextBox.Size = new System.Drawing.Size(194, 26);
-            this.VerbosityLevelTextBox.TabIndex = 1;
-            this.VerbosityLevelTextBox.TextChanged += new System.EventHandler(this.VerbosityLevelTextBox_TextChanged);
+            this.VerbosityLevelTextBox.Size = new System.Drawing.Size(194, 30);
+            this.VerbosityLevelTextBox.TabIndex = 4;
+            this.VerbosityLevelTextBox.Text = "DEBUG\nINFO\nWARNING\nERROR\nCRITICAL";
+            // 
+            // ServerUriTextBox
+            // 
+            this.ServerUriTextBox.Location = new System.Drawing.Point(575, 99);
+            this.ServerUriTextBox.Name = "ServerUriTextBox";
+            this.ServerUriTextBox.Size = new System.Drawing.Size(194, 26);
+            this.ServerUriTextBox.TabIndex = 3;
+            this.ServerUriTextBox.TextChanged += new System.EventHandler(this.ServerUriTextBox_TextChanged);
+            // 
+            // lblServerUri
+            // 
+            this.lblServerUri.AutoSize = true;
+            this.lblServerUri.Location = new System.Drawing.Point(35, 105);
+            this.lblServerUri.Name = "lblServerUri";
+            this.lblServerUri.Size = new System.Drawing.Size(125, 20);
+            this.lblServerUri.TabIndex = 2;
+            this.lblServerUri.Text = "CFB Broker URI";
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(35, 49);
+            this.label1.Location = new System.Drawing.Point(35, 47);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(116, 20);
             this.label1.TabIndex = 0;
@@ -84,6 +105,17 @@
             this.FuzzingGroupBox.TabIndex = 3;
             this.FuzzingGroupBox.TabStop = false;
             this.FuzzingGroupBox.Text = "Fuzzing";
+            // 
+            // AutoFuzzStrategiesCheckedListBox
+            // 
+            this.AutoFuzzStrategiesCheckedListBox.FormattingEnabled = true;
+            this.AutoFuzzStrategiesCheckedListBox.Items.AddRange(new object[] {
+            "Big Integer Overwrite",
+            "Bitflip Overwrite"});
+            this.AutoFuzzStrategiesCheckedListBox.Location = new System.Drawing.Point(575, 85);
+            this.AutoFuzzStrategiesCheckedListBox.Name = "AutoFuzzStrategiesCheckedListBox";
+            this.AutoFuzzStrategiesCheckedListBox.Size = new System.Drawing.Size(194, 73);
+            this.AutoFuzzStrategiesCheckedListBox.TabIndex = 5;
             // 
             // label3
             // 
@@ -115,7 +147,7 @@
             // 
             // CloseWindowButton
             // 
-            this.CloseWindowButton.Location = new System.Drawing.Point(347, 440);
+            this.CloseWindowButton.Location = new System.Drawing.Point(345, 450);
             this.CloseWindowButton.Name = "CloseWindowButton";
             this.CloseWindowButton.Size = new System.Drawing.Size(148, 36);
             this.CloseWindowButton.TabIndex = 1;
@@ -128,9 +160,9 @@
             this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.SettingsStatusBar});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 510);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 508);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(834, 30);
+            this.statusStrip1.Size = new System.Drawing.Size(834, 32);
             this.statusStrip1.TabIndex = 4;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -139,17 +171,6 @@
             this.SettingsStatusBar.Name = "SettingsStatusBar";
             this.SettingsStatusBar.Size = new System.Drawing.Size(179, 25);
             this.SettingsStatusBar.Text = "toolStripStatusLabel1";
-            // 
-            // AutoFuzzStrategiesCheckedListBox
-            // 
-            this.AutoFuzzStrategiesCheckedListBox.FormattingEnabled = true;
-            this.AutoFuzzStrategiesCheckedListBox.Items.AddRange(new object[] {
-            "Big Integer Overwrite",
-            "Bitflip Overwrite"});
-            this.AutoFuzzStrategiesCheckedListBox.Location = new System.Drawing.Point(575, 85);
-            this.AutoFuzzStrategiesCheckedListBox.Name = "AutoFuzzStrategiesCheckedListBox";
-            this.AutoFuzzStrategiesCheckedListBox.Size = new System.Drawing.Size(194, 88);
-            this.AutoFuzzStrategiesCheckedListBox.TabIndex = 5;
             // 
             // GlobalSettingsForm
             // 
@@ -178,12 +199,14 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.GroupBox FuzzingGroupBox;
         private System.Windows.Forms.Button CloseWindowButton;
-        private System.Windows.Forms.TextBox VerbosityLevelTextBox;
         private System.Windows.Forms.CheckBox AutoFuzzNewIrpCheckBox;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel SettingsStatusBar;
         private System.Windows.Forms.CheckedListBox AutoFuzzStrategiesCheckedListBox;
+        private System.Windows.Forms.TextBox ServerUriTextBox;
+        private System.Windows.Forms.Label lblServerUri;
+        private System.Windows.Forms.RichTextBox VerbosityLevelTextBox;
     }
 }

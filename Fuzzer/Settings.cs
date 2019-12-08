@@ -17,6 +17,7 @@ namespace Fuzzer
         private static bool __autofuzzirp = false;
         private static List<FuzzingStrategy> __strategies = new List<FuzzingStrategy>();
 
+        private static string __broker_uri;
 
         //
         // public settings
@@ -35,7 +36,20 @@ namespace Fuzzer
             }
         }
 
-        
+        public static string BrokerUri
+        {
+            get
+            {
+                return __broker_uri;
+            }
+
+            set
+            {
+                __broker_uri = value;
+            }
+        }
+
+
 
         public static bool AutoFuzzNewIrp
         {
@@ -84,9 +98,5 @@ namespace Fuzzer
                 return "CFB IRP Dumper Driver";
             }
         }
-
-
-    }
-
-    
+    }   
 }

@@ -9,6 +9,12 @@ class Session;
 class Task;
 
 
+//
+// Max number of JSON entries that can be served at a time
+//
+#define CFB_FRONTEND_MAX_ENTRIES 32
+
+
 class FrontEndServer
 {
 public:

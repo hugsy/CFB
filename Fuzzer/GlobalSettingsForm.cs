@@ -48,25 +48,48 @@ namespace Fuzzer
 
         private void VerbosityLevelTextBox_TextChanged(object sender, EventArgs e)
         {
-            bool res = System.Int32.TryParse(VerbosityLevelTextBox.Text, out int NewVerbosityLevel);
-            if (res)
+            int NewVerbosityLevel = 1;
+            var text = VerbosityLevelTextBox.Text.ToUpper();
+            switch (text)
             {
-                Settings.VerbosityLevel = NewVerbosityLevel;
-                SendNotificationToStatusBar($"New verbosity level set to {Settings.VerbosityLevel}");
+                case "DEBUG":
+                    NewVerbosityLevel = 0;
+                    break;
+                case "INFO":
+                    NewVerbosityLevel = 1;
+                    break;
+                case "WARNING":
+                    NewVerbosityLevel = 2;
+                    break;
+                case "ERROR":
+                    NewVerbosityLevel = 3;
+                    break;
+                case "CRITICAL":
+                    NewVerbosityLevel = 4;
+                    break;
             }
+
+            Settings.VerbosityLevel = NewVerbosityLevel;
+            SendNotificationToStatusBar($"New verbosity level set to {Settings.VerbosityLevel}");
         }
         
 
         private void AutoFuzzNewIrpCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            Settings.AutoFuzzNewIrp = AutoFuzzNewIrpCheckBox.Checked;
-            SendNotificationToStatusBar($"Automatic IRP fuzzing set to : {Settings.AutoFuzzNewIrp}");
+            //Settings.AutoFuzzNewIrp = AutoFuzzNewIrpCheckBox.Checked;
+            //SendNotificationToStatusBar($"Automatic IRP fuzzing set to : {Settings.AutoFuzzNewIrp}");
         }
 
 
         private void CloseWindowButton_Click(object sender, EventArgs e)
         {
             this.Hide();
+        }
+
+
+        private void ServerUriTextBox_TextChanged(object sender, EventArgs e)
+        {
+            Settings.BrokerUri = ServerUriTextBox.Text.ToString();
         }
     }
 }

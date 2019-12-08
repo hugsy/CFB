@@ -132,28 +132,28 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 
 		const PINTERCEPTED_IRP_BODY pIrpBodyOut = (PINTERCEPTED_IRP_BODY)lpBufferOffset;
 
-		dbg(L"New IRP received:\n"
-			L" - timestamp:%llu\n"
-			L" - IRQ level:%x\n"
-			L" - Major type:%x\n"
-			L" - IoctlCode:%x\n"
-			L" - PID=%d / TID=%d\n"
-			L" - Status=%u\n"
-			L" - InputBufferLength=%u / OutputBufferLength=%u\n"
-			L" - ProcessName:%s\n"
-			L" - DriverName:%s\n"
-			L" - DeviceName:%s\n",
-			pIrpHeader->TimeStamp,
-			pIrpHeader->Irql,
-			pIrpHeader->Type,
-			pIrpHeader->IoctlCode,
-			pIrpHeader->Pid, pIrpHeader->Tid,
-			pIrpHeader->Status,
-			pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength,
-			pIrpHeader->ProcessName,
-			pIrpHeader->DriverName,
-			pIrpHeader->DeviceName
-		);
+		//dbg(L"New IRP received:\n"
+		//	L" - timestamp:%llu\n"
+		//	L" - IRQ level:%x\n"
+		//	L" - Major type:%x\n"
+		//	L" - IoctlCode:%x\n"
+		//	L" - PID=%d / TID=%d\n"
+		//	L" - Status=%u\n"
+		//	L" - InputBufferLength=%u / OutputBufferLength=%u\n"
+		//	L" - ProcessName:%s\n"
+		//	L" - DriverName:%s\n"
+		//	L" - DeviceName:%s\n",
+		//	pIrpHeader->TimeStamp,
+		//	pIrpHeader->Irql,
+		//	pIrpHeader->Type,
+		//	pIrpHeader->IoctlCode,
+		//	pIrpHeader->Pid, pIrpHeader->Tid,
+		//	pIrpHeader->Status,
+		//	pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength,
+		//	pIrpHeader->ProcessName,
+		//	pIrpHeader->DriverName,
+		//	pIrpHeader->DeviceName
+		//);
 
 		//
 		// pushing new IRP to the session queue
