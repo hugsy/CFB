@@ -8,7 +8,7 @@ using Microsoft.Toolkit.Uwp.Helpers;
 
 using GUI.Models;
 using GUI.Helpers;
-
+using Windows.UI.Popups;
 
 namespace GUI.ViewModels
 {
@@ -38,16 +38,20 @@ namespace GUI.ViewModels
                 Drivers.Clear();
             });
 
-            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
-            {
-                foreach (var d in App.BrokerSession.EnumerateDrivers())
-                    Drivers.Add( d );
+            try
+            { 
+                await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+                {
+                   foreach (var d in App.BrokerSession.EnumerateDrivers())
+                        Drivers.Add(d);
+                });
+            }
+            catch (Exception e)
+            {                 
+                await new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed").ShowAsync();
+            }
 
-                //foreach (var driverName in Nt.EnumerateDirectoryObjects("\\FileSystem"))
-                //    Drivers.Add(new Driver(driverName));
-
-                IsLoading = false;
-            });
+            IsLoading = false;
         }
 
 
