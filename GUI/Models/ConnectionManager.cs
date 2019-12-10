@@ -8,6 +8,7 @@ using System.IO.Pipes;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Threading.Tasks;
+using Windows.UI.Popups;
 
 namespace GUI.Models
 {
@@ -20,12 +21,15 @@ namespace GUI.Models
         private ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
 
         private StreamSocket ClientSocket;
-        private bool _IsConnected = false;
+        private bool _IsConnected;
 
 
         public ConnectionManager()
         {
             ClientSocket = new StreamSocket();
+            ClientSocket.Control.KeepAlive = true;
+            _IsConnected = false;
+
         }
 
         public async void Reconnect()
@@ -51,6 +55,14 @@ namespace GUI.Models
 
         private JObject SendAndReceive(MessageType type, byte[] args = null)
         {
+            if (!IsConnected)
+                Reconnect();
+
+            if (!IsConnected)
+                throw new System.InvalidOperationException("Server is unreachable");
+
+            string res = "";
+
             Stream OutgoingStream = ClientSocket.OutputStream.AsStreamForWrite();
             BrokerMessage req = new BrokerMessage(type, args);
             using (StreamWriter sw = new StreamWriter(OutgoingStream))
@@ -60,8 +72,7 @@ namespace GUI.Models
             }
 
             Stream IngoingStream = ClientSocket.InputStream.AsStreamForRead();
-
-            string res;
+                            
             using (StreamReader sr = new StreamReader(IngoingStream))
             {
                 res = sr.ReadToEnd();

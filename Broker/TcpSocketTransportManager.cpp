@@ -139,7 +139,7 @@ BOOL TcpSocketTransportManager::SendSynchronous(_In_ const std::vector<byte>& da
 	DataBuf.len = (DWORD)data.size();
 	DataBuf.buf = (char*)data.data();
 
-	if (::WSASend(m_ClientSocket, &DataBuf, 1, &dwNbSentBytes, dwFlags, nullptr, nullptr) == SOCKET_ERROR)
+	if (::WSASend(m_ClientSocket, &DataBuf, 1, &dwNbSentBytes, dwFlags, NULL, NULL) == SOCKET_ERROR)
 		RAISE_GENERIC_EXCEPTION("SendSynchronous");
 
 	return true;
@@ -154,7 +154,7 @@ Synchronous receive for TCP streams
 std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 {
 	if(m_ClientSocket == INVALID_SOCKET)
-		RAISE_GENERIC_EXCEPTION("not ready");
+		RAISE_GENERIC_EXCEPTION("ReceiveSynchronous - not ready: ");
 
 	auto buf = std::make_unique<byte[]>(MAX_MESSAGE_SIZE);
 	RtlZeroMemory(buf.get(), MAX_MESSAGE_SIZE);
@@ -163,8 +163,8 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 	DataBuf.len = MAX_MESSAGE_SIZE;
 	DataBuf.buf = (char*)buf.get();
 
-	if (::WSARecv(m_ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, nullptr, nullptr) == SOCKET_ERROR)
-		RAISE_GENERIC_EXCEPTION("ReceiveSynchronous");
+	if (::WSARecv(m_ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, NULL, NULL) == SOCKET_ERROR)
+		RAISE_GENERIC_EXCEPTION("ReceiveSynchronous - recv: ");
 
 	std::vector<byte> res;
 	for (DWORD i = 0; i < dwNbRecvBytes; i++) res.push_back(buf[i]);
@@ -260,7 +260,7 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 		}
 		catch (BaseException & e)
 		{
-			xlog(LOG_ERROR, L"exception %s\n", e.what());
+			xlog(LOG_ERROR, L"exception %S\n", e.what());
 			fContinue = false;
 			dwRetCode = ERROR_INVALID_DATA;
 			continue;
