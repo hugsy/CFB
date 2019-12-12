@@ -30,11 +30,14 @@ protected:
 };
 
 
-class BrokenPipeException :
-	public BaseException
+class BrokenPipeException: public BaseException
 {
 public:
-	BrokenPipeException(const char* filename, unsigned int line, const char* funct, const char* msg)
-		: BaseException(filename, line, funct, msg)
-	{}
+	BrokenPipeException(const char* filename, unsigned int line, const char* funct, const char* msg) : BaseException(filename, line, funct, msg){}
+};
+
+class InvalidRequestException : public BaseException
+{
+public:
+	InvalidRequestException(const char* filename, unsigned int line, const char* funct, const char* msg) : BaseException(filename, line, funct, msg) {}
 };

@@ -82,13 +82,36 @@ BOOL TcpSocketTransportManager::Connect()
 
 BOOL TcpSocketTransportManager::Terminate()
 {
-	return closesocket(m_ServerSocket) == 0;
+	BOOL res = closesocket(m_ServerSocket) == 0;
+	WSACleanup();
+	return res;
 }
 
 
 BOOL TcpSocketTransportManager::Reconnect()
 {
 	return Terminate() && Initialize() && Connect();
+}
+
+
+/*++
+
+
+
+--*/
+int CALLBACK ConditionAcceptFunc(
+	LPWSABUF lpCallerId,
+	LPWSABUF lpCallerData,
+	LPQOS pQos,
+	LPQOS lpGQOS,
+	LPWSABUF lpCalleeId,
+	LPWSABUF lpCalleeData,
+	GROUP FAR* g,
+	DWORD_PTR dwCallbackData
+)
+{
+	// todo: harden
+	return CF_ACCEPT;
 }
 
 
@@ -103,7 +126,7 @@ SOCKET TcpSocketTransportManager::Accept()
 	SOCKADDR_IN SockInfoClient = { 0 };
 	INT dwSockInfoClientSize = sizeof(SOCKADDR_IN);
 
-	ClientSocket = ::WSAAccept(m_ServerSocket, (SOCKADDR*)&SockInfoClient, &dwSockInfoClientSize, NULL, 0); // todo: add a lpfnCondition
+	ClientSocket = ::WSAAccept(m_ServerSocket, (SOCKADDR*)&SockInfoClient, &dwSockInfoClientSize, ConditionAcceptFunc, 0);
 	if (ClientSocket == INVALID_SOCKET)
 	{
 		xlog(LOG_ERROR, L"Cannot accept from server socket (WSAGetLastError=0x%x)\n", ::WSAGetLastError());
@@ -115,7 +138,7 @@ SOCKET TcpSocketTransportManager::Accept()
 	InetNtopW(AF_INET, &SockInfoClient.sin_addr.s_addr, lpswIpClient, _countof(lpswIpClient));
 	dbg(L"New TCP client %s:%d\n", lpswIpClient, ntohs(SockInfoClient.sin_port));
 #endif
-	m_dwServerState = ServerState::Connecting;
+	m_dwServerState = ServerState::ReadyToReadFromClient;
 	return ClientSocket;
 }
 
@@ -140,7 +163,10 @@ BOOL TcpSocketTransportManager::SendSynchronous(_In_ const std::vector<byte>& da
 	DataBuf.buf = (char*)data.data();
 
 	if (::WSASend(m_ClientSocket, &DataBuf, 1, &dwNbSentBytes, dwFlags, NULL, NULL) == SOCKET_ERROR)
-		RAISE_GENERIC_EXCEPTION("SendSynchronous");
+		RAISE_GENERIC_EXCEPTION("SendSynchronous - WSASend:");
+
+	//if (::send(m_ClientSocket, (char*)data.data(), (DWORD)data.size(), 0) < 0)
+	//	RAISE_GENERIC_EXCEPTION("SendSynchronous - send:");
 
 	return true;
 }
@@ -163,8 +189,32 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 	DataBuf.len = MAX_MESSAGE_SIZE;
 	DataBuf.buf = (char*)buf.get();
 
-	if (::WSARecv(m_ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, NULL, NULL) == SOCKET_ERROR)
-		RAISE_GENERIC_EXCEPTION("ReceiveSynchronous - recv: ");
+	int recv_result = ::WSARecv(m_ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, NULL, NULL);
+	if (recv_result == SOCKET_ERROR)
+	{
+		// check for overlapped data
+		if (::WSAGetLastError() != WSAEWOULDBLOCK)
+			RAISE_GENERIC_EXCEPTION("ReceiveSynchronous - WSARecv: ");
+
+		WSAOVERLAPPED Overlapped = { 0 };
+
+		recv_result = ::WSARecv(m_ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, &Overlapped, NULL);
+		if (::WSAGetLastError() != WSA_IO_PENDING)
+			RAISE_GENERIC_EXCEPTION("ReceiveSynchronous - WSARecv: ");
+
+		// we are in Overlapped I/O but the thread really needs the data from the client to proceed,
+		// so just wait
+		while (TRUE)
+		{
+			dwFlags = 0;
+			DWORD dwIndex = ::WSAWaitForMultipleEvents(1, &Overlapped.hEvent, TRUE, WSA_INFINITE, FALSE);
+			::WSAResetEvent(Overlapped.hEvent);
+			::WSAGetOverlappedResult(m_ClientSocket, &Overlapped, &dwNbRecvBytes, FALSE, &dwFlags);
+			ZeroMemory(&Overlapped, sizeof(WSAOVERLAPPED));
+			break;
+		}
+
+	}
 
 	std::vector<byte> res;
 	for (DWORD i = 0; i < dwNbRecvBytes; i++) res.push_back(buf[i]);
@@ -177,7 +227,7 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 This function handles the client (GUI) session 
 
 --*/
-static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
+static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 {
 	PULONG_PTR lpParameters = (PULONG_PTR)lpParameter;
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameters[0]));
@@ -202,9 +252,9 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 
 	while (Sess.IsRunning() && fContinue)
 	{
-		DWORD dwIndexObject = ::WSAWaitForMultipleEvents((DWORD)handles.size(), handles.data(), false, INFINITE, false) - WSA_WAIT_EVENT_0;
+		DWORD dwIndex = ::WSAWaitForMultipleEvents((DWORD)handles.size(), handles.data(), false, INFINITE, false) - WSA_WAIT_EVENT_0;
 
-		if (dwIndexObject < 0 || dwIndexObject >= handles.size())
+		if (dwIndex < 0 || dwIndex >= handles.size())
 		{
 			PrintErrorWithFunctionName(L"WSAWaitForMultipleEvents(TcpClient)");
 			fContinue = false;
@@ -212,9 +262,14 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 			continue;
 		}
 
-		if (dwIndexObject != 1)
+		//
+		// reset the event
+		//
+		::WSAResetEvent(handles.at(dwIndex));
+
+		if (dwIndex != 1)
 		{
-			if (dwIndexObject == 0)
+			if (dwIndex == 0)
 			{
 				dbg(L"received termination event\n");
 				Sess.Stop();
@@ -240,6 +295,9 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 
 		try
 		{
+			if ( (Events.lNetworkEvents & FD_READ) != FD_READ)
+				continue;
+
 			//
 			// if here, process the request
 			//
@@ -257,6 +315,11 @@ static DWORD HandleTcpRequestsRtn(_In_ LPVOID lpParameter)
 			//
 			if (!Sess.FrontEndServer.ForwardReply())
 				RAISE_GENERIC_EXCEPTION("ForwardReply");
+		}
+		catch (InvalidRequestException & e)
+		{
+			xlog(LOG_WARNING, L"InvalidRequestException raised: %S\n", e.what());
+			continue;
 		}
 		catch (BaseException & e)
 		{
@@ -306,18 +369,20 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 		HANDLE hClientThread;
 		DWORD dwClientTid;
 
-		DWORD dwIndexObject = ::WSAWaitForMultipleEvents((DWORD)handles.size(), handles.data(), false, INFINITE, false) - WSA_WAIT_EVENT_0;
+		DWORD dwIndex = ::WSAWaitForMultipleEvents((DWORD)handles.size(), handles.data(), false, INFINITE, false) - WSA_WAIT_EVENT_0;
 
-		if (dwIndexObject < 0 || dwIndexObject >= handles.size())
+		if (dwIndex < 0 || dwIndex >= handles.size())
 		{
 			PrintErrorWithFunctionName(L"WSAWaitForMultipleEvents(TcpServer)");
 			CurrentSession.Stop();
 			continue;
 		}
 
-		dbg(L"TcpServer: event triggered %d\n", dwIndexObject);
+		::WSAResetEvent(handles.at(dwIndex));
 
-		switch (dwIndexObject)
+		dbg(L"TcpServer: event triggered %d\n", dwIndex);
+
+		switch (dwIndex)
 		{
 		case 0:
 			dbg(L"received termination event\n");
@@ -332,7 +397,7 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 			if (Events.lNetworkEvents & FD_CLOSE)
 			{
 				// is a an TCP_CLOSE ?
-				::CloseHandle(handles.at(dwIndexObject));
+				::CloseHandle(handles.at(dwIndex));
 			}
 			else
 			{
@@ -350,7 +415,7 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 				};
 
 				// start a thread to handle the requests
-				hClientThread = ::CreateThread(nullptr, 0, HandleTcpRequestsRtn, args, 0, &dwClientTid);
+				hClientThread = ::CreateThread(nullptr, 0, ProcessTcpRequest, args, 0, &dwClientTid);
 				if (!hClientThread)
 				{
 					::closesocket(ClientSocket);
@@ -359,7 +424,7 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 					continue;
 				}
 
-				dbg(L"event on handle %d\n", dwIndexObject);
+				dbg(L"event on handle %d\n", dwIndex);
 				handles.push_back(hClientThread);
 			}
 			break;
@@ -369,9 +434,9 @@ DWORD TcpSocketTransportManager::RunForever(_In_ Session& CurrentSession)
 			//
 			// if here, we've received the event of EOL from the client thread, so we clean up and continue looping
 			//
-			dbg(L"default event_handle[%d], closing tcp client thread...\n", dwIndexObject);
-			::CloseHandle(handles.at(dwIndexObject));
-			handles.erase(handles.begin() + dwIndexObject);
+			dbg(L"default event_handle[%d], closing tcp client thread...\n", dwIndex);
+			::CloseHandle(handles.at(dwIndex));
+			handles.erase(handles.begin() + dwIndex);
 			break;
 		}
 	}

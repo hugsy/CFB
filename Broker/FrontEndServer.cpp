@@ -69,6 +69,9 @@ Task FrontEndServer::ProcessNextRequest()
 	//
 	auto RequestBufferRaw = m_Session.FrontEndServer.Receive();
 
+	if (RequestBufferRaw.size() == 0)
+		RAISE_EXCEPTION(InvalidRequestException,"Receive() should not be empty");
+
 #ifdef _DEBUG
 	SIZE_T dwRequestSize = RequestBufferRaw.size();
 	dbg(L"new pipe message (len=%lu)\n", dwRequestSize);

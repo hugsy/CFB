@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("GUI")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("CFB App")]
+[assembly: AssemblyDescription("UWP GUI for CFB")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GUI")]
+[assembly: AssemblyCompany("World Domination Corp.")]
+[assembly: AssemblyProduct("CFB")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

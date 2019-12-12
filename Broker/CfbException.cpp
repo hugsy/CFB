@@ -6,7 +6,7 @@ BaseException::BaseException(const char* filename, unsigned int line, const char
 {
 	std::ostringstream oss;
 	oss << "[" << __func__ << " in " << m_filename << ":" << m_line << " - " << m_function_name <<"()]" << std::endl;
-	oss << "Reason: " << m_msg;
+	oss << "Reason: " << m_msg << std::endl;
 	oss << "GetLastError: 0x" << std::hex << ::GetLastError();
 	m_report = oss.str();
 }

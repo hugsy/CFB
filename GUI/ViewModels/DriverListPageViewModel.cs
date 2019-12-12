@@ -40,15 +40,16 @@ namespace GUI.ViewModels
 
             try
             { 
+                var drivers = await App.BrokerSession.EnumerateDrivers();
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
-                   foreach (var d in App.BrokerSession.EnumerateDrivers())
-                        Drivers.Add(d);
+                   foreach (var d in drivers) Drivers.Add(d);
                 });
             }
             catch (Exception e)
-            {                 
-                await new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed").ShowAsync();
+            {
+                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed"); 
+                await dialog.ShowAsync();
             }
 
             IsLoading = false;

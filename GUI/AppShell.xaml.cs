@@ -16,6 +16,8 @@ using Windows.System;
 using System.Threading.Tasks;
 
 using GUI.Models;
+using Windows.Storage;
+using Windows.UI.Popups;
 
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
@@ -164,15 +166,12 @@ namespace GUI
                     IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
                 }
             }
-            catch(System.IO.IOException ex)
+            catch(Exception ex)
             {
-                var dialog = new ContentDialog()
-                {
-                    Title = "Unable to connect to remote pipe",
-                    Content = "There was an error attempting to the remote pipe. Please check your settings, and that the broker is running.\n" +
-                    $"Reason:\n{ex.Message}",
-                    PrimaryButtonText = "OK"
-                };
+                var brokerPathSetting = ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString();
+                var dialog = new MessageDialog($"There was an error attempting to the remote '{brokerPathSetting}'. " +
+                    "Please check your settings, and that the broker is running.\n" +
+                    $"Reason:\n{ex.Message}", "Unable to connect to the target");
                 await dialog.ShowAsync();
             }
         }
