@@ -12,6 +12,7 @@ using Windows.UI.Popups;
 using System.Threading;
 using Windows.Storage.Streams;
 using System.Text;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace GUI.Models
 {
@@ -37,8 +38,8 @@ namespace GUI.Models
         public ConnectionManager()
         {
             ClientSocket = new StreamSocket();
-            ClientSocket.Control.NoDelay = true;
             ClientSocket.Control.KeepAlive = true;
+            //ClientSocket.Control.NoDelay = false;
             _Status = BrokerConnectionStatus.Disconnected;
         }
 
@@ -62,7 +63,7 @@ namespace GUI.Models
             catch(Exception)
             {
                 _Status = BrokerConnectionStatus.Disconnected;
-                throw new Exception("failed to connect");
+                throw new Exception($"failed to connect to {uri.Host}:{uri.Port}");
             }
         }
 
@@ -90,49 +91,85 @@ namespace GUI.Models
         }
 
 
+        public async Task send(String message)
+        {
+            await this.send(Encoding.UTF8.GetBytes(message));
+        }
+
+
+        public async Task send(byte[] message)
+        {
+            using (DataWriter writer = new DataWriter(ClientSocket.OutputStream))
+            {
+                writer.UnicodeEncoding = Windows.Storage.Streams.UnicodeEncoding.Utf8;
+                writer.ByteOrder = Windows.Storage.Streams.ByteOrder.LittleEndian;
+
+                try
+                {
+                    writer.WriteBytes(message);
+                    await writer.StoreAsync();
+                }
+                catch (Exception exception)
+                {
+                    throw new Exception($"An error occured while sending message to {TargetHost}:{TargetPort}: {exception.Message}");
+                }
+
+                await writer.FlushAsync();
+                writer.DetachStream();
+            }
+        }
+
+
+        public async Task<byte[]> read()
+        {
+            List<byte> DataReceived;
+
+            using (DataReader reader = new DataReader(ClientSocket.InputStream))
+            {
+                DataReceived = new List<byte>();
+
+                reader.InputStreamOptions = Windows.Storage.Streams.InputStreamOptions.Partial;
+                reader.UnicodeEncoding = Windows.Storage.Streams.UnicodeEncoding.Utf8;
+                reader.ByteOrder = Windows.Storage.Streams.ByteOrder.LittleEndian;
+
+                uint NomimalReadSize = 256;
+                uint LeftToRead = NomimalReadSize;
+
+                do
+                {
+                    // prefetch data from stream
+                    await reader.LoadAsync(LeftToRead);
+                    LeftToRead = reader.UnconsumedBufferLength;
+
+                    // copy all the data received locally
+                    for (uint i = 0; i < LeftToRead; i++)
+                        DataReceived.Add(reader.ReadByte());
+
+                    // did we prefetch everything? if so, break out
+                    if (LeftToRead < NomimalReadSize)
+                        break;
+                }
+                while (LeftToRead > 0);
+
+                reader.DetachStream();
+                return DataReceived.ToArray();
+            }
+        }
+
+
         private async Task<JObject> SendAndReceive(MessageType type, byte[] args = null)
         {
+
             if (!IsConnected)
                 Reconnect();
 
             BrokerMessage req = new BrokerMessage(type, args);
-            using (var sw = new StreamWriter(ClientSocket.OutputStream.AsStreamForWrite()))
-            {
-                await sw.WriteAsync(JsonConvert.SerializeObject(req));
-            }
+            await this.send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
 
+            var RawResponse = await this.read();
+            var JsonResponse = JObject.Parse( Encoding.Default.GetString(RawResponse) );
 
-            var sb = new StringBuilder();
-
-            using (var sr = new StreamReader(ClientSocket.InputStream.AsStreamForRead()))
-            {
-                int l = 0;
-                while (true)
-                {
-                    var buffer = new char[1];
-                    var nb_read = await sr.ReadAsync(buffer, 0, 1);
-                    
-                    if (nb_read <= 0)
-                        throw new Exception("Server disconnected");
-                    
-                    sb.Append(buffer);
-
-                    if (buffer[0] == '{')
-                        l++;
-                    if (buffer[0] == '}')
-                        l--;
-                    if (l == 0)
-                        break;
-
-
-                    if (nb_read == buffer.Length)
-                        continue;
-                    
-                    break;
-                }
-            }
-
-            return JObject.Parse(sb.ToString());
+            return JsonResponse;
         }
 
         
