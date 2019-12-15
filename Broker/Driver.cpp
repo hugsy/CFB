@@ -131,30 +131,30 @@ static DWORD FetchNextIrpFromDevice(_In_ HANDLE hDevice, _In_ HANDLE hEvent, _In
 		lpBufferOffset += pIrpHeader->InputBufferLength;
 
 		const PINTERCEPTED_IRP_BODY pIrpBodyOut = (PINTERCEPTED_IRP_BODY)lpBufferOffset;
-
-		//dbg(L"New IRP received:\n"
-		//	L" - timestamp:%llu\n"
-		//	L" - IRQ level:%x\n"
-		//	L" - Major type:%x\n"
-		//	L" - IoctlCode:%x\n"
-		//	L" - PID=%d / TID=%d\n"
-		//	L" - Status=%u\n"
-		//	L" - InputBufferLength=%u / OutputBufferLength=%u\n"
-		//	L" - ProcessName:%s\n"
-		//	L" - DriverName:%s\n"
-		//	L" - DeviceName:%s\n",
-		//	pIrpHeader->TimeStamp,
-		//	pIrpHeader->Irql,
-		//	pIrpHeader->Type,
-		//	pIrpHeader->IoctlCode,
-		//	pIrpHeader->Pid, pIrpHeader->Tid,
-		//	pIrpHeader->Status,
-		//	pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength,
-		//	pIrpHeader->ProcessName,
-		//	pIrpHeader->DriverName,
-		//	pIrpHeader->DeviceName
-		//);
-
+		/*
+		dbg(L"New IRP received:\n"
+			L" - timestamp:%llu\n"
+			L" - IRQ level:%x\n"
+			L" - Major type:%x\n"
+			L" - IoctlCode:%x\n"
+			L" - PID=%d / TID=%d\n"
+			L" - Status=%u\n"
+			L" - InputBufferLength=%u / OutputBufferLength=%u\n"
+			L" - ProcessName:%s\n"
+			L" - DriverName:%s\n"
+			L" - DeviceName:%s\n",
+			pIrpHeader->TimeStamp,
+			pIrpHeader->Irql,
+			pIrpHeader->Type,
+			pIrpHeader->IoctlCode,
+			pIrpHeader->Pid, pIrpHeader->Tid,
+			pIrpHeader->Status,
+			pIrpHeader->InputBufferLength, pIrpHeader->OutputBufferLength,
+			pIrpHeader->ProcessName,
+			pIrpHeader->DriverName,
+			pIrpHeader->DeviceName
+		);
+		*/
 		//
 		// pushing new IRP to the session queue
 		//
@@ -338,8 +338,6 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 
 	while (TRUE)
 	{
-		dwErrCode = ERROR_SUCCESS;
-
 		//
 		// send the DeviceIoControl
 		//
@@ -354,31 +352,37 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 			NULL
 		);
 
-		dbg(L"DeviceIoControl(0x%x) returned: %s\n", task.IoctlCode(), bRes ? L"TRUE" : L"FALSE");
+		dwErrCode = ::GetLastError();
+		dbg(L"DeviceIoControl(0x%x,%u) returned: %s (gle=0x%x,nbw=%lu)\n", task.IoctlCode(), dwOutputBufferSize, bRes ? L"TRUE" : L"FALSE", dwErrCode, dwNbBytesReturned);
 
 		//
 		// If the ioctl was ok, we exit
 		//
+		
 		if (bRes)
+		{
+			dwErrCode = ERROR_SUCCESS;
 			break;
-
-		dwErrCode = ::GetLastError();
-
-
+		}
+		
 		//
 		// If the buffer was too small, retry with the appropriate size
 		//
-		if (::GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-		{
-			dwOutputBufferSize = dwNbBytesReturned;
-			if (lpOutputBuffer)
-				delete[] lpOutputBuffer;
+		if (dwErrCode != ERROR_INSUFFICIENT_BUFFER) // STATUS_BUFFER_TOO_SMALL
+			break;
 
-			lpOutputBuffer = new byte[dwOutputBufferSize];
-			continue;
-		}
+		if (dwOutputBufferSize == 0)
+			dwOutputBufferSize = 1024;
+		else
+			dwOutputBufferSize *= 2;
 
-		break;
+		dbg(L"DeviceIoControl(0x%x): resizing to output_buffer to %lu (%lu)\n", task.IoctlCode(), dwOutputBufferSize, dwNbBytesReturned);
+
+		if (lpOutputBuffer)
+			delete[] lpOutputBuffer;
+
+		lpOutputBuffer = new byte[dwOutputBufferSize];
+		::ZeroMemory(lpOutputBuffer, dwOutputBufferSize);
 	}
 
 
@@ -388,11 +392,29 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 	task.SetState(TaskState::Completed);
 
 	//
+	// If the IOCTL failed, free the associated output buffer as they won't be used anyway
+	//
+	if (dwErrCode != ERROR_SUCCESS)
+	{
+		delete[] lpOutputBuffer;
+		lpOutputBuffer = nullptr;
+		dwOutputBufferSize = 0;
+	}
+
+	if (dwErrCode == ERROR_SUCCESS && task.IoctlCode() == IOCTL_GetDriverInfo)
+	{
+		auto info = reinterpret_cast<PHOOKED_DRIVER_INFO>(lpOutputBuffer);
+		if(info)
+			dbg(L"info_driver(name='%s',enabled=%d,address=%llx,num=%d)\n", info->Name, info->Enabled, info->DriverAddress, info->NumberOfRequestIntercepted);
+	}
+
+	//
 	// Create the response task object, and specify the ioctl retcode
 	//
-	Task response_task(TaskType::IoctlResponse, lpOutputBuffer, dwOutputBufferSize, dwErrCode);
+	Task response_task(task.Type(), lpOutputBuffer, dwOutputBufferSize, dwErrCode, false);
 
-	delete[] lpOutputBuffer;
+	if (lpOutputBuffer)
+		delete[] lpOutputBuffer;
 
 	return response_task;
 }

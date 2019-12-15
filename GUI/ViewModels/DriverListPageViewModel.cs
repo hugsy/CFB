@@ -17,10 +17,12 @@ namespace GUI.ViewModels
     public class DriverListPageViewModel : BindableBase
     {
 
-        public DriverListPageViewModel() => IsLoading = false;
 
-
-        public ObservableCollection<Driver> Drivers { get; private set; } = new ObservableCollection<Driver>();
+        public DriverListPageViewModel()
+        {
+            IsLoading = false;
+            Drivers = new ObservableCollection<Driver>();
+        }
 
 
         private bool _isLoading;
@@ -31,6 +33,7 @@ namespace GUI.ViewModels
             set => Set(ref _isLoading, value);
         }
 
+        public ObservableCollection<Driver> Drivers { get; private set; }
 
         public async void LoadDrivers(bool forceRefresh=false)
         {

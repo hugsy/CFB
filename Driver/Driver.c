@@ -87,13 +87,13 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
     if ( BufferSize != dwExpectedSize )
     {
         CfbDbgPrintErr( L"Buffer size is invalid, expected %dB, got %dB\n", dwExpectedSize, BufferSize );
-        return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, dwExpectedSize);
+        return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, dwExpectedSize); // STATUS_INVALID_BUFFER_SIZE
     }
 
     NT_ASSERT(Irp->MdlAddress);
 
     UINT32 BufferOffset = 0;
-    PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, HighPagePriority );
+    PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, NormalPagePriority);
     if ( !Buffer )
         return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
         
@@ -399,7 +399,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
 
     case IRP_MJ_READ:
         if (Irp->MdlAddress)
-            UserBuffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, HighPagePriority);
+            UserBuffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
         break;
 
     default:
@@ -407,7 +407,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         break;
     }
 
-
+    curDriver->NumberOfRequestIntercepted++;
     PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
     NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
 
@@ -689,7 +689,11 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
 
     NTSTATUS Status = STATUS_SUCCESS;
     PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
+    NT_ASSERT(CurrentStack);
+
     ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+    ULONG dwDataWritten = 0;
+
 
     
     switch (IoctlCode)
@@ -712,11 +716,11 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
         break;
 
     case IOCTL_GetNumberOfDrivers:
-        Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack);
+        Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
         break;
 
     case IOCTL_GetDriverInfo:
-        Status = HandleIoGetDriverInfo( Irp, CurrentStack );
+        Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
         break;
 
     case IOCTL_SetEventPointer:
@@ -737,7 +741,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
         CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
 
     
-    return CompleteRequest(Irp, Status, 0);
+    return CompleteRequest(Irp, Status, dwDataWritten);
 }
 
 

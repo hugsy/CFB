@@ -10,7 +10,7 @@
 #include <cstddef>
 
 
-enum TaskState : uint16_t
+enum class TaskState : uint16_t
 {
 	Initialized,
 	Queued,
@@ -22,7 +22,7 @@ enum TaskState : uint16_t
 enum class TaskType : uint32_t
 {
 	TaskTypeMin = 0,
-	IoctlResponse = 1,
+	IoctlResponse,
 	HookDriver,
 	UnhookDriver,
 	GetDriverInfo,
@@ -31,7 +31,7 @@ enum class TaskType : uint32_t
 	EnableMonitoring,
 	DisableMonitoring,
 	GetInterceptedIrps,
-	ReplayIrp,
+	ReplayIrp = 10,
 	StoreTestCase,
 	EnumerateDrivers = 12,
 	TaskTypeMax
@@ -43,7 +43,7 @@ static std::map<TaskType, DWORD> g_TaskIoctls =
 	{TaskType::HookDriver, IOCTL_AddDriver},
 	{TaskType::UnhookDriver, IOCTL_RemoveDriver},
 	{TaskType::GetNumberOfDriver, IOCTL_GetNumberOfDrivers},
-	{TaskType::GetDriverInfo, IOCTL_ListAllDrivers},
+	{TaskType::GetDriverInfo, IOCTL_GetDriverInfo},
 	{TaskType::NotifyEventHandle, IOCTL_SetEventPointer},
 	{TaskType::EnableMonitoring, IOCTL_EnableMonitoring},
 	{TaskType::DisableMonitoring, IOCTL_DisableMonitoring},
@@ -57,7 +57,7 @@ class Task
 {
 public:
 	Task(const Task& t);
-	Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode);
+	Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode, bool IsRequest);
 	~Task();
 
 	const wchar_t* StateAsString();
@@ -78,4 +78,5 @@ private:
 	uint32_t m_dwDataLength;
 	DWORD m_dwId;
 	DWORD m_dwErrCode;
+	bool m_bIsRequest;
 };

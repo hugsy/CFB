@@ -1,6 +1,7 @@
 #include "Utils.h"
 
 
+
 /**
  *
  * adapted from base64.cpp and base64.h by René Nyffenegger
@@ -179,7 +180,7 @@ std::vector<std::pair<std::wstring, std::wstring>> Utils::EnumerateObjectDirecto
 		ULONG rlen = 0;
 
 		Status = NtQueryDirectoryObject(hDirectory, NULL, 0, TRUE, FALSE, &ctx, &rlen);
-		if (Status != 0xC0000023) // BUFFER_TOO_SMALL
+		if (Status != STATUS_BUFFER_TOO_SMALL) 
 			break;
 
 		POBJECT_DIRECTORY_INFORMATION pObjDirInfo = (POBJECT_DIRECTORY_INFORMATION)::LocalAlloc(LPTR, rlen);

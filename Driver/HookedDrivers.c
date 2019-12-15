@@ -84,7 +84,7 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-BOOLEAN IsDriverHooked(IN PDRIVER_OBJECT pDriverObject)
+BOOLEAN IsDriverHooked(_In_ PDRIVER_OBJECT pDriverObject)
 {
     BOOLEAN bRes = FALSE;
 
@@ -134,7 +134,7 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 	--*/
-NTSTATUS GetHookedDriverByName(IN LPWSTR lpDriverName, OUT PHOOKED_DRIVER *pHookedDrv)
+NTSTATUS GetHookedDriverByName(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER *pHookedDrv)
 {
 	NTSTATUS Status = STATUS_OBJECT_NAME_NOT_FOUND;
 
@@ -187,7 +187,7 @@ Return Value:
 	Returns a pointer to the hooked driver on success, NULL otherwise
 
 --*/
-PHOOKED_DRIVER GetHookedDriverFromDeviceObject(IN PDEVICE_OBJECT DeviceObject)
+PHOOKED_DRIVER GetHookedDriverFromDeviceObject(_In_ PDEVICE_OBJECT DeviceObject)
 {
 	if (IsListEmpty(g_HookedDriverHead))
 		return NULL;

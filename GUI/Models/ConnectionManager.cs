@@ -193,16 +193,35 @@ namespace GUI.Models
             return (bool)msg["header"]["success"];
         }
 
+        /// <summary>
+        /// Sends a "Start Monitoring" task to the broker
+        /// </summary>
+        /// <returns>True on success</returns>
         public async Task<bool> StartMonitoring()
         {
             JObject msg = await SendAndReceive(MessageType.EnableMonitoring);
             return (bool)msg["header"]["success"];
         }
 
+        /// <summary>
+        /// Sends a "Stop Monitoring" task to the broker
+        /// </summary>
+        /// <returns>True on success</returns>
         public async Task<bool> StopMonitoring()
         {
             JObject msg = await SendAndReceive(MessageType.DisableMonitoring);
             return (bool)msg["header"]["success"];
+        }
+
+
+        public async Task<JObject> GetDriverInfo(string DriverName)
+        {
+            byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
+            JObject msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
+            if ((bool)msg["header"]["success"])
+                throw new Exception($"GetDriverInfo('{DriverName}') failed");
+
+            return (JObject) msg["body"];
         }
     }
 }

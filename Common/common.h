@@ -95,13 +95,17 @@ typedef enum
 	LOG_CRITICAL
 } log_level_t;
 
-
+# pragma pack (1)
 typedef struct 
 {
-	BOOLEAN Enabled;
+	UINT32 Enabled;
 	WCHAR Name[MAX_PATH];
+	UINT32 NumberOfDevices;
+	UINT64 NumberOfRequestIntercepted;
+	ULONG_PTR DriverAddress;
 }
 HOOKED_DRIVER_INFO, *PHOOKED_DRIVER_INFO;
+# pragma pack ()
 
 # pragma pack (1)
 typedef struct

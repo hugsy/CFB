@@ -2,6 +2,7 @@
 #include <ws2tcpip.h>
 
 #include "TcpSocketTransportManager.h"
+
 #include "Session.h"
 
 #include "json.hpp"

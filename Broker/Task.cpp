@@ -13,25 +13,27 @@ Task::Task(const Task &t)
 	m_State(t.m_State),
 	m_dwDataLength(t.m_dwDataLength),
 	m_dwId(t.m_dwId),
+	m_bIsRequest(t.m_bIsRequest),
 	m_dwErrCode(t.m_dwErrCode)
 {
-		m_Data = new byte[t.m_dwDataLength];
-		::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
+	m_Data = new byte[t.m_dwDataLength];
+	::memcpy(m_Data, t.m_Data, t.m_dwDataLength);
 }
 
 
-Task::Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode)
+Task::Task(TaskType type, const byte* data, uint32_t datalen, uint32_t errcode, bool IsRequest)
 	:
 	m_Type(type), 
 	m_State(TaskState::Initialized), 
 	m_dwDataLength(datalen),
+	m_bIsRequest(IsRequest),
 	m_dwErrCode(errcode)
 {
-	std::lock_guard<std::mutex> guard(g_mutex);
-	m_dwId = g_id++;
-
 	m_Data = new byte[datalen];
 	::memcpy(m_Data, data, datalen);
+
+	std::lock_guard<std::mutex> guard(g_mutex);
+	m_dwId = g_id++;
 }
 
 
@@ -52,10 +54,10 @@ const wchar_t* Task::StateAsString()
 {
 	switch (m_State)
 	{
-		ToString(Initialized);
-		ToString(Queued);
-		ToString(Delivered);
-		ToString(Completed);
+		ToString(TaskState::Initialized);
+		ToString(TaskState::Queued);
+		ToString(TaskState::Delivered);
+		ToString(TaskState::Completed);
 	}
 
 	throw std::runtime_error("Unknown Task State");
@@ -127,7 +129,7 @@ const DWORD Task::Id()
 
 const DWORD Task::ErrCode()
 {
-	if (m_Type != TaskType::IoctlResponse)
+	if (m_bIsRequest)
 		return -1;
 
 	return m_dwErrCode;

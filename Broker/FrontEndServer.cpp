@@ -90,7 +90,7 @@ Task FrontEndServer::ProcessNextRequest()
 	//
 	// build a Task object from the next message read from the pipe
 	//
-	Task task(type, lpData.data(), dwDataLength, -1);
+	Task task(type, lpData.data(), dwDataLength, -1, true);
 
 
 	dbg(L"new request task (id=%d, type='%s', length=%d)\n", task.Id(), task.TypeAsString(), task.Length());
@@ -105,10 +105,11 @@ Task FrontEndServer::ProcessNextRequest()
 		SendDriverList();
 		break;
 
+	case TaskType::GetDriverInfo:
+		//dbg(L"GetDriverInfo(lpDrivername='%s')\n", task.Data());
+
 	case TaskType::ReplayIrp:
-		//
-		// Replay the IRP
-		//
+		//dbg(L"ReplayIrp()\n");
 		// TODO
 	default:
 		// push the task to request task list
@@ -136,9 +137,35 @@ BOOL FrontEndServer::ForwardReply()
 		}
 	} };
 
-	json_response["body"]["data_length"] = task.Length();
-	if (task.Length() > 0)
-		json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
+	
+	//json_response["body"]["data_length"] = task.Length();
+
+	switch (task.Type())
+	{
+	case TaskType::GetDriverInfo:
+	{
+		// data is HOOKED_DRIVER_INFO
+		PHOOKED_DRIVER_INFO data = (PHOOKED_DRIVER_INFO)task.Data();
+		if (task.Length() && data)
+		{
+			json_response["body"]["data"]["DriverAddress"] = data->DriverAddress;
+			json_response["body"]["data"]["Enabled"] = data->Enabled;
+			json_response["body"]["data"]["Name"] = std::wstring(data->Name);
+			json_response["body"]["data"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
+		}
+		break;
+	}
+
+	default:
+	{
+		// default = data needs no parsing, simply b64encode it
+		json_response["body"]["data_length"] = task.Length();
+		if (task.Length() > 0)
+			json_response["body"]["data"] = Utils::base64_encode(task.Data(), task.Length());
+		break;
+	}
+	}
+
 
 	const std::string& str = json_response.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
@@ -148,6 +175,7 @@ BOOL FrontEndServer::ForwardReply()
 	}
 	else
 	{
+		dbg(L"replied \n%S\n", str.data());
 		task.SetState(TaskState::Completed);
 	}
 
