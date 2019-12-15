@@ -138,7 +138,7 @@ NTSTATUS GetHookedDriverByName(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER *p
 {
 	NTSTATUS Status = STATUS_OBJECT_NAME_NOT_FOUND;
 
-	CfbDbgPrintInfo(L"GetHookedDriverByName(lpDriverName='%s')\n", lpDriverName);
+	//CfbDbgPrintInfo(L"GetHookedDriverByName(lpDriverName='%s')\n", lpDriverName);
 
     KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
 

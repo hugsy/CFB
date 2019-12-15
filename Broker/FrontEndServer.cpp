@@ -74,7 +74,7 @@ Task FrontEndServer::ProcessNextRequest()
 
 #ifdef _DEBUG
 	SIZE_T dwRequestSize = RequestBufferRaw.size();
-	dbg(L"new pipe message (len=%lu)\n", dwRequestSize);
+	dbg(L"new message from client (len=%lu)\n", dwRequestSize);
 	//hexdump(RequestBufferRaw.data(), dwRequestSize);
 #endif // _DEBUG
 

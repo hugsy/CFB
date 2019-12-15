@@ -10,63 +10,53 @@ namespace GUI.Models
     {
         public List<Device> Devices;
 
-        private bool _IsHooked;
-
         public Driver(String drivername)
         {
             DriverName = drivername;
-            _IsHooked = false; 
-            RefreshDeviceList();
+            _IsHooked = false;
+            NumberOfRequestIntercepted = 0;
+            Address = 0;
             Devices = new List<Device>();
+            RefreshDriverInfoAsync();
         }
 
 
-        public string DriverName { get; set; }
+        public string DriverName { get; private set; }
+        public uint Address { get; private set; }
+        public uint NumberOfRequestIntercepted { get; private set; }
 
+        private bool _IsHooked;
         public bool IsHooked {
-            get
-            {
-                try
-                {
-                    var js = Task.Run(() => App.BrokerSession.GetDriverInfo(DriverName));
-                    _IsHooked = (bool)js.Result["data"]["Enabled"];
-                }
-                catch(Exception)
-                {
-                    // if the driver is not hooked, DeviceIoctlControl() will return FALSE, upon which GetDriverInfo() will generate an Exception
-                    // todo: make better exception for this case
-                    _IsHooked = false;
-                }
+            get => _IsHooked;
 
-                return _IsHooked;
-            }
-
-            set {
+            private set {
+                bool data_changed = false;
                 if (_IsHooked == false)
-                {
-                    // try to hook
-                    var res = Task.Run(() => App.BrokerSession.HookDriver(DriverName)).Result;
-                    if (res)
-                        // if the operation was successful, update the field
-                        _IsHooked = true;
-                }
+                    data_changed = Task.Run(() => App.BrokerSession.HookDriver(DriverName)).Result;
                 else
-                {
-                    // try to unhook
-                    var res = Task.Run(() => App.BrokerSession.UnhookDriver(DriverName)).Result;
-                    if (res)
-                        // if the operation was successful, update the field
-                        _IsHooked = false;
-                }
+                    data_changed = Task.Run(() => App.BrokerSession.UnhookDriver(DriverName)).Result;
+
+                if (data_changed)
+                    RefreshDriverInfoAsync();
             }
         }
 
 
-        public void RefreshDeviceList()
+        private void RefreshDriverInfoAsync()
         {
+            Devices.Clear();
+            try 
+            {
+                var js_body = Task.Run(() => App.BrokerSession.GetDriverInfo(DriverName)).Result;
+                _IsHooked = (bool)js_body["Enabled"];
+                Address = (uint)js_body["Address"];
+                NumberOfRequestIntercepted = (uint)js_body["NumberOfRequestIntercepted"];
+            }
+            catch(Exception)
+            {
+
+            }
         }
-
-
     }
 
 }

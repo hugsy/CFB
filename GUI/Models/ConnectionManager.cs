@@ -218,8 +218,8 @@ namespace GUI.Models
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             JObject msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
-            if ((bool)msg["header"]["success"])
-                throw new Exception($"GetDriverInfo('{DriverName}') failed");
+            if (((bool)msg["header"]["success"])==false)
+                throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{(uint)msg["header"]["gle"]}");
 
             return (JObject) msg["body"];
         }

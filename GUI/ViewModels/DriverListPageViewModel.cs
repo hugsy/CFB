@@ -55,7 +55,8 @@ namespace GUI.ViewModels
                 var drivers = await App.BrokerSession.EnumerateDrivers();
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
-                    foreach (var d in drivers) Drivers.Add(d);
+                    foreach (var d in drivers) 
+                        Drivers.Add(d);
                 });
             }
             catch (Exception e)

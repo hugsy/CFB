@@ -138,7 +138,25 @@
                             FontWeight="SemiBold"
                             Text="Is hooked?">
                         </TextBlock>
+                        
                         <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsHooked, Mode=OneWay}" />
+
+
+                        <TextBlock
+                            Margin="0,40,0,0"
+                            FontWeight="SemiBold"
+                            Text="Driver Object address">
+                        </TextBlock>
+                        
+                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.Address, Mode=OneWay}" />
+
+                        <TextBlock
+                            Margin="0,60,0,0"
+                            FontWeight="SemiBold"
+                            Text="Number of IRP intercepted">
+                        </TextBlock>
+
+                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.NumberOfRequestIntercepted, Mode=OneWay}" />
 
                     </StackPanel>
                 </SplitView.Pane>
@@ -169,7 +187,11 @@
                                     Tag="IsHooked"
                                     IsReadOnly="False"
                                     Binding="{Binding IsHooked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    />
+                                    >
+                                    <toolkit:DataGridCheckBoxColumn.ElementStyle>
+                                        <Style TargetType="CheckBox"/>
+                                    </toolkit:DataGridCheckBoxColumn.ElementStyle>
+                                </toolkit:DataGridCheckBoxColumn>
                             </toolkit:DataGrid.Columns>
                         </toolkit:DataGrid>
 
