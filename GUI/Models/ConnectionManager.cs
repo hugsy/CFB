@@ -32,7 +32,7 @@ namespace GUI.Models
     {
         private ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
         private StreamSocket ClientSocket;
-        private BrokerConnectionStatus _Status;
+        public BrokerConnectionStatus _Status;
 
 
         public ConnectionManager()
@@ -90,11 +90,6 @@ namespace GUI.Models
             _Status = BrokerConnectionStatus.Disconnected;
         }
 
-
-        public async Task send(String message)
-        {
-            await this.send(Encoding.UTF8.GetBytes(message));
-        }
 
 
         public async Task send(byte[] message)
@@ -159,10 +154,6 @@ namespace GUI.Models
 
         private async Task<JObject> SendAndReceive(MessageType type, byte[] args = null)
         {
-
-            if (!IsConnected)
-                Reconnect();
-
             BrokerMessage req = new BrokerMessage(type, args);
             await this.send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
 
@@ -177,7 +168,6 @@ namespace GUI.Models
         {
             JObject msg = await SendAndReceive(MessageType.EnumerateDrivers);
             bool is_success = (bool)msg["header"]["success"];
-
             if (!is_success)
                 throw new Exception("SendAndReceive(EnumerateDrivers) operation returned " + is_success);
 
@@ -187,6 +177,22 @@ namespace GUI.Models
                 drivers.Add( new Driver(driver_name) );
 
             return drivers;
+        }
+
+        public async Task<bool> HookDriver(String DriverName)
+        {
+            byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
+            JObject msg = await SendAndReceive(MessageType.HookDriver, RawName);
+            bool is_success = (bool)msg["header"]["success"];
+            return is_success;
+        }
+
+        public async Task<bool> UnhookDriver(String DriverName)
+        {
+            byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
+            JObject msg = await SendAndReceive(MessageType.UnhookDriver, RawName);
+            bool is_success = (bool)msg["header"]["success"];
+            return is_success;
         }
     }
 }

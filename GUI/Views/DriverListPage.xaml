@@ -76,7 +76,7 @@
                     IsEnabled="{x:Bind vm:Converters.IsNotNull(ViewModel.SelectedDriver), Mode=OneWay}"
                     Label="Edit" />
                 <AppBarButton
-                    Click="{x:Bind ViewModel.LoadDrivers}"
+                    Click="{x:Bind ViewModel.RefreshDriverList}"
                     Icon="Refresh"
                     Label="Refresh" />
             </CommandBar>
@@ -151,7 +151,7 @@
                             CanUserReorderColumns="False"
                             CanUserResizeColumns="False"
                             GridLinesVisibility="None"
-                            IsReadOnly="True"
+                            IsReadOnly="False"
                             AutoGenerateColumns="False"
                             Margin="0,10,0,0"
                             ItemsSource="{x:Bind ViewModel.Drivers, Mode=OneWay}"
@@ -162,11 +162,13 @@
                                 <toolkit:DataGridTextColumn
                                     Header="Driver"
                                     Tag="DriverName"
+                                    IsReadOnly="True"
                                     Binding="{Binding DriverName}"/>
                                 <toolkit:DataGridCheckBoxColumn 
                                     Header="Is Hooked?"
                                     Tag="IsHooked"
-                                    Binding="{Binding IsHooked}"
+                                    IsReadOnly="False"
+                                    Binding="{Binding IsHooked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     />
                             </toolkit:DataGrid.Columns>
                         </toolkit:DataGrid>

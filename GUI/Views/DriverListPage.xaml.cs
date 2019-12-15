@@ -15,7 +15,7 @@ using Windows.UI.Xaml.Navigation;
 
 
 using GUI.ViewModels;
-
+using GUI.Models;
 
 namespace GUI.Views
 {
@@ -40,7 +40,6 @@ namespace GUI.Views
 
         private void CommandBarDriverInfoButton_Click(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void DataGrid_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)

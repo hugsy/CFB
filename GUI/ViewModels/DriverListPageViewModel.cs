@@ -5,10 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Toolkit.Uwp.Helpers;
+using Windows.UI.Popups;
+using System.ComponentModel;
 
 using GUI.Models;
 using GUI.Helpers;
-using Windows.UI.Popups;
+
 
 namespace GUI.ViewModels
 {
@@ -30,8 +32,15 @@ namespace GUI.ViewModels
         }
 
 
-        public async void LoadDrivers()
+        public async void LoadDrivers(bool forceRefresh=false)
         {
+            // use already existing driver list
+            if (Drivers.Count() > 0 && forceRefresh == false)
+            {
+                IsLoading = false;
+                return;
+            }
+
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
                 IsLoading = true;
@@ -39,21 +48,26 @@ namespace GUI.ViewModels
             });
 
             try
-            { 
+            {
                 var drivers = await App.BrokerSession.EnumerateDrivers();
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
-                   foreach (var d in drivers) Drivers.Add(d);
+                    foreach (var d in drivers) Drivers.Add(d);
                 });
             }
             catch (Exception e)
             {
-                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed"); 
+                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed");
                 await dialog.ShowAsync();
             }
 
             IsLoading = false;
         }
+
+
+        public void RefreshDriverList()
+            => LoadDrivers(true);
+        
 
 
         private Driver _selectedDriver;

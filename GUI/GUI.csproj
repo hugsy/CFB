@@ -139,6 +139,7 @@
       <DependentUpon>CollapsibleSearchBox.xaml</DependentUpon>
     </Compile>
     <Compile Include="ViewModels\BindableBase.cs" />
+    <Compile Include="ViewModels\BrokerConnectionViewModel.cs" />
     <Compile Include="ViewModels\Converters.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\MonitoredIrpViewModel.cs" />
