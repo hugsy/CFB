@@ -31,5 +31,9 @@ namespace GUI.ViewModels
         /// </summary>
         public static Visibility CollapsedIfNullOrEmpty(string value) =>
             string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible;
+
+        public static string FormatAddressAsHex(ulong Address) =>
+            Address.ToString("X");
+
     }
 }

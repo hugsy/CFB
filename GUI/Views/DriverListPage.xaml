@@ -115,83 +115,72 @@
                                 <Setter Property="TextWrapping" Value="Wrap" />
                             </Style>
                         </StackPanel.Resources>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                                FontWeight="SemiBold"
-                                Text="Driver Name" />
-                            <TextBlock
-                                FontWeight="SemiBold"
-                                Text="{x:Bind ViewModel.SelectedDriver.DriverName, Mode=OneWay}" />
+                        
+                        <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold" Text="Driver Name" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedDriver.DriverName, Mode=OneWay}" />
                         </StackPanel>
                         
                         <StackPanel Margin="0,20,0,20">
-                            <TextBlock FontWeight="SemiBold">
-                                Number of devices                                
-                            </TextBlock>
+                            <TextBlock FontWeight="SemiBold" Text="Number of devices"/>
+                            
                             <TextBlock
                                 IsTextSelectionEnabled="True"
                                 Text="{x:Bind ViewModel.SelectedDriver.Devices.Count, Mode=OneWay}" />
                         </StackPanel>
 
-                        <TextBlock
-                            Margin="0,20,0,0"
-                            FontWeight="SemiBold"
-                            Text="Is hooked?">
-                        </TextBlock>
-                        
-                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsHooked, Mode=OneWay}" />
+                        <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold" Text="Is hooked?" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsHooked, Mode=OneWay}" />
+                        </StackPanel>
 
+                        <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold" Text="Driver Object address" />
+                            <TextBlock Text="{x:Bind vm:Converters.FormatAddressAsHex(ViewModel.SelectedDriver.Address), Mode=OneWay}" />
+                        </StackPanel>
 
-                        <TextBlock
-                            Margin="0,40,0,0"
-                            FontWeight="SemiBold"
-                            Text="Driver Object address">
-                        </TextBlock>
-                        
-                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.Address, Mode=OneWay}" />
+                        <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold" Text="Number of IRP intercepted" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedDriver.NumberOfRequestIntercepted, Mode=OneWay}" />
+                        </StackPanel>
 
-                        <TextBlock
-                            Margin="0,60,0,0"
-                            FontWeight="SemiBold"
-                            Text="Number of IRP intercepted">
-                        </TextBlock>
-
-                        <TextBlock Text="{x:Bind ViewModel.SelectedDriver.NumberOfRequestIntercepted, Mode=OneWay}" />
-
+                        <StackPanel Margin="0,20,0,20">
+                            <Button x:Name="SelectedDriverEnableDisableBtn" Click="SelectedDriverEnableDisableBtn_Click" Margin="10" Width="150">
+                                <TextBlock FontWeight="SemiBold" Text="Enable/Disable" />
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </SplitView.Pane>
 
                 <SplitView.Content>
                     <Grid>
-
                         <toolkit:DataGrid
                             BorderThickness="0"
                             CanUserReorderColumns="False"
                             CanUserResizeColumns="False"
                             GridLinesVisibility="None"
-                            IsReadOnly="False"
+                            IsReadOnly="True"
                             AutoGenerateColumns="False"
                             Margin="0,10,0,0"
                             ItemsSource="{x:Bind ViewModel.Drivers, Mode=OneWay}"
                             SelectedItem="{x:Bind ViewModel.SelectedDriver, Mode=TwoWay}"
                             KeyDown="DataGrid_KeyDown"
                             ContextFlyout="{StaticResource DataGridContextMenu}">
+                            
                             <toolkit:DataGrid.Columns>
                                 <toolkit:DataGridTextColumn
                                     Header="Driver"
                                     Tag="DriverName"
                                     IsReadOnly="True"
                                     Binding="{Binding DriverName}"/>
-                                <toolkit:DataGridCheckBoxColumn 
+                                
+                                <toolkit:DataGridTextColumn 
                                     Header="Is Hooked?"
                                     Tag="IsHooked"
-                                    IsReadOnly="False"
-                                    Binding="{Binding IsHooked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                    >
-                                    <toolkit:DataGridCheckBoxColumn.ElementStyle>
-                                        <Style TargetType="CheckBox"/>
-                                    </toolkit:DataGridCheckBoxColumn.ElementStyle>
-                                </toolkit:DataGridCheckBoxColumn>
+                                    IsReadOnly="True"
+                                    Binding="{Binding IsHooked}"
+                                    />
+
                             </toolkit:DataGrid.Columns>
                         </toolkit:DataGrid>
 

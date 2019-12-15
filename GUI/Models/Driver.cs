@@ -22,14 +22,14 @@ namespace GUI.Models
 
 
         public string DriverName { get; private set; }
-        public uint Address { get; private set; }
-        public uint NumberOfRequestIntercepted { get; private set; }
+        public ulong Address { get; private set; }
+        public ulong NumberOfRequestIntercepted { get; private set; }
 
         private bool _IsHooked;
         public bool IsHooked {
             get => _IsHooked;
 
-            private set {
+            set {
                 bool data_changed = false;
                 if (_IsHooked == false)
                     data_changed = Task.Run(() => App.BrokerSession.HookDriver(DriverName)).Result;
@@ -42,19 +42,22 @@ namespace GUI.Models
         }
 
 
-        private void RefreshDriverInfoAsync()
+        public void RefreshDriverInfoAsync()
         {
             Devices.Clear();
             try 
             {
                 var js_body = Task.Run(() => App.BrokerSession.GetDriverInfo(DriverName)).Result;
-                _IsHooked = (bool)js_body["Enabled"];
-                Address = (uint)js_body["Address"];
-                NumberOfRequestIntercepted = (uint)js_body["NumberOfRequestIntercepted"];
+                var js_data = js_body["data"];
+                _IsHooked = (bool)js_data["Enabled"];
+                Address = (ulong)js_data["DriverAddress"];
+                NumberOfRequestIntercepted = (ulong)js_data["NumberOfRequestIntercepted"];
             }
             catch(Exception)
             {
-
+                _IsHooked = false;
+                Address = 0;
+                NumberOfRequestIntercepted = 0;
             }
         }
     }

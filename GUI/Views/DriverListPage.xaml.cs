@@ -85,5 +85,10 @@ namespace GUI.Views
             //Frame.Navigate(typeof(DriverDetailPage), ViewModel.SelectedDriver.DriverName, new DrillInNavigationTransitionInfo());
         }
 
+        private void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var Driver = ViewModel.SelectedDriver;
+            Driver.IsHooked = true;
+        }
     }
 }

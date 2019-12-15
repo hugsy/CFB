@@ -79,7 +79,11 @@ namespace GUI.ViewModels
         public Driver SelectedDriver
         {
             get => _selectedDriver;
-            set => Set(ref _selectedDriver, value);
+            set
+            {
+               Set(ref _selectedDriver, value);
+                _selectedDriver.RefreshDriverInfoAsync();
+            }
         }
 
 
