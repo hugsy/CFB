@@ -183,16 +183,26 @@ namespace GUI.Models
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             JObject msg = await SendAndReceive(MessageType.HookDriver, RawName);
-            bool is_success = (bool)msg["header"]["success"];
-            return is_success;
+            return (bool)msg["header"]["success"];
         }
 
         public async Task<bool> UnhookDriver(String DriverName)
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             JObject msg = await SendAndReceive(MessageType.UnhookDriver, RawName);
-            bool is_success = (bool)msg["header"]["success"];
-            return is_success;
+            return (bool)msg["header"]["success"];
+        }
+
+        public async Task<bool> StartMonitoring()
+        {
+            JObject msg = await SendAndReceive(MessageType.EnableMonitoring);
+            return (bool)msg["header"]["success"];
+        }
+
+        public async Task<bool> StopMonitoring()
+        {
+            JObject msg = await SendAndReceive(MessageType.DisableMonitoring);
+            return (bool)msg["header"]["success"];
         }
     }
 }

@@ -175,5 +175,47 @@ namespace GUI
                 await dialog.ShowAsync();
             }
         }
+
+        private async void StartMonitoring_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var success = await Task.Run(App.BrokerSession.StartMonitoring);
+                if (success)
+                {
+                    StartMonitoringLabelBtn.IsEnabled = false;
+                    StopMonitoringLabelBtn.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                var dialog = new MessageDialog(
+                    $"Unable to start monitoring, reason:\n {ex.Message}",
+                    "Error!"
+                );
+                await dialog.ShowAsync();
+            }
+        }
+
+        private async void StopMonitoring_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var success = await Task.Run(App.BrokerSession.StopMonitoring);
+                if ( success )
+                {
+                    StartMonitoringLabelBtn.IsEnabled = true;
+                    StopMonitoringLabelBtn.IsEnabled = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                var dialog = new MessageDialog(
+                    $"Unable to stop monitoring, reason:\n {ex.Message}",
+                    "Error!"
+                );
+                await dialog.ShowAsync();
+            }
+        }
     }
 }

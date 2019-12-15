@@ -28,14 +28,23 @@
             
             
             <AppBarButton Icon="Play" 
+                          x:Name="StartMonitoringLabelBtn"
                           Label="{x:Bind StartMonitoringLabel}" 
-                          ToolTipService.ToolTip="{x:Bind StartMonitoringLabel}"/>
+                          ToolTipService.ToolTip="{x:Bind StartMonitoringLabel}"
+                          Click="StartMonitoring_Click"
+                          IsEnabled="True"
+                          />
             
             <AppBarButton Icon="Stop" 
+                          x:Name="StopMonitoringLabelBtn"
                           Label="{x:Bind StopMonitoringLabel}" 
-                          ToolTipService.ToolTip="{x:Bind StopMonitoringLabel}"/>
+                          ToolTipService.ToolTip="{x:Bind StopMonitoringLabel}"
+                          Click="StopMonitoring_Click"
+                          IsEnabled="False"
+                          />
             
             <AppBarButton Icon="Clear" 
+                          x:Name="ClearGridLabelBtn"
                           Label="{x:Bind ClearGridLabel}"
                           ToolTipService.ToolTip="{x:Bind ClearGridLabel}" />
         </CommandBar>
