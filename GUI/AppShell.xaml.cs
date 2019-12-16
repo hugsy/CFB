@@ -155,25 +155,52 @@ namespace GUI
             }
         }
 
+        public void UpdateGlobalState(string message)
+        {
+            CurrentStateInfoLbl.Text = message;
+        }
+
 
         private async void ToggleConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            try 
+            try
             {
-                await Task.Run(App.BrokerSession.Reconnect);
-                if (App.BrokerSession.IsConnected)
-                {
-                    IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
-                }
+                if (!App.BrokerSession.IsConnected)
+                    TryConnect();
+                else
+                    TryDisconnect();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 var brokerPathSetting = ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString();
-                var dialog = new MessageDialog($"There was an error attempting to the remote '{brokerPathSetting}'. " +
-                    "Please check your settings, and that the broker is running.\n" +
-                    $"Reason:\n{ex.Message}", "Unable to connect to the target");
+                var dialog = new MessageDialog($"An error occured trying to open/close connection with '{brokerPathSetting}'. " +
+                    $"Reason:\n{ex.Message}", 
+                    "Connection error"
+                );
                 await dialog.ShowAsync();
             }
+        }      
+
+        private async void TryConnect()
+        {
+            UpdateGlobalState("Connecting...");
+            var t = await App.BrokerSession.Reconnect();
+            if (t && App.BrokerSession.IsConnected)
+            {
+                IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
+                IsConnectedAppBarButton.Label = ConnectedStatusLabel;
+                UpdateGlobalState("Connected");
+            }
+        }
+
+
+        private async void TryDisconnect()
+        {
+            UpdateGlobalState("Disconnecting...");
+            await App.BrokerSession.Close();
+            UpdateGlobalState("Disconnected");
+            IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Red);
+            IsConnectedAppBarButton.Label = DisconnectedStatusLabel;
         }
 
         private async void StartMonitoring_Click(object sender, RoutedEventArgs e)

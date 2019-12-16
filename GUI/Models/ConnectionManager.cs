@@ -37,17 +37,31 @@ namespace GUI.Models
 
         public ConnectionManager()
         {
+        }
+
+
+        private void ReinitializeSocket()
+        {
             ClientSocket = new StreamSocket();
             ClientSocket.Control.KeepAlive = true;
             //ClientSocket.Control.NoDelay = false;
             _Status = BrokerConnectionStatus.Disconnected;
         }
 
+        public async Task<bool> Close()
+        {
+            ClientSocket.Dispose();
+            _Status = BrokerConnectionStatus.Disconnected;
+            return true;
+        }
 
-        public async void Reconnect()
+
+        public async Task<bool> Reconnect()
         {
             if (_Status == BrokerConnectionStatus.Connected || _Status == BrokerConnectionStatus.Connecting)
-                return;
+                return true;
+
+            ReinitializeSocket();
 
             var uri = new Uri(LocalSettings.Values["IrpBrokerLocation"].ToString());
             _Status = BrokerConnectionStatus.Connecting;
@@ -65,6 +79,7 @@ namespace GUI.Models
                 _Status = BrokerConnectionStatus.Disconnected;
                 throw new Exception($"failed to connect to {uri.Host}:{uri.Port}");
             }
+            return true;
         }
 
 
@@ -84,11 +99,7 @@ namespace GUI.Models
         }
 
 
-        public void Close()
-        {
-            ClientSocket.Dispose();
-            _Status = BrokerConnectionStatus.Disconnected;
-        }
+
 
 
 

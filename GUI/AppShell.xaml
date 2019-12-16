@@ -13,10 +13,12 @@
     <Page.BottomAppBar>
         <CommandBar>
             <CommandBar.Content>
-                <Grid/>
+                <TextBlock x:Name="CurrentStateInfoLbl"  Text="Disconnected" Margin="12,14"/>
             </CommandBar.Content>
-                      
-            <AppBarButton 
+
+            <AppBarSeparator/>
+
+            <AppBarButton  
                 x:Name="IsConnectedAppBarButton"
                 Label="{x:Bind DisconnectedStatusLabel}" 
                 ToolTipService.ToolTip="{x:Bind DisconnectedStatusLabel}"
@@ -25,7 +27,8 @@
                     <FontIcon x:Name="IsConnectedAppBarButtonFont" FontFamily="Segoe MDL2 Assets" Glyph="&#xE91F;" Foreground="Red" />
                 </AppBarButton.Icon>
             </AppBarButton>
-            
+
+            <AppBarSeparator/>
             
             <AppBarButton Icon="Play" 
                           x:Name="StartMonitoringLabelBtn"
@@ -42,6 +45,8 @@
                           Click="StopMonitoring_Click"
                           IsEnabled="False"
                           />
+            
+            <AppBarSeparator/>
             
             <AppBarButton Icon="Clear" 
                           x:Name="ClearGridLabelBtn"
