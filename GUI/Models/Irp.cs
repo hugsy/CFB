@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using Newtonsoft.Json.Linq;
 
 namespace GUI.Models
 {
-         
+    
     /// <summary>
     /// Represents IRP
     /// </summary>
@@ -58,6 +59,17 @@ namespace GUI.Models
         public string DeviceName;
         public string ProcessName;
         public byte[] Body;
+
+        public Irp()
+        {
+
+        }
+
+
+        public Irp(JObject json)
+        {
+
+        }
 
 
         public bool Equals(Irp other) =>

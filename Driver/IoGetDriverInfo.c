@@ -6,16 +6,10 @@
 
 
 --*/
-static NTSTATUS GetDriverInfo(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER_INFO pDrvInfo, _Out_ PULONG pdwNbWrittenBytes)
+static NTSTATUS GetDriverInfo(_In_ PHOOKED_DRIVER pHookedDriver, _Out_ PHOOKED_DRIVER_INFO pDrvInfo, _Out_ PULONG pdwNbWrittenBytes)
 {
-	if (!lpDriverName)
-		return STATUS_INVALID_PARAMETER;
 
-	PHOOKED_DRIVER pHookedDriver;
-
-	NTSTATUS Status = GetHookedDriverByName(lpDriverName, &pHookedDriver);
-	if (!NT_SUCCESS(Status))
-		return Status;
+	NTSTATUS Status = STATUS_SUCCESS;
 
 	__try
 	{
@@ -63,6 +57,13 @@ NTSTATUS HandleIoGetDriverInfo(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCATION Stack, 
             break;
         }
 
+		PHOOKED_DRIVER pHookedDriver;
+		Status = GetHookedDriverByName(lpDriverName, &pHookedDriver);
+		if (!NT_SUCCESS(Status))
+		{
+			break;
+		}
+
 		ULONG OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 		if (OutputBufferLen < sizeof(HOOKED_DRIVER_INFO))
 		{
@@ -70,9 +71,7 @@ NTSTATUS HandleIoGetDriverInfo(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCATION Stack, 
 			break;
 		}
 
-		Status = GetDriverInfo(lpDriverName, lpDriverInfo, pdwDataWritten);
-		if(NT_SUCCESS(Status))
-			CfbDbgPrintInfo(L"info_driver(name='%s',enabled=%d,address=%llx,num=%d, written=%d)\n", lpDriverInfo->Name, lpDriverInfo->Enabled, lpDriverInfo->DriverAddress, lpDriverInfo->NumberOfRequestIntercepted, *pdwDataWritten);
+		Status = GetDriverInfo(pHookedDriver, lpDriverInfo, pdwDataWritten);
 	}
 	while (0);
 

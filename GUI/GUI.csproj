@@ -132,6 +132,7 @@
     <Compile Include="Models\IAsyncIrpDatabase.cs" />
     <Compile Include="Models\Irp.cs" />
     <Compile Include="Models\MonitoredIrps.cs" />
+    <Compile Include="Native\ErrorCodes.cs" />
     <Compile Include="Native\Win32.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\BooleanToVisibilityConverter.cs" />
@@ -141,6 +142,7 @@
     <Compile Include="ViewModels\BindableBase.cs" />
     <Compile Include="ViewModels\BrokerConnectionViewModel.cs" />
     <Compile Include="ViewModels\Converters.cs" />
+    <Compile Include="Helpers\Exceptions.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\MonitoredIrpViewModel.cs" />
     <Compile Include="Views\AboutPage.xaml.cs">

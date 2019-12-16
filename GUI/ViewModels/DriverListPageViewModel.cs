@@ -10,7 +10,7 @@ using System.ComponentModel;
 
 using GUI.Models;
 using GUI.Helpers;
-
+using Windows.UI.Xaml;
 
 namespace GUI.ViewModels
 {
@@ -22,6 +22,17 @@ namespace GUI.ViewModels
         {
             IsLoading = false;
             Drivers = new ObservableCollection<Driver>();
+        }
+
+        public string EnableDisableSelectedDriverText
+        {
+            get
+            {
+                if (_selectedDriver == null)
+                    return "Hook/Unhook";
+
+                return SelectedDriver.IsHooked ? $"Unhook {SelectedDriver.DriverName}" : $"Hook {SelectedDriver.DriverName}";
+            }
         }
 
 
@@ -52,7 +63,7 @@ namespace GUI.ViewModels
 
             try
             {
-                var drivers = await App.BrokerSession.EnumerateDrivers();
+                List<Driver> drivers = await App.BrokerSession.EnumerateDrivers();
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
                     foreach (var d in drivers) 
@@ -66,6 +77,9 @@ namespace GUI.ViewModels
             }
 
             IsLoading = false;
+
+            AppShell shell = Window.Current.Content as AppShell;
+            shell.UpdateGlobalState($"Retrieved {Drivers.Count()} drivers");
         }
 
 

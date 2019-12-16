@@ -35,6 +35,8 @@ namespace GUI.Views
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            AppShell shell = Window.Current.Content as AppShell;
+            shell.UpdateGlobalState("Enumerating driver objects, this operation can be long...");
             ViewModel.LoadDrivers();
         }
 

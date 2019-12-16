@@ -135,6 +135,11 @@
                         </StackPanel>
 
                         <StackPanel Margin="0,20,0,20">
+                            <TextBlock FontWeight="SemiBold" Text="Is enabled?" />
+                            <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsEnabled, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <StackPanel Margin="0,20,0,20">
                             <TextBlock FontWeight="SemiBold" Text="Driver Object address" />
                             <TextBlock Text="{x:Bind vm:Converters.FormatAddressAsHex(ViewModel.SelectedDriver.Address), Mode=OneWay}" />
                         </StackPanel>
@@ -146,7 +151,7 @@
 
                         <StackPanel Margin="0,20,0,20">
                             <Button x:Name="SelectedDriverEnableDisableBtn" Click="SelectedDriverEnableDisableBtn_Click" Margin="10" Width="150">
-                                <TextBlock FontWeight="SemiBold" Text="Enable/Disable" />
+                                <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.EnableDisableSelectedDriverText}" />
                             </Button>
                         </StackPanel>
                     </StackPanel>

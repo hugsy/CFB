@@ -14,6 +14,9 @@ using Windows.Storage.Streams;
 using System.Text;
 using System.Runtime.InteropServices.WindowsRuntime;
 
+using GUI.Helpers;
+using GUI.Native;
+
 namespace GUI.Models
 {
     public enum BrokerConnectionStatus
@@ -32,11 +35,15 @@ namespace GUI.Models
     {
         private ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
         private StreamSocket ClientSocket;
-        public BrokerConnectionStatus _Status;
+        private BrokerConnectionStatus _Status;
+        private Uri uri;
+        
 
 
         public ConnectionManager()
         {
+            uri = new Uri(LocalSettings.Values["IrpBrokerLocation"].ToString());
+            ReinitializeSocket();
         }
 
 
@@ -61,9 +68,9 @@ namespace GUI.Models
             if (_Status == BrokerConnectionStatus.Connected || _Status == BrokerConnectionStatus.Connecting)
                 return true;
 
+            await Close();
             ReinitializeSocket();
 
-            var uri = new Uri(LocalSettings.Values["IrpBrokerLocation"].ToString());
             _Status = BrokerConnectionStatus.Connecting;
             try
             {
@@ -90,17 +97,18 @@ namespace GUI.Models
 
         public string TargetHost
         {
-            get => new Uri( ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString() ).Host;
+            get => uri.Host;
         }
 
         public int TargetPort
         {
-            get => new Uri(ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString()).Port;
+            get => uri.Port;
         }
 
-
-
-
+        public BrokerConnectionStatus Status
+        {
+            get => _Status;
+        }
 
 
         public async Task send(byte[] message)
@@ -195,7 +203,7 @@ namespace GUI.Models
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             JObject msg = await SendAndReceive(MessageType.HookDriver, RawName);
             return (bool)msg["header"]["success"];
-        }
+            }
 
         public async Task<bool> UnhookDriver(String DriverName)
         {
@@ -229,9 +237,20 @@ namespace GUI.Models
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             JObject msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
-            if (((bool)msg["header"]["success"])==false)
-                throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{(uint)msg["header"]["gle"]}");
+            bool is_success = (bool)msg["header"]["success"];
 
+            if (!is_success)
+            {
+                uint gle = (uint)msg["header"]["gle"];
+                switch ((Win32Error)gle)
+                {
+                    case Win32Error.ERROR_FILE_NOT_FOUND:
+                        throw new HookedDriverNotFoundException(DriverName);
+
+                    default:
+                        throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{gle}");
+                }
+            }
             return (JObject) msg["body"];
         }
     }

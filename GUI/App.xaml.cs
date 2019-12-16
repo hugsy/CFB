@@ -17,6 +17,7 @@ using Windows.UI.Xaml.Navigation;
 
 using GUI.ViewModels;
 using GUI.Models;
+using System.Collections.ObjectModel;
 
 namespace GUI
 {
@@ -93,6 +94,5 @@ namespace GUI
         public static IAsyncIrpDatabase Irps { get; private set; }
 
         public static ConnectionManager BrokerSession = new ConnectionManager();
-        
     }
 }

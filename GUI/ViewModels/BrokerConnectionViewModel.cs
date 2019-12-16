@@ -21,7 +21,7 @@ namespace GUI.ViewModels
 
         public BrokerConnectionStatus Status
         {
-            get => Connection._Status;
+            get => Connection.Status;
         }
 
 
