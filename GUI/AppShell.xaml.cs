@@ -184,12 +184,19 @@ namespace GUI
         private async void TryConnect()
         {
             UpdateGlobalState("Connecting...");
-            var t = await App.BrokerSession.Reconnect();
-            if (t && App.BrokerSession.IsConnected)
+            try
             {
-                IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
-                IsConnectedAppBarButton.Label = ConnectedStatusLabel;
-                UpdateGlobalState("Connected");
+                var t = await App.BrokerSession.Reconnect();
+                if (t && App.BrokerSession.IsConnected)
+                {
+                    IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
+                    IsConnectedAppBarButton.Label = ConnectedStatusLabel;
+                    UpdateGlobalState("Connected");
+                }
+            }
+            catch(Exception e)
+            {
+                UpdateGlobalState($"Failed to connect: {e.Message}");
             }
         }
 
@@ -197,10 +204,20 @@ namespace GUI
         private async void TryDisconnect()
         {
             UpdateGlobalState("Disconnecting...");
-            await App.BrokerSession.Close();
-            UpdateGlobalState("Disconnected");
-            IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Red);
-            IsConnectedAppBarButton.Label = DisconnectedStatusLabel;
+            try
+            {
+                await App.BrokerSession.Close();
+                if (! App.BrokerSession.IsConnected)
+                {
+                    IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Red);
+                    IsConnectedAppBarButton.Label = DisconnectedStatusLabel;
+                    UpdateGlobalState("Disconnected");
+                }
+            }
+            catch (Exception e)
+            {
+                UpdateGlobalState($"Failed to disconnect: {e.Message}");
+            }
         }
 
         private async void StartMonitoring_Click(object sender, RoutedEventArgs e)

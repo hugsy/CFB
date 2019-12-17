@@ -134,12 +134,10 @@ SOCKET TcpSocketTransportManager::Accept()
 		return INVALID_SOCKET;
 	}
 
-#ifdef _DEBUG
 	WCHAR lpswIpClient[256] = { 0, };
 	InetNtopW(AF_INET, &SockInfoClient.sin_addr.s_addr, lpswIpClient, _countof(lpswIpClient));
-#endif
-
 	xlog(LOG_SUCCESS, L"New TCP client %s:%d\n", lpswIpClient, ntohs(SockInfoClient.sin_port));
+
 	m_dwServerState = ServerState::ReadyToReadFromClient;
 	return ClientSocket;
 }

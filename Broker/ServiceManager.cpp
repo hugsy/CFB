@@ -227,7 +227,7 @@ BOOL ServiceManager::LoadDriver()
 	//
 	if (!hService)
 	{
-		if (GetLastError() != ERROR_SERVICE_EXISTS)
+		if (::GetLastError() != ERROR_SERVICE_EXISTS)
 		{
 			PrintErrorWithFunctionName(L"CreateService()");
 			return FALSE;
