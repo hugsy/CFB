@@ -13,6 +13,7 @@
 #include "IoRemoveDriver.h"
 #include "IoGetDriverInfo.h"
 #include "IoEnableDisableMonitoring.h"
+#include "IoEnableDisableDriverMonitoring.h"
 #include "IoStoreTestCase.h"
 
 

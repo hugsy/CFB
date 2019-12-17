@@ -186,6 +186,7 @@
     <ClInclude Include="HookedDrivers.h" />
     <ClInclude Include="IoAddDriver.h" />
     <ClInclude Include="IoctlCodes.h" />
+    <ClInclude Include="IoEnableDisableDriverMonitoring.h" />
     <ClInclude Include="IoEnableDisableMonitoring.h" />
     <ClInclude Include="IoGetDriverInfo.h" />
     <ClInclude Include="IoRemoveDriver.h" />
@@ -193,12 +194,14 @@
     <ClInclude Include="InterceptedIrpHandler.h" />
     <ClInclude Include="IoStoreTestCase.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.c" />
     <ClCompile Include="HookedDrivers.c" />
     <ClCompile Include="IoAddDriver.c" />
+    <ClCompile Include="IoEnableDisableDriverMonitoring.c" />
     <ClCompile Include="IoEnableDisableMonitoring.c" />
     <ClCompile Include="IoGetDriverInfo.c" />
     <ClCompile Include="IoRemoveDriver.c" />
@@ -207,6 +210,8 @@
     <ClCompile Include="IoStoreTestCase.c" />
     <ClCompile Include="Queue.c" />
     <ClCompile Include="Utils.c" />
+  </ItemGroup>
+  <ItemGroup>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

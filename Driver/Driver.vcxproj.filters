@@ -63,6 +63,12 @@
     <ClInclude Include="IoStoreTestCase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IoEnableDisableDriverMonitoring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="IoAddDriver.c">
@@ -98,5 +104,10 @@
     <ClCompile Include="IoStoreTestCase.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IoEnableDisableDriverMonitoring.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
   </ItemGroup>
 </Project>

@@ -119,6 +119,20 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
 	NewDriver->DriverObject = pDriver;
 
+	
+	//
+	// The reason we use this trampoline pointer is that hooking can happen at DPC_LEVEL
+	// If so, the pointer we use to swap routines will be located in the stack, which is Non-Pageable
+	// This can result in a BUGCHECK DRIVER_IRQL_NOT_LESS_OR_EQUAL (issue #10)
+	//
+	PULONG_PTR PointerToTarget = ExAllocatePoolWithTag(NonPagedPool, sizeof(PULONG_PTR), CFB_DEVICE_TAG);
+	if (!PointerToTarget)
+	{
+		return STATUS_INSUFFICIENT_RESOURCES;
+	}
+
+	*PointerToTarget = 0;
+
 
 	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
@@ -127,8 +141,9 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	//
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
+		*PointerToTarget = (ULONG_PTR)&pDriver->MajorFunction[i];
         PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
-            (PVOID*)&pDriver->MajorFunction[i],
+            (PVOID*)PointerToTarget,
             (PVOID)InterceptGenericRoutine
         );
 
@@ -144,22 +159,25 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 
 	if (FastIoDispatch)
 	{
+		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoDeviceControl;
 		PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
-			(PVOID*)&FastIoDispatch->FastIoDeviceControl,
+			(PVOID*)PointerToTarget,
 			(PVOID)InterceptGenericFastIoDeviceControl
 		);
 
 		NewDriver->FastIoDeviceControl = OldFastIoDeviceControl;
 
+		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoRead;
 		PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
-			(PVOID*)&FastIoDispatch->FastIoRead,
+			(PVOID*)PointerToTarget,
 			(PVOID)InterceptGenericFastIoRead
 		);
 
 		NewDriver->FastIoRead = OldFastIoRead;
 
+		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoWrite;
 		PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
-			(PVOID*)&FastIoDispatch->FastIoWrite,
+			(PVOID*)PointerToTarget,
 			(PVOID)InterceptGenericFastIoWrite
 		);
 
@@ -177,6 +195,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	NewDriver->Enabled = TRUE;
 
 	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
+
+	ExFreePoolWithTag(PointerToTarget, CFB_DEVICE_TAG);
 
 	return status;
 }

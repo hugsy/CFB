@@ -731,6 +731,14 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
         Status = HandleIoStoreTestCase(Irp, CurrentStack);
         break;
 
+    case IOCTL_EnableDriver:
+        Status = HandleIoEnableDriverMonitoring(Irp, CurrentStack);
+        break;
+
+    case IOCTL_DisableDriver:
+        Status = HandleIoDisableDriverMonitoring(Irp, CurrentStack);
+        break;
+
     default:
         CfbDbgPrintErr(L"Received invalid ioctl code 0x%X\n", IoctlCode);
         Status = STATUS_INVALID_DEVICE_REQUEST;
