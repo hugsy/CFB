@@ -205,7 +205,7 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 		{
 			dwFlags = 0;
 			DWORD dwIndex = ::WSAWaitForMultipleEvents(1, &Overlapped.hEvent, TRUE, WSA_INFINITE, FALSE);
-			if (dwIndex == WSA_WAIT_FAILED)
+			if (dwIndex == WSA_WAIT_FAILED || !Overlapped.hEvent)
 				break;
 			::WSAResetEvent(Overlapped.hEvent);
 			::WSAGetOverlappedResult(m_ClientSocket, &Overlapped, &dwNbRecvBytes, FALSE, &dwFlags);

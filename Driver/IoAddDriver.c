@@ -24,7 +24,7 @@ VOID InitializeIoAddDriverStructure()
 --*/
 NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 {
-	NTSTATUS status = STATUS_SUCCESS;
+	NTSTATUS Status = STATUS_SUCCESS;
 
 	/* make sure the list is not full */
 	if (GetNumberOfHookedDrivers() == CFB_MAX_HOOKED_DRIVERS)
@@ -46,7 +46,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     case Driver:
     case FileSystem:
 
-        status = ObReferenceObjectByName(
+        Status = ObReferenceObjectByName(
             /* IN PUNICODE_STRING */ &UnicodeName,
             /* IN ULONG */ OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
             /* IN PACCESS_STATE */ NULL,
@@ -57,15 +57,15 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
             /* OUT PVOID* */ (PVOID*)&pDriver
         );
 
-        if (!NT_SUCCESS(status))
-            return status;
+        if (!NT_SUCCESS(Status))
+            return Status;
 
 
         break;
 
     case Device:
 		
-        status = ObReferenceObjectByName(
+        Status = ObReferenceObjectByName(
             &UnicodeName,
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
             NULL,
@@ -79,8 +79,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 		// always returns 0xc0000024 
 		
 
-        if (!NT_SUCCESS(status))
-            return status;
+        if (!NT_SUCCESS(Status))
+            return Status;
 
 
         pDriver = pDevice->DriverObject;
@@ -120,19 +120,6 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	NewDriver->DriverObject = pDriver;
 
 	
-	//
-	// The reason we use this trampoline pointer is that hooking can happen at DPC_LEVEL
-	// If so, the pointer we use to swap routines will be located in the stack, which is Non-Pageable
-	// This can result in a BUGCHECK DRIVER_IRQL_NOT_LESS_OR_EQUAL (issue #10)
-	//
-	PULONG_PTR PointerToTarget = ExAllocatePoolWithTag(NonPagedPool, sizeof(PULONG_PTR), CFB_DEVICE_TAG);
-	if (!PointerToTarget)
-	{
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-
-	*PointerToTarget = 0;
-
 
 	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
@@ -141,9 +128,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	//
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
-		*PointerToTarget = (ULONG_PTR)&pDriver->MajorFunction[i];
         PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
-            (PVOID*)PointerToTarget,
+            (PVOID*)&pDriver->MajorFunction[i],
             (PVOID)InterceptGenericRoutine
         );
 
@@ -155,29 +141,24 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 	// Exchange pointer for Fast IO dispatcher
 	//
 	
-	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
-
-	if (FastIoDispatch)
+	if (pDriver->FastIoDispatch)
 	{
-		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoDeviceControl;
 		PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
-			(PVOID*)PointerToTarget,
+			(PVOID*)&pDriver->FastIoDispatch->FastIoDeviceControl,
 			(PVOID)InterceptGenericFastIoDeviceControl
 		);
 
 		NewDriver->FastIoDeviceControl = OldFastIoDeviceControl;
 
-		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoRead;
 		PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
-			(PVOID*)PointerToTarget,
+			(PVOID*)&pDriver->FastIoDispatch->FastIoRead,
 			(PVOID)InterceptGenericFastIoRead
 		);
 
 		NewDriver->FastIoRead = OldFastIoRead;
 
-		*PointerToTarget = (ULONG_PTR)&FastIoDispatch->FastIoWrite;
 		PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
-			(PVOID*)PointerToTarget,
+			(PVOID*)&pDriver->FastIoDispatch->FastIoWrite,
 			(PVOID)InterceptGenericFastIoWrite
 		);
 
@@ -196,9 +177,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 
 	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 
-	ExFreePoolWithTag(PointerToTarget, CFB_DEVICE_TAG);
-
-	return status;
+	return Status;
 }
 
 

@@ -43,21 +43,20 @@ NTSTATUS RemoveDriverByName(LPWSTR lpDriverName)
 	// Restore Fast IO Dispatch pointers
 	//
 	
-	PFAST_IO_DISPATCH FastIoDispatch = pDriver->FastIoDispatch;
-	if (FastIoDispatch)
+	if (pDriver->FastIoDispatch)
 	{
 		InterlockedExchangePointer(
-			(PVOID)&FastIoDispatch->FastIoDeviceControl,
+			(PVOID)&pDriver->FastIoDispatch->FastIoDeviceControl,
 			(PVOID)pHookedDriverToRemove->FastIoDeviceControl
 		);
 
 		InterlockedExchangePointer(
-			(PVOID)&FastIoDispatch->FastIoRead,
+			(PVOID)&pDriver->FastIoDispatch->FastIoRead,
 			(PVOID)pHookedDriverToRemove->FastIoRead
 		);
 
 		InterlockedExchangePointer(
-			(PVOID)&FastIoDispatch->FastIoWrite,
+			(PVOID)&pDriver->FastIoDispatch->FastIoWrite,
 			(PVOID)pHookedDriverToRemove->FastIoWrite
 		);
 	}
