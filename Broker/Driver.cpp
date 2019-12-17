@@ -401,13 +401,6 @@ static Task SendTaskToDriver(_In_ Task task, _In_ HANDLE hDevice)
 		dwOutputBufferSize = 0;
 	}
 
-	if (dwErrCode == ERROR_SUCCESS && task.IoctlCode() == IOCTL_GetDriverInfo)
-	{
-		auto info = reinterpret_cast<PHOOKED_DRIVER_INFO>(lpOutputBuffer);
-		if(info)
-			dbg(L"info_driver(name='%s',enabled=%d,address=%llx,num=%d)\n", info->Name, info->Enabled, info->DriverAddress, info->NumberOfRequestIntercepted);
-	}
-
 	//
 	// Create the response task object, and specify the ioctl retcode
 	//

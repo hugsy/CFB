@@ -57,7 +57,7 @@ namespace GUI.Models
 
         public async Task<bool> Close()
         {
-            ClientSocket.Dispose();
+            await Task.Run( () => ClientSocket.Dispose() );
             _Status = BrokerConnectionStatus.Disconnected;
             return true;
         }
@@ -68,7 +68,7 @@ namespace GUI.Models
             if (_Status == BrokerConnectionStatus.Connected || _Status == BrokerConnectionStatus.Connecting)
                 return true;
 
-            await Close();
+            _ = await Close();
             ReinitializeSocket();
 
             _Status = BrokerConnectionStatus.Connecting;

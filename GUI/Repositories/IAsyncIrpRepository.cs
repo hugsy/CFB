@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GUI.Models
+using GUI.Models;
+
+
+namespace GUI.Repositories
 {
-    public interface IAsyncIrpDatabase
+    public interface IAsyncIrpRepository
     {
         /// <summary>
         /// Returns all IRPs. 

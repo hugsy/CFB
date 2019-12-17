@@ -96,7 +96,8 @@ namespace GUI.ViewModels
             set
             {
                Set(ref _selectedDriver, value);
-                _selectedDriver.RefreshDriverInfoAsync();
+                if(_selectedDriver != null)
+                    _selectedDriver.RefreshDriverInfoAsync();
             }
         }
 

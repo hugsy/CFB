@@ -14,10 +14,11 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
+using System.Collections.ObjectModel;
 
 using GUI.ViewModels;
 using GUI.Models;
-using System.Collections.ObjectModel;
+using GUI.Repositories;
 
 namespace GUI
 {
@@ -91,7 +92,7 @@ namespace GUI
         /// </summary>
         public static MainViewModel ViewModel { get; } = new MainViewModel();
 
-        public static IAsyncIrpDatabase Irps { get; private set; }
+        public static IAsyncIrpRepository Irps { get; private set; }
 
         public static ConnectionManager BrokerSession = new ConnectionManager();
     }
