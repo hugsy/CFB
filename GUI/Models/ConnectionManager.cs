@@ -33,10 +33,10 @@ namespace GUI.Models
     /// </summary>
     public class ConnectionManager
     {
-        private ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
+        private readonly ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
         private StreamSocket ClientSocket;
         private BrokerConnectionStatus _Status;
-        private Uri uri;
+        private readonly Uri uri;
         
 
 
@@ -111,7 +111,7 @@ namespace GUI.Models
         }
 
 
-        public async Task send(byte[] message)
+        public async Task SendBytes(byte[] message)
         {
             using (DataWriter writer = new DataWriter(ClientSocket.OutputStream))
             {
@@ -134,7 +134,7 @@ namespace GUI.Models
         }
 
 
-        public async Task<byte[]> read()
+        public async Task<byte[]> ReceiveBytes()
         {
             List<byte> DataReceived;
 
@@ -174,9 +174,9 @@ namespace GUI.Models
         private async Task<JObject> SendAndReceive(MessageType type, byte[] args = null)
         {
             BrokerMessage req = new BrokerMessage(type, args);
-            await this.send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
+            await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
 
-            var RawResponse = await this.read();
+            var RawResponse = await this.ReceiveBytes();
             var JsonResponse = JObject.Parse( Encoding.Default.GetString(RawResponse) );
 
             return JsonResponse;

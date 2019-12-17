@@ -137,8 +137,9 @@ SOCKET TcpSocketTransportManager::Accept()
 #ifdef _DEBUG
 	WCHAR lpswIpClient[256] = { 0, };
 	InetNtopW(AF_INET, &SockInfoClient.sin_addr.s_addr, lpswIpClient, _countof(lpswIpClient));
-	dbg(L"New TCP client %s:%d\n", lpswIpClient, ntohs(SockInfoClient.sin_port));
 #endif
+
+	xlog(LOG_SUCCESS, L"New TCP client %s:%d\n", lpswIpClient, ntohs(SockInfoClient.sin_port));
 	m_dwServerState = ServerState::ReadyToReadFromClient;
 	return ClientSocket;
 }
@@ -165,9 +166,6 @@ BOOL TcpSocketTransportManager::SendSynchronous(_In_ const std::vector<byte>& da
 
 	if (::WSASend(m_ClientSocket, &DataBuf, 1, &dwNbSentBytes, dwFlags, NULL, NULL) == SOCKET_ERROR)
 		RAISE_GENERIC_EXCEPTION("SendSynchronous - WSASend:");
-
-	//if (::send(m_ClientSocket, (char*)data.data(), (DWORD)data.size(), 0) < 0)
-	//	RAISE_GENERIC_EXCEPTION("SendSynchronous - send:");
 
 	return true;
 }
@@ -209,6 +207,8 @@ std::vector<byte> TcpSocketTransportManager::ReceiveSynchronous()
 		{
 			dwFlags = 0;
 			DWORD dwIndex = ::WSAWaitForMultipleEvents(1, &Overlapped.hEvent, TRUE, WSA_INFINITE, FALSE);
+			if (dwIndex == WSA_WAIT_FAILED)
+				break;
 			::WSAResetEvent(Overlapped.hEvent);
 			::WSAGetOverlappedResult(m_ClientSocket, &Overlapped, &dwNbRecvBytes, FALSE, &dwFlags);
 			ZeroMemory(&Overlapped, sizeof(WSAOVERLAPPED));
