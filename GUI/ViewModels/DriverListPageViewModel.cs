@@ -16,9 +16,8 @@ namespace GUI.ViewModels
 {
     public class DriverListPageViewModel : BindableBase
     {
-
-
-        public DriverListPageViewModel() => Task.Run(() => GetDriversAsync());
+        public DriverListPageViewModel() 
+            => Task.Run(() => GetDriversAsync());
 
 
         public string EnableDisableSelectedDriverText

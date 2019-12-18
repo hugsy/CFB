@@ -8,6 +8,8 @@
 class Session;
 class Task;
 
+#include <optional>
+#include <string>
 
 //
 // Max number of JSON entries that can be served at a time
@@ -24,8 +26,20 @@ public:
 	DWORD RunForever() { return m_Transport.RunForever(m_Session); }
 	BOOL Send(_In_ const std::vector<byte>& data) { return m_Transport.SendSynchronous(data); }
 	std::vector<byte> Receive() { return m_Transport.ReceiveSynchronous(); }
-	Task ProcessNextRequest();
+	//Task ProcessNextRequest();
+	std::vector<Task> ProcessNextRequest();
 	BOOL ForwardReply();
+
+
+private:
+	//PipeTransportManager m_Transport;
+	TcpSocketTransportManager m_Transport;
+	Session& m_Session;
+	std::vector<byte> m_ReceivedBytes;
+
+
+	Task ProcessJsonTask(const std::string& json_request_as_string);
+	std::optional<std::string> GetNextJsonStringMessage();
 
 
 	//
@@ -33,12 +47,6 @@ public:
 	//
 	DWORD SendInterceptedIrps();
 	DWORD SendDriverList();
-
-
-private:
-	//PipeTransportManager m_Transport;
-	TcpSocketTransportManager m_Transport;
-	Session& m_Session;
 };
 
 

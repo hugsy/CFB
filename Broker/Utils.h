@@ -15,5 +15,6 @@ namespace Utils
 	std::vector<BYTE> base64_decode(std::string const& encoded_string);
 	std::vector<std::string> EnumerateDrivers();
 	std::vector<std::pair<std::wstring, std::wstring>> EnumerateObjectDirectory(const std::wstring& Root);
+	std::string WideStringToString(const std::wstring& original);
 };
 

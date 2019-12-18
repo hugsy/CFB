@@ -219,3 +219,26 @@ std::vector<std::pair<std::wstring, std::wstring>> Utils::EnumerateObjectDirecto
 	return ObjectList;
 }
 
+
+
+/*++
+  
+  todo find better way
+
+ --*/
+std::string Utils::WideStringToString(const std::wstring& w)
+{
+	// std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter_ws2s; // non c++-17 friendly
+	// converter_ws2s.to_bytes(wstr);
+
+
+	// std::string s(w.begin(), w.end()); // tons of warning
+
+	// below is ugly AF but there's no easy (+ms friendly) way for c++17
+	// todo: eventually need to improve
+
+	std::string s;
+	for (auto c : w)
+		s += (char)c;
+	return s;
+}

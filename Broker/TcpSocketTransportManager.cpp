@@ -298,22 +298,23 @@ static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 				continue;
 
 			//
-			// if here, process the request
+			// if here, process the requests (there may be multiple task per read)
 			//
-			auto task = Sess.FrontEndServer.ProcessNextRequest();
-
-			switch (task.Type())
+			for (auto task : Sess.FrontEndServer.ProcessNextRequest())
 			{
-			case TaskType::GetInterceptedIrps:	continue;
-			case TaskType::EnumerateDrivers:	continue;
-			case TaskType::ReplayIrp:			continue;
-			}
+				switch (task.Type())
+				{
+				case TaskType::GetInterceptedIrps:	continue;
+				case TaskType::EnumerateDrivers:	continue;
+				case TaskType::ReplayIrp:			continue;
+				}
 
-			//
-			// and send the response
-			//
-			if (!Sess.FrontEndServer.ForwardReply())
-				RAISE_GENERIC_EXCEPTION("ForwardReply");
+				//
+				// and send the response
+				//
+				if (!Sess.FrontEndServer.ForwardReply())
+					RAISE_GENERIC_EXCEPTION("ForwardReply");
+			}
 		}
 		catch (InvalidRequestException & e)
 		{

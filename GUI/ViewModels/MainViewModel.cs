@@ -55,8 +55,5 @@ namespace GUI.ViewModels
                 IsLoading = false;
             });
         }
-
     }
-
-
 }

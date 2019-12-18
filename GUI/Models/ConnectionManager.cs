@@ -244,20 +244,6 @@ namespace GUI.Models
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             var msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
-
-            /*
-            if (!msg.header.is_success)
-            {
-                switch (msg.header.gle)
-                {
-                    case Win32Error.ERROR_FILE_NOT_FOUND:
-                        throw new HookedDriverNotFoundException(DriverName);
-
-                    default:
-                        throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{msg.header.gle}");
-                }
-            }
-            */
             return msg;
         }
     }

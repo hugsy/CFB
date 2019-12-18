@@ -1,9 +1,10 @@
 #include "FrontEndServer.h"
 
-
+#include <algorithm>
 #include <iostream>
 #include <locale>
 #include <codecvt>
+#include <optional>
 
 #include "taskmanager.h"
 #include "Session.h"
@@ -62,24 +63,97 @@ FrontEndServer::~FrontEndServer() noexcept(false)
 }
 
 
-Task FrontEndServer::ProcessNextRequest()
+
+std::vector<Task> FrontEndServer::ProcessNextRequest()
 {
+	dbg(L"in ProcessNextRequest\n");
+
 	//
-	// read the json message
+	// read the bytes from the wire
 	//
 	auto RequestBufferRaw = m_Session.FrontEndServer.Receive();
 
 	if (RequestBufferRaw.size() == 0)
-		RAISE_EXCEPTION(InvalidRequestException,"Receive() should not be empty");
+		RAISE_EXCEPTION(InvalidRequestException, "Receive() should not be empty");
 
 #ifdef _DEBUG
 	SIZE_T dwRequestSize = RequestBufferRaw.size();
 	dbg(L"new message from client (len=%lu)\n", dwRequestSize);
-	//hexdump(RequestBufferRaw.data(), dwRequestSize);
 #endif // _DEBUG
 
-	const std::string request_str(RequestBufferRaw.begin(), RequestBufferRaw.end());
-	auto json_request = json::parse(request_str);
+
+	//
+	// json messages can arrived fragmented, so we concat the data received to the data 
+	// from potential previous read
+	//
+	std::move(RequestBufferRaw.begin(), RequestBufferRaw.end(), std::back_inserter(m_ReceivedBytes));
+
+	std::vector<Task> tasks;
+
+	// one message can contain multiple json, process for every one of them
+	while(true)
+	{
+		try 
+		{ 
+			if (auto json_request = GetNextJsonStringMessage())
+			{
+				std::cerr << *json_request << std::endl;
+				auto t = ProcessJsonTask(*json_request);
+				tasks.push_back(t);
+			}
+			else
+			{
+				break;
+			}
+		}
+		catch (...) 
+		{
+			// todo: make proper exception
+			break;
+		}
+	}
+
+	dbg(L"got %d tasks\n", tasks.size());
+
+	return tasks;
+}
+
+
+/*++
+
+Consume from m_ReceivedBytes until it receives a valid JSON message, or throws an exception if non available
+
+--*/
+std::optional<std::string> FrontEndServer::GetNextJsonStringMessage()
+{
+	unsigned int level = 0;
+	size_t offset_current = 0;
+
+	for (auto b : m_ReceivedBytes)
+	{
+		if (b == '{') level++;
+		if (b == '}') level--;
+
+		if (level == 0 && offset_current)
+		{
+			offset_current++;
+			std::string jsonstr = std::string(m_ReceivedBytes.begin(), m_ReceivedBytes.begin() + offset_current);
+			m_ReceivedBytes.erase(m_ReceivedBytes.begin(), m_ReceivedBytes.begin() + offset_current);
+			return jsonstr;
+		}
+
+		offset_current++;
+	}
+
+	return {};
+}
+
+
+
+Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
+{
+	// todo: catch json exception cleanly
+	auto json_request = json::parse(json_request_as_string);
 	const TaskType type = static_cast<TaskType>(json_request["header"]["type"]);
 	DWORD dwDataLength = json_request["body"]["param_length"];
 	auto data = json_request["body"]["param"].get<std::string>();
@@ -287,28 +361,22 @@ DWORD FrontEndServer::SendDriverList()
 		}
 	}};
 
-
 	j["body"]["drivers"] = json::array();
 	
-	// wstring -> string converter
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> wide_converter;
 	std::vector<std::wstring> roots = { L"\\Driver" , L"\\FileSystem" };
 	for (auto root : roots)
 	{
 		for (auto driver : Utils::EnumerateObjectDirectory(root))
 		{
 			std::wstring driver_abspath = root + std::wstring(L"\\") + driver.first;
-			std::string driver_name = wide_converter.to_bytes(driver_abspath);
+			std::string driver_name = Utils::WideStringToString(driver_abspath);
 			j["body"]["drivers"].push_back(driver_name);
 			i++;
 		}
 	}
-
 	
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
-
-	dbg(L"EnumerateDrivers():\n%S\n", str.c_str());
 
 	if (!m_Session.FrontEndServer.Send(raw))
 	{

@@ -435,13 +435,14 @@ DWORD PipeTransportManager::RunForever(_In_ Session& Sess)
 		{
 			try
 			{
-				auto task = Sess.FrontEndServer.ProcessNextRequest();
-
-				switch (task.Type())
+				for (auto task : Sess.FrontEndServer.ProcessNextRequest())
 				{
-				case TaskType::GetInterceptedIrps:	continue;
-				case TaskType::EnumerateDrivers:	continue;
-				case TaskType::ReplayIrp:			continue;
+					switch (task.Type())
+					{
+					case TaskType::GetInterceptedIrps:	continue;
+					case TaskType::EnumerateDrivers:	continue;
+					case TaskType::ReplayIrp:			continue;
+					}
 				}
 			}
 			catch (BrokenPipeException&)

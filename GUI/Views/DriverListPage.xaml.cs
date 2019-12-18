@@ -39,11 +39,12 @@ namespace GUI.Views
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            /*
             AppShell shell = Window.Current.Content as AppShell;
             shell.UpdateGlobalState("Enumerating driver objects, this operation can be long...");
             try
             {
-                Task.Run( () => ViewModel.GetDriversAsync() ).Wait();
+                await ViewModel.GetDriversAsync();
             }
             catch (Exception ex)
             {
@@ -53,6 +54,7 @@ namespace GUI.Views
 
             //AppShell shell = Window.Current.Content as AppShell;
             shell.UpdateGlobalState($"Retrieved {ViewModel.Drivers.Count()} drivers");
+            */
         }
 
         private void CommandBarDriverInfoButton_Click(object sender, RoutedEventArgs e)
