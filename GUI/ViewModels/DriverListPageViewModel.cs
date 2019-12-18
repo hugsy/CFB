@@ -44,7 +44,7 @@ namespace GUI.ViewModels
         //
         // Collection of drivers visible from the view (set or subset of App.Drivers)
         //
-        public ObservableCollection<Driver> Drivers { get; private set; } = new ObservableCollection<Driver>();
+        public ObservableCollection<DriverViewModel> Drivers { get; private set; } = new ObservableCollection<DriverViewModel>();
 
         public async Task GetDriversAsync(bool forceRefresh=false)
         {
@@ -59,7 +59,7 @@ namespace GUI.ViewModels
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
                 foreach (var d in drivers) 
-                    Drivers.Add(d);
+                    Drivers.Add( new DriverViewModel(d) );
             });
 
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
@@ -70,9 +70,8 @@ namespace GUI.ViewModels
 
 
         public void ForceGetDriversAsync()
-            => GetDriversAsync(true);
+            => Task.Run(() => GetDriversAsync(true));
         
-
 
         private Driver _selectedDriver;
 
