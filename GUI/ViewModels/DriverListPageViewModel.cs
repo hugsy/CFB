@@ -18,11 +18,8 @@ namespace GUI.ViewModels
     {
 
 
-        public DriverListPageViewModel()
-        {
-            IsLoading = false;
-            Drivers = new ObservableCollection<Driver>();
-        }
+        public DriverListPageViewModel() => Task.Run(() => GetDriversAsync());
+
 
         public string EnableDisableSelectedDriverText
         {
@@ -36,7 +33,7 @@ namespace GUI.ViewModels
         }
 
 
-        private bool _isLoading;
+        private bool _isLoading = false;
 
         public bool IsLoading
         {
@@ -47,9 +44,9 @@ namespace GUI.ViewModels
         //
         // Collection of drivers visible from the view (set or subset of App.Drivers)
         //
-        public ObservableCollection<Driver> Drivers { get; private set; }
+        public ObservableCollection<Driver> Drivers { get; private set; } = new ObservableCollection<Driver>();
 
-        public async void GetDriversAsync(bool forceRefresh=false)
+        public async Task GetDriversAsync(bool forceRefresh=false)
         {
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
@@ -65,7 +62,10 @@ namespace GUI.ViewModels
                     Drivers.Add(d);
             });
 
-            IsLoading = false;
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                IsLoading = false;
+            });
         }
 
 

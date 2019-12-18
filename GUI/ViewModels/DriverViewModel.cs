@@ -60,8 +60,8 @@ namespace GUI.ViewModels
                 else
                     data_changed = Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result;
 
-                if (data_changed)
-                    Task.Run(RefreshDriverAsync);
+                //if (data_changed)
+                //    Task.Run(RefreshDriverAsync);
             }
         }
 
@@ -73,6 +73,7 @@ namespace GUI.ViewModels
             get => _isLoading;
             set => Set(ref _isLoading, value);
         }
+
 
 
         public async Task RefreshDriverAsync()
