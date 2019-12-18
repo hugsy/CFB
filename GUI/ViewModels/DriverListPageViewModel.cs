@@ -46,6 +46,12 @@ namespace GUI.ViewModels
         //
         public ObservableCollection<DriverViewModel> Drivers { get; private set; } = new ObservableCollection<DriverViewModel>();
 
+        //
+        // Collection of drivers showing up in the suggestion part of the search box
+        //
+        public ObservableCollection<DriverViewModel> DriverSuggestions { get; } = new ObservableCollection<DriverViewModel>();
+
+
         public async Task GetDriversAsync(bool forceRefresh=false)
         {
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
@@ -73,16 +79,15 @@ namespace GUI.ViewModels
             => Task.Run(() => GetDriversAsync(true));
         
 
-        private Driver _selectedDriver;
+        private DriverViewModel _selectedDriver;
 
-        public Driver SelectedDriver
+        public DriverViewModel SelectedDriver
         {
             get => _selectedDriver;
             set => Set(ref _selectedDriver, value);
         }
 
 
-        public ObservableCollection<Driver> DriverSuggestions { get; } = new ObservableCollection<Driver>();
 
     }
 }

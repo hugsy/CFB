@@ -2,6 +2,9 @@
 
 namespace GUI.ViewModels
 {
+    /// <summary>
+    /// Bunch of View converter helpers to improve the views
+    /// </summary>
     public static class Converters
     {
         /// <summary>
@@ -32,8 +35,13 @@ namespace GUI.ViewModels
         public static Visibility CollapsedIfNullOrEmpty(string value) =>
             string.IsNullOrEmpty(value) ? Visibility.Collapsed : Visibility.Visible;
 
+        /// <summary>
+        /// Display an address as hexa string
+        /// </summary>
+        /// <param name="Address"></param>
+        /// <returns></returns>
         public static string FormatAddressAsHex(ulong Address) =>
-            Address.ToString("X");
+            $"0x{Address.ToString("X")}";
 
     }
 }

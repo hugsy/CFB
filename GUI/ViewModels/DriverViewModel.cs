@@ -44,7 +44,17 @@ namespace GUI.ViewModels
         public bool IsEnabled
         {
             get => Model.IsHooked && Model.IsEnabled;
-            // todo: handle setter
+        }
+
+        public ulong NumberOfRequestIntercepted
+        {
+            get => Model.NumberOfRequestIntercepted;
+        }
+
+
+        public ulong Address
+        {
+            get => Model.Address; 
         }
 
 
