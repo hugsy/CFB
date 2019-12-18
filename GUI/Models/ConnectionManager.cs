@@ -29,7 +29,9 @@ namespace GUI.Models
 
 
     /// <summary>
-    /// This class manages the connection to the remote socket
+    /// 
+    /// This class manages the connection and message to the remote broker
+    /// 
     /// </summary>
     public class ConnectionManager
     {
@@ -171,46 +173,50 @@ namespace GUI.Models
         }
 
 
-        private async Task<JObject> SendAndReceive(MessageType type, byte[] args = null)
+        private async Task<BrokerMessage> SendAndReceive(MessageType type, byte[] args = null)
         {
             BrokerMessage req = new BrokerMessage(type, args);
             await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
 
             var RawResponse = await this.ReceiveBytes();
-            var JsonResponse = JObject.Parse( Encoding.Default.GetString(RawResponse) );
+            //var JsonResponse = JObject.Parse( Encoding.Default.GetString(RawResponse) );
+            BrokerMessage res = JsonConvert.DeserializeObject<BrokerMessage>( Encoding.Default.GetString(RawResponse) );
 
-            return JsonResponse;
+            return res;
         }
 
         
         public async Task<List<Driver>> EnumerateDrivers()
         {
-            JObject msg = await SendAndReceive(MessageType.EnumerateDrivers);
-            bool is_success = (bool)msg["header"]["success"];
-            if (!is_success)
-                throw new Exception("SendAndReceive(EnumerateDrivers) operation returned " + is_success);
-
-
+            var msg = await SendAndReceive(MessageType.EnumerateDrivers);
+            if (!msg.header.is_success)
+                // should never happen, EnumerateDrivers success always return true even if there is no driver
+                throw new Exception($"SendAndReceive({nameof(MessageType.EnumerateDrivers)}) operation returned FALSE: 0x{msg.header.gle:x}");
+                
             List<Driver> drivers = new List<Driver>();
-            foreach (string driver_name in (JArray)msg["body"]["drivers"])
+
+            foreach (string driver_name in msg.body.drivers)
                 drivers.Add( new Driver(driver_name) );
 
             return drivers;
         }
 
+
         public async Task<bool> HookDriver(String DriverName)
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
-            JObject msg = await SendAndReceive(MessageType.HookDriver, RawName);
-            return (bool)msg["header"]["success"];
-            }
+            var msg = await SendAndReceive(MessageType.HookDriver, RawName);
+            return msg.header.is_success;
+        }
+
 
         public async Task<bool> UnhookDriver(String DriverName)
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
-            JObject msg = await SendAndReceive(MessageType.UnhookDriver, RawName);
-            return (bool)msg["header"]["success"];
+            var msg = await SendAndReceive(MessageType.UnhookDriver, RawName);
+            return msg.header.is_success;
         }
+
 
         /// <summary>
         /// Sends a "Start Monitoring" task to the broker
@@ -218,9 +224,10 @@ namespace GUI.Models
         /// <returns>True on success</returns>
         public async Task<bool> StartMonitoring()
         {
-            JObject msg = await SendAndReceive(MessageType.EnableMonitoring);
-            return (bool)msg["header"]["success"];
+            var msg = await SendAndReceive(MessageType.EnableMonitoring);
+            return msg.header.is_success;
         }
+
 
         /// <summary>
         /// Sends a "Stop Monitoring" task to the broker
@@ -228,30 +235,30 @@ namespace GUI.Models
         /// <returns>True on success</returns>
         public async Task<bool> StopMonitoring()
         {
-            JObject msg = await SendAndReceive(MessageType.DisableMonitoring);
-            return (bool)msg["header"]["success"];
+            var msg = await SendAndReceive(MessageType.DisableMonitoring);
+            return msg.header.is_success;
         }
 
 
-        public async Task<JObject> GetDriverInfo(string DriverName)
+        public async Task<BrokerMessage> GetDriverInfo(string DriverName)
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
-            JObject msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
-            bool is_success = (bool)msg["header"]["success"];
+            var msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
 
-            if (!is_success)
+            /*
+            if (!msg.header.is_success)
             {
-                uint gle = (uint)msg["header"]["gle"];
-                switch ((Win32Error)gle)
+                switch (msg.header.gle)
                 {
                     case Win32Error.ERROR_FILE_NOT_FOUND:
                         throw new HookedDriverNotFoundException(DriverName);
 
                     default:
-                        throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{gle}");
+                        throw new Exception($"GetDriverInfo('{DriverName}') failed: GLE=0x{msg.header.gle}");
                 }
             }
-            return (JObject) msg["body"];
+            */
+            return msg;
         }
     }
 }

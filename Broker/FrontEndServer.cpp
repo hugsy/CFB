@@ -80,12 +80,15 @@ Task FrontEndServer::ProcessNextRequest()
 
 	const std::string request_str(RequestBufferRaw.begin(), RequestBufferRaw.end());
 	auto json_request = json::parse(request_str);
-	const TaskType type = static_cast<TaskType>(json_request["body"]["type"]);
-	DWORD dwDataLength = json_request["body"]["data_length"];
-	auto data = json_request["body"]["data"].get<std::string>();
+	const TaskType type = static_cast<TaskType>(json_request["header"]["type"]);
+	DWORD dwDataLength = json_request["body"]["param_length"];
+	auto data = json_request["body"]["param"].get<std::string>();
 	auto lpData = Utils::base64_decode(data);
 
 	assert(lpData.size() == dwDataLength);
+
+	dbg(L"json request:\n%S\n", json_request.dump().c_str());
+
 
 	//
 	// build a Task object from the next message read from the pipe
@@ -132,7 +135,7 @@ BOOL FrontEndServer::ForwardReply()
 
 	json json_response = {
 		{"header", {
-			{"success", task.ErrCode() == ERROR_SUCCESS},
+			{"is_success", task.ErrCode() == ERROR_SUCCESS},
 			{"gle", task.ErrCode()},
 		}
 	} };
@@ -148,10 +151,10 @@ BOOL FrontEndServer::ForwardReply()
 		PHOOKED_DRIVER_INFO data = (PHOOKED_DRIVER_INFO)task.Data();
 		if (task.Length() && data)
 		{
-			json_response["body"]["data"]["DriverAddress"] = data->DriverAddress;
-			json_response["body"]["data"]["Enabled"] = data->Enabled;
-			json_response["body"]["data"]["Name"] = std::wstring(data->Name);
-			json_response["body"]["data"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
+			json_response["body"]["driver"]["Address"] = data->DriverAddress;
+			json_response["body"]["driver"]["IsEnabled"] = data->Enabled;
+			json_response["body"]["driver"]["Name"] = std::wstring(data->Name);
+			json_response["body"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
 		}
 		break;
 	}
@@ -175,7 +178,7 @@ BOOL FrontEndServer::ForwardReply()
 	}
 	else
 	{
-		dbg(L"replied \n%S\n", str.data());
+		dbg(L"json reply:\n%S\n", str.data());
 		task.SetState(TaskState::Completed);
 	}
 
@@ -203,8 +206,9 @@ DWORD FrontEndServer::SendInterceptedIrps()
 {
 	json j = {
 		{"header", {
-			{"success", true},
-			{"gle", ERROR_SUCCESS}
+			{"is_success", true},
+			{"gle", ERROR_SUCCESS},
+			{"type", TaskType::GetInterceptedIrps},
 		}
 	} };
 
@@ -277,8 +281,9 @@ DWORD FrontEndServer::SendDriverList()
 	
 	json j = {
 		{"header", {
-			{"success", true},
-			{"gle", ERROR_SUCCESS}
+			{"is_success", true},
+			{"gle", ERROR_SUCCESS},
+			{"type", TaskType::EnumerateDrivers}
 		}
 	}};
 
@@ -299,15 +304,19 @@ DWORD FrontEndServer::SendDriverList()
 		}
 	}
 
-
+	
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
+
+	dbg(L"EnumerateDrivers():\n%S\n", str.c_str());
 
 	if (!m_Session.FrontEndServer.Send(raw))
 	{
 		PrintErrorWithFunctionName(L"SendSynchronous(Drivers)");
 		return ERROR_INVALID_DATA;
 	}
+
+	dbg(L"EnumerateDrivers() done\n");
 
 	return ERROR_SUCCESS;
 }

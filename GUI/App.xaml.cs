@@ -92,8 +92,11 @@ namespace GUI
         /// </summary>
         public static MainViewModel ViewModel { get; } = new MainViewModel();
 
-        public static IAsyncIrpRepository Irps { get; private set; }
 
-        public static ConnectionManager BrokerSession = new ConnectionManager();
+        public static IAsyncDriverRepository Drivers { get; private set; } = new DriverRepository();
+
+        public static ConnectionManager BrokerSession { get; private set; } = new ConnectionManager();
+
+        public static IAsyncIrpRepository Irps { get; private set; } // todo
     }
 }

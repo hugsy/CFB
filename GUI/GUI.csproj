@@ -126,9 +126,10 @@
     <Compile Include="Models\BrokerMessage.cs" />
     <Compile Include="Models\ConnectionManager.cs" />
     <Compile Include="Models\Constants.cs" />
-    <Compile Include="Models\DbObject.cs" />
     <Compile Include="Models\Device.cs" />
     <Compile Include="Models\Driver.cs" />
+    <Compile Include="Repositories\DriverRepository.cs" />
+    <Compile Include="Repositories\IAsyncDriverRepository.cs" />
     <Compile Include="Repositories\IAsyncIrpRepository.cs" />
     <Compile Include="Models\Irp.cs" />
     <Compile Include="Models\MonitoredIrps.cs" />
@@ -143,6 +144,7 @@
     <Compile Include="ViewModels\BrokerConnectionViewModel.cs" />
     <Compile Include="ViewModels\Converters.cs" />
     <Compile Include="Helpers\Exceptions.cs" />
+    <Compile Include="ViewModels\DriverViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\MonitoredIrpViewModel.cs" />
     <Compile Include="Views\AboutPage.xaml.cs">

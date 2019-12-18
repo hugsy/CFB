@@ -9,18 +9,19 @@ using GUI.Models;
 
 namespace GUI.Repositories
 {
-    public interface IAsyncIrpRepository
+    public interface IAsyncDriverRepository
     {
         /// <summary>
-        /// Returns all IRPs. 
+        /// Returns all drivers. 
         /// </summary>
-        Task<IEnumerable<Irp>> GetAsync();
+        Task<IEnumerable<Driver>> GetAsync(bool forceRefresh);
 
 
         /// <summary>
         /// Returns all IRPs matching a field matching the given pattern. 
         /// </summary>
-        Task<IEnumerable<Irp>> GetAsync(string pattern);
+        Task<IEnumerable<Driver>> GetAsync(string pattern);
 
     }
 }
+

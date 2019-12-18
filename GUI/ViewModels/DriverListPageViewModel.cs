@@ -31,7 +31,7 @@ namespace GUI.ViewModels
                 if (_selectedDriver == null)
                     return "Hook/Unhook";
 
-                return SelectedDriver.IsHooked ? $"Unhook {SelectedDriver.DriverName}" : $"Hook {SelectedDriver.DriverName}";
+                return SelectedDriver.IsHooked ? $"Unhook {SelectedDriver.Name}" : $"Hook {SelectedDriver.Name}";
             }
         }
 
@@ -44,47 +44,33 @@ namespace GUI.ViewModels
             set => Set(ref _isLoading, value);
         }
 
+        //
+        // Collection of drivers visible from the view (set or subset of App.Drivers)
+        //
         public ObservableCollection<Driver> Drivers { get; private set; }
 
-        public async void LoadDrivers(bool forceRefresh=false)
+        public async void GetDriversAsync(bool forceRefresh=false)
         {
-            // use already existing driver list
-            if (Drivers.Count() > 0 && forceRefresh == false)
-            {
-                IsLoading = false;
-                return;
-            }
-
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
                 IsLoading = true;
                 Drivers.Clear();
             });
+           
+            var drivers = await App.Drivers.GetAsync(forceRefresh);
 
-            try
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
-                List<Driver> drivers = await App.BrokerSession.EnumerateDrivers();
-                await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
-                {
-                    foreach (var d in drivers) 
-                        Drivers.Add(d);
-                });
-            }
-            catch (Exception e)
-            {
-                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + e.Message, "Driver listing failed");
-                await dialog.ShowAsync();
-            }
+                foreach (var d in drivers) 
+                    Drivers.Add(d);
+            });
 
             IsLoading = false;
-
-            AppShell shell = Window.Current.Content as AppShell;
-            shell.UpdateGlobalState($"Retrieved {Drivers.Count()} drivers");
         }
 
 
-        public void RefreshDriverList()
-            => LoadDrivers(true);
+        public void ForceGetDriversAsync()
+            => GetDriversAsync(true);
         
 
 
@@ -93,28 +79,11 @@ namespace GUI.ViewModels
         public Driver SelectedDriver
         {
             get => _selectedDriver;
-            set
-            {
-               Set(ref _selectedDriver, value);
-                if(_selectedDriver != null)
-                    _selectedDriver.RefreshDriverInfoAsync();
-            }
+            set => Set(ref _selectedDriver, value);
         }
 
 
         public ObservableCollection<Driver> DriverSuggestions { get; } = new ObservableCollection<Driver>();
 
-        public void UpdateDriverSuggestions(string queryText)
-        {
-            DriverSuggestions.Clear();
-            if (!string.IsNullOrEmpty(queryText))
-            {
-                foreach (Driver driver in Drivers)
-                {
-                    if(driver.DriverName.Contains(queryText))
-                        DriverSuggestions.Add(driver);
-                }
-            }
-        }
     }
 }

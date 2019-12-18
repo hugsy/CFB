@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 using GUI.Helpers;
+using GUI.Native;
+using Newtonsoft.Json.Linq;
 
 namespace GUI.Models
 {
@@ -27,37 +29,58 @@ namespace GUI.Models
 
     public class BrokerMessageHeader
     {
+        public BrokerMessageHeader() { }
+
+        public Win32Error gle;
+        public bool is_success;
+        public MessageType type;
     }
     
 
     public class BrokerMessageBody
     {
-        public MessageType type;
-        public uint data_length;
-        public string data;
+        public BrokerMessageBody() { }
+
+        // used by requests
+        public uint param_length;
+        public string param;
+
+        // used by EnumerateDrivers
+        public List<String> drivers;
+
+        // used by GetDriverInfo
+        public Driver driver;
     }
 
 
     public class BrokerMessage
     {
-        public BrokerMessageHeader headers;
+        public BrokerMessageHeader header;
         public BrokerMessageBody body;
+
+        public BrokerMessage() 
+        { }
+
+
+        public BrokerMessage(MessageType type) : this(type, null)
+        { }
+        
 
         public BrokerMessage(MessageType type, byte[] args)
         {
-            headers = new BrokerMessageHeader();
-            body = new BrokerMessageBody();
+            header = new BrokerMessageHeader();
+            header.type = type;
 
-            body.type = type;
+            body = new BrokerMessageBody();
             if(args == null)
             {
-                body.data_length = 0;
-                body.data = "";
+                body.param_length = 0;
+                body.param = "";
             }
             else
             {
-                body.data_length = (uint)args.Length;
-                body.data = Utils.Base64Encode(args);
+                body.param_length = (uint)args.Length;
+                body.param = Utils.Base64Encode(args);
             }
         }
     }

@@ -12,7 +12,7 @@ namespace GUI.Models
     /// <summary>
     /// Represents IRP
     /// </summary>
-    public class Irp : DbObject, IEquatable<Irp>
+    public class Irp : IEquatable<Irp>
     {
         public enum IrpMajorType : uint
         {
@@ -60,16 +60,10 @@ namespace GUI.Models
         public string ProcessName;
         public byte[] Body;
 
-        public Irp()
-        {
-
-        }
+        public Irp() { }
 
 
-        public Irp(JObject json)
-        {
-
-        }
+        public Irp(JObject json) { }
 
 
         public bool Equals(Irp other) =>

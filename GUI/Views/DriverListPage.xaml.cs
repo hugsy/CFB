@@ -16,6 +16,10 @@ using Windows.UI.Xaml.Navigation;
 
 using GUI.ViewModels;
 using GUI.Models;
+using Microsoft.Toolkit.Uwp.UI.Controls;
+using Microsoft.Toolkit.Uwp.Helpers;
+using System.Threading.Tasks;
+using Windows.UI.Popups;
 
 namespace GUI.Views
 {
@@ -37,7 +41,18 @@ namespace GUI.Views
         {
             AppShell shell = Window.Current.Content as AppShell;
             shell.UpdateGlobalState("Enumerating driver objects, this operation can be long...");
-            ViewModel.LoadDrivers();
+            try
+            {
+                Task.Run( () => ViewModel.GetDriversAsync() ).Wait();
+            }
+            catch (Exception ex)
+            {
+                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + ex.Message, "Driver listing failed");
+                Task.Run( () => dialog.ShowAsync() );
+            }
+
+            //AppShell shell = Window.Current.Content as AppShell;
+            shell.UpdateGlobalState($"Retrieved {ViewModel.Drivers.Count()} drivers");
         }
 
         private void CommandBarDriverInfoButton_Click(object sender, RoutedEventArgs e)
@@ -48,8 +63,7 @@ namespace GUI.Views
         {
             //todo:
             //Frame.Navigate(typeof(DriverDetailPage), ViewModel.SelectedDriver.DriverName);
-        }
-        
+        }    
     
 
         // Navigates to the details page for the selected customer when the user presses SPACE.
@@ -62,24 +76,79 @@ namespace GUI.Views
             }
         }
 
+
+        private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)
+            => (sender as DataGrid).Sort(e.Column, ViewModel.Drivers.Sort);
+        
+    
+
         private void DriverSearchBox_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is UserControls.CollapsibleSearchBox searchBox)
+            if(DriverSearchBox != null)
             {
-                searchBox.AutoSuggestBox.TextChanged += DriverSearch_TextChanged;
-                searchBox.AutoSuggestBox.PlaceholderText = "Filter drivers by name...";
-                searchBox.AutoSuggestBox.ItemTemplate = (DataTemplate)Resources["SearchSuggestionItemTemplate"];
-                searchBox.AutoSuggestBox.ItemContainerStyle = (Style)Resources["SearchSuggestionItemStyle"];
+                DriverSearchBox.AutoSuggestBox.TextChanged += DriverSearchBox_TextChanged;
+                DriverSearchBox.AutoSuggestBox.QuerySubmitted += DriverSearchBox_QuerySubmitted;
+                DriverSearchBox.AutoSuggestBox.PlaceholderText = "Filter driver by name...";
+                DriverSearchBox.AutoSuggestBox.ItemTemplate = (DataTemplate)Resources["SearchSuggestionItemTemplate"];
+                DriverSearchBox.AutoSuggestBox.ItemContainerStyle = (Style)Resources["SearchSuggestionItemStyle"];
             }
         }
 
-        private void DriverSearch_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        private async void DriverSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            if (!String.IsNullOrEmpty(args.QueryText))
+            {
+                string[] parameters = sender.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                var matches = ViewModel.Drivers
+                        .Where(
+                            driver => parameters.Any(
+                                parameter =>
+                                    driver.Name.StartsWith(parameter, StringComparison.OrdinalIgnoreCase)
+                            )
+                        ).OrderByDescending(
+                            driver => parameters.Count(
+                                parameter =>
+                                    driver.Name.StartsWith(parameter, StringComparison.OrdinalIgnoreCase)
+                            )
+                        ).ToList();
+
+                await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+                {
+                    ViewModel.Drivers.Clear();
+                    foreach (var match in matches)
+                    {
+                        ViewModel.Drivers.Add(match);
+                    }
+                });
+            }
+        }
+
+
+        private void DriverSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
         {
             if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             {
-                ViewModel.UpdateDriverSuggestions(sender.Text);
+                //await ViewModel.UpdateDriverSuggestions(sender.Text);
+                if (!String.IsNullOrEmpty(sender.Text))
+                {
+                    string[] parameters = sender.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    sender.ItemsSource = ViewModel.Drivers
+                        .Where(
+                            driver => parameters.Any(
+                                parameter =>
+                                    driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
+                            )
+                        ).OrderByDescending(
+                            driver => parameters.Count(
+                                parameter =>
+                                    driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
+                            )
+                        ).Select(driver => $"{driver.Name}");
+                }
             }
         }
+
 
         private void MenuFlyoutViewDetails_Click(object sender, RoutedEventArgs e) 
         {
