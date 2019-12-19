@@ -45,9 +45,9 @@ json Irp::IrpHeaderToJson()
 	header["Status"] = m_Header.Status;
 	header["InputBufferLength"] = m_Header.InputBufferLength;
 	header["OutputBufferLength"] = m_Header.OutputBufferLength;
-	header["DriverName"] = std::wstring(m_Header.DriverName);
-	header["DeviceName"] = std::wstring(m_Header.DeviceName);
-	header["ProcessName"] = std::wstring(m_Header.ProcessName);
+	header["DriverName"]  = Utils::WideStringToString(std::wstring(m_Header.DriverName));
+	header["DeviceName"]  = Utils::WideStringToString(std::wstring(m_Header.DeviceName));
+	header["ProcessName"] = Utils::WideStringToString(std::wstring(m_Header.ProcessName));
 	return header;
 }
 

@@ -26,7 +26,6 @@ public:
 	DWORD RunForever() { return m_Transport.RunForever(m_Session); }
 	BOOL Send(_In_ const std::vector<byte>& data) { return m_Transport.SendSynchronous(data); }
 	std::vector<byte> Receive() { return m_Transport.ReceiveSynchronous(); }
-	//Task ProcessNextRequest();
 	std::vector<Task> ProcessNextRequest();
 	BOOL ForwardReply();
 

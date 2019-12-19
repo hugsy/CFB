@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
+using GUI.ViewModels;
 using GUI.Models;
 
 
@@ -16,14 +17,16 @@ namespace GUI.ViewModels
         
         public bool IsModified { get; set; }
 
-        public MonitoredIrpViewModel(Irp irp = null) => Model = irp ?? new Irp();
+        public MonitoredIrpViewModel(IrpViewModel irp = null) 
+            => Model = irp ?? new IrpViewModel();
 
-        private Irp _model;
+
+        private IrpViewModel _model;
 
         /// <summary>
         /// In the view, get the associated IRP object
         /// </summary>
-        public Irp Model
+        public IrpViewModel Model
         {
             get => _model;
             set

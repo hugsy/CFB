@@ -144,6 +144,7 @@
     <Compile Include="ViewModels\Converters.cs" />
     <Compile Include="Helpers\Exceptions.cs" />
     <Compile Include="ViewModels\DriverViewModel.cs" />
+    <Compile Include="ViewModels\IrpViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\MonitoredIrpViewModel.cs" />
     <Compile Include="Views\AboutPage.xaml.cs">
