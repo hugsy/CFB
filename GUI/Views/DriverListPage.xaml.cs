@@ -47,19 +47,11 @@ namespace GUI.Views
 
         private void DataGrid_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
         {
-            //todo:
-            //Frame.Navigate(typeof(DriverDetailPage), ViewModel.SelectedDriver.DriverName);
         }    
     
 
-        // Navigates to the details page for the selected customer when the user presses SPACE.
         private void DataGrid_KeyDown(object sender, KeyRoutedEventArgs e)
         {
-            if (e.Key == Windows.System.VirtualKey.Space)
-            {
-                //todo:
-                //Frame.Navigate(typeof(DriverDetailPage), ViewModel.SelectedDriver.DriverName);
-            }
         }
 
 
@@ -115,7 +107,6 @@ namespace GUI.Views
         {
             if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             {
-                //await ViewModel.UpdateDriverSuggestions(sender.Text);
                 if (!String.IsNullOrEmpty(sender.Text))
                 {
                     string[] parameters = sender.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -141,6 +132,7 @@ namespace GUI.Views
             //todo:
             //Frame.Navigate(typeof(DriverDetailPage), ViewModel.SelectedDriver.DriverName, new DrillInNavigationTransitionInfo());
         }
+
 
         private void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
         {

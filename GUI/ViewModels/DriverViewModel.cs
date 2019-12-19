@@ -68,7 +68,10 @@ namespace GUI.ViewModels
                     Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result : 
                     Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
                 if (data_changed)
-                     Task.Run(RefreshDriverAsync);
+                {
+                    Task.Run(RefreshDriverAsync);
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -98,6 +101,8 @@ namespace GUI.ViewModels
                 }
                 else
                 {
+                    Model.IsEnabled = false;
+                    Model.IsHooked = false;
                     Model.Address = ~-1;
                     Model.NumberOfRequestIntercepted = ~-1;
                     Model.Name = $"Error 0x{msg.header.gle}";

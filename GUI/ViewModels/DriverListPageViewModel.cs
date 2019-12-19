@@ -51,6 +51,18 @@ namespace GUI.ViewModels
         public ObservableCollection<DriverViewModel> DriverSuggestions { get; } = new ObservableCollection<DriverViewModel>();
 
 
+        public async Task UpdateDriverCollection(bool forceRefresh)
+        {
+            var drivers = await App.Drivers.GetAsync(forceRefresh);
+
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                foreach (var d in drivers)
+                    Drivers.Add(new DriverViewModel(d));
+            });
+        }
+
+
         public async Task GetDriversAsync(bool forceRefresh=false)
         {
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
@@ -58,14 +70,8 @@ namespace GUI.ViewModels
                 IsLoading = true;
                 Drivers.Clear();
             });
-           
-            var drivers = await App.Drivers.GetAsync(forceRefresh);
 
-            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
-            {
-                foreach (var d in drivers) 
-                    Drivers.Add( new DriverViewModel(d) );
-            });
+            await UpdateDriverCollection(forceRefresh);
 
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
@@ -78,15 +84,19 @@ namespace GUI.ViewModels
             => Task.Run(() => GetDriversAsync(true));
         
 
+        private DriverViewModel _lastselectedDriver;
         private DriverViewModel _selectedDriver;
 
         public DriverViewModel SelectedDriver
         {
-            get => _selectedDriver;
+            get
+            {
+                if (_selectedDriver != null && _lastselectedDriver != _selectedDriver)
+                    _selectedDriver.RefreshDriverAsync();
+                _lastselectedDriver = _selectedDriver;
+                return _selectedDriver;
+            }
             set => Set(ref _selectedDriver, value);
         }
-
-
-
     }
 }
