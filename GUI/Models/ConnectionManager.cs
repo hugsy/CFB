@@ -159,7 +159,10 @@ namespace GUI.Models
 
                     // copy all the data received locally
                     for (uint i = 0; i < LeftToRead; i++)
-                        DataReceived.Add(reader.ReadByte());
+                    {
+                        byte b = reader.ReadByte();
+                        DataReceived.Add(b);
+                    }
 
                     // did we prefetch everything? if so, break out
                     if (LeftToRead < NomimalReadSize)
@@ -179,9 +182,7 @@ namespace GUI.Models
             await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
 
             var RawResponse = await this.ReceiveBytes();
-            //var JsonResponse = JObject.Parse( Encoding.Default.GetString(RawResponse) );
             BrokerMessage res = JsonConvert.DeserializeObject<BrokerMessage>( Encoding.Default.GetString(RawResponse) );
-
             return res;
         }
 

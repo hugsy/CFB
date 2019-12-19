@@ -64,12 +64,9 @@ namespace GUI.ViewModels
 
             set
             {
-                bool data_changed = false;
-                if (IsHooked == false)
-                    data_changed = Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
-                else
-                    data_changed = Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result;
-
+                bool data_changed = IsHooked ? 
+                    Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result : 
+                    Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
                 if (data_changed)
                      Task.Run(RefreshDriverAsync);
             }
