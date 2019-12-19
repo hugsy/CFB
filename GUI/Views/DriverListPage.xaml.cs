@@ -39,22 +39,6 @@ namespace GUI.Views
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            /*
-            AppShell shell = Window.Current.Content as AppShell;
-            shell.UpdateGlobalState("Enumerating driver objects, this operation can be long...");
-            try
-            {
-                await ViewModel.GetDriversAsync();
-            }
-            catch (Exception ex)
-            {
-                var dialog = new MessageDialog("Failed to enumerate drivers, reason: " + ex.Message, "Driver listing failed");
-                Task.Run( () => dialog.ShowAsync() );
-            }
-
-            //AppShell shell = Window.Current.Content as AppShell;
-            shell.UpdateGlobalState($"Retrieved {ViewModel.Drivers.Count()} drivers");
-            */
         }
 
         private void CommandBarDriverInfoButton_Click(object sender, RoutedEventArgs e)

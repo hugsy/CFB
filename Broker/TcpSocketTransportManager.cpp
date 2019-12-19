@@ -282,11 +282,16 @@ static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 		//
 
 		WSANETWORKEVENTS Events = { 0, };
-		::WSAEnumNetworkEvents(ClientSocket, hEvent, &Events);
+		if (::WSAEnumNetworkEvents(ClientSocket, hEvent, &Events) == SOCKET_ERROR)
+		{
+			xlog(LOG_ERROR, L"WSAEnumNetworkEvents() failed with 0x%x\n", WSAGetLastError());
+			continue;
+		}
+
 
 		if (Events.lNetworkEvents & FD_CLOSE)
 		{
-			dbg(L"gracefully disconnecting %x\n", ClientSocket);
+			dbg(L"gracefully disconnecting handle=0x%x\n", ClientSocket);
 			fContinue = false;
 			dwRetCode = ERROR_SUCCESS;
 			continue;

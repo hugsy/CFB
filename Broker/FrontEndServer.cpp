@@ -66,35 +66,33 @@ FrontEndServer::~FrontEndServer() noexcept(false)
 
 std::vector<Task> FrontEndServer::ProcessNextRequest()
 {
-	dbg(L"in ProcessNextRequest\n");
+	std::vector<Task> tasks;
 
-	//
-	// read the bytes from the wire
-	//
-	auto RequestBufferRaw = m_Session.FrontEndServer.Receive();
+	while (true)
+	{
+		//
+		// read the bytes from the wire
+		//
+		auto RequestBufferRaw = m_Session.FrontEndServer.Receive();
 
-	if (RequestBufferRaw.size() == 0)
-		RAISE_EXCEPTION(InvalidRequestException, "Receive() should not be empty");
+		if (RequestBufferRaw.size() == 0)
+			RAISE_EXCEPTION(InvalidRequestException, "Receive() should not be empty");
 
 #ifdef _DEBUG
-	SIZE_T dwRequestSize = RequestBufferRaw.size();
-	dbg(L"new message from client (len=%lu)\n", dwRequestSize);
+		SIZE_T dwRequestSize = RequestBufferRaw.size();
+		dbg(L"new message from client (len=%lu)\n", dwRequestSize);
 #endif // _DEBUG
 
 
-	//
-	// json messages can arrived fragmented, so we concat the data received to the data 
-	// from potential previous read
-	//
-	std::move(RequestBufferRaw.begin(), RequestBufferRaw.end(), std::back_inserter(m_ReceivedBytes));
+		//
+		// json messages can arrived fragmented, so we concat the data received to the data 
+		// from potential previous read
+		//
+		std::move(RequestBufferRaw.begin(), RequestBufferRaw.end(), std::back_inserter(m_ReceivedBytes));
 
-	std::vector<Task> tasks;
-
-	// one message can contain multiple json, process for every one of them
-	while(true)
-	{
-		try 
-		{ 
+		// one message can contain multiple json, process for every one of them
+		while (true)
+		{
 			if (auto json_request = GetNextJsonStringMessage())
 			{
 				std::cerr << *json_request << std::endl;
@@ -106,14 +104,15 @@ std::vector<Task> FrontEndServer::ProcessNextRequest()
 				break;
 			}
 		}
-		catch (...) 
-		{
-			// todo: make proper exception
+
+		//
+		// if we've read everything, m_ReceivedBytes should be empty
+		//
+		if (m_ReceivedBytes.size() == 0)
 			break;
-		}
 	}
 
-	dbg(L"got %d tasks\n", tasks.size());
+	dbg(L"got %d task(s)\n", tasks.size());
 
 	return tasks;
 }
@@ -199,10 +198,10 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 
 BOOL FrontEndServer::ForwardReply()
 {
-
 	//
 	// pop the response task and build the json message
 	//
+	
 	auto task = m_Session.ResponseTasks.pop();
 
 	dbg(L"new response task (id=%d, type='%s', length=%d, gle=%d)\n", task.Id(), task.TypeAsString(), task.Length(), task.ErrCode());
@@ -214,7 +213,7 @@ BOOL FrontEndServer::ForwardReply()
 		}
 	} };
 
-	
+
 	//json_response["body"]["data_length"] = task.Length();
 
 	switch (task.Type())
@@ -255,7 +254,7 @@ BOOL FrontEndServer::ForwardReply()
 		dbg(L"json reply:\n%S\n", str.data());
 		task.SetState(TaskState::Completed);
 	}
-
+	
 	return true;
 }
 

@@ -6,7 +6,6 @@
 #include <queue>
 #include <mutex>
 
-
 class TaskManager
 {
 public:

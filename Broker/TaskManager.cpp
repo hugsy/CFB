@@ -1,5 +1,7 @@
 #include "TaskManager.h"
 
+#include <optional>
+
 
 TaskManager::TaskManager()
 {
@@ -45,13 +47,17 @@ void TaskManager::push(Task task)
 }
 
 
+/*++
+
+pop is should be blocking
+
+--*/
 Task TaskManager::pop()
 {
 	std::unique_lock<std::mutex> mlock(m_mutex);
 	
 	while (m_task_queue.empty())
-		m_cond.wait(mlock);
-	
+		m_cond.wait(mlock);	
 
 	//
 	// copy-pop the top task, mark as delivered

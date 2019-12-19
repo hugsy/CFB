@@ -54,7 +54,7 @@ namespace GUI.ViewModels
 
         public ulong Address
         {
-            get => Model.Address; 
+            get => Model.Address;
         }
 
 
@@ -70,8 +70,8 @@ namespace GUI.ViewModels
                 else
                     data_changed = Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result;
 
-                //if (data_changed)
-                //    Task.Run(RefreshDriverAsync);
+                if (data_changed)
+                     Task.Run(RefreshDriverAsync);
             }
         }
 

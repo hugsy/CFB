@@ -484,6 +484,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			// pop() from request task list. Although the pop is blocking, there should always be
 			// some data available (because of the Event)
 			//
+
 			auto request_task = Sess.RequestTasks.pop();
 
 			//
@@ -495,6 +496,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			// push to response task list
 			//
 			Sess.ResponseTasks.push(response_task);
+			
 			break;
 		}
 
