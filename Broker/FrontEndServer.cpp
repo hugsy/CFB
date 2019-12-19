@@ -9,6 +9,7 @@
 #include "taskmanager.h"
 #include "Session.h"
 #include "task.h"
+#include "Utils.h"
 
 
 #include "json.hpp"
@@ -226,7 +227,7 @@ BOOL FrontEndServer::ForwardReply()
 		{
 			json_response["body"]["driver"]["Address"] = data->DriverAddress;
 			json_response["body"]["driver"]["IsEnabled"] = data->Enabled;
-			json_response["body"]["driver"]["Name"] = std::wstring(data->Name);
+			json_response["body"]["driver"]["Name"] = Utils::WideStringToString(std::wstring(data->Name));
 			json_response["body"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
 		}
 		break;

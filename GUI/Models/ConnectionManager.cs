@@ -39,7 +39,8 @@ namespace GUI.Models
         private StreamSocket ClientSocket;
         private BrokerConnectionStatus _Status;
         private readonly Uri uri;
-        
+        private static readonly SemaphoreSlim sem = new SemaphoreSlim(1, 1);
+
 
 
         public ConnectionManager()
@@ -178,11 +179,22 @@ namespace GUI.Models
 
         private async Task<BrokerMessage> SendAndReceive(MessageType type, byte[] args = null)
         {
-            BrokerMessage req = new BrokerMessage(type, args);
-            await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
+            BrokerMessage req, res;
+            byte[] RawResponse;
+            req = new BrokerMessage(type, args);
 
-            var RawResponse = await this.ReceiveBytes();
-            BrokerMessage res = JsonConvert.DeserializeObject<BrokerMessage>( Encoding.Default.GetString(RawResponse) );
+            await sem.WaitAsync();
+            try
+            {
+                await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
+                RawResponse = await this.ReceiveBytes();
+            }
+            finally
+            {
+                sem.Release();
+            }
+
+            res = JsonConvert.DeserializeObject<BrokerMessage>(Encoding.Default.GetString(RawResponse));
             return res;
         }
 
