@@ -12,7 +12,7 @@ using GUI.Models;
 
 namespace GUI.ViewModels
 {
-    public class MonitoredIrpViewModel
+    public class MonitoredIrpViewModel : BindableBase
     {
         
         public bool IsModified { get; set; }
@@ -38,17 +38,19 @@ namespace GUI.ViewModels
             }
         }
 
+        private IrpViewModel _lastSelectedIrp;
+        private IrpViewModel _selectedIrp;
 
-        public DateTime TimeStamp { get => Model.TimeStamp; }
-        public uint ProcessId { get => Model.ProcessId; }
-        public uint ThreadId { get => Model.ThreadId; }
-        public uint IrqLevel { get => Model.IrqLevel; }
-        public string Type { get => Model.TypeAsString(); }
-        public uint IoctlCode { get => Model.IoctlCode; }
-        public uint InputBufferLength { get => Model.InputBufferLength; }
-        public uint OutputBufferLength { get => Model.OutputBufferLength;  }
-        public string DriverName { get => Model.DriverName; }
-        public string DeviceName { get => Model.DeviceName; }
-        public string ProcessName { get => Model.ProcessName; }
+
+        public IrpViewModel SelectedIrp
+        {
+            get
+            {
+                _lastSelectedIrp = _selectedIrp;
+                return _selectedIrp;
+            }
+            set => Set(ref _selectedIrp, value);
+        }
+
     }
 }

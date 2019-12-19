@@ -8,7 +8,30 @@ using Newtonsoft.Json.Linq;
 
 namespace GUI.Models
 {
-    
+
+    public class IrpHeader
+    {
+        public DateTime TimeStamp;
+        public UInt32 IrqLevel;
+        public UInt32 Type;
+        public UInt32 IoctlCode;
+        public UInt32 ProcessId;
+        public UInt32 ThreadId;
+        public UInt32 InputBufferLength;
+        public UInt32 OutputBufferLength;
+        public string DriverName;
+        public string DeviceName;
+        public string ProcessName;
+    }
+
+
+    public class IrpBody
+    {
+        public byte[] InputBuffer;
+        public byte[] OutputBuffer;
+    }
+
+
     /// <summary>
     /// Represents IRP
     /// </summary>
@@ -47,18 +70,8 @@ namespace GUI.Models
             IRP_MJ_PNP_POWER = IRP_MJ_PNP,
         };
 
-        public DateTime TimeStamp;
-        public UInt32 IrqLevel;
-        public UInt32 Type;
-        public UInt32 IoctlCode;
-        public UInt32 ProcessId;
-        public UInt32 ThreadId;
-        public UInt32 InputBufferLength;
-        public UInt32 OutputBufferLength;
-        public string DriverName;
-        public string DeviceName;
-        public string ProcessName;
-        public byte[] Body;
+        public IrpHeader header;
+        public IrpBody body;
 
         public Irp() { }
 
@@ -67,17 +80,20 @@ namespace GUI.Models
 
 
         public bool Equals(Irp other) =>
-            TimeStamp == other.TimeStamp &&
-            IrqLevel == other.IrqLevel &&
-            Type == other.Type &&
-            IoctlCode == other.IoctlCode &&
-            ProcessId == other.ProcessId && ThreadId == other.ThreadId &&
-            DriverName == other.DriverName && DeviceName == other.DeviceName &&
-            Body == other.Body;
+            header.TimeStamp    == other.header.TimeStamp &&
+            header.IrqLevel     == other.header.IrqLevel &&
+            header.Type         == other.header.Type &&
+            header.IoctlCode    == other.header.IoctlCode &&
+            header.ProcessId    == other.header.ProcessId && 
+            header.ThreadId     == other.header.ThreadId &&
+            header.DriverName   == other.header.DriverName && 
+            header.DeviceName   == other.header.DeviceName &&
+            body.InputBuffer    == other.body.InputBuffer &&
+            body.OutputBuffer   == other.body.OutputBuffer;
 
 
         public override string ToString() => 
-            $"IRP{{'{DeviceName}', Type:{TypeAsString(this.Type)}, PID:#{this.ProcessId} }}";
+            $"IRP{{'{header.DeviceName}', IRQL: {IrqlAsString()}, Type:{TypeAsString()}, PID:#{header.ProcessId} }}";
 
 
         public static string TypeAsString(UInt32 type)
@@ -119,7 +135,7 @@ namespace GUI.Models
 
         public string TypeAsString()
         {
-            return TypeAsString(this.Type);
+            return TypeAsString(header.Type);
         }
 
 
@@ -136,7 +152,7 @@ namespace GUI.Models
 
         public string IrqlAsString()
         {
-            return IrqlAsString(this.IrqLevel);
+            return IrqlAsString(header.IrqLevel);
         }
 
     }

@@ -186,7 +186,15 @@ namespace GUI.Models
             await sem.WaitAsync();
             try
             {
-                await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
+                await this.SendBytes(
+                    Encoding.UTF8.GetBytes(
+                        JsonConvert.SerializeObject(
+                            req,
+                            Newtonsoft.Json.Formatting.None,
+                            new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }
+                        )
+                    )
+                );
                 RawResponse = await this.ReceiveBytes();
             }
             finally
