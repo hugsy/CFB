@@ -159,10 +159,7 @@ namespace GUI.Models
 
                     // copy all the data received locally
                     for (uint i = 0; i < LeftToRead; i++)
-                    {
-                        byte b = reader.ReadByte();
-                        DataReceived.Add(b);
-                    }
+                        DataReceived.Add(reader.ReadByte());
 
                     // did we prefetch everything? if so, break out
                     if (LeftToRead < NomimalReadSize)
