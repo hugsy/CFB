@@ -68,8 +68,8 @@
                     RelativePanel.Below="PageTitle">
 
                 <toolkit:DataGrid
-                        CanUserReorderColumns="False"
-                        CanUserResizeColumns="False"
+                        CanUserReorderColumns="True"
+                        CanUserResizeColumns="True"
                         AutoGenerateColumns="False"
                         Sorting="DataGrid_Sorting"
                         BorderThickness="0"
@@ -77,23 +77,28 @@
                         ItemsSource="{x:Bind ViewModel.Irps}"
                         SelectedItem="{x:Bind ViewModel.SelectedIrp, Mode=TwoWay}"
                         ContextFlyout="{StaticResource DataGridContextMenu}">
+                    
                     <toolkit:DataGrid.Columns>
                         <toolkit:DataGridTextColumn Header="TimeStamp" Tag="TimeStamp" Binding="{Binding TimeStamp}" />
                         <toolkit:DataGridTextColumn Header="Driver Name" Tag="DriverName" Binding="{Binding DriverName}" />
                         <toolkit:DataGridTextColumn Header="Device Name" Tag="DeviceName" Binding="{Binding DeviceName}" />
+                        <toolkit:DataGridTextColumn Header="Process Name" Tag="ProcessName" Binding="{Binding ProcessName}" />
                         <toolkit:DataGridTextColumn Header="Process ID" Tag="ProcessId" Binding="{Binding ProcessId}" />
                         <toolkit:DataGridTextColumn Header="Thread ID" Tag="ThreadId" Binding="{Binding ThreadId}" />
-                        <toolkit:DataGridTextColumn Header="IOCTL Code" Tag="IoctlCode" Binding="{Binding IoctlCode}" />
-                        <!-- add the rest -->
+                        <toolkit:DataGridTextColumn Header="IOCTL Code" Tag="IoctlCode" Binding="{Binding IoctlCodeString}" />
+                        <toolkit:DataGridTextColumn Header="Input Buffer Length" Tag="InputBufferLength" Binding="{Binding InputBufferLength}" />
+                        <toolkit:DataGridTextColumn Header="Output Buffer Length" Tag="OutputBufferLength" Binding="{Binding OutputBufferLength}" />
+                        <toolkit:DataGridTextColumn Header="Input Buffer" Tag="InputBuffer" Binding="{Binding InputBufferString}" />
+                        <toolkit:DataGridTextColumn Header="Output Buffer" Tag="OutputBuffer" Binding="{Binding OutputBufferString}" />
+                        
                     </toolkit:DataGrid.Columns>
                 </toolkit:DataGrid>
 
                 <ProgressBar
-                        Margin="0,50,0,0"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Top"
-                        IsIndeterminate="True"
-                       />
+                            Margin="0,50,0,0"
+                            VerticalAlignment="Top"
+                            IsIndeterminate="True"
+                            Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Grid.ColumnSpan="2" />
             </Grid>
         </RelativePanel>
     </Grid>

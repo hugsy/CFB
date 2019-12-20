@@ -40,14 +40,14 @@ json Irp::IrpHeaderToJson()
 	header["Type"] = m_Header.Type;
 	header["IsFastIo"] = (bool)(m_Header.Type & 0x80000000);
 	header["IoctlCode"] = m_Header.IoctlCode;
-	header["Pid"] = m_Header.Pid;
-	header["Tid"] = m_Header.Tid;
+	header["ProcessId"] = m_Header.Pid;
+	header["ThreadId"] = m_Header.Tid;
 	header["Status"] = m_Header.Status;
 	header["InputBufferLength"] = m_Header.InputBufferLength;
 	header["OutputBufferLength"] = m_Header.OutputBufferLength;
-	header["DriverName"] = std::wstring(m_Header.DriverName);
-	header["DeviceName"] = std::wstring(m_Header.DeviceName);
-	header["ProcessName"] = std::wstring(m_Header.ProcessName);
+	header["DriverName"]  = Utils::WideStringToString(std::wstring(m_Header.DriverName));
+	header["DeviceName"]  = Utils::WideStringToString(std::wstring(m_Header.DeviceName));
+	header["ProcessName"] = Utils::WideStringToString(std::wstring(m_Header.ProcessName));
 	return header;
 }
 
@@ -72,8 +72,8 @@ json Irp::ToJson()
 {
 	json irp;
 	irp["header"] = IrpHeaderToJson();
-	irp["body"]["input"] = InputBufferToJson();
-	irp["body"]["output"] = OutputBufferToJson();
+	irp["body"]["InputBuffer"] = InputBufferToJson();
+	irp["body"]["OutputBuffer"] = OutputBufferToJson();
 	return irp;
 }
 

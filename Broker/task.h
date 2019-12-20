@@ -33,7 +33,9 @@ enum class TaskType : uint32_t
 	GetInterceptedIrps,
 	ReplayIrp = 10,
 	StoreTestCase,
-	EnumerateDrivers = 12,
+	EnumerateDrivers,
+	EnableDriver,
+	DisableDriver = 14,
 	TaskTypeMax
 };
 

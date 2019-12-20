@@ -160,6 +160,7 @@
                             <ColumnDefinition Width="32*"/>
                         </Grid.ColumnDefinitions>
                         <toolkit:DataGrid
+                            x:Name="DriverDatagrid"
                             BorderThickness="0"
                             CanUserReorderColumns="True"
                             CanUserResizeColumns="True"
@@ -184,7 +185,7 @@
                                 <toolkit:DataGridTextColumn 
                                     Header="Is Hooked?"
                                     Tag="IsHooked"
-                                    CanUserSort="False"
+                                    CanUserSort="True"
                                     IsReadOnly="True"
                                     Binding="{Binding IsHooked}"
                                     />

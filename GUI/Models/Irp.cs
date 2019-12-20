@@ -8,45 +8,9 @@ using Newtonsoft.Json.Linq;
 
 namespace GUI.Models
 {
-    
-    /// <summary>
-    /// Represents IRP
-    /// </summary>
-    public class Irp : IEquatable<Irp>
-    {
-        public enum IrpMajorType : uint
-        {
-            IRP_MJ_CREATE = 0x00,
-            IRP_MJ_CREATE_NAMED_PIPE = 0x01,
-            IRP_MJ_CLOSE = 0x02,
-            IRP_MJ_READ = 0x03,
-            IRP_MJ_WRITE = 0x04,
-            IRP_MJ_QUERY_INFORMATION = 0x05,
-            IRP_MJ_SET_INFORMATION = 0x06,
-            IRP_MJ_QUERY_EA = 0x07,
-            IRP_MJ_SET_EA = 0x08,
-            IRP_MJ_FLUSH_BUFFERS = 0x09,
-            IRP_MJ_QUERY_VOLUME_INFORMATION = 0x0a,
-            IRP_MJ_SET_VOLUME_INFORMATION = 0x0b,
-            IRP_MJ_DIRECTORY_CONTROL = 0x0c,
-            IRP_MJ_FILE_SYSTEM_CONTROL = 0x0d,
-            IRP_MJ_DEVICE_CONTROL = 0x0e,
-            IRP_MJ_INTERNAL_DEVICE_CONTROL = 0x0f,
-            IRP_MJ_SHUTDOWN = 0x10,
-            IRP_MJ_LOCK_CONTROL = 0x11,
-            IRP_MJ_CLEANUP = 0x12,
-            IRP_MJ_CREATE_MAILSLOT = 0x13,
-            IRP_MJ_QUERY_SECURITY = 0x14,
-            IRP_MJ_SET_SECURITY = 0x15,
-            IRP_MJ_POWER = 0x16,
-            IRP_MJ_SYSTEM_CONTROL = 0x17,
-            IRP_MJ_DEVICE_CHANGE = 0x18,
-            IRP_MJ_QUERY_QUOTA = 0x19,
-            IRP_MJ_SET_QUOTA = 0x1a,
-            IRP_MJ_PNP = 0x1b,
-            IRP_MJ_PNP_POWER = IRP_MJ_PNP,
-        };
 
+    public class IrpHeader
+    {
         public DateTime TimeStamp;
         public UInt32 IrqLevel;
         public UInt32 Type;
@@ -55,10 +19,84 @@ namespace GUI.Models
         public UInt32 ThreadId;
         public UInt32 InputBufferLength;
         public UInt32 OutputBufferLength;
+        public UInt32 Status;
         public string DriverName;
         public string DeviceName;
         public string ProcessName;
-        public byte[] Body;
+    }
+
+
+    public class IrpBody
+    {
+        public byte[] InputBuffer;
+        public byte[] OutputBuffer;
+    }
+
+    public enum IrqLevel : uint
+    {
+        // Software
+        PASSIVE_LEVEL = 0,
+        LOW_LEVEL = 0,
+        APC_LEVEL = 1,
+        DPC_LEVEL = 2,
+
+        // Hardware
+        // TODO: add the rest
+        // DIRQL_[3-26]
+        PROFILE_LEVEL = 27, // 0x1B = timer used for profiling.
+        CLOCK1_LEVEL = 28, // 0x1C = Interval clock 1 level - Not used on x86
+        CLOCK2_LEVEL = 28, // 0x1C = Interval clock 2 level
+        SYNCH_LEVEL = 28, // 0x1C = synchronization level
+        IPI_LEVEL = 29, // 0x1D = Interprocessor interrupt level
+        POWER_LEVEL = 30, // 0x1E = Power failure level
+        HIGH_LEVEL = 31, // 0x1F = Highest interrupt level
+    }
+
+
+    public enum IrpMajorType : uint
+    {
+        IRP_MJ_CREATE = 0x00,
+        IRP_MJ_CREATE_NAMED_PIPE = 0x01,
+        IRP_MJ_CLOSE = 0x02,
+        IRP_MJ_READ = 0x03,
+        IRP_MJ_WRITE = 0x04,
+        IRP_MJ_QUERY_INFORMATION = 0x05,
+        IRP_MJ_SET_INFORMATION = 0x06,
+        IRP_MJ_QUERY_EA = 0x07,
+        IRP_MJ_SET_EA = 0x08,
+        IRP_MJ_FLUSH_BUFFERS = 0x09,
+        IRP_MJ_QUERY_VOLUME_INFORMATION = 0x0a,
+        IRP_MJ_SET_VOLUME_INFORMATION = 0x0b,
+        IRP_MJ_DIRECTORY_CONTROL = 0x0c,
+        IRP_MJ_FILE_SYSTEM_CONTROL = 0x0d,
+        IRP_MJ_DEVICE_CONTROL = 0x0e,
+        IRP_MJ_INTERNAL_DEVICE_CONTROL = 0x0f,
+        IRP_MJ_SHUTDOWN = 0x10,
+        IRP_MJ_LOCK_CONTROL = 0x11,
+        IRP_MJ_CLEANUP = 0x12,
+        IRP_MJ_CREATE_MAILSLOT = 0x13,
+        IRP_MJ_QUERY_SECURITY = 0x14,
+        IRP_MJ_SET_SECURITY = 0x15,
+        IRP_MJ_POWER = 0x16,
+        IRP_MJ_SYSTEM_CONTROL = 0x17,
+        IRP_MJ_DEVICE_CHANGE = 0x18,
+        IRP_MJ_QUERY_QUOTA = 0x19,
+        IRP_MJ_SET_QUOTA = 0x1a,
+        IRP_MJ_PNP = 0x1b,
+        IRP_MJ_PNP_POWER = IRP_MJ_PNP,
+        IRP_MJ_MAX = IRP_MJ_PNP_POWER
+    };
+
+
+    /// <summary>
+    /// Represents IRP
+    /// </summary>
+    public class Irp : IEquatable<Irp>
+    {
+
+
+        public IrpHeader header;
+        public IrpBody body;
 
         public Irp() { }
 
@@ -67,77 +105,81 @@ namespace GUI.Models
 
 
         public bool Equals(Irp other) =>
-            TimeStamp == other.TimeStamp &&
-            IrqLevel == other.IrqLevel &&
-            Type == other.Type &&
-            IoctlCode == other.IoctlCode &&
-            ProcessId == other.ProcessId && ThreadId == other.ThreadId &&
-            DriverName == other.DriverName && DeviceName == other.DeviceName &&
-            Body == other.Body;
+            header.TimeStamp    == other.header.TimeStamp &&
+            header.IrqLevel     == other.header.IrqLevel &&
+            header.Type         == other.header.Type &&
+            header.IoctlCode    == other.header.IoctlCode &&
+            header.ProcessId    == other.header.ProcessId && 
+            header.ThreadId     == other.header.ThreadId &&
+            header.Status       == other.header.Status &&
+            header.DriverName   == other.header.DriverName && 
+            header.DeviceName   == other.header.DeviceName &&
+            body.InputBuffer    == other.body.InputBuffer &&
+            body.OutputBuffer   == other.body.OutputBuffer;
 
 
         public override string ToString() => 
-            $"IRP{{'{DeviceName}', Type:{TypeAsString(this.Type)}, PID:#{this.ProcessId} }}";
+            $"IRP{{'{header.DeviceName}', IRQL: {IrqlAsString()}, Type:{TypeAsString()}, PID:#{header.ProcessId} }}";
 
 
         public static string TypeAsString(UInt32 type)
         {
-            switch ((Irp.IrpMajorType)type)
+            var IrpType = (IrpMajorType)type;
+
+            switch (IrpType)
             {
-                case IrpMajorType.IRP_MJ_CREATE:                    return "IRP_MJ_CREATE"; //00
-                case IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE:         return "IRP_MJ_CREATE_NAMED_PIPE"; //01,
-                case IrpMajorType.IRP_MJ_CLOSE:                     return "IRP_MJ_CLOSE"; //02,
-                case IrpMajorType.IRP_MJ_READ:                      return "IRP_MJ_READ"; //03,
-                case IrpMajorType.IRP_MJ_WRITE:                     return "IRP_MJ_WRITE"; //04,
-                case IrpMajorType.IRP_MJ_QUERY_INFORMATION:         return "IRP_MJ_QUERY_INFORMATION"; //05,
-                case IrpMajorType.IRP_MJ_SET_INFORMATION:           return "IRP_MJ_SET_INFORMATION"; //06,
-                case IrpMajorType.IRP_MJ_QUERY_EA:                  return "IRP_MJ_QUERY_EA"; //07,
-                case IrpMajorType.IRP_MJ_SET_EA:                    return "IRP_MJ_SET_EA"; //08,
-                case IrpMajorType.IRP_MJ_FLUSH_BUFFERS:             return "IRP_MJ_FLUSH_BUFFERS"; //09,
-                case IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION:  return "IRP_MJ_QUERY_VOLUME_INFORMATION"; //0a,
-                case IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION:    return "IRP_MJ_SET_VOLUME_INFORMATION"; //0b,
-                case IrpMajorType.IRP_MJ_DIRECTORY_CONTROL:         return "IRP_MJ_DIRECTORY_CONTROL"; //0c,
-                case IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL:       return "IRP_MJ_FILE_SYSTEM_CONTROL"; //0d,
-                case IrpMajorType.IRP_MJ_DEVICE_CONTROL:            return "IRP_MJ_DEVICE_CONTROL"; //0e,
-                case IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:   return "IRP_MJ_INTERNAL_DEVICE_CONTROL"; //0f,
-                case IrpMajorType.IRP_MJ_SHUTDOWN:                  return "IRP_MJ_SHUTDOWN"; //10,
-                case IrpMajorType.IRP_MJ_LOCK_CONTROL:              return "IRP_MJ_LOCK_CONTROL"; //11,
-                case IrpMajorType.IRP_MJ_CLEANUP:                   return "IRP_MJ_CLEANUP"; //12,
-                case IrpMajorType.IRP_MJ_CREATE_MAILSLOT:           return "IRP_MJ_CREATE_MAILSLOT"; //13,
-                case IrpMajorType.IRP_MJ_QUERY_SECURITY:            return "IRP_MJ_QUERY_SECURITY"; //14,
-                case IrpMajorType.IRP_MJ_SET_SECURITY:              return "IRP_MJ_SET_SECURITY"; //15,
-                case IrpMajorType.IRP_MJ_POWER:                     return "IRP_MJ_POWER"; //16,
-                case IrpMajorType.IRP_MJ_SYSTEM_CONTROL:            return "IRP_MJ_SYSTEM_CONTROL"; //17,
-                case IrpMajorType.IRP_MJ_DEVICE_CHANGE:             return "IRP_MJ_DEVICE_CHANGE"; //18,
-                case IrpMajorType.IRP_MJ_QUERY_QUOTA:               return "IRP_MJ_QUERY_QUOTA"; //19,
-                case IrpMajorType.IRP_MJ_SET_QUOTA:                 return "IRP_MJ_SET_QUOTA"; //1a,
-                case IrpMajorType.IRP_MJ_PNP:                       return "IRP_MJ_PNP";//0x1b,
+                case IrpMajorType.IRP_MJ_CREATE:                    return nameof(IrpMajorType.IRP_MJ_CREATE); //00
+                case IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE:         return nameof(IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE); //01,
+                case IrpMajorType.IRP_MJ_CLOSE:                     return nameof(IrpMajorType.IRP_MJ_CLOSE); //02,
+                case IrpMajorType.IRP_MJ_READ:                      return nameof(IrpMajorType.IRP_MJ_READ); //03,
+                case IrpMajorType.IRP_MJ_WRITE:                     return nameof(IrpMajorType.IRP_MJ_WRITE); //04,
+                case IrpMajorType.IRP_MJ_QUERY_INFORMATION:         return nameof(IrpMajorType.IRP_MJ_QUERY_INFORMATION); //05,
+                case IrpMajorType.IRP_MJ_SET_INFORMATION:           return nameof(IrpMajorType.IRP_MJ_SET_INFORMATION); //06,
+                case IrpMajorType.IRP_MJ_QUERY_EA:                  return nameof(IrpMajorType.IRP_MJ_QUERY_EA); //07,
+                case IrpMajorType.IRP_MJ_SET_EA:                    return nameof(IrpMajorType.IRP_MJ_SET_EA); //08,
+                case IrpMajorType.IRP_MJ_FLUSH_BUFFERS:             return nameof(IrpMajorType.IRP_MJ_FLUSH_BUFFERS); //09,
+                case IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION:  return nameof(IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION); //0a,
+                case IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION:    return nameof(IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION); //0b,
+                case IrpMajorType.IRP_MJ_DIRECTORY_CONTROL:         return nameof(IrpMajorType.IRP_MJ_DIRECTORY_CONTROL); //0c,
+                case IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL:       return nameof(IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL); //0d,
+                case IrpMajorType.IRP_MJ_DEVICE_CONTROL:            return nameof(IrpMajorType.IRP_MJ_DEVICE_CONTROL); //0e,
+                case IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:   return nameof(IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL); //0f,
+                case IrpMajorType.IRP_MJ_SHUTDOWN:                  return nameof(IrpMajorType.IRP_MJ_SHUTDOWN); //10,
+                case IrpMajorType.IRP_MJ_LOCK_CONTROL:              return nameof(IrpMajorType.IRP_MJ_LOCK_CONTROL); //11,
+                case IrpMajorType.IRP_MJ_CLEANUP:                   return nameof(IrpMajorType.IRP_MJ_CLEANUP); //12,
+                case IrpMajorType.IRP_MJ_CREATE_MAILSLOT:           return nameof(IrpMajorType.IRP_MJ_CREATE_MAILSLOT); //13,
+                case IrpMajorType.IRP_MJ_QUERY_SECURITY:            return nameof(IrpMajorType.IRP_MJ_QUERY_SECURITY); //14,
+                case IrpMajorType.IRP_MJ_SET_SECURITY:              return nameof(IrpMajorType.IRP_MJ_SET_SECURITY); //15,
+                case IrpMajorType.IRP_MJ_POWER:                     return nameof(IrpMajorType.IRP_MJ_POWER); //16,
+                case IrpMajorType.IRP_MJ_SYSTEM_CONTROL:            return nameof(IrpMajorType.IRP_MJ_SYSTEM_CONTROL); //17,
+                case IrpMajorType.IRP_MJ_DEVICE_CHANGE:             return nameof(IrpMajorType.IRP_MJ_DEVICE_CHANGE); //18,
+                case IrpMajorType.IRP_MJ_QUERY_QUOTA:               return nameof(IrpMajorType.IRP_MJ_QUERY_QUOTA); //19,
+                case IrpMajorType.IRP_MJ_SET_QUOTA:                 return nameof(IrpMajorType.IRP_MJ_SET_QUOTA); //1a,
+                case IrpMajorType.IRP_MJ_PNP:                       return nameof(IrpMajorType.IRP_MJ_PNP);//0x1b,
             }
-            return $"IRP_MJ_UNKNOWN_NUM_{type}";
+            return $"IRP_MJ_<unknown>_{type:x}";
         }
 
 
         public string TypeAsString()
-        {
-            return TypeAsString(this.Type);
-        }
+            => TypeAsString(header.Type);
 
 
         public static string IrqlAsString(UInt32 irql)
         {
-            switch (irql)
+            var irqLevel = (IrqLevel)irql;
+            switch (irqLevel)
             {
-                case 0:                    return "PASSIVE_LEVEL";
-                case 1:                    return "APC_LEVEL";
-                case 2:                    return "DPC_LEVEL";
+                case IrqLevel.PASSIVE_LEVEL:       return nameof(IrqLevel.PASSIVE_LEVEL);
+                case IrqLevel.APC_LEVEL:           return nameof(IrqLevel.APC_LEVEL);
+                case IrqLevel.DPC_LEVEL:           return nameof(IrqLevel.DPC_LEVEL);
             }
-            return "<unknown>";
+            return $"IRQ_<unknown>_{irqLevel:x}";
         }
 
+
         public string IrqlAsString()
-        {
-            return IrqlAsString(this.IrqLevel);
-        }
+           => IrqlAsString(header.IrqLevel);
 
     }
 }

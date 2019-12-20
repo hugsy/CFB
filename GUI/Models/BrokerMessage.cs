@@ -10,20 +10,26 @@ using Newtonsoft.Json.Linq;
 
 namespace GUI.Models
 {
+    /// <summary>
+    /// The different message types to the Broker
+    /// The values must be *exactly* the same as the ones defined in Broker\Task.h
+    /// </summary>
     public enum MessageType : uint
     {
-        IoctlResponse = 1,
-        HookDriver = 2,
-        UnhookDriver = 3,
-        GetDriverInfo = 4,
-        NumberOfDriver = 5,
-        NotifyEventHandle = 6,
-        EnableMonitoring = 7,
-        DisableMonitoring = 8,
-        GetInterceptedIrps = 9,
-        ReplayIrp = 10,
-        StoreTestCase = 11,
-        EnumerateDrivers = 12
+        IoctlResponse       = 1, // useless now, todo replace with something more useful
+        HookDriver          = 2,
+        UnhookDriver        = 3,
+        GetDriverInfo       = 4,
+        NumberOfDriver      = 5,
+        NotifyEventHandle   = 6, // don't use, todo remove
+        EnableMonitoring    = 7,
+        DisableMonitoring   = 8,
+        GetInterceptedIrps  = 9,
+        ReplayIrp           = 10,
+        StoreTestCase       = 11,
+        EnumerateDrivers    = 12,
+        EnableDriver        = 13,
+        DisableDriver       = 14,
     };
 
 
@@ -50,6 +56,10 @@ namespace GUI.Models
 
         // used by GetDriverInfo
         public Driver driver;
+
+        //used by GetInterceptedIrps
+        public uint nb_irps;
+        public List<Irp> irps;
     }
 
 

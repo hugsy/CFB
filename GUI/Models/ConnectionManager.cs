@@ -39,7 +39,8 @@ namespace GUI.Models
         private StreamSocket ClientSocket;
         private BrokerConnectionStatus _Status;
         private readonly Uri uri;
-        
+        private static readonly SemaphoreSlim sem = new SemaphoreSlim(1, 1);
+
 
 
         public ConnectionManager()
@@ -175,11 +176,30 @@ namespace GUI.Models
 
         private async Task<BrokerMessage> SendAndReceive(MessageType type, byte[] args = null)
         {
-            BrokerMessage req = new BrokerMessage(type, args);
-            await this.SendBytes(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(req)));
+            BrokerMessage req, res;
+            byte[] RawResponse;
+            req = new BrokerMessage(type, args);
 
-            var RawResponse = await this.ReceiveBytes();
-            BrokerMessage res = JsonConvert.DeserializeObject<BrokerMessage>( Encoding.Default.GetString(RawResponse) );
+            await sem.WaitAsync();
+            try
+            {
+                await this.SendBytes(
+                    Encoding.UTF8.GetBytes(
+                        JsonConvert.SerializeObject(
+                            req,
+                            Newtonsoft.Json.Formatting.None,
+                            new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }
+                        )
+                    )
+                );
+                RawResponse = await this.ReceiveBytes();
+            }
+            finally
+            {
+                sem.Release();
+            }
+
+            res = JsonConvert.DeserializeObject<BrokerMessage>(Encoding.Default.GetString(RawResponse));
             return res;
         }
 
@@ -238,10 +258,24 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Get the  hooked driver info, returns a BrokerMessage with the hooked driver properties (driver object 
+        /// address, whether is hooked/enabled or not, etc.) If the driver is not hooked, it returns an error with 
+        /// GLE=FILE_NOT_FOUND.
+        /// </summary>
+        /// <param name="DriverName"></param>
+        /// <returns></returns>
         public async Task<BrokerMessage> GetDriverInfo(string DriverName)
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             var msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
+            return msg;
+        }
+
+
+        public async Task<BrokerMessage> GetInterceptedIrps()
+        {
+            var msg = await SendAndReceive(MessageType.GetInterceptedIrps);
             return msg;
         }
     }

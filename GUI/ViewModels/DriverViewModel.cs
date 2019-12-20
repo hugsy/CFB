@@ -68,7 +68,10 @@ namespace GUI.ViewModels
                     Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result : 
                     Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
                 if (data_changed)
-                     Task.Run(RefreshDriverAsync);
+                {
+                    Task.Run(RefreshDriverAsync);
+                    OnPropertyChanged();
+                }
             }
         }
 
@@ -83,16 +86,27 @@ namespace GUI.ViewModels
 
 
 
-        public async Task RefreshDriverAsync()
+        public async void RefreshDriverAsync()
         {
             var msg = await App.BrokerSession.GetDriverInfo(Name);
 
-            if (!msg.header.is_success && msg.header.gle == Win32Error.ERROR_FILE_NOT_FOUND)
+            if (!msg.header.is_success)
             {
-                Model.IsEnabled = false;
-                Model.IsHooked = false;
-                Model.Address = 0;
-                Model.NumberOfRequestIntercepted = 0;
+                if (msg.header.gle == Win32Error.ERROR_FILE_NOT_FOUND)
+                {
+                    Model.IsEnabled = false;
+                    Model.IsHooked = false;
+                    Model.Address = 0;
+                    Model.NumberOfRequestIntercepted = 0;
+                }
+                else
+                {
+                    Model.IsEnabled = false;
+                    Model.IsHooked = false;
+                    Model.Address = ~-1;
+                    Model.NumberOfRequestIntercepted = ~-1;
+                    Model.Name = $"Error 0x{msg.header.gle}";
+                }
             }
             else
             {

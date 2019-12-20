@@ -9,6 +9,7 @@
 #include "taskmanager.h"
 #include "Session.h"
 #include "task.h"
+#include "Utils.h"
 
 
 #include "json.hpp"
@@ -226,7 +227,7 @@ BOOL FrontEndServer::ForwardReply()
 		{
 			json_response["body"]["driver"]["Address"] = data->DriverAddress;
 			json_response["body"]["driver"]["IsEnabled"] = data->Enabled;
-			json_response["body"]["driver"]["Name"] = std::wstring(data->Name);
+			json_response["body"]["driver"]["Name"] = Utils::WideStringToString(std::wstring(data->Name));
 			json_response["body"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
 		}
 		break;
@@ -291,7 +292,7 @@ DWORD FrontEndServer::SendInterceptedIrps()
 	std::unique_lock<std::mutex> mlock(m_Session.m_IrpMutex);
 	size_t i = 0;
 
-	j["body"]["entries"] = json::array();
+	j["body"]["irps"] = json::array();
 
 	while(!m_Session.m_IrpQueue.empty() && i < CFB_FRONTEND_MAX_ENTRIES)
 	{
@@ -304,14 +305,14 @@ DWORD FrontEndServer::SendInterceptedIrps()
 		//
 		// format a new JSON entry
 		//
-		j["body"]["entries"].push_back(irp.ToJson());
+		j["body"]["irps"].push_back(irp.ToJson());
 
 		i++;
 	}
 
 	mlock.unlock();
 
-	j["body"]["nb_entries"] = i;
+	j["body"]["nb_irps"] = i;
 
 
 	//
