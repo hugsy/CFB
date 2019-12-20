@@ -24,6 +24,7 @@ namespace GUI.Models
         Disconnected,
         Connecting,
         Connected,
+        WaitingForResponse,
         Disconnecting,
     }
 
@@ -114,7 +115,7 @@ namespace GUI.Models
         }
 
 
-        public async Task SendBytes(byte[] message)
+        private async Task SendBytes(byte[] message)
         {
             using (DataWriter writer = new DataWriter(ClientSocket.OutputStream))
             {
@@ -137,7 +138,7 @@ namespace GUI.Models
         }
 
 
-        public async Task<byte[]> ReceiveBytes()
+        private async Task<byte[]> ReceiveBytes()
         {
             List<byte> DataReceived;
 
@@ -192,7 +193,10 @@ namespace GUI.Models
                         )
                     )
                 );
+                _Status = BrokerConnectionStatus.WaitingForResponse;
+
                 RawResponse = await this.ReceiveBytes();
+                _Status = BrokerConnectionStatus.Connected;
             }
             finally
             {
@@ -220,6 +224,11 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Hook the driver from its given name
+        /// </summary>
+        /// <param name="DriverName"></param>
+        /// <returns></returns>
         public async Task<bool> HookDriver(String DriverName)
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
@@ -228,6 +237,11 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Unhook the driver from its given name
+        /// </summary>
+        /// <param name="DriverName"></param>
+        /// <returns></returns>
         public async Task<bool> UnhookDriver(String DriverName)
         {
             byte[] RawName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
@@ -273,6 +287,12 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Fetches the IRP collected by the broker (from the driver).
+        /// </summary>
+        /// <returns>
+        /// If the operation is successful, the new IRPs can be found in a list from `BrokerMessage.body.irps`.
+        /// </returns>
         public async Task<BrokerMessage> GetInterceptedIrps()
         {
             var msg = await SendAndReceive(MessageType.GetInterceptedIrps);
