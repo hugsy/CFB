@@ -31,7 +31,7 @@ namespace GUI.ViewModels
                 {
                     _model = value;
                     Task.Run(RefreshDriverAsync);
-                    OnPropertyChanged(string.Empty);
+                    OnPropertyChanged();
                 }
             }
         }
@@ -61,18 +61,26 @@ namespace GUI.ViewModels
         public bool IsHooked
         {
             get => Model.IsHooked;
+        }
 
-            set
-            {
-                bool data_changed = IsHooked ? 
-                    Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result : 
-                    Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
-                if (data_changed)
-                {
-                    Task.Run(RefreshDriverAsync);
-                    OnPropertyChanged();
-                }
-            }
+        
+        private void PropageChangesToView()
+        {
+            Task.Run(RefreshDriverAsync);
+            OnPropertyChanged();
+        }
+
+
+        public bool TryToggleHookStatus()
+        {
+            bool data_changed = IsHooked ?
+                Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result :
+                Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
+
+            if (data_changed)
+                PropageChangesToView();
+
+            return data_changed;
         }
 
 

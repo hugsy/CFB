@@ -57,6 +57,8 @@ namespace GUI.ViewModels
 
             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
             {
+                Drivers.Clear();
+
                 foreach (var d in drivers)
                     Drivers.Add(new DriverViewModel(d));
             });

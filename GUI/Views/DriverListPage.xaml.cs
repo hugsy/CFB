@@ -91,6 +91,7 @@ namespace GUI.Views
                             )
                         ).ToList();
 
+                
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
                     ViewModel.Drivers.Clear();
@@ -137,7 +138,15 @@ namespace GUI.Views
         private void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
         {
             var Driver = ViewModel.SelectedDriver;
-            Driver.IsHooked = true;
+            if (Driver.TryToggleHookStatus())
+                RefreshDataGrid();
+        }
+
+
+        private void RefreshDataGrid()
+        {
+            DriverDatagrid.ItemsSource = null;
+            DriverDatagrid.ItemsSource = ViewModel.Drivers;
         }
     }
 }

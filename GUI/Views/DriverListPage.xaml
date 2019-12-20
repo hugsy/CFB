@@ -40,17 +40,23 @@
                         <Setter Property="Margin" Value="8,0,0,0" />
                     </Style>
                 </Grid.Resources>
-                <CheckBox
+                <TextBlock
                     Grid.Column="0"
                     Margin="0,0,20,0"
                     Padding="0"
                     HorizontalAlignment="Stretch"
-                    IsChecked="{x:Bind IsHooked}" />
+                    Text="{x:Bind IsHooked, Mode=OneWay}" />
                 <TextBlock
                     Grid.Column="1"
                     Margin="0,0,20,0"
                     HorizontalAlignment="Stretch"
-                    Text="{x:Bind Name}" />
+                    Text="{x:Bind Name, Mode=OneWay}" />
+                <TextBlock
+                    Grid.Column="0"
+                    Margin="0,0,20,0"
+                    Padding="0"
+                    HorizontalAlignment="Stretch"
+                    Text="{x:Bind IsEnabled, Mode=OneWay}" />
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -158,7 +164,9 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="343*"/>
                             <ColumnDefinition Width="32*"/>
+                            <ColumnDefinition Width="32*"/>
                         </Grid.ColumnDefinitions>
+                        
                         <toolkit:DataGrid
                             x:Name="DriverDatagrid"
                             BorderThickness="0"
@@ -172,7 +180,8 @@
                             ItemsSource="{x:Bind ViewModel.Drivers, Mode=OneWay}"
                             SelectedItem="{x:Bind ViewModel.SelectedDriver, Mode=TwoWay}"
                             KeyDown="DataGrid_KeyDown"
-                            ContextFlyout="{StaticResource DataGridContextMenu}" Grid.ColumnSpan="2">
+                            ContextFlyout="{StaticResource DataGridContextMenu}" 
+                            Grid.ColumnSpan="2">
 
                             <toolkit:DataGrid.Columns>
                                 <toolkit:DataGridTextColumn
@@ -180,16 +189,25 @@
                                     Tag="Name"
                                     CanUserSort="True"
                                     IsReadOnly="True"
-                                    Binding="{Binding Name}"/>
+                                    Binding="{Binding Name, Mode=TwoWay}"
+                                    />
 
                                 <toolkit:DataGridTextColumn 
-                                    Header="Is Hooked?"
+                                    Header="Is driver hooked?"
                                     Tag="IsHooked"
                                     CanUserSort="True"
                                     IsReadOnly="True"
-                                    Binding="{Binding IsHooked}"
+                                    Binding="{Binding IsHooked, Mode=TwoWay}"
                                     />
-
+                                
+                                <toolkit:DataGridTextColumn 
+                                    Header="Is interception enabled?"
+                                    Tag="IsEnabled"
+                                    CanUserSort="True"
+                                    IsReadOnly="True"
+                                    Binding="{Binding IsEnabled, Mode=TwoWay}"
+                                    />
+                                
                             </toolkit:DataGrid.Columns>
                         </toolkit:DataGrid>
 

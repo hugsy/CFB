@@ -382,6 +382,10 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         {
             CfbDbgPrintWarn(L"HandleInterceptedIrp() failed (status=0x%X)\n", Status);
         }
+        else
+        {
+            curDriver->NumberOfRequestIntercepted++;
+        }
     }
 
     //
@@ -407,7 +411,6 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         break;
     }
 
-    curDriver->NumberOfRequestIntercepted++;
     PDRIVER_DISPATCH OriginalIoctlDeviceControl = curDriver->OriginalRoutines[Stack->MajorFunction];
     NTSTATUS IoctlStatus = OriginalIoctlDeviceControl(DeviceObject, Irp);
 

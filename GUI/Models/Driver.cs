@@ -22,6 +22,8 @@ namespace GUI.Models
         public bool Equals(Driver other) =>
             Address == other.Address &&
             NumberOfRequestIntercepted == other.NumberOfRequestIntercepted &&
-            Name == other.Name;
+            Name == other.Name &&
+            IsEnabled == other.IsEnabled &&
+            IsHooked == other.IsHooked;
     }
 }
