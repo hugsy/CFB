@@ -36,6 +36,9 @@ namespace GUI.ViewModels
             }
         }
 
+        public override string ToString()
+            => Name;
+
         public string Name
         {
             get => Model.Name;

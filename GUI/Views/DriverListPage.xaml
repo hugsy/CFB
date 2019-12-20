@@ -29,7 +29,7 @@
 
         <DataTemplate
             x:Key="SearchSuggestionItemTemplate"
-            x:DataType="models:Driver">
+            x:DataType="vm:DriverViewModel">
             <Grid HorizontalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -41,22 +41,10 @@
                     </Style>
                 </Grid.Resources>
                 <TextBlock
-                    Grid.Column="0"
-                    Margin="0,0,20,0"
-                    Padding="0"
-                    HorizontalAlignment="Stretch"
-                    Text="{x:Bind IsHooked, Mode=OneWay}" />
-                <TextBlock
                     Grid.Column="1"
                     Margin="0,0,20,0"
                     HorizontalAlignment="Stretch"
                     Text="{x:Bind Name, Mode=OneWay}" />
-                <TextBlock
-                    Grid.Column="0"
-                    Margin="0,0,20,0"
-                    Padding="0"
-                    HorizontalAlignment="Stretch"
-                    Text="{x:Bind IsEnabled, Mode=OneWay}" />
             </Grid>
         </DataTemplate>
     </Page.Resources>

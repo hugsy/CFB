@@ -74,30 +74,42 @@ namespace GUI.Views
 
         private async void DriverSearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         {
-            if (!String.IsNullOrEmpty(args.QueryText))
+            if (String.IsNullOrEmpty(args.QueryText))
             {
-                string[] parameters = sender.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                await ViewModel.GetDriversAsync(false);
+            }
+            else
+            {
+                var text = sender.Text;
+                string[] parameters = text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
                 var matches = ViewModel.Drivers
                         .Where(
                             driver => parameters.Any(
                                 parameter =>
-                                    driver.Name.StartsWith(parameter, StringComparison.OrdinalIgnoreCase)
+                                    driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
                             )
                         ).OrderByDescending(
                             driver => parameters.Count(
                                 parameter =>
-                                    driver.Name.StartsWith(parameter, StringComparison.OrdinalIgnoreCase)
+                                    driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
                             )
                         ).ToList();
 
                 
                 await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
                 {
-                    ViewModel.Drivers.Clear();
-                    foreach (var match in matches)
+                    if (matches.Count() > 0)
                     {
-                        ViewModel.Drivers.Add(match);
+                        ViewModel.Drivers.Clear();
+
+                        foreach (var match in matches)
+                            ViewModel.Drivers.Add(match);
+                    }
+                    else
+                    {
+                        var dialog = new MessageDialog($"No driver found matching the pattern '{text}'...", "Driver search");
+                        Task.Run(dialog.ShowAsync);
                     }
                 });
             }
@@ -108,7 +120,11 @@ namespace GUI.Views
         {
             if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
             {
-                if (!String.IsNullOrEmpty(sender.Text))
+                if (String.IsNullOrEmpty(sender.Text))
+                {
+                    sender.ItemsSource = null;
+                }
+                else
                 {
                     string[] parameters = sender.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     sender.ItemsSource = ViewModel.Drivers
@@ -117,12 +133,7 @@ namespace GUI.Views
                                 parameter =>
                                     driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
                             )
-                        ).OrderByDescending(
-                            driver => parameters.Count(
-                                parameter =>
-                                    driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
-                            )
-                        ).Select(driver => $"{driver.Name}");
+                        );
                 }
             }
         }
@@ -138,7 +149,7 @@ namespace GUI.Views
         private void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
         {
             var Driver = ViewModel.SelectedDriver;
-            if (Driver.TryToggleHookStatus())
+            if (Driver != null && Driver.TryToggleHookStatus())
                 RefreshDataGrid();
         }
 
