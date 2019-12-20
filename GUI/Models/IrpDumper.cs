@@ -28,6 +28,8 @@ namespace GUI.Models
         private const string IrpDumperTaskName = "IrpDumperBackgroundTask";
         private const string IrpDumperTaskClass = "Tasks.IrpDumperBackgroundClass";
 
+        private const string IrpDumperPollDelayKey = "BackgroundTaskPollDelay";
+
 
         public bool Enabled
         {
@@ -45,10 +47,12 @@ namespace GUI.Models
 
         private void StartFetcher()
         {
+            if(ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] == null)
+                ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] = _probe_new_data_delay.ToString();
+
             _task = RegisterBackgroundTask(IrpDumperTaskClass, IrpDumperTaskName, _trigger, null);
             _task.Progress += new BackgroundTaskProgressEventHandler(OnProgress);
             _task.Completed += new BackgroundTaskCompletedEventHandler(OnCompleted);
-            ApplicationData.Current.LocalSettings.Values.Add("BackgroundTaskPollDelay", _probe_new_data_delay.ToString());
         }
 
 
@@ -84,13 +88,13 @@ namespace GUI.Models
             => true;
 
 
-        private static BackgroundTaskRegistration RegisterBackgroundTask(String irpDumperTaskclass, string irpDumperTaskName, IBackgroundTrigger trigger, IBackgroundCondition condition)
+        private static BackgroundTaskRegistration RegisterBackgroundTask(String clsname, string taskname, IBackgroundTrigger trigger, IBackgroundCondition condition)
         {
             var requestTask = BackgroundExecutionManager.RequestAccessAsync();
 
             var builder = new BackgroundTaskBuilder();
-            builder.Name = IrpDumperTaskName;
-            builder.TaskEntryPoint = irpDumperTaskclass;
+            builder.Name = taskname;
+            builder.TaskEntryPoint = clsname;
             builder.SetTrigger(trigger);
 
             if (condition != null)
@@ -101,6 +105,7 @@ namespace GUI.Models
 
             BackgroundTaskRegistration task = builder.Register();
             ApplicationData.Current.LocalSettings.Values.Remove(IrpDumperTaskName);
+            ApplicationData.Current.LocalSettings.Values.Remove(IrpDumperPollDelayKey);
             return task;
         }
 
