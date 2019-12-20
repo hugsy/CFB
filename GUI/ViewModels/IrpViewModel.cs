@@ -37,5 +37,9 @@ namespace GUI.ViewModels
         public string ProcessName       { get => Model.header.ProcessName; }
         public byte[] InputBuffer       { get => Model.body.InputBuffer; }
         public byte[] OutputBuffer      { get => Model.body.OutputBuffer; }
+
+        public string IoctlCodeString    { get => $"0x{IoctlCode.ToString("x8")}"; }
+        public string InputBufferString  { get => BitConverter.ToString(InputBuffer); }
+        public string OutputBufferString { get => BitConverter.ToString(OutputBuffer); }
     }
 }

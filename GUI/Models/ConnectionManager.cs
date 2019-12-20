@@ -261,10 +261,24 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Get the  hooked driver info, returns a BrokerMessage with the hooked driver properties (driver object 
+        /// address, whether is hooked/enabled or not, etc.) If the driver is not hooked, it returns an error with 
+        /// GLE=FILE_NOT_FOUND.
+        /// </summary>
+        /// <param name="DriverName"></param>
+        /// <returns></returns>
         public async Task<BrokerMessage> GetDriverInfo(string DriverName)
         {
             byte[] RawDriverName = Encoding.Unicode.GetBytes($"{DriverName.ToLower()}\x00");
             var msg = await SendAndReceive(MessageType.GetDriverInfo, RawDriverName);
+            return msg;
+        }
+
+
+        public async Task<BrokerMessage> GetInterceptedIrps()
+        {
+            var msg = await SendAndReceive(MessageType.GetInterceptedIrps);
             return msg;
         }
     }

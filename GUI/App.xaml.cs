@@ -90,8 +90,7 @@ namespace GUI
         /// <summary>
         /// Static reference to the IRP list view model (main model)
         /// </summary>
-        public static MainViewModel ViewModel { get; } = new MainViewModel();
-
+        public static MonitoredIrpsViewModel ViewModel { get; } = new MonitoredIrpsViewModel();
 
         public static IAsyncDriverRepository Drivers { get; private set; } = new DriverRepository();
 
