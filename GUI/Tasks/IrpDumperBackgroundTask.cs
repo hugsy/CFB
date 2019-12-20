@@ -10,7 +10,7 @@ using Windows.System.Threading;
 
 namespace GUI.Tasks
 {
-    public sealed class IrpDumperBackgroundClass : IBackgroundTask
+    public sealed class IrpDumperBackgroundTask : IBackgroundTask
     {
         BackgroundTaskCancellationReason _cancelReason = BackgroundTaskCancellationReason.Abort;
         volatile bool _cancelRequested = false;
@@ -74,8 +74,17 @@ namespace GUI.Tasks
 
             try 
             {
+                //
+                // collect the irps from the broker
+                //
                 List<Irp> NewIrps = FetchIrps();
                 _taskInstance.Progress += (uint)NewIrps.Count;
+
+                Debug.WriteLine($"Received {NewIrps.Count:d} new irps");
+
+                //
+                // push them to the db
+                //
             }
             catch (Exception e)
             {

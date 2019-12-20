@@ -227,6 +227,8 @@ namespace GUI
                 var success = await Task.Run(App.BrokerSession.StartMonitoring);
                 if (success)
                 {
+                    App.DumperTask.Enabled = true;
+
                     StartMonitoringLabelBtn.IsEnabled = false;
                     StopMonitoringLabelBtn.IsEnabled = true;
                 }
@@ -248,6 +250,8 @@ namespace GUI
                 var success = await Task.Run(App.BrokerSession.StopMonitoring);
                 if ( success )
                 {
+                    App.DumperTask.Enabled = false;
+
                     StartMonitoringLabelBtn.IsEnabled = true;
                     StopMonitoringLabelBtn.IsEnabled = false;
                 }

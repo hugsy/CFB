@@ -136,7 +136,7 @@
     <Compile Include="Native\ErrorCodes.cs" />
     <Compile Include="Native\Win32.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Tasks\IrpDumperBackgroundClass.cs" />
+    <Compile Include="Tasks\IrpDumperBackgroundTask.cs" />
     <Compile Include="UserControls\CollapsibleSearchBox.xaml.cs">
       <DependentUpon>CollapsibleSearchBox.xaml</DependentUpon>
     </Compile>

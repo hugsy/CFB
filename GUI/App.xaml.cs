@@ -97,5 +97,7 @@ namespace GUI
         public static ConnectionManager BrokerSession { get; private set; } = new ConnectionManager();
 
         public static IAsyncIrpRepository Irps { get; private set; } // todo
+
+        public static IrpDumper DumperTask { get; } = new IrpDumper();
     }
 }

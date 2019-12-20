@@ -26,7 +26,7 @@ namespace GUI.Models
         private BackgroundTaskRegistration _task;
 
         private const string IrpDumperTaskName = "IrpDumperBackgroundTask";
-        private const string IrpDumperTaskClass = "Tasks.IrpDumperBackgroundClass";
+        private const string IrpDumperTaskClass = "Tasks.IrpDumperBackgroundTask";
 
         private const string IrpDumperPollDelayKey = "BackgroundTaskPollDelay";
 
@@ -36,16 +36,19 @@ namespace GUI.Models
             get => _enabled;
             set
             {
-                _enabled = value;
-                if (_enabled)
-                    StartFetcher();
+                bool success = false;
+                if (value)
+                    success = StartFetcher();
                 else
-                    StopFetcher();
+                    success = StopFetcher();
+
+                if (success)
+                    _enabled = value;
             }
         }
 
 
-        private void StartFetcher()
+        private bool StartFetcher()
         {
             if(ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] == null)
                 ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] = _probe_new_data_delay.ToString();
@@ -53,12 +56,15 @@ namespace GUI.Models
             _task = RegisterBackgroundTask(IrpDumperTaskClass, IrpDumperTaskName, _trigger, null);
             _task.Progress += new BackgroundTaskProgressEventHandler(OnProgress);
             _task.Completed += new BackgroundTaskCompletedEventHandler(OnCompleted);
+
+            return true;
         }
 
 
-        private void StopFetcher()
+        private bool StopFetcher()
         {
             UnregisterBackgroundTask();
+            return true;
         }
 
 
@@ -104,7 +110,7 @@ namespace GUI.Models
             }
 
             BackgroundTaskRegistration task = builder.Register();
-            ApplicationData.Current.LocalSettings.Values.Remove(IrpDumperTaskName);
+            ApplicationData.Current.LocalSettings.Values.Remove(taskname);
             ApplicationData.Current.LocalSettings.Values.Remove(IrpDumperPollDelayKey);
             return task;
         }
