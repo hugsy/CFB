@@ -14,11 +14,11 @@ namespace GUI.Tasks
     {
         BackgroundTaskCancellationReason _cancelReason = BackgroundTaskCancellationReason.Abort;
         volatile bool _cancelRequested = false;
+        string _cancelReasonExtra = "";
         BackgroundTaskDeferral _deferral = null;
         ThreadPoolTimer _periodicTimer = null;
-        ulong _progress = 0;
+        //ulong _progress = 0;
         IBackgroundTaskInstance _taskInstance = null;
-        string _cancelReasonExtra = "";
 
 
         //

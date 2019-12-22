@@ -22,9 +22,9 @@ namespace GUI.ViewModels
         {
             get => _model;
         }
+   
 
-
-        public DateTime TimeStamp       { get => Model.header.TimeStamp; }
+        public DateTime TimeStamp       { get => new DateTime((long)Model.header.TimeStamp); }
         public uint ProcessId           { get => Model.header.ProcessId; }
         public uint ThreadId            { get => Model.header.ThreadId; }
         public uint IrqLevel            { get => Model.header.IrqLevel; }

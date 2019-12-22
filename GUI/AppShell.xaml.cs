@@ -222,11 +222,13 @@ namespace GUI
 
         private async void StartMonitoring_Click(object sender, RoutedEventArgs e)
         {
+            bool success = false;
             try
             {
-                var success = await Task.Run(App.BrokerSession.StartMonitoring);
+                success = await Task.Run(App.BrokerSession.StartMonitoring);
                 if (success)
                 {
+                    App.DumperTask.Trigger();
                     App.DumperTask.Enabled = true;
 
                     StartMonitoringLabelBtn.IsEnabled = false;
@@ -240,14 +242,18 @@ namespace GUI
                     "Error!"
                 );
                 await dialog.ShowAsync();
+
+                if(success)
+                    await Task.Run(App.BrokerSession.StopMonitoring);
             }
         }
 
         private async void StopMonitoring_Click(object sender, RoutedEventArgs e)
         {
+            bool success = false;
             try
             {
-                var success = await Task.Run(App.BrokerSession.StopMonitoring);
+                success = await Task.Run(App.BrokerSession.StopMonitoring);
                 if ( success )
                 {
                     App.DumperTask.Enabled = false;

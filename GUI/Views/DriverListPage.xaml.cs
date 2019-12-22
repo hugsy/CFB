@@ -57,7 +57,6 @@ namespace GUI.Views
 
         private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e)
             => (sender as DataGrid).Sort(e.Column, ViewModel.Drivers.Sort);
-        
     
 
         private void DriverSearchBox_Loaded(object sender, RoutedEventArgs e)
@@ -133,6 +132,8 @@ namespace GUI.Views
                                 parameter =>
                                     driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
                             )
+                        ).Select(
+                            driver => $"{driver.Name}"
                         );
                 }
             }

@@ -15,6 +15,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using System.Collections.ObjectModel;
+using Windows.ApplicationModel.Background;
 
 using GUI.ViewModels;
 using GUI.Models;
@@ -87,6 +88,8 @@ namespace GUI
         }
 
 
+
+
         /// <summary>
         /// Static reference to the IRP list view model (main model)
         /// </summary>
@@ -98,6 +101,19 @@ namespace GUI
 
         public static IAsyncIrpRepository Irps { get; private set; } // todo
 
-        public static IrpDumper DumperTask { get; } = new IrpDumper();
+        public static IrpDumper DumperTask = new IrpDumper();
+
+
+        /// <summary>
+        /// Used for the In-Process background task
+        /// https://docs.microsoft.com/en-us/windows/uwp/launch-resume/create-and-register-an-inproc-background-task
+        /// </summary>
+        /// <param name="args"></param>
+        protected override void OnBackgroundActivated(BackgroundActivatedEventArgs args)
+        {
+            base.OnBackgroundActivated(args);
+            IBackgroundTaskInstance taskInstance = args.TaskInstance;
+            DumperTask.SetInstance(taskInstance);
+        }
     }
 }
