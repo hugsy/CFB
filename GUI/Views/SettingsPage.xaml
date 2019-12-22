@@ -22,12 +22,25 @@
 
             <TextBlock Text="Specify here the path to the named pipe of the CFB Broker. Default locations can be local (e.g. pipe:\\.\pipe\cfb) or remote (e.g. \\IP.ADDRESS\pipe\cfb or file://IP.ADDRESS/pipe/cfb)"/>
 
-            <TextBox Margin="0,5,700,0" 
+            <TextBox Margin="0,5,1000,0" 
                      BorderBrush="Green"
                      BorderThickness="5"
                      x:Name="settingIrpBrokerLocationTextBox" 
                      SelectionChanged="settingIrpBrokerLocationTextBox_Changed"
                      Text="{x:Bind localSettings.Values['IrpBrokerLocation'] }"/>
+
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="Poll delay to the Broker" />
+            
+            <TextBlock Text="The delay in seconds (double) for polling the broker for new data when monitoring mode is enabled"/>
+
+            <TextBox Margin="0,5,1000,0" 
+                     BorderThickness="5"
+                     x:Name="settingBrokerPollDelay" 
+                     SelectionChanged="settingBrokerPollDelay_Changed"
+                     Text="{x:Bind localSettings.Values['BackgroundTaskPollDelay'].ToString() }"/>
+
 
             <TextBlock Margin="5,25,0,5"
                        Style="{ThemeResource TitleTextBlockStyle}"

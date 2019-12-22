@@ -220,6 +220,7 @@ namespace GUI
             }
         }
 
+
         private async void StartMonitoring_Click(object sender, RoutedEventArgs e)
         {
             bool success = false;
@@ -233,6 +234,7 @@ namespace GUI
 
                     StartMonitoringLabelBtn.IsEnabled = false;
                     StopMonitoringLabelBtn.IsEnabled = true;
+                    App.ViewModel.IsLoading = true;
                 }
             }
             catch (Exception ex)
@@ -248,6 +250,7 @@ namespace GUI
             }
         }
 
+
         private async void StopMonitoring_Click(object sender, RoutedEventArgs e)
         {
             bool success = false;
@@ -260,6 +263,7 @@ namespace GUI
 
                     StartMonitoringLabelBtn.IsEnabled = true;
                     StopMonitoringLabelBtn.IsEnabled = false;
+                    App.ViewModel.IsLoading = false;
                 }
             }
             catch (Exception ex)

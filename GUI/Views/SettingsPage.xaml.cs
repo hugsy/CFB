@@ -13,7 +13,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Windows.Storage;
-
+using GUI.Models;
 
 namespace GUI.Views
 {
@@ -71,6 +71,21 @@ namespace GUI.Views
         {
             localSettings.Values["EnableAutoFuzz"] = enableAutoFuzzCheckBox.IsOn;
             autoFuzzStrategiesPanel.Visibility = enableAutoFuzzCheckBox.IsOn ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+
+        private void settingBrokerPollDelay_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var val = Convert.ToDouble(settingBrokerPollDelay.Text.ToString());
+                localSettings.Values[IrpDumper.IrpDumperPollDelayKey] = val;
+            }
+            catch
+            {
+                // fallback to default
+                localSettings.Values[IrpDumper.IrpDumperPollDelayKey] = IrpDumper.IrpDumperDefaultProbeValue;
+            }
         }
     }
 }

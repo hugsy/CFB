@@ -22,7 +22,10 @@ namespace GUI.Models
     /// </summary>
     public class IrpDumper
     {
-        private double _probe_new_data_delay = 2; //0.5; // seconds
+        public const double IrpDumperDefaultProbeValue = 1.0; // seconds
+        public const string IrpDumperTaskName = "IrpDumperBackgroundTask";
+        public const string IrpDumperPollDelayKey = "BackgroundTaskPollDelay";
+
         private ApplicationTrigger _trigger = null;
         private BackgroundTaskRegistration _task;
         IBackgroundTaskInstance _taskInstance = null;
@@ -33,10 +36,6 @@ namespace GUI.Models
         volatile bool _cancelRequested = false;
         string _cancelReasonExtra = "";
 
-        private const string IrpDumperTaskName = "IrpDumperBackgroundTask";
-        private static string IrpDumperTaskClass = typeof(GUI.Tasks.IrpDumperBackgroundTask).FullName;
-
-        private const string IrpDumperPollDelayKey = "BackgroundTaskPollDelayMs";
 
         public IrpDumper()
         {
@@ -86,7 +85,7 @@ namespace GUI.Models
         {
             Debug.WriteLine($"Starting in-process background instance '{_task.Name}'...");
 
-            var delay = (double) (ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] ?? _probe_new_data_delay);
+            var delay = (double) (ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] ?? IrpDumperDefaultProbeValue);
             
             _periodicTimer = ThreadPoolTimer.CreatePeriodicTimer(
                 new TimerElapsedHandler(PeriodicTimerCallback),
@@ -182,6 +181,9 @@ namespace GUI.Models
         }
 
 
+        //
+        // Unregister the background task
+        //
         private static bool UnregisterBackgroundTask()
         {
             foreach (var cur in BackgroundTaskRegistration.AllTasks)
