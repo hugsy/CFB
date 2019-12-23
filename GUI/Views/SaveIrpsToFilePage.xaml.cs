@@ -16,6 +16,13 @@ using Windows.Storage.Streams;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using Windows.Security.Cryptography;
+using System.Threading.Tasks;
+using System.Diagnostics;
+
+
+using GUI.Helpers;
+using GUI.ViewModels;
+
 
 namespace GUI.Views
 {
@@ -30,46 +37,48 @@ namespace GUI.Views
         }
 
 
+        public SaveLoadIrpsViewModel ViewModel = new SaveLoadIrpsViewModel();
+
 
         private async void DumpIrpsToFileButton_Click(object sender, RoutedEventArgs e)
         {
-            var savePicker = new Windows.Storage.Pickers.FileSavePicker();
-            savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-            savePicker.SuggestedFileName = $"Session-{DateTime.Now.ToString("yyyyMMddTHH:mm:ssZ")}";
-            savePicker.FileTypeChoices.Add("CSV", new List<string>() { ".cfb" });
-          
-            StorageFile file = await savePicker.PickSaveFileAsync();
-            if (file != null)
-            {
-                CachedFileManager.DeferUpdates(file);
-                await FileIO.WriteBufferAsync(file, GetBufferFromString(file.Name));
-                FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
-                if (status == FileUpdateStatus.Complete)
-                {
-                    Status = $"File {file.Name} was saved.";
-                }
-                else
-                {
-                    Status = $"File {file.Name} couldn't be saved.";
-                }
-            }
-            else
-            {
-                Status = "Operation cancelled.";
-            }
-        }
+            SaveIrpBtn.IsEnabled = false;
+            ViewModel.IsLoading = true;
 
+            try
+            {
+                var savePicker = new Windows.Storage.Pickers.FileSavePicker();
+                savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+                savePicker.SuggestedFileName = $"Session-{DateTime.Now.ToString("yyyyMMddTHH:mm:ssZ")}";
+                savePicker.FileTypeChoices.Add("SQLite", new List<string>() { ".cfb" });
 
-        private string _loading_status_update;
-        public string Status
-        {
-            private set
+                StorageFile file = await savePicker.PickSaveFileAsync();
+                if (file != null)
+                {
+                    CachedFileManager.DeferUpdates(file);
+                    FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
+                    if (status == FileUpdateStatus.Complete)
+                    {
+                        var db = await ViewModel.DumpIrpsToFile(file.Name);
+                        await db.MoveAndReplaceAsync(file);
+                        ViewModel.Status = $"✔ IRPs saved as '{db.Path}'!";
+                        return;
+                    }
+                }
+
+                ViewModel.Status = "✘ The IRPs were not saved.";
+            } 
+            catch(Exception ex)
             {
-                _loading_status_update = value;
+                await Utils.ShowPopUp(
+                    $"An error occured while trying to save IRPs to file.\nReason:\n{ex.Message}",
+                    "Save IRPs Failed"
+                );
             }
-            get
+            finally
             {
-                return _loading_status_update;
+                SaveIrpBtn.IsEnabled = true;
+                ViewModel.IsLoading = false;
             }
         }
 

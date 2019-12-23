@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.UI.Popups;
 
 namespace GUI.Helpers
 {
@@ -24,6 +25,10 @@ namespace GUI.Helpers
             return System.Convert.FromBase64String(base64EncodedData);
         }
 
-
+        public static async Task ShowPopUp(string msg, string title = "")
+        {
+            var dialog = new MessageDialog(msg, title);
+            await dialog.ShowAsync();
+        }
     }
 }

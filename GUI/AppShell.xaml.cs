@@ -20,13 +20,11 @@ using Windows.Storage;
 using Windows.UI.Popups;
 
 
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
+
 
 namespace GUI
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
+
     public sealed partial class AppShell : Page
     {
         public readonly string MonitoredIrpsListLabel      = "Monitored IRPs";
@@ -180,7 +178,7 @@ namespace GUI
             catch (Exception ex)
             {
                 var brokerPathSetting = ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString();
-                var dialog = new MessageDialog($"An error occured trying to open/close connection with '{brokerPathSetting}'. " +
+                var dialog = new MessageDialog($"An error occured while trying to open/close connection with '{brokerPathSetting}'. " +
                     $"Reason:\n{ex.Message}", 
                     "Connection error"
                 );

@@ -11,11 +11,25 @@
     <ScrollViewer Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="12,10,12,12">
         <StackPanel>
             <TextBlock Text="Save IRPs to disk" Style="{StaticResource HeaderTextBlockStyle}"/>
+
+            <ProgressBar
+                 Margin="0,25,0,25"
+                 VerticalAlignment="Top"
+                 IsIndeterminate="True"
+                 Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Grid.ColumnSpan="2" />
+            
             <TextBlock Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" Margin="0,15,0,0">
                 Dump all the IRPs captured in this session to a CFB file on disk, which can be used in further session to restore the current state.
             </TextBlock>
-            <Button Content="Save IRPs" Click="DumpIrpsToFileButton_Click" Margin="0,15,0,0"/>
-            <TextBlock Name="UpdateStatusLabel" Text="{Binding Status}"/>
+            
+            <Button Content="Save IRPs" Click="DumpIrpsToFileButton_Click" Margin="50,35,0,0" x:Name="SaveIrpBtn"/>
+
+            <TextBlock 
+                Margin="0,50,0,0"
+                Name="UpdateStatusLabel" 
+                Text="{x:Bind ViewModel.Status, Mode=OneWay}"
+                />
+            
         </StackPanel>
     </ScrollViewer>
 </Page>
