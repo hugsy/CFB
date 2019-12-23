@@ -13,8 +13,10 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
+using GUI.Helpers;
 using GUI.Models;
-using Windows.System;
+using GUI.ViewModels;
+
 
 namespace GUI.Views
 {
@@ -24,15 +26,20 @@ namespace GUI.Views
     public sealed partial class LoadIrpsFromFilePage : Page
     {
 
-
         public LoadIrpsFromFilePage()
         {
             this.InitializeComponent();
         }
 
 
+        public SaveLoadIrpsViewModel ViewModel = new SaveLoadIrpsViewModel();
+
+
         private async void LoadIrpDatabaseButton_Click(object sender, RoutedEventArgs e)
         {
+            LoadIrpsBtn.IsEnabled = false;
+            ViewModel.IsLoading = true;
+
             try
             {
                 var openPicker = new Windows.Storage.Pickers.FileOpenPicker();
@@ -40,37 +47,37 @@ namespace GUI.Views
                 openPicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
                 openPicker.FileTypeFilter.Add(".cfb");
                 Windows.Storage.StorageFile file = await openPicker.PickSingleFileAsync();
-                
-                Status = $"Loading file '{file.Path}'...";
+                if (file != null)
+                {
+                    ViewModel.Status = $"🡆 Loading file '{file.Path}'...";
+                    var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);
+                    byte[] fileContent = buffer.ToArray();
 
-                var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);
-                byte[] fileContent = buffer.ToArray();
+                    ViewModel.Status = $"🡆 Parsing content of file '{file.Path}'...";
 
-                Status = $"Parsing content of file '{file.Path}'...";
+                    ViewModel.LoadIrpsFromFile(file);
 
-                // todo implement
+                    ViewModel.Status = $"✔ IRPs from '{file.Path}' loaded!";
+                    return;
+                }
 
+                ViewModel.Status = "✘ Couldn't load IRPs from file.";
             }
-            catch (Exception excpt)
+            catch (Exception ex)
             {
-                Status = $"An error occured: {excpt.ToString()}";
+                await Utils.ShowPopUp(
+                    $"An error occured while trying to load IRPs to file.\nReason:\n{ex.Message}",
+                    "Save IRPs Failed"
+                );
+            }
+            finally
+            {
+                LoadIrpsBtn.IsEnabled = true;
+                ViewModel.IsLoading = false;
             }
 
             return;
         }
 
-
-        private string _loading_status_update;
-        public string Status
-        {
-            private set
-            {
-                _loading_status_update = value;
-            }
-            get
-            {
-                return _loading_status_update;
-            }
-        }
     }
 }

@@ -59,7 +59,7 @@ namespace GUI.Views
                     FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
                     if (status == FileUpdateStatus.Complete)
                     {
-                        var db = await ViewModel.DumpIrpsToFile(file.Name);
+                        var db = await ViewModel.DumpIrpsToFile();
                         await db.MoveAndReplaceAsync(file);
                         ViewModel.Status = $"✔ IRPs saved as '{db.Path}'!";
                         return;

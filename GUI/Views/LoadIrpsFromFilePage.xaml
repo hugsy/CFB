@@ -11,11 +11,29 @@
     <ScrollViewer Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="12,10,12,12">
         <StackPanel>
             <TextBlock Text="Load saved IRPs from a previous session" Style="{StaticResource HeaderTextBlockStyle}"/>
+
+            <ProgressBar
+                 Margin="0,25,0,25"
+                 VerticalAlignment="Top"
+                 IsIndeterminate="True"
+                 Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Grid.ColumnSpan="2" />
+
             <TextBlock Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" Margin="0,15,0,0">
                 Select a file on the file system saved in the *.cfb format, and load its content into the current sessions.
             </TextBlock>
-            <Button Content="Select file" Click="LoadIrpDatabaseButton_Click" Margin="0,15,0,0"/>
-            <TextBlock Name="UpdateStatusLabel" Text="{Binding Status}"/>
+            
+            <Button 
+                x:Name="LoadIrpsBtn"
+                Content="Select IRP file" 
+                Click="LoadIrpDatabaseButton_Click" 
+                Margin="50,35,0,0"
+                />
+            
+            <TextBlock 
+                Name="UpdateStatusLabel" 
+                Margin="0,50,0,0"
+                Text="{x:Bind ViewModel.Status, Mode=OneWay}"
+                />
         </StackPanel>
     </ScrollViewer>
 </Page>

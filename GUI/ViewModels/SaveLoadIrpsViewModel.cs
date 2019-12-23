@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GUI.Models;
 using Microsoft.Data.Sqlite;
 using Windows.Storage;
 
@@ -12,6 +13,20 @@ namespace GUI.ViewModels
 {
     public class SaveLoadIrpsViewModel : BindableBase
     {
+        private string _filename = "temporary_db.cfb";
+
+        public SaveLoadIrpsViewModel()
+        {
+            //
+            // make sure the file exists
+            //
+            Task.Run(() =>
+            {
+               ApplicationData.Current.LocalFolder.CreateFileAsync(_filename, CreationCollisionOption.ReplaceExisting);
+            });
+        }
+
+        
 
         private bool _isLoading = false;
 
@@ -30,15 +45,37 @@ namespace GUI.ViewModels
         }
 
 
-
-        public async Task<StorageFile> DumpIrpsToFile(string filename)
+        private string DbPath
         {
-            var dirname = ApplicationData.Current.LocalFolder.Path;
+            get => Path.Combine(ApplicationData.Current.LocalFolder.Path, _filename);
+        }
 
-            var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(filename, CreationCollisionOption.OpenIfExists);
-            string dbpath = Path.Combine(dirname, filename);
+
+        public int CountIrpEntries(string dbpath = null)
+        {
+            int nb_entries = 0;
+            dbpath = dbpath ?? DbPath;
 
             using (var db = new SqliteConnection($"Filename={dbpath}"))
+            {
+                db.Open();
+
+                var cmd = new SqliteCommand("SELECT COUNT(*) from Irps", db);
+                var query = cmd.ExecuteReader();
+
+                nb_entries = query.GetInt32(0);
+                db.Close();
+            }
+
+            return nb_entries;
+        }
+
+
+        public async Task<StorageFile> DumpIrpsToFile()
+        {
+            var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(_filename, CreationCollisionOption.OpenIfExists);
+
+            using (var db = new SqliteConnection($"Filename={DbPath}"))
             {
                 db.Open();
 
@@ -77,23 +114,24 @@ CREATE TABLE IF NOT EXISTS Irps (
                 {
                     foreach (var irp in await App.Irps.GetAsync())
                     {
-                        var query = @"INSERT INTO Irps VALUES(
-@TimeStamp, 
-@IrqLevel, 
-@Type, 
-@IoctlCode, 
-@Status, 
-@ProcessId, 
-@ThreadId, 
-@InputBufferLength, 
-@OutputBufferLength, 
-@DriverName, 
-@DeviceName, 
-@ProcessName,
-@InputBuffer,
-@OutputBuffer
-)
-";
+                        var query = @"
+                            INSERT INTO Irps VALUES(
+                            @TimeStamp, 
+                            @IrqLevel, 
+                            @Type, 
+                            @IoctlCode, 
+                            @Status, 
+                            @ProcessId, 
+                            @ThreadId, 
+                            @InputBufferLength, 
+                            @OutputBufferLength, 
+                            @DriverName, 
+                            @DeviceName, 
+                            @ProcessName,
+                            @InputBuffer,
+                            @OutputBuffer
+                            )
+                            ";
                         SqliteCommand cmd = new SqliteCommand(query, db, tx);
                         cmd.Parameters.AddWithValue("@TimeStamp", irp.header.TimeStamp);
                         cmd.Parameters.AddWithValue("@IrqLevel", irp.header.IrqLevel);
@@ -123,5 +161,60 @@ CREATE TABLE IF NOT EXISTS Irps (
             return file;
         }
 
+
+        public async Task<bool> LoadIrpsFromFile(StorageFile file)
+        {
+            List<String> entries = new List<string>();
+            //string dbpath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "sqliteSample.db");
+            using (var db = new SqliteConnection($"Filename={file.Path}"))
+            {
+                db.Open();
+
+                var cmd = new SqliteCommand(@"
+                    SELECT 
+                    TimeStamp, 
+                    IrqLevel,
+                    Type,
+                    IoctlCode,
+                    Status,
+                    ProcessId,
+                    ThreadId,
+                    InputBufferLength,
+                    OutputBufferLength,
+                    DriverName,
+                    DeviceName,
+                    ProcessName,
+                    InputBuffer,
+                    OutputBuffer  
+                    FROM Irps", db);
+                var query = cmd.ExecuteReader();
+
+                while (query.Read())
+                {
+                    Irp irp = new Irp();
+                    irp.header.TimeStamp = (ulong)query.GetInt64(0);
+                    irp.header.IrqLevel = (uint)query.GetInt32(1);
+                    irp.header.Type = (uint)query.GetInt32(2);
+                    irp.header.IoctlCode = (uint)query.GetInt32(3);
+                    irp.header.Status = (uint)query.GetInt32(4);
+                    irp.header.ProcessId = (uint)query.GetInt32(5);
+                    irp.header.ThreadId = (uint)query.GetInt32(6);
+                    irp.header.InputBufferLength = (uint)query.GetInt32(7);
+                    irp.header.OutputBufferLength = (uint)query.GetInt32(8);
+                    irp.header.DriverName = query.GetString(9);
+                    irp.header.DeviceName = query.GetString(10);
+                    irp.header.ProcessName = query.GetString(11);
+
+                    query.GetBytes(12, 0, irp.body.InputBuffer, 0, (int)irp.header.InputBufferLength);
+                    query.GetBytes(13, 0, irp.body.OutputBuffer, 0, (int)irp.header.OutputBufferLength);
+
+                    await App.Irps.Insert(irp);
+                }
+
+                db.Close();
+            }
+
+            return true;
+        }
     }
 }
