@@ -101,16 +101,16 @@
                     Content="{x:Bind ManageDriversLabel}"
                     ToolTipService.ToolTip="Add or remove IRP drivers.">
                     <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="MapDrive"/>
+                        <SymbolIcon Symbol="NewFolder"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
                 <NavigationViewItem
-                    x:Name="AddRemoveFiltersMenuItem"
-                    Content="{x:Bind ManageFiltersLabel}"
-                    ToolTipService.ToolTip="Add or remove IRP capture filters.">
+                    x:Name="ReplayIrpMenuItem"
+                    Content="{x:Bind ReplayIrpLabel}"
+                    ToolTipService.ToolTip="Forge a custom IRP, or replay a captured IRP">
                     <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Filter"/>
+                        <SymbolIcon Symbol="Next"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
@@ -118,7 +118,7 @@
                         x:Name="AboutMenuItem"
                         Content="{x:Bind AboutLabel}" 
                         ToolTipService.ToolTip="{x:Bind AboutLabel}"
-                        Icon="Contact" />
+                        Icon=" Account" />
                 
             </NavigationView.MenuItems>
 

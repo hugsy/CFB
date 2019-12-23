@@ -40,7 +40,10 @@ namespace GUI.ViewModels
         public byte[] InputBuffer       { get => Model.body.InputBuffer; }
         public byte[] OutputBuffer      { get => Model.body.OutputBuffer; }
 
-        public string IoctlCodeString    { get => $"0x{IoctlCode.ToString("x8")}"; }
+        public string IoctlCodeString    { get => 
+                Model.header.Type == (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL || Model.header.Type == (uint)IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL 
+                ? $"0x{IoctlCode.ToString("x8")}"
+                : "N/A"; }
         public string StatusString       { get => $"0x{Status.ToString("x8")}"; }
 
 

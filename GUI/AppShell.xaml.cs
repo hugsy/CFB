@@ -30,10 +30,10 @@ namespace GUI
     public sealed partial class AppShell : Page
     {
         public readonly string MonitoredIrpsListLabel = "Monitored IRPs";
-        public readonly string OpenIrpDbLabel = "Open IRP Database";
-        public readonly string SaveIrpDbLabel = "Save IRPs to a local file";
+        public readonly string OpenIrpDbLabel = "Load IRPs from file";
+        public readonly string SaveIrpDbLabel = "Save IRPs to file";
         public readonly string ManageDriversLabel = "Manage IRP drivers";
-        public readonly string ManageFiltersLabel = "Manage IRP filters";
+        public readonly string ReplayIrpLabel = "Forge custom IRP";
         public readonly string AboutLabel = "About CFB";
 
         public readonly string StartMonitoringLabel = "Start Monitoring IRPs";
@@ -61,7 +61,7 @@ namespace GUI
         {
             var label = args.InvokedItem as string;
 
-            // default page should be the data grid
+            // default page should be the irp data grid
             var targetPage = typeof(Views.MonitoredIrpsPage); 
 
             if (args.IsSettingsInvoked)
@@ -70,26 +70,25 @@ namespace GUI
             }
             else
             {
+
                 if (label == MonitoredIrpsListLabel)
-                {
                     targetPage = typeof(Views.MonitoredIrpsPage);
-                }
+
                 else if (label == AboutLabel)
-                {
                     targetPage = typeof(Views.AboutPage);
-                }
+
                 else if (label == OpenIrpDbLabel)
-                {
                     targetPage = typeof(Views.LoadIrpsFromFilePage);
-                }
+
                 else if (label == SaveIrpDbLabel)
-                {
                     targetPage = typeof(Views.SaveIrpsToFilePage);
-                }
+
                 else if (label == ManageDriversLabel)
-                {
                     targetPage = typeof(Views.DriverListPage);
-                }
+
+                else if (label == ReplayIrpLabel)
+                    targetPage = typeof(Views.ReplayIrpPage);
+
                 //
                 // TODO: Add other pages
                 //
@@ -126,6 +125,10 @@ namespace GUI
 
                 else if (e.SourcePageType == typeof(Views.DriverListPage))
                     NavView.SelectedItem = AddRemoveDriversMenuItem;
+
+                else if (e.SourcePageType == typeof(Views.ReplayIrpPage))
+                    NavView.SelectedItem = ReplayIrpMenuItem;
+
                 //
                 // TODO add other pages
                 //

@@ -160,6 +160,9 @@
     <Compile Include="Views\MonitoredIrpsPage.xaml.cs">
       <DependentUpon>MonitoredIrpsPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\ReplayIrpPage.xaml.cs">
+      <DependentUpon>ReplayIrpPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\SaveIrpsToFilePage.xaml.cs">
       <DependentUpon>SaveIrpsToFilePage.xaml</DependentUpon>
     </Compile>
@@ -211,6 +214,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\MonitoredIrpsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\ReplayIrpPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
