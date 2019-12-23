@@ -10,9 +10,12 @@ GUI|[![Build Status](https://dev.azure.com/blahcat/CFB/_apis/build/status/hugsy.
 
 _TODO add pretty diagram here_
 
+
 ## Show Me!
 
-_TODO add pretty screenshot here_
+
+![](https://i.imgur.com/xMOIIhC.png)
+
 
 
 ## Build
