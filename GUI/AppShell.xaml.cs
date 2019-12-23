@@ -235,6 +235,8 @@ namespace GUI
                     StartMonitoringLabelBtn.IsEnabled = false;
                     StopMonitoringLabelBtn.IsEnabled = true;
                     App.ViewModel.IsLoading = true;
+
+                    UpdateGlobalState("Capturing...");
                 }
             }
             catch (Exception ex)
@@ -264,6 +266,8 @@ namespace GUI
                     StartMonitoringLabelBtn.IsEnabled = true;
                     StopMonitoringLabelBtn.IsEnabled = false;
                     App.ViewModel.IsLoading = false;
+
+                    UpdateGlobalState("Connected");
                 }
             }
             catch (Exception ex)
@@ -274,6 +278,13 @@ namespace GUI
                 );
                 await dialog.ShowAsync();
             }
+        }
+
+
+        private void ClearGridLabelBtn_Click(object sender, RoutedEventArgs e)
+        {
+            App.Irps.Clear();
+            App.ViewModel.Irps.Clear();
         }
     }
 }

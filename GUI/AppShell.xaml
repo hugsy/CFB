@@ -50,6 +50,7 @@
             
             <AppBarButton Icon="Clear" 
                           x:Name="ClearGridLabelBtn"
+                          Click="ClearGridLabelBtn_Click"
                           Label="{x:Bind ClearGridLabel}"
                           ToolTipService.ToolTip="{x:Bind ClearGridLabel}" />
         </CommandBar>

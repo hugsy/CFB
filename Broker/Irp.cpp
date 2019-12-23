@@ -36,13 +36,13 @@ json Irp::IrpHeaderToJson()
 {
 	json header;
 	header["TimeStamp"] = m_Header.TimeStamp.QuadPart;
-	header["Irql"] = m_Header.Irql;
-	header["Type"] = m_Header.Type;
+	header["Irql"] = (uint32_t)m_Header.Irql;
+	header["Type"] = (uint32_t)m_Header.Type;
 	header["IsFastIo"] = (bool)(m_Header.Type & 0x80000000);
-	header["IoctlCode"] = m_Header.IoctlCode;
-	header["ProcessId"] = m_Header.Pid;
-	header["ThreadId"] = m_Header.Tid;
-	header["Status"] = m_Header.Status;
+	header["IoctlCode"] = (uint32_t)m_Header.IoctlCode;
+	header["ProcessId"] = (uint32_t)m_Header.Pid;
+	header["ThreadId"] = (uint32_t)m_Header.Tid;
+	header["Status"] = (uint32_t)m_Header.Status;
 	header["InputBufferLength"] = m_Header.InputBufferLength;
 	header["OutputBufferLength"] = m_Header.OutputBufferLength;
 	header["DriverName"]  = Utils::WideStringToString(std::wstring(m_Header.DriverName));

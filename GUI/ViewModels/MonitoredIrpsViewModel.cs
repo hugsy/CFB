@@ -18,10 +18,13 @@ namespace GUI.ViewModels
 
         public bool IsModified { get; set; }
 
-        public MonitoredIrpsViewModel() 
-            => Task.Run(GetIrpListAsync);
+        public MonitoredIrpsViewModel()
+            => UpdateUi();
 
+        public void UpdateUi()
+           => Task.Run(GetIrpListAsync);
 
+            
         private IrpViewModel _model;
 
 

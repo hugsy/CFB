@@ -97,9 +97,9 @@ namespace GUI
 
         public static IAsyncDriverRepository Drivers { get; private set; } = new DriverRepository();
 
-        public static ConnectionManager BrokerSession { get; private set; } = new ConnectionManager();
+        public static IAsyncIrpRepository Irps { get; private set; } = new IrpRepository();
 
-        public static IAsyncIrpRepository Irps { get; private set; } // todo
+        public static ConnectionManager BrokerSession { get; private set; } = new ConnectionManager();
 
         public static IrpDumper DumperTask = new IrpDumper();
 

@@ -39,17 +39,17 @@ namespace GUI.Views
 
         private void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
         {
-
+            throw new NotImplementedException("SaveAsPythonScript");
         }
 
         private void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
         {
-
+            throw new NotImplementedException("SaveAsPowershellScript");
         }
 
         private void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
         {
-
+            throw new NotImplementedException("SaveAsRawFile");
         }
 
         private void IrpSearchBox_Loaded(object sender, RoutedEventArgs e)
@@ -59,5 +59,15 @@ namespace GUI.Views
 
         private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e) =>
             (sender as DataGrid).Sort(e.Column, ViewModel.Irps.Sort);
+
+        private void ShowDetails_Click(object sender, RoutedEventArgs e)
+        {
+            // navigateto detailIrpPage(ViewModel.SelectedIrp)
+        }
+
+        private void SendToRepeater_Click(object sender, RoutedEventArgs e)
+        {
+            // navigateto repeatIrpPage(ViewModel.SelectedIrp)
+        }
     }
 }

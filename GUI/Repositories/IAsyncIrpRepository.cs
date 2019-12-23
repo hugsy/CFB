@@ -22,5 +22,13 @@ namespace GUI.Repositories
         /// </summary>
         Task<IEnumerable<Irp>> GetAsync(string pattern);
 
+
+        Task<bool> Insert(Irp irp);
+
+
+        Task<bool> Clear();
+
+
+        Task<bool> Delete(int id);
     }
 }

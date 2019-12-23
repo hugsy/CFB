@@ -13,30 +13,42 @@
 
     <Page.Resources>
         <MenuFlyout x:Key="DataGridContextMenu">
-            <!-- Click="ShowDetails_Click"-->
+
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE1A5;"
-                Text="Show IRP Details" />
-
-            <!-- Click="SaveAsRawFile_Click" -->
+                Text="Show IRP Details" 
+                Click="ShowDetails_Click"
+                />
+            
+            <MenuFlyoutItem
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE14D;"
+                Text="Send to Repeater" 
+                Click="SendToRepeater_Click"
+                />
+            
             <MenuFlyoutItem               
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as Raw" />
-
-            <!--Click="SaveAsPowershellScript_Click"-->
+                Text="Save the current IRP data as Raw" 
+                Click="SaveAsRawFile_Click" 
+                />
+            
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as a PowerShell script" />
+                Text="Save the current IRP data as a PowerShell script" 
+                Click="SaveAsPowershellScript_Click" 
+                />
 
-            <!--Click="SaveAsPythonScript_Click"-->
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as a Python script" />
-
+                Text="Save the current IRP data as a Python script" 
+                Click="SaveAsPythonScript_Click"
+                />
+            
         </MenuFlyout>
     </Page.Resources>
 
@@ -44,10 +56,7 @@
         x:Name="LayoutRoot"
         Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-
-
         <RelativePanel>
-
             <TextBlock
                 x:Name="PageTitle"
                 Style="{ThemeResource TitleTextBlockStyle}"
@@ -85,12 +94,13 @@
                         <toolkit:DataGridTextColumn Header="Process Name" Tag="ProcessName" Binding="{Binding ProcessName}" />
                         <toolkit:DataGridTextColumn Header="Process ID" Tag="ProcessId" Binding="{Binding ProcessId}" />
                         <toolkit:DataGridTextColumn Header="Thread ID" Tag="ThreadId" Binding="{Binding ThreadId}" />
+                        <toolkit:DataGridTextColumn Header="Type" Tag="Type" Binding="{Binding Type}" />
                         <toolkit:DataGridTextColumn Header="IOCTL Code" Tag="IoctlCode" Binding="{Binding IoctlCodeString}" />
+                        <toolkit:DataGridTextColumn Header="Status" Tag="Status" Binding="{Binding StatusString}" />
                         <toolkit:DataGridTextColumn Header="Input Buffer Length" Tag="InputBufferLength" Binding="{Binding InputBufferLength}" />
                         <toolkit:DataGridTextColumn Header="Output Buffer Length" Tag="OutputBufferLength" Binding="{Binding OutputBufferLength}" />
                         <toolkit:DataGridTextColumn Header="Input Buffer" Tag="InputBuffer" Binding="{Binding InputBufferString}" />
                         <toolkit:DataGridTextColumn Header="Output Buffer" Tag="OutputBuffer" Binding="{Binding OutputBufferString}" />
-                        
                     </toolkit:DataGrid.Columns>
                 </toolkit:DataGrid>
 

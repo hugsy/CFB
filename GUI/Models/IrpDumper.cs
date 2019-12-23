@@ -152,11 +152,21 @@ namespace GUI.Models
                 List<Irp> NewIrps = FetchIrps();
                 _taskInstance.Progress += (uint)NewIrps.Count;
 
-                Debug.WriteLine($"Received {NewIrps.Count:d} new irps");
+                if(NewIrps.Count > 0)
+                {
+                    Debug.WriteLine($"Received {NewIrps.Count:d} new irps");
 
-                //
-                // push them to the db
-                //
+                    //
+                    // push them to the db
+                    //
+                    foreach (var irp in NewIrps)
+                    {
+                        App.Irps.Insert(irp);
+                    }
+
+                    App.ViewModel.UpdateUi();
+                }
+
             }
             catch (Exception e)
             {

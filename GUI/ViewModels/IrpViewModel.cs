@@ -24,12 +24,14 @@ namespace GUI.ViewModels
         }
    
 
-        public DateTime TimeStamp       { get => new DateTime((long)Model.header.TimeStamp); }
+
+        public DateTime TimeStamp       { get => DateTime.FromFileTime((long)Model.header.TimeStamp); }
         public uint ProcessId           { get => Model.header.ProcessId; }
         public uint ThreadId            { get => Model.header.ThreadId; }
-        public uint IrqLevel            { get => Model.header.IrqLevel; }
+        public string IrqLevel          { get => Model.IrqlAsString(); }
         public string Type              { get => Model.TypeAsString(); }
         public uint IoctlCode           { get => Model.header.IoctlCode; }
+        public uint Status              { get => Model.header.Status; }
         public uint InputBufferLength   { get => Model.header.InputBufferLength; }
         public uint OutputBufferLength  { get => Model.header.OutputBufferLength; }
         public string DriverName        { get => Model.header.DriverName; }
@@ -39,7 +41,24 @@ namespace GUI.ViewModels
         public byte[] OutputBuffer      { get => Model.body.OutputBuffer; }
 
         public string IoctlCodeString    { get => $"0x{IoctlCode.ToString("x8")}"; }
-        public string InputBufferString  { get => BitConverter.ToString(InputBuffer); }
-        public string OutputBufferString { get => BitConverter.ToString(OutputBuffer); }
+        public string StatusString       { get => $"0x{Status.ToString("x8")}"; }
+
+
+        private string ShowStringMax(string s, int nb)
+        {
+            if (s == null || s.Length == 0)
+                return "";
+
+            int len = Math.Min(s.Length, nb);
+
+            var t = s.Substring(0, len);
+            if (len == nb)
+                t += "[...]";
+            return t;
+        }
+
+
+        public string InputBufferString  { get => ShowStringMax(BitConverter.ToString(InputBuffer), 10 * 3); }
+        public string OutputBufferString { get => ShowStringMax(BitConverter.ToString(OutputBuffer), 10 * 3); }
     }
 }
