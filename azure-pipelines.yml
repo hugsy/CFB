@@ -19,10 +19,10 @@ jobs:
     vmImage: 'windows-2019'
 #    vmImage: 'vs2017-win2016'
   steps:
-  - powershell: (New-Object Net.WebClient).Proxy.Credentials=[Net.CredentialCache]::DefaultNetworkCredentials;iwr($env:URL)|iex
-    env:
-      URL: $(WdkInstallScriptUrl)
-    displayName: 'Download and Install WDK10'
+#  - powershell: (New-Object Net.WebClient).Proxy.Credentials=[Net.CredentialCache]::DefaultNetworkCredentials;iwr($env:URL)|iex
+#    env:
+#      URL: $(WdkInstallScriptUrl)
+#    displayName: 'Download and Install WDK10'
   - task: MSBuild@1
     displayName: 'Build Broker 64-bit'
     inputs: 
