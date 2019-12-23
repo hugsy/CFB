@@ -29,19 +29,23 @@ namespace GUI
     /// </summary>
     public sealed partial class AppShell : Page
     {
-        public readonly string MonitoredIrpsListLabel = "Monitored IRPs";
-        public readonly string OpenIrpDbLabel = "Load IRPs from file";
-        public readonly string SaveIrpDbLabel = "Save IRPs to file";
-        public readonly string ManageDriversLabel = "Manage IRP drivers";
-        public readonly string ReplayIrpLabel = "Forge custom IRP";
-        public readonly string AboutLabel = "About CFB";
+        public readonly string MonitoredIrpsListLabel      = "Monitored IRPs";
+        public readonly string OpenIrpDbLabel              = "Load IRPs from file";
+        public readonly string SaveIrpDbLabel              = "Save IRPs to file";
+        public readonly string ManageDriversLabel          = "Manage IRP drivers";
+        public readonly string ReplayIrpLabel              = "Forge custom IRP";
+        public readonly string AboutLabel                  = "About CFB";
 
-        public readonly string StartMonitoringLabel = "Start Monitoring IRPs";
-        public readonly string StopMonitoringLabel = "Stop Monitoring IRPs";
-        public readonly string ClearGridLabel = "Clear all intercepted IRPs";
+        public readonly string StartMonitoringLabel        = "Start Monitoring IRPs";
+        public readonly string StopMonitoringLabel         = "Stop Monitoring IRPs";
+        public readonly string ClearGridLabel              = "Clear all intercepted IRPs";
 
-        public readonly string ConnectedStatusLabel = "Connected, click to disconnect...";
-        public readonly string DisconnectedStatusLabel = "Disconnected, click to connect...";
+        public readonly string ConnectedStatusLabel        = "Connected, click to disconnect...";
+        public readonly string DisconnectedStatusLabel     = "Disconnected, click to connect...";
+
+        public readonly string GlobalState_Connected       = "Connected";
+        public readonly string GlobalState_Disconnected    = "Disconnected";
+        public readonly string GlobalState_Capturing       = "Capturing...";
 
 
         public Frame AppFrame => frame;
@@ -194,7 +198,7 @@ namespace GUI
                 {
                     IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
                     IsConnectedAppBarButton.Label = ConnectedStatusLabel;
-                    UpdateGlobalState("Connected");
+                    UpdateGlobalState(GlobalState_Connected);
                 }
             }
             catch(Exception e)
@@ -214,7 +218,7 @@ namespace GUI
                 {
                     IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Red);
                     IsConnectedAppBarButton.Label = DisconnectedStatusLabel;
-                    UpdateGlobalState("Disconnected");
+                    UpdateGlobalState(GlobalState_Disconnected);
                 }
             }
             catch (Exception e)
@@ -239,7 +243,7 @@ namespace GUI
                     StopMonitoringLabelBtn.IsEnabled = true;
                     App.ViewModel.IsLoading = true;
 
-                    UpdateGlobalState("Capturing...");
+                    UpdateGlobalState(GlobalState_Capturing);
                 }
             }
             catch (Exception ex)
@@ -270,7 +274,7 @@ namespace GUI
                     StopMonitoringLabelBtn.IsEnabled = false;
                     App.ViewModel.IsLoading = false;
 
-                    UpdateGlobalState("Connected");
+                    UpdateGlobalState(GlobalState_Connected);
                 }
             }
             catch (Exception ex)
