@@ -28,7 +28,7 @@ namespace GUI
         public readonly string MonitoredIrpsListLabel      = "Monitored IRPs";
         public readonly string OpenIrpDbLabel              = "Load IRPs from file";
         public readonly string SaveIrpDbLabel              = "Save IRPs to file";
-        public readonly string ManageDriversLabel          = "Manage IRP drivers";
+        public readonly string ManageDriversLabel          = "Add/remove drivers";
         public readonly string ReplayIrpLabel              = "Forge custom IRP";
         public readonly string AboutLabel                  = "About CFB";
 
