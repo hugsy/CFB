@@ -96,10 +96,11 @@ namespace GUI.Models
         public IrpHeader header;
         public IrpBody body;
 
-        public Irp() { }
-
-
-        public Irp(JObject json) { }
+        public Irp() 
+        {
+            header = new IrpHeader();
+            body = new IrpBody();
+        }
 
 
         public bool Equals(Irp other) =>

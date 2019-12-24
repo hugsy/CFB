@@ -21,7 +21,7 @@ namespace GUI.ViewModels
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.
         /// </summary>
         public static Visibility BooleanToVisibility(bool value) =>
-            value ? Visibility.Visible : Visibility.Collapsed;
+            value ? Visibility.Visible : Visibility.Collapsed; 
 
         /// <summary>
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.

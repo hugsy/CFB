@@ -49,16 +49,14 @@ namespace GUI.Views
                 Windows.Storage.StorageFile file = await openPicker.PickSingleFileAsync();
                 if (file != null)
                 {
-                    ViewModel.Status = $"🡆 Loading file '{file.Path}'...";
-                    var buffer = await Windows.Storage.FileIO.ReadBufferAsync(file);
-                    byte[] fileContent = buffer.ToArray();
-
                     ViewModel.Status = $"🡆 Parsing content of file '{file.Path}'...";
 
-                    ViewModel.LoadIrpsFromFile(file);
-
-                    ViewModel.Status = $"✔ IRPs from '{file.Path}' loaded!";
-                    return;
+                    bool res = await ViewModel.LoadIrpsFromFile(file);
+                    if (res)
+                    {
+                        ViewModel.Status = $"✔ IRPs from '{file.Path}' loaded!";
+                        return;
+                    }
                 }
 
                 ViewModel.Status = "✘ Couldn't load IRPs from file.";

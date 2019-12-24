@@ -164,9 +164,9 @@ CREATE TABLE IF NOT EXISTS Irps (
 
         public async Task<bool> LoadIrpsFromFile(StorageFile file)
         {
-            List<String> entries = new List<string>();
-            //string dbpath = Path.Combine(ApplicationData.Current.LocalFolder.Path, "sqliteSample.db");
-            using (var db = new SqliteConnection($"Filename={file.Path}"))
+            var f = await file.CopyAsync(ApplicationData.Current.TemporaryFolder, file.Name, NameCollisionOption.ReplaceExisting);
+
+            using (var db = new SqliteConnection($"Filename={f.Path}"))
             {
                 db.Open();
 
@@ -205,14 +205,18 @@ CREATE TABLE IF NOT EXISTS Irps (
                     irp.header.DeviceName = query.GetString(10);
                     irp.header.ProcessName = query.GetString(11);
 
-                    query.GetBytes(12, 0, irp.body.InputBuffer, 0, (int)irp.header.InputBufferLength);
-                    query.GetBytes(13, 0, irp.body.OutputBuffer, 0, (int)irp.header.OutputBufferLength);
+                    irp.body.InputBuffer = ((MemoryStream)query.GetStream(12)).ToArray();
+                    irp.body.OutputBuffer = ((MemoryStream)query.GetStream(13)).ToArray();
 
                     await App.Irps.Insert(irp);
                 }
 
+                App.ViewModel.UpdateUi();
+
                 db.Close();
             }
+
+            await f.DeleteAsync();
 
             return true;
         }

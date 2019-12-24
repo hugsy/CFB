@@ -61,7 +61,7 @@ namespace GUI.ViewModels
         }
 
 
-        public string InputBufferString  { get => ShowStringMax(BitConverter.ToString(InputBuffer), 10 * 3); }
-        public string OutputBufferString { get => ShowStringMax(BitConverter.ToString(OutputBuffer), 10 * 3); }
+        public string InputBufferString  { get => InputBuffer != null ? ShowStringMax(BitConverter.ToString(InputBuffer), 10 * 3): ""; }
+        public string OutputBufferString { get => OutputBuffer != null ? ShowStringMax(BitConverter.ToString(OutputBuffer), 10 * 3): ""; }
     }
 }

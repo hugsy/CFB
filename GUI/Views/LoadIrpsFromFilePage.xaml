@@ -13,10 +13,12 @@
             <TextBlock Text="Load saved IRPs from a previous session" Style="{StaticResource HeaderTextBlockStyle}"/>
 
             <ProgressBar
-                 Margin="0,25,0,25"
-                 VerticalAlignment="Top"
-                 IsIndeterminate="True"
-                 Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Grid.ColumnSpan="2" />
+                Margin="0,25,0,25"
+                VerticalAlignment="Top"
+                IsIndeterminate="True"
+                Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" 
+                Grid.ColumnSpan="2" 
+                />
 
             <TextBlock Style="{StaticResource BodyTextBlockStyle}" TextWrapping="Wrap" Margin="0,15,0,0">
                 Select a file on the file system saved in the *.cfb format, and load its content into the current sessions.
