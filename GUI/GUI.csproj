@@ -155,6 +155,9 @@
     <Compile Include="Views\DriverListPage.xaml.cs">
       <DependentUpon>DriverListPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\IrpInfoPage.xaml.cs">
+      <DependentUpon>IrpInfoPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\LoadIrpsFromFilePage.xaml.cs">
       <DependentUpon>LoadIrpsFromFilePage.xaml</DependentUpon>
     </Compile>
@@ -207,6 +210,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\DriverListPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\IrpInfoPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

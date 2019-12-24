@@ -18,9 +18,7 @@ using System.Threading.Tasks;
 using GUI.Models;
 using Windows.Storage;
 using Windows.UI.Popups;
-
-
-
+using GUI.Helpers;
 
 namespace GUI
 {
@@ -246,11 +244,10 @@ namespace GUI
             }
             catch (Exception ex)
             {
-                var dialog = new MessageDialog(
+                await Utils.ShowPopUp(
                     $"Unable to start monitoring, reason:\n {ex.Message}",
-                    "Error!"
+                    "StartMonitoring() Error!"
                 );
-                await dialog.ShowAsync();
 
                 if(success)
                     await Task.Run(App.BrokerSession.StopMonitoring);
@@ -277,11 +274,10 @@ namespace GUI
             }
             catch (Exception ex)
             {
-                var dialog = new MessageDialog(
+                await Utils.ShowPopUp(
                     $"Unable to stop monitoring, reason:\n {ex.Message}",
-                    "Error!"
+                    "StopMonitoring() Error!"
                 );
-                await dialog.ShowAsync();
             }
         }
 

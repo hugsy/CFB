@@ -17,6 +17,7 @@ using Windows.UI.Xaml.Navigation;
 
 using GUI.ViewModels;
 using System.Collections.ObjectModel;
+using Microsoft.Toolkit.Uwp.Helpers;
 
 namespace GUI.Views
 {
@@ -54,7 +55,56 @@ namespace GUI.Views
 
         private void IrpSearchBox_Loaded(object sender, RoutedEventArgs e)
         {
-            //IrpSearchBox.AutoSuggestBox.PlaceholderText = "Search IRP by RegExp...";
+            if (IrpSearchBox != null)
+            {
+                IrpSearchBox.AutoSuggestBox.TextChanged += IrpSearchBox_TextChanged;
+                IrpSearchBox.AutoSuggestBox.PlaceholderText = "Enter your IRP Smart Filter...";
+            }
+        }
+
+        private async void IrpSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            var text = sender.Text;
+
+            if (String.IsNullOrEmpty(text))
+            {
+                await ViewModel.GetIrpListAsync();
+                return;
+            }
+
+            ViewModel.IsLoading = true;
+
+             string[] parameters = text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+             
+             var matches = ViewModel.Irps
+                     .Where(
+                         irp => parameters.Any(
+                             parameter =>
+                                 irp.DeviceName.Contains(parameter, StringComparison.OrdinalIgnoreCase) ||
+                                 irp.DriverName.Contains(parameter, StringComparison.OrdinalIgnoreCase) ||
+                                 irp.ProcessName.Contains(parameter, StringComparison.OrdinalIgnoreCase)
+                         )
+                     ).ToList();
+             
+             
+             await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+             {
+                 if (matches.Count() > 0)
+                 {
+                     ViewModel.Irps.Clear();
+             
+                     foreach (var match in matches)
+                         ViewModel.Irps.Add(match);
+                 }
+             });
+
+            ViewModel.IsLoading = false;
+        }
+
+        private void RefreshDataGrid()
+        {
+            IrpDataGrid.ItemsSource = null;
+            IrpDataGrid.ItemsSource = ViewModel.Irps;
         }
 
         private void DataGrid_Sorting(object sender, DataGridColumnEventArgs e) =>
@@ -62,12 +112,12 @@ namespace GUI.Views
 
         private void ShowDetails_Click(object sender, RoutedEventArgs e)
         {
-            // navigateto detailIrpPage(ViewModel.SelectedIrp)
+            this.Frame.Navigate(typeof(Views.IrpInfoPage), ViewModel.SelectedIrp);
         }
 
         private void SendToRepeater_Click(object sender, RoutedEventArgs e)
         {
-            // navigateto repeatIrpPage(ViewModel.SelectedIrp)
+            this.Frame.Navigate(typeof(Views.ReplayIrpPage), ViewModel.SelectedIrp);
         }
     }
 }

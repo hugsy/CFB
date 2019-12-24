@@ -82,6 +82,7 @@
                         AutoGenerateColumns="False"
                         Sorting="DataGrid_Sorting"
                         BorderThickness="0"
+                        x:Name="IrpDataGrid"
                         GridLinesVisibility="None"
                         ItemsSource="{x:Bind ViewModel.Irps}"
                         SelectedItem="{x:Bind ViewModel.SelectedIrp, Mode=TwoWay}"

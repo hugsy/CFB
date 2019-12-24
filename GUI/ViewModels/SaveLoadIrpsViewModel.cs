@@ -191,12 +191,13 @@ CREATE TABLE IF NOT EXISTS Irps (
 
                 while (query.Read())
                 {
+
                     Irp irp = new Irp();
                     irp.header.TimeStamp = (ulong)query.GetInt64(0);
                     irp.header.IrqLevel = (uint)query.GetInt32(1);
                     irp.header.Type = (uint)query.GetInt32(2);
                     irp.header.IoctlCode = (uint)query.GetInt32(3);
-                    irp.header.Status = (uint)query.GetInt32(4);
+                    irp.header.Status = (uint)query.GetInt64(4);
                     irp.header.ProcessId = (uint)query.GetInt32(5);
                     irp.header.ThreadId = (uint)query.GetInt32(6);
                     irp.header.InputBufferLength = (uint)query.GetInt32(7);
@@ -204,14 +205,14 @@ CREATE TABLE IF NOT EXISTS Irps (
                     irp.header.DriverName = query.GetString(9);
                     irp.header.DeviceName = query.GetString(10);
                     irp.header.ProcessName = query.GetString(11);
-
+                    
                     irp.body.InputBuffer = ((MemoryStream)query.GetStream(12)).ToArray();
                     irp.body.OutputBuffer = ((MemoryStream)query.GetStream(13)).ToArray();
 
                     await App.Irps.Insert(irp);
                 }
 
-                App.ViewModel.UpdateUi();
+                await App.ViewModel.GetIrpListAsync();
 
                 db.Close();
             }

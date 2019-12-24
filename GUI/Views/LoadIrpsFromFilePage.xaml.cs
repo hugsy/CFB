@@ -64,7 +64,7 @@ namespace GUI.Views
             catch (Exception ex)
             {
                 await Utils.ShowPopUp(
-                    $"An error occured while trying to load IRPs to file.\nReason:\n{ex.Message}",
+                    $"An error occured while trying to load IRPs to file.\n\nReason:\n{ex.Message}",
                     "Save IRPs Failed"
                 );
             }
