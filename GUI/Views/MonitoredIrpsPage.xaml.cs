@@ -25,6 +25,7 @@ using Windows.Storage.Streams;
 using Windows.Security.Cryptography;
 using Windows.Storage.Provider;
 using System.Threading.Tasks;
+using GUI.Models;
 
 namespace GUI.Views
 {
@@ -47,39 +48,38 @@ namespace GUI.Views
 
         private async void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
         {
-            if (ViewModel.SelectedIrp == null)
-            {
-                await Utils.ShowPopUp("No IRP selected");
-                return;
-            }
-
-            string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\PowershellTemplate.txt";
-            if (!File.Exists(template_filepath))
-            {
-                await Utils.ShowPopUp("SaveAsPythonScript(): missing template");
-                return;
-            }
-
-            await GenerateBodyScript("Python", ViewModel.SelectedIrp, template_filepath);
+            await CreateGenericScript("Python");
         }
 
 
         private async void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
         {
+            await CreateGenericScript("Powershell");
+        }
+
+
+        private async Task CreateGenericScript(string _type)
+        {
             if (ViewModel.SelectedIrp == null)
             {
-                await Utils.ShowPopUp("No IRP selected");
+                await Utils.ShowPopUp("No IRP selected", "Missing IRP");
                 return;
             }
 
-            string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\PowershellTemplate.txt";
+            if (ViewModel.SelectedIrp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+            {
+                await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed...", "Invalid IRP");
+                return;
+            }
+
+            string template_filepath = Package.Current.InstalledLocation.Path + $"\\ScriptTemplates\\{_type:s}Template.txt";
             if (!File.Exists(template_filepath))
             {
                 await Utils.ShowPopUp("SaveAsPowershellScript(): missing template");
                 return;
             }
 
-            await GenerateBodyScript("Powershell", ViewModel.SelectedIrp, template_filepath);
+            await GenerateBodyScript(_type, ViewModel.SelectedIrp, template_filepath);
         }
 
 
