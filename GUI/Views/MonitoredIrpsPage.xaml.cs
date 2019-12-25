@@ -18,6 +18,12 @@ using Windows.UI.Xaml.Navigation;
 using GUI.ViewModels;
 using System.Collections.ObjectModel;
 using Microsoft.Toolkit.Uwp.Helpers;
+using Windows.ApplicationModel;
+using GUI.Helpers;
+using Windows.Storage;
+using Windows.Storage.Streams;
+using Windows.Security.Cryptography;
+using Windows.Storage.Provider;
 
 namespace GUI.Views
 {
@@ -43,10 +49,79 @@ namespace GUI.Views
             throw new NotImplementedException("SaveAsPythonScript");
         }
 
-        private void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
+        private async void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException("SaveAsPowershellScript");
+            if (ViewModel.SelectedIrp == null)
+            {
+                await Utils.ShowPopUp("No IRP selected");
+                return;
+            }
+
+            string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\PowershellTemplate.txt";
+            //string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\t2.txt";
+            if (!File.Exists(template_filepath))
+            {
+                await Utils.ShowPopUp("SaveAsPowershellScript(): missing template");
+                return;
+            }
+
+            //
+            // generate the script body
+            //
+            var DeviceName = ViewModel.SelectedIrp.DeviceName.Replace(@"\Device", @"\\.");
+            var IrpDataInStr = "";
+            var IrpDataOutStr = "''";
+
+            foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
+                IrpDataInStr += $"\\x{c:X2}";
+
+            if (ViewModel.SelectedIrp.OutputBufferLength > 0)
+                IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
+
+            var fmt = File.ReadAllText(template_filepath);
+            var output = String.Format(fmt,
+                ViewModel.SelectedIrp.IoctlCode,
+                DeviceName,
+                ViewModel.SelectedIrp.DriverName,
+                $"'{IrpDataInStr}'",
+                IrpDataOutStr
+            );
+
+
+            //
+            // write it to disk
+            //
+            var savePicker = new Windows.Storage.Pickers.FileSavePicker();
+            savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
+            savePicker.SuggestedFileName = $"Irp-0x{ViewModel.SelectedIrp.IoctlCode:x}-Session-{DateTime.Now.ToString("yyyyMMddTHH:mm:ssZ")}";
+            savePicker.FileTypeChoices.Add("PowerShell", new List<string>() { ".ps1" });
+
+            StorageFile file = await savePicker.PickSaveFileAsync();
+            if (file != null)
+            {
+                CachedFileManager.DeferUpdates(file);
+                await FileIO.WriteBufferAsync(file, GetBufferFromString(output));
+                FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
+                if (status == FileUpdateStatus.Complete)
+                {
+                    await Utils.ShowPopUp($"File {file.Name} was saved.");
+                    return;
+                }
+            }
+
+            await Utils.ShowPopUp($"Couln't save IRP to PS1.");
+            return;
         }
+
+
+        private IBuffer GetBufferFromString(string str)
+        {
+            return (String.IsNullOrEmpty(str)) ? 
+                new Windows.Storage.Streams.Buffer(0) :
+                CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8)
+            ;
+        }
+
 
         private void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
         {
