@@ -24,6 +24,7 @@ using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.Security.Cryptography;
 using Windows.Storage.Provider;
+using System.Threading.Tasks;
 
 namespace GUI.Views
 {
@@ -44,10 +45,24 @@ namespace GUI.Views
         {
         }
 
-        private void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
+        private async void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
         {
-            throw new NotImplementedException("SaveAsPythonScript");
+            if (ViewModel.SelectedIrp == null)
+            {
+                await Utils.ShowPopUp("No IRP selected");
+                return;
+            }
+
+            string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\PowershellTemplate.txt";
+            if (!File.Exists(template_filepath))
+            {
+                await Utils.ShowPopUp("SaveAsPythonScript(): missing template");
+                return;
+            }
+
+            await GenerateBodyScript("Python", ViewModel.SelectedIrp, template_filepath);
         }
+
 
         private async void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
         {
@@ -58,13 +73,18 @@ namespace GUI.Views
             }
 
             string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\PowershellTemplate.txt";
-            //string template_filepath = Package.Current.InstalledLocation.Path + @"\ScriptTemplates\t2.txt";
             if (!File.Exists(template_filepath))
             {
                 await Utils.ShowPopUp("SaveAsPowershellScript(): missing template");
                 return;
             }
 
+            await GenerateBodyScript("Powershell", ViewModel.SelectedIrp, template_filepath);
+        }
+
+
+        private async Task GenerateBodyScript(string TypeStr, IrpViewModel irp, string template_file)
+        {
             //
             // generate the script body
             //
@@ -78,7 +98,7 @@ namespace GUI.Views
             if (ViewModel.SelectedIrp.OutputBufferLength > 0)
                 IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
 
-            var fmt = File.ReadAllText(template_filepath);
+            var fmt = File.ReadAllText(template_file);
             var output = String.Format(fmt,
                 ViewModel.SelectedIrp.IoctlCode,
                 DeviceName,
@@ -94,7 +114,17 @@ namespace GUI.Views
             var savePicker = new Windows.Storage.Pickers.FileSavePicker();
             savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
             savePicker.SuggestedFileName = $"Irp-0x{ViewModel.SelectedIrp.IoctlCode:x}-Session-{DateTime.Now.ToString("yyyyMMddTHH:mm:ssZ")}";
-            savePicker.FileTypeChoices.Add("PowerShell", new List<string>() { ".ps1" });
+
+            switch (TypeStr)
+            {
+                case "Powershell":
+                    savePicker.FileTypeChoices.Add("PowerShell", new List<string>() { ".ps1" });
+                    break;
+
+                case "Python":
+                    savePicker.FileTypeChoices.Add("Python", new List<string>() { ".py" });
+                    break;
+            }
 
             StorageFile file = await savePicker.PickSaveFileAsync();
             if (file != null)
@@ -109,10 +139,9 @@ namespace GUI.Views
                 }
             }
 
-            await Utils.ShowPopUp($"Couln't save IRP to PS1.");
+            await Utils.ShowPopUp($"Couldn't save IRP as a {TypeStr} script...");
             return;
         }
-
 
         private IBuffer GetBufferFromString(string str)
         {

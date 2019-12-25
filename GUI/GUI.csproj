@@ -189,6 +189,7 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <Content Include="ScriptTemplates\PowershellTemplate.txt" />
+    <Content Include="ScriptTemplates\PythonTemplate.txt" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
