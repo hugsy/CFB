@@ -79,6 +79,7 @@ NTSTATUS HandleIoGetDriverInfo(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCATION Stack, 
 }
 
 
+
 /*++
 
 --*/
@@ -95,5 +96,27 @@ NTSTATUS HandleIoGetNumberOfHookedDrivers(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCAT
 	UINT32* u32Res = (UINT32*)Irp->AssociatedIrp.SystemBuffer;
 	*u32Res = GetNumberOfHookedDrivers();
 	*pdwDataWritten = sizeof(UINT32);
+	return STATUS_SUCCESS;
+}
+
+
+/*++
+
+--*/
+NTSTATUS HandleIoGetNamesOfHookedDrivers(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCATION Stack, _Out_ PULONG pdwDataWritten)
+{
+	UNREFERENCED_PARAMETER(Irp);
+	PAGED_CODE();
+
+	ULONG OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
+	PVOID OutputBuffer = (UINT32*)Irp->AssociatedIrp.SystemBuffer;
+
+	if(!OutputBuffer || OutputBufferLen==0)
+		return STATUS_BUFFER_TOO_SMALL;
+
+	NTSTATUS Status = GetNamesOfHookedDrivers(ENABLED_DRIVERS_ONLY, OutputBuffer, OutputBufferLen, pdwDataWritten);
+	if (!NT_SUCCESS(Status))
+		return Status;
+
 	return STATUS_SUCCESS;
 }

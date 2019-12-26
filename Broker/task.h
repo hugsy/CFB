@@ -26,30 +26,34 @@ enum class TaskType : uint32_t
 	HookDriver,
 	UnhookDriver,
 	GetDriverInfo,
-	GetNumberOfDriver = 5,
+	GetNumberOfDriver,
 	NotifyEventHandle,
 	EnableMonitoring,
 	DisableMonitoring,
 	GetInterceptedIrps,
-	ReplayIrp = 10,
+	ReplayIrp,
 	StoreTestCase,
 	EnumerateDrivers,
 	EnableDriver,
-	DisableDriver = 14,
-	TaskTypeMax
+	DisableDriver,
+	GetNamesOfHookedDrivers,
+	TaskTypeMax = 16
 };
 
 
 static std::map<TaskType, DWORD> g_TaskIoctls = 
 {
-	{TaskType::HookDriver, IOCTL_AddDriver},
-	{TaskType::UnhookDriver, IOCTL_RemoveDriver},
-	{TaskType::GetNumberOfDriver, IOCTL_GetNumberOfDrivers},
-	{TaskType::GetDriverInfo, IOCTL_GetDriverInfo},
-	{TaskType::NotifyEventHandle, IOCTL_SetEventPointer},
-	{TaskType::EnableMonitoring, IOCTL_EnableMonitoring},
-	{TaskType::DisableMonitoring, IOCTL_DisableMonitoring},
-	{TaskType::StoreTestCase, IOCTL_StoreTestCase},
+	{TaskType::HookDriver,                IOCTL_AddDriver},
+	{TaskType::UnhookDriver,              IOCTL_RemoveDriver},
+	{TaskType::GetNumberOfDriver,         IOCTL_GetNumberOfDrivers},
+	{TaskType::GetNamesOfHookedDrivers,   IOCTL_GetNamesOfDrivers},
+	{TaskType::GetDriverInfo,             IOCTL_GetDriverInfo},
+	{TaskType::NotifyEventHandle,         IOCTL_SetEventPointer},
+	{TaskType::EnableMonitoring,          IOCTL_EnableMonitoring},
+	{TaskType::DisableMonitoring,         IOCTL_DisableMonitoring},
+	{TaskType::StoreTestCase,             IOCTL_StoreTestCase},
+	{TaskType::EnableDriver,              IOCTL_EnableDriver},
+	{TaskType::DisableDriver,             IOCTL_DisableDriver},
 };
 
 

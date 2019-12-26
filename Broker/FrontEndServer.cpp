@@ -182,12 +182,15 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 		SendDriverList();
 		break;
 
+	/*
 	case TaskType::GetDriverInfo:
 		//dbg(L"GetDriverInfo(lpDrivername='%s')\n", task.Data());
 
 	case TaskType::ReplayIrp:
 		//dbg(L"ReplayIrp()\n");
 		// TODO
+	*/
+
 	default:
 		// push the task to request task list
 		m_Session.RequestTasks.push(task);
@@ -230,6 +233,24 @@ BOOL FrontEndServer::ForwardReply()
 			json_response["body"]["driver"]["Name"] = Utils::WideStringToString(std::wstring(data->Name));
 			json_response["body"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
 		}
+		break;
+	}
+
+	case TaskType::GetNamesOfHookedDrivers:
+	{
+		auto driver_list_ws = std::wstring((wchar_t*)task.Data());
+		auto driver_list_cs = Utils::WideStringToString(driver_list_ws);
+
+		std::string delimiter = ";";
+		size_t pos = 0;
+		json_response["body"]["drivers"] = json::array();
+		while ((pos = driver_list_cs.find(delimiter)) != std::string::npos)
+		{
+			std::string drvname = driver_list_cs.substr(0, pos);
+			json_response["body"]["drivers"].push_back(drvname);
+			driver_list_cs.erase(0, pos + delimiter.length());
+		}
+
 		break;
 	}
 

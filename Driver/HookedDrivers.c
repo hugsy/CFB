@@ -1,4 +1,5 @@
 #include "HookedDrivers.h"
+#include "IoAddDriver.h"
 
 static LIST_ENTRY HookedDriversHead;
 PLIST_ENTRY g_HookedDriverHead = &HookedDriversHead;
@@ -41,18 +42,19 @@ Return the number of the hooked drivers
 
 Arguments:
 
+    None
 
 Return Value:
 
 	Returns STATUS_SUCCESS on success.
 
 --*/
-UINT32 GetNumberOfHookedDrivers()
+UINT32 
+GetNumberOfHookedDrivers()
 {
     UINT32 i = 0;
     
-
-    KeAcquireInStackQueuedSpinLock(&HookedDriverSpinLock, &HookedDriverSpinLockQueue);
+    KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
     if (!IsListEmpty(g_HookedDriverHead))
     {
@@ -62,11 +64,75 @@ UINT32 GetNumberOfHookedDrivers()
             Entry = Entry->Flink, i++);
     }
 
-    KeReleaseInStackQueuedSpinLock(&HookedDriverSpinLockQueue);
+    KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 
 	return i;
 }
 
+
+/*++
+
+Routine Description:
+
+Return a null terminated wide-string formed with all names of hooked drivers, separated 
+with a comma ','.
+
+
+Arguments:
+ 
+    None
+
+Return Value:
+
+    Returns STATUS_SUCCESS on success.
+
+--*/
+NTSTATUS
+GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PWCHAR lpwsOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten)
+{
+    NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
+    *pdwDataWritten = 0;
+    RtlSecureZeroMemory(lpwsOutputBuffer, ulOutputBufferSize);
+
+    KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
+
+    if (!IsListEmpty(g_HookedDriverHead))
+    {
+        for (PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
+            Entry != g_HookedDriverHead;
+            Entry = Entry->Flink)
+        {
+            PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
+            if (!CurDrv)
+                break;
+
+            if (Flags & ENABLED_DRIVERS_ONLY && !CurDrv->Enabled)
+                continue;
+
+            PWCHAR CurDrvName = CurDrv->Name;
+            ULONG CurDrvNameLen = (ULONG) wcslen(CurDrvName);
+
+            if (*pdwDataWritten + CurDrvNameLen + 2 >= ulOutputBufferSize)
+            {
+                RtlSecureZeroMemory(lpwsOutputBuffer, ulOutputBufferSize);
+                *pdwDataWritten = 0;
+                Status = STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            RtlCopyMemory(lpwsOutputBuffer + (*pdwDataWritten), CurDrvName, CurDrvNameLen);
+            RtlCopyMemory(lpwsOutputBuffer + (*pdwDataWritten) + CurDrvNameLen, L";", 2);
+            *pdwDataWritten += CurDrvNameLen + 2;
+        }
+
+        Status = STATUS_SUCCESS;
+    }
+
+    KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
+
+    return Status;
+}
 
 
 /*++
@@ -92,10 +158,9 @@ BOOLEAN IsDriverHooked(_In_ PDRIVER_OBJECT pDriverObject)
 
     if (!IsListEmpty(g_HookedDriverHead))
     {
-
-        PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
-
-        do
+        for (PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
+            Entry != g_HookedDriverHead;
+            Entry = Entry->Flink)
         {
             PHOOKED_DRIVER CurDrv = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
@@ -104,12 +169,7 @@ BOOLEAN IsDriverHooked(_In_ PDRIVER_OBJECT pDriverObject)
                 bRes = TRUE;
                 break;
             }
-
-            Entry = Entry->Flink;
-
-        } 
-		while (Entry != g_HookedDriverHead);
-
+        }
     }
 
     KeReleaseInStackQueuedSpinLock(&HookedDriverSpinLockQueue);

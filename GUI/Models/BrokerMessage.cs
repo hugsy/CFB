@@ -12,24 +12,25 @@ namespace GUI.Models
 {
     /// <summary>
     /// The different message types to the Broker
-    /// The values must be *exactly* the same as the ones defined in Broker\Task.h
+    /// The values must reflect *exactly* the values defined in Broker\Task.h
     /// </summary>
     public enum MessageType : uint
     {
-        IoctlResponse       = 1, // useless now, todo replace with something more useful
-        HookDriver          = 2,
-        UnhookDriver        = 3,
-        GetDriverInfo       = 4,
-        NumberOfDriver      = 5,
-        NotifyEventHandle   = 6, // don't use, todo remove
-        EnableMonitoring    = 7,
-        DisableMonitoring   = 8,
-        GetInterceptedIrps  = 9,
-        ReplayIrp           = 10,
-        StoreTestCase       = 11,
-        EnumerateDrivers    = 12,
-        EnableDriver        = 13,
-        DisableDriver       = 14,
+        IoctlResponse                = 1, // useless now, todo replace with something more useful
+        HookDriver                   = 2,
+        UnhookDriver                 = 3,
+        GetDriverInfo                = 4,
+        NumberOfDriver               = 5,
+        NotifyEventHandle            = 6, // don't use, todo remove
+        EnableMonitoring             = 7,
+        DisableMonitoring            = 8,
+        GetInterceptedIrps           = 9,
+        ReplayIrp                    = 10,
+        StoreTestCase                = 11,
+        EnumerateDrivers             = 12,
+        EnableDriver                 = 13,
+        DisableDriver                = 14,
+        GetNamesOfHookedDrivers      = 15,
     };
 
 
@@ -51,8 +52,8 @@ namespace GUI.Models
         public uint param_length;
         public string param;
 
-        // used by EnumerateDrivers
-        public List<String> drivers;
+        // used by EnumerateDrivers && GetNamesOfHookedDrivers
+        public List<String> drivers;  
 
         // used by GetDriverInfo
         public Driver driver;
@@ -68,12 +69,10 @@ namespace GUI.Models
         public BrokerMessageHeader header;
         public BrokerMessageBody body;
 
-        public BrokerMessage() 
-        { }
+        public BrokerMessage() { }
 
 
-        public BrokerMessage(MessageType type) : this(type, null)
-        { }
+        public BrokerMessage(MessageType type) : this(type, null) { }
         
 
         public BrokerMessage(MessageType type, byte[] args)

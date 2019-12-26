@@ -208,6 +208,7 @@ namespace GUI.Models
         }
 
         
+
         public async Task<List<Driver>> EnumerateDrivers()
         {
             var msg = await SendAndReceive(MessageType.EnumerateDrivers);
@@ -297,6 +298,21 @@ namespace GUI.Models
         {
             var msg = await SendAndReceive(MessageType.GetInterceptedIrps);
             return msg;
+        }
+
+
+        public async Task<List<string>> GetNamesOfHookedDrivers()
+        {
+            var msg = await SendAndReceive(MessageType.GetNamesOfHookedDrivers);
+            if (!msg.header.is_success)
+                throw new Exception($"SendAndReceive({nameof(MessageType.EnumerateDrivers)}) operation returned FALSE: 0x{msg.header.gle:x}");
+
+            List<string> drivers = new List<string>();
+
+            foreach (string driver_name in msg.body.drivers)
+                drivers.Add(driver_name);
+
+            return drivers;
         }
     }
 }

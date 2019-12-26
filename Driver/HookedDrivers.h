@@ -21,8 +21,22 @@ typedef struct _HOOKED_DRIVER
 HOOKED_DRIVER, *PHOOKED_DRIVER;
 
 
-void InitializeHookedDriverStructures();
-UINT32 GetNumberOfHookedDrivers();
-BOOLEAN IsDriverHooked(_In_ PDRIVER_OBJECT pDriverName);
-NTSTATUS GetHookedDriverByName(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER* pHookedDrv);
-PHOOKED_DRIVER GetHookedDriverFromDeviceObject(_In_ PDEVICE_OBJECT DeviceObject);
+#define ENABLED_DRIVERS_ONLY 1
+
+void 
+InitializeHookedDriverStructures();
+
+UINT32 
+GetNumberOfHookedDrivers();
+
+NTSTATUS 
+GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PWCHAR lpwsOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten);
+
+BOOLEAN 
+IsDriverHooked(_In_ PDRIVER_OBJECT pDriverName);
+
+NTSTATUS 
+GetHookedDriverByName(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER* pHookedDrv);
+
+PHOOKED_DRIVER 
+GetHookedDriverFromDeviceObject(_In_ PDEVICE_OBJECT DeviceObject);
