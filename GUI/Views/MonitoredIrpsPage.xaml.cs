@@ -60,8 +60,13 @@ namespace GUI.Views
 
         private async void SaveAsCScript_Click(object sender, RoutedEventArgs e)
         {
-            var _type = "C";
-            await CreateGenericScript(_type);
+            await CreateGenericScript("C");
+        }
+
+
+        private async void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
+        {
+            await CreateGenericScript("Raw");
         }
 
 
@@ -79,13 +84,31 @@ namespace GUI.Views
                 return;
             }
 
-            string template_filepath = Package.Current.InstalledLocation.Path + $"\\ScriptTemplates\\{_type:s}Template.txt";
-            if (!File.Exists(template_filepath))
+            List<string> ValidTypes = new List<string>() {
+                "Raw",
+                "Powershell",
+                "Python",
+                "C"
+            };
+
+            if (!ValidTypes.Contains(_type))
             {
-                await Utils.ShowPopUp($"SaveAs{_type}Script(): missing template");
+                await Utils.ShowPopUp("Invalid export type provided");
                 return;
             }
 
+            string template_filepath = null;
+
+            if (_type != "Raw")
+            {
+                template_filepath = Package.Current.InstalledLocation.Path + $"\\ScriptTemplates\\{_type:s}Template.txt";
+                if (!File.Exists(template_filepath))
+                {
+                    await Utils.ShowPopUp($"SaveAs{_type}Script(): missing template");
+                    return;
+                }
+            }
+            
             await GenerateBodyScript(_type, ViewModel.SelectedIrp, template_filepath);
         }
 
@@ -95,24 +118,36 @@ namespace GUI.Views
             //
             // generate the script body
             //
-            var DeviceName = ViewModel.SelectedIrp.DeviceName.Replace(@"\Device", @"\\.");
-            var IrpDataInStr = "";
-            var IrpDataOutStr = "\"\"";
+            IBuffer output; // = new Windows.Storage.Streams.Buffer(0);
 
-            foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
-                IrpDataInStr += $"\\x{c:X2}";
+            if (TypeStr == "Raw")
+            {
+                output = CryptographicBuffer.CreateFromByteArray(ViewModel.SelectedIrp.InputBuffer);
+            }
+            else
+            {
+                var DeviceName = ViewModel.SelectedIrp.DeviceName.Replace(@"\Device", @"\\.");
+                var IrpDataInStr = "";
+                var IrpDataOutStr = "\"\"";
 
-            if (ViewModel.SelectedIrp.OutputBufferLength > 0)
-                IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
+                foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
+                    IrpDataInStr += $"\\x{c:X2}";
 
-            var fmt = File.ReadAllText(template_file);
-            var output = String.Format(fmt,
-                ViewModel.SelectedIrp.IoctlCode,
-                DeviceName,
-                ViewModel.SelectedIrp.DriverName,
-                $"\"{IrpDataInStr}\"",
-                IrpDataOutStr
-            );
+                if (ViewModel.SelectedIrp.OutputBufferLength > 0)
+                    IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
+
+                var fmt = File.ReadAllText(template_file);
+                output = CryptographicBuffer.ConvertStringToBinary(
+                        String.Format(fmt,
+                        ViewModel.SelectedIrp.IoctlCode,
+                        DeviceName,
+                        ViewModel.SelectedIrp.DriverName,
+                        $"\"{IrpDataInStr}\"",
+                        IrpDataOutStr
+                    ),
+                    BinaryStringEncoding.Utf8
+                );
+            }
 
 
             //
@@ -141,7 +176,7 @@ namespace GUI.Views
             if (file != null)
             {
                 CachedFileManager.DeferUpdates(file);
-                await FileIO.WriteBufferAsync(file, GetBufferFromString(output));
+                await FileIO.WriteBufferAsync(file, output);
                 FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
                 if (status == FileUpdateStatus.Complete)
                 {
@@ -154,19 +189,6 @@ namespace GUI.Views
             return;
         }
 
-        private IBuffer GetBufferFromString(string str)
-        {
-            return (String.IsNullOrEmpty(str)) ? 
-                new Windows.Storage.Streams.Buffer(0) :
-                CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8)
-            ;
-        }
-
-
-        private void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
-        {
-            throw new NotImplementedException("SaveAsRawFile");
-        }
 
         private void IrpSearchBox_Loaded(object sender, RoutedEventArgs e)
         {
@@ -176,6 +198,7 @@ namespace GUI.Views
                 IrpSearchBox.AutoSuggestBox.PlaceholderText = "Enter your IRP Smart Filter...";
             }
         }
+
 
         private async void IrpSearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
         {

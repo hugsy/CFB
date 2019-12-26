@@ -31,28 +31,28 @@
             <MenuFlyoutItem               
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as Raw" 
+                Text="Export the IRP input buffer as Raw" 
                 Click="SaveAsRawFile_Click" 
                 />
             
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as a PowerShell script" 
+                Text="Export the IRP as a PowerShell script" 
                 Click="SaveAsPowershellScript_Click" 
                 />
 
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as a Python script" 
+                Text="Export the IRP as a Python script" 
                 Click="SaveAsPythonScript_Click"
                 />
             
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Save the current IRP data as a C script" 
+                Text="Export the IRP as a C script" 
                 Click="SaveAsCScript_Click"
                 />
             
