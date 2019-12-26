@@ -49,6 +49,13 @@
                 Click="SaveAsPythonScript_Click"
                 />
             
+            <MenuFlyoutItem
+                Style="{ThemeResource MenuFlyoutItemRevealStyle}"
+                Tag="&#xE14D;"
+                Text="Save the current IRP data as a C script" 
+                Click="SaveAsCScript_Click"
+                />
+            
         </MenuFlyout>
     </Page.Resources>
 

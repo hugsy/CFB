@@ -1,0 +1,69 @@
+﻿#include <windows.h>
+#include <winioctl.h>
+#include <stdio.h>
+#include <stdint.h>
+
+
+#define DRIVER_NAME   L"{1:s}"
+#define DEVICE_NAME   L"{2:s}"
+#define IOCTL_CODE   0x{0:x}
+
+uint8_t IrpDataIn[]    = {3:s}
+uint8_t IrpDataOut[]   = {4:s}
+
+
+int wmain(int argc, wchar_t** argv)
+{
+    HANDLE hDevice = INVALID_HANDLE_VALUE;
+    BOOL bResult = FALSE;
+    DWORD lpBytesReturned = 0;
+
+    do
+    {
+        wprintf(L"Getting handle for device '%s' with code %#x\n", DRIVER_PATH, IOCTL_CODE);
+
+        hDevice = CreateFile(
+            DRIVER_PATH,
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
+
+        if (hDevice == INVALID_HANDLE_VALUE)
+        {
+                wrintf(L"CreateFile() failed");
+                break;
+        }
+
+        wprintf(L"Got device %#lx, sending payload\n", hDevice);
+
+        bResult = DeviceIoControl(
+            hDevice,
+            IOCTL_CODE,
+            IrpDataIn,
+            sizeof(IrpDataIn),
+            IrpDataOut,
+            sizeof(IrpDataOut),
+            &lpBytesReturned,
+            (LPOVERLAPPED) NULL
+        );
+
+        if (bResult==FALSE)
+        {
+            wprintf(L"DeviceIoControl failed");
+            break;
+        }
+    }
+    while(0);
+
+    if(hDevice != INVALID_HANDLE_VALUE)
+    {
+        wprintf(L"Closing device %#lx\n", hDevice);
+        CloseHandle(hDevice);
+    }
+
+    return bResult;
+}

@@ -58,6 +58,12 @@ namespace GUI.Views
         }
 
 
+        private async void SaveAsCScript_Click(object sender, RoutedEventArgs e)
+        {
+            await CreateGenericScript("C");
+        }
+
+
         private async Task CreateGenericScript(string _type)
         {
             if (ViewModel.SelectedIrp == null)
@@ -123,6 +129,10 @@ namespace GUI.Views
 
                 case "Python":
                     savePicker.FileTypeChoices.Add("Python", new List<string>() { ".py" });
+                    break;
+
+                case "C":
+                    savePicker.FileTypeChoices.Add("C", new List<string>() { ".c" });
                     break;
             }
 
@@ -223,5 +233,7 @@ namespace GUI.Views
         {
             this.Frame.Navigate(typeof(Views.ReplayIrpPage), ViewModel.SelectedIrp);
         }
+
+
     }
 }
