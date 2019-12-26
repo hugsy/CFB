@@ -60,7 +60,8 @@ namespace GUI.Views
 
         private async void SaveAsCScript_Click(object sender, RoutedEventArgs e)
         {
-            await CreateGenericScript("C");
+            var _type = "C";
+            await CreateGenericScript(_type);
         }
 
 
@@ -81,7 +82,7 @@ namespace GUI.Views
             string template_filepath = Package.Current.InstalledLocation.Path + $"\\ScriptTemplates\\{_type:s}Template.txt";
             if (!File.Exists(template_filepath))
             {
-                await Utils.ShowPopUp("SaveAsPowershellScript(): missing template");
+                await Utils.ShowPopUp($"SaveAs{_type}Script(): missing template");
                 return;
             }
 
@@ -96,7 +97,7 @@ namespace GUI.Views
             //
             var DeviceName = ViewModel.SelectedIrp.DeviceName.Replace(@"\Device", @"\\.");
             var IrpDataInStr = "";
-            var IrpDataOutStr = "''";
+            var IrpDataOutStr = "\"\"";
 
             foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
                 IrpDataInStr += $"\\x{c:X2}";
@@ -109,7 +110,7 @@ namespace GUI.Views
                 ViewModel.SelectedIrp.IoctlCode,
                 DeviceName,
                 ViewModel.SelectedIrp.DriverName,
-                $"'{IrpDataInStr}'",
+                $"\"{IrpDataInStr}\"",
                 IrpDataOutStr
             );
 
