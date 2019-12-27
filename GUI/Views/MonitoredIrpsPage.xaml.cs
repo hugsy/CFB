@@ -131,7 +131,8 @@ namespace GUI.Views
                 var IrpDataOutStr = "\"\"";
 
                 foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
-                    IrpDataInStr += $"\\x{c:X2}";
+                    //IrpDataInStr += $"\\x{c:X2}";
+                    IrpDataInStr += $"{c:X2}";
 
                 if (ViewModel.SelectedIrp.OutputBufferLength > 0)
                     IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
@@ -143,7 +144,7 @@ namespace GUI.Views
                         DeviceName,
                         ViewModel.SelectedIrp.DriverName,
                         $"\"{IrpDataInStr}\"",
-                        IrpDataOutStr
+                        ViewModel.SelectedIrp.OutputBufferLength
                     ),
                     BinaryStringEncoding.Utf8
                 );

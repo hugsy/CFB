@@ -67,8 +67,8 @@ def DeviceIoctlControl(DeviceName, IoctlCode, _in='', _out='', *args, **kwargs):
 def Trigger():
     DeviceName = r'''{1:s}'''
     IoctlCode = 0x{0:x}
-    lpIrpDataIn = b{3:s}
-    lpIrpDataOut = b{4:s}
+    lpIrpDataIn = bytearray.fromhex({3:s})
+    lpIrpDataOut = bytearray(b'\x00'*{4:s})
     return DeviceIoctlControl(DeviceName, IoctlCode, lpIrpDataIn, lpIrpDataOut)
 
 
