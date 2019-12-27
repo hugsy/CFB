@@ -44,21 +44,14 @@ public static class CFB
 }}
 "@;
 
-function Convert-HexToByteArray 
+function Convert-HexToByteArray
 {{
-    param(
-        [parameter(Mandatory=$true)]
-        [String]
-        $HexString
-    )
-
+    param([parameter(Mandatory=$true)][String]$HexString)
     $Bytes = [byte[]]::new($HexString.Length / 2)
-
     for($i=0; $i -lt $HexString.Length; $i+=2)
     {{
         $Bytes[$i/2] = [convert]::ToByte($HexString.Substring($i, 2), 16)
     }}
-
     $Bytes
 }}
 
