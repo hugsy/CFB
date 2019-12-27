@@ -88,17 +88,19 @@ Return Value:
 
 --*/
 NTSTATUS
-GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PWCHAR lpwsOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten)
+GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PUCHAR lpOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten)
 {
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
+    ULONG cursz = 0;
 
-    *pdwDataWritten = 0;
-    RtlSecureZeroMemory(lpwsOutputBuffer, ulOutputBufferSize);
+    RtlSecureZeroMemory(lpOutputBuffer, ulOutputBufferSize);
 
     KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
+    Status = STATUS_SUCCESS;
     if (!IsListEmpty(g_HookedDriverHead))
     {
+
         for (PLIST_ENTRY Entry = g_HookedDriverHead->Flink;
             Entry != g_HookedDriverHead;
             Entry = Entry->Flink)
@@ -111,23 +113,25 @@ GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PWCHAR lpwsOutputBuffer, _In_ UL
                 continue;
 
             PWCHAR CurDrvName = CurDrv->Name;
-            ULONG CurDrvNameLen = (ULONG) wcslen(CurDrvName);
+            ULONG CurDrvNameLen = (ULONG) wcslen(CurDrvName)*2;
 
-            if (*pdwDataWritten + CurDrvNameLen + 2 >= ulOutputBufferSize)
+            if (cursz + CurDrvNameLen + 2 >= ulOutputBufferSize)
             {
-                RtlSecureZeroMemory(lpwsOutputBuffer, ulOutputBufferSize);
-                *pdwDataWritten = 0;
+                RtlSecureZeroMemory(lpOutputBuffer, ulOutputBufferSize);
+                cursz = 0;
                 Status = STATUS_BUFFER_TOO_SMALL;
                 break;
             }
 
-            RtlCopyMemory(lpwsOutputBuffer + (*pdwDataWritten), CurDrvName, CurDrvNameLen);
-            RtlCopyMemory(lpwsOutputBuffer + (*pdwDataWritten) + CurDrvNameLen, L";", 2);
-            *pdwDataWritten += CurDrvNameLen + 2;
-        }
+            RtlCopyMemory(lpOutputBuffer + cursz, CurDrvName, CurDrvNameLen);
+            cursz += CurDrvNameLen;
 
-        Status = STATUS_SUCCESS;
+            RtlCopyMemory(lpOutputBuffer + cursz, L";", 2);
+            cursz += 2;
+        }
     }
+
+    *pdwDataWritten = cursz;
 
     KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 

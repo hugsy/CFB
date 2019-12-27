@@ -108,6 +108,8 @@ NTSTATUS HandleIoGetNamesOfHookedDrivers(_In_ PIRP Irp, _Inout_ PIO_STACK_LOCATI
 	UNREFERENCED_PARAMETER(Irp);
 	PAGED_CODE();
 
+	*pdwDataWritten = 0;
+
 	ULONG OutputBufferLen = Stack->Parameters.DeviceIoControl.OutputBufferLength;
 	PVOID OutputBuffer = (UINT32*)Irp->AssociatedIrp.SystemBuffer;
 

@@ -30,7 +30,7 @@ namespace GUI.ViewModels
                 if (_model != value)
                 {
                     _model = value;
-                    Task.Run(RefreshDriverAsync);
+                    //Task.Run(RefreshDriverAsync);
                     OnPropertyChanged();
                 }
             }
@@ -67,7 +67,7 @@ namespace GUI.ViewModels
         }
 
         
-        private void PropageChangesToView()
+        private void PropagateChangesToView()
         {
             Task.Run(RefreshDriverAsync);
             OnPropertyChanged();
@@ -81,20 +81,10 @@ namespace GUI.ViewModels
                 Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
 
             if (data_changed)
-                PropageChangesToView();
+                PropagateChangesToView();
 
             return data_changed;
         }
-
-
-        private bool _isLoading;
-
-        public bool IsLoading
-        {
-            get => _isLoading;
-            set => Set(ref _isLoading, value);
-        }
-
 
 
         public async void RefreshDriverAsync()
@@ -122,10 +112,11 @@ namespace GUI.ViewModels
             else
             {
                 var driver = msg.body.driver;
+                if(!String.Equals(driver.Name, Model.Name, StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("unexpected driver info");
                 Model.IsHooked = true;
                 Model.IsEnabled = driver.IsEnabled;
                 Model.Address = driver.Address;
-                Model.Name = driver.Name;
                 Model.NumberOfRequestIntercepted = driver.NumberOfRequestIntercepted;
             }
         }

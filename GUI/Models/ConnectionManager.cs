@@ -217,9 +217,18 @@ namespace GUI.Models
                 throw new Exception($"SendAndReceive({nameof(MessageType.EnumerateDrivers)}) operation returned FALSE: 0x{msg.header.gle:x}");
                 
             List<Driver> drivers = new List<Driver>();
+            List<string> hooked_driver_names = await GetNamesOfHookedDrivers();
 
             foreach (string driver_name in msg.body.drivers)
-                drivers.Add( new Driver(driver_name) );
+            {
+                var d = new Driver(driver_name);
+                if (hooked_driver_names.Contains(d.Name.ToLower()))
+                {
+                    d.IsHooked = true;
+                    d.IsEnabled = true;
+                }
+                drivers.Add(d);
+            }
 
             return drivers;
         }
@@ -305,7 +314,7 @@ namespace GUI.Models
         {
             var msg = await SendAndReceive(MessageType.GetNamesOfHookedDrivers);
             if (!msg.header.is_success)
-                throw new Exception($"SendAndReceive({nameof(MessageType.EnumerateDrivers)}) operation returned FALSE: 0x{msg.header.gle:x}");
+                throw new Exception($"SendAndReceive({nameof(MessageType.GetNamesOfHookedDrivers)}) operation returned FALSE: 0x{msg.header.gle:x}");
 
             List<string> drivers = new List<string>();
 

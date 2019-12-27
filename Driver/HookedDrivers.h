@@ -30,7 +30,7 @@ UINT32
 GetNumberOfHookedDrivers();
 
 NTSTATUS 
-GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PWCHAR lpwsOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten);
+GetNamesOfHookedDrivers(_In_ UCHAR Flags, _Out_ PUCHAR lpOutputBuffer, _In_ ULONG ulOutputBufferSize, _Out_ PULONG pdwDataWritten);
 
 BOOLEAN 
 IsDriverHooked(_In_ PDRIVER_OBJECT pDriverName);

@@ -80,6 +80,9 @@ const wchar_t* Task::TypeAsString()
 		ToString(TaskType::ReplayIrp);
 		ToString(TaskType::StoreTestCase);
 		ToString(TaskType::EnumerateDrivers);
+		ToString(TaskType::EnableDriver);
+		ToString(TaskType::DisableDriver);
+		ToString(TaskType::GetNamesOfHookedDrivers);
 	}
 
 	dbg(L"Undeclared TaskType %d\n", m_Type);
