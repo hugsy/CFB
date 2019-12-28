@@ -39,6 +39,11 @@ namespace GUI.Models
 
         public IrpDumper()
         {
+            ResetBackgroundTask();
+        }
+
+        private void ResetBackgroundTask()
+        { 
             UnregisterBackgroundTask();
             _trigger = new ApplicationTrigger();
             var requestTask = BackgroundExecutionManager.RequestAccessAsync();
@@ -86,7 +91,8 @@ namespace GUI.Models
             Debug.WriteLine($"Starting in-process background instance '{_task.Name}'...");
 
             var delay = (double) (ApplicationData.Current.LocalSettings.Values[IrpDumperPollDelayKey] ?? IrpDumperDefaultProbeValue);
-            
+            _cancelRequested = false;
+            _cancelReasonExtra = "";
             _periodicTimer = ThreadPoolTimer.CreatePeriodicTimer(
                 new TimerElapsedHandler(PeriodicTimerCallback),
                 TimeSpan.FromSeconds(delay)
@@ -102,7 +108,7 @@ namespace GUI.Models
             _periodicTimer.Cancel();
             _cancelRequested = true;
             _cancelReasonExtra = "UserRequest";
-            return UnregisterBackgroundTask();
+            return true;
         }
 
 

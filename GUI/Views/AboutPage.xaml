@@ -13,9 +13,16 @@
             <TextBlock Style="{ThemeResource HeaderTextBlockStyle}"
                        Text="About CFB" />
 
+            <Image 
+                Margin="100,55,150,30"
+                x:Name="FuriousBeaverLogo" Source="/Assets/FuriousBeaver_SplashScreen.scale-125.png" 
+                Height="186" 
+                Width="1100" 
+                />
+
             <TextBlock Margin="100,25,150,30"
                        Style="{ThemeResource TitleTextBlockStyle}"
-                       Text="CFB is a tool for assisting in the process of monitoring, capturing and fuzzing IRPs on Windows hosts. It works by hooking the major function functions in the targeted drivers." />
+                       Text="Furious Beaver is a tool for assisting in the process of monitoring, capturing and fuzzing IRPs on Windows hosts. It works by hooking the major function functions in the targeted drivers." />
 
             <HyperlinkButton
                 Margin="20,0,0,0"

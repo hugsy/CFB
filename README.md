@@ -1,6 +1,8 @@
 # Canadian Furious Beaver
 
-![Canadian Furious Beaver](https://i.imgur.com/xMOIIhC.png)
+<center>
+![Canadian Furious Beaver](/Assets/img/logo/Logo_v2.png)
+</center>
 
 
 ## Idea
@@ -12,6 +14,8 @@ Furious Beaver is a distributed tool for capturing IRPs sent to any Windows driv
 2. the GUI is a Windows 10 UWP app made in a `ProcMon`-style: it will connect to wherever the broker is, and provide a convienent GUI for manipulating the broker (driver enumeration, hooking and IRP capturing). It also offers facililties for forging/replaying IRPs, auto-fuzzing (i.e. apply specific fuzzing policies on *each* IRP captured), or extract IRP in various formats (raw, as a Python script, as a PowerShell script) for further analysis. The captured data can be saved on disk in an easily parsable format (`*.cfb` = SQLite) for further analysis, and/or reload afterwards in the GUI.
 
 Although the GUI obviously requires a Windows 10 environment, the Broker itself can be deployed on any Windows 7+ host (x86 or x64). The target host must have `testsigning` BCD policy enabled, as the self-extracting driver is not WHQL friendly.
+
+![Canadian Furious Beaver demo](https://i.imgur.com/xMOIIhC.png)
 
 
 ## Concept

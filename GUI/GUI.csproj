@@ -180,12 +180,32 @@
     </AppxManifest>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-lightunplated_targetsize-16.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-lightunplated_targetsize-24.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-lightunplated_targetsize-256.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-lightunplated_targetsize-32.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-lightunplated_targetsize-48.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-unplated_targetsize-16.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-unplated_targetsize-24.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-unplated_targetsize-256.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-unplated_targetsize-32.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.altform-unplated_targetsize-48.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.scale-100.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.scale-125.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.scale-150.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.scale-200.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.scale-400.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.targetsize-16.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.targetsize-24.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.targetsize-256.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.targetsize-32.png" />
+    <Content Include="Assets\FuriousBeaver_AppIcon.targetsize-48.png" />
+    <Content Include="Assets\FuriousBeaver_SplashScreen.scale-100.png" />
+    <Content Include="Assets\FuriousBeaver_SplashScreen.scale-125.png" />
+    <Content Include="Assets\FuriousBeaver_SplashScreen.scale-150.png" />
+    <Content Include="Assets\FuriousBeaver_SplashScreen.scale-200.png" />
+    <Content Include="Assets\FuriousBeaver_SplashScreen.scale-400.png" />
     <Content Include="Properties\Default.rd.xml" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <Content Include="ScriptTemplates\CTemplate.txt" />
