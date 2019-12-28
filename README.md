@@ -1,7 +1,7 @@
 # Canadian Furious Beaver
 
 <center>
-![Canadian Furious Beaver](/Assets/img/logo/Logo_v2.png)
+<img src="/Assets/img/logo/Logo_v2.png"/>
 </center>
 
 
