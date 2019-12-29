@@ -107,8 +107,10 @@
                         <toolkit:DataGridTextColumn Header="Status" Tag="Status" Binding="{Binding StatusString}" />
                         <toolkit:DataGridTextColumn Header="Input Buffer Length" Tag="InputBufferLength" Binding="{Binding InputBufferLength}" />
                         <toolkit:DataGridTextColumn Header="Output Buffer Length" Tag="OutputBufferLength" Binding="{Binding OutputBufferLength}" />
+                        <!--
                         <toolkit:DataGridTextColumn Header="Input Buffer" Tag="InputBuffer" Binding="{Binding InputBufferString}" />
                         <toolkit:DataGridTextColumn Header="Output Buffer" Tag="OutputBuffer" Binding="{Binding OutputBufferString}" />
+                        -->
                     </toolkit:DataGrid.Columns>
                 </toolkit:DataGrid>
 
