@@ -178,7 +178,7 @@ namespace GUI.Models
 
 
         public string IrqlAsString()
-           => $"IrqlAsString(header.IrqLevel)(0x{header.IrqLevel:x})";
+           => $"{IrqlAsString(header.IrqLevel)} - 0x{header.IrqLevel:x}";
 
     }
 }

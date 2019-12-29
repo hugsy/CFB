@@ -30,6 +30,12 @@ namespace GUI.ViewModels
             value ? Visibility.Collapsed : Visibility.Visible;
 
         /// <summary>
+        /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.
+        /// </summary>
+        public static Visibility VisibleIfGreaterThanZero(uint value) =>
+            value > 0 ? Visibility.Visible : Visibility.Collapsed ;
+
+        /// <summary>
         /// Returns Visibility.Collapsed if the specified value is null; otherwise, returns Visibility.Visible.
         /// </summary>
         public static Visibility CollapsedIfNull(object value) =>

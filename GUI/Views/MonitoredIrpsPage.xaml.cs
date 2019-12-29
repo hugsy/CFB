@@ -48,29 +48,24 @@ namespace GUI.Views
 
         private async void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
         {
-            await CreateGenericScript("Python");
+            if (ViewModel.SelectedIrp == null)
+            {
+                await Utils.ShowPopUp("No IRP selected", "Missing IRP");
+                return;
+            }
+
+            try
+            {
+                await ViewModel.SelectedIrp.ExportAs("Python");
+            }
+            catch (Exception ex)
+            {
+                await Utils.ShowPopUp(ex.Message);
+            }
         }
 
 
         private async void SaveAsPowershellScript_Click(object sender, RoutedEventArgs e)
-        {
-            await CreateGenericScript("Powershell");
-        }
-
-
-        private async void SaveAsCScript_Click(object sender, RoutedEventArgs e)
-        {
-            await CreateGenericScript("C");
-        }
-
-
-        private async void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
-        {
-            await CreateGenericScript("Raw");
-        }
-
-
-        private async Task CreateGenericScript(string _type)
         {
             if (ViewModel.SelectedIrp == null)
             {
@@ -78,116 +73,53 @@ namespace GUI.Views
                 return;
             }
 
-            if (ViewModel.SelectedIrp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+            try
             {
-                await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed...", "Invalid IRP");
-                return;
+                await ViewModel.SelectedIrp.ExportAs("Powershell");
             }
-
-            List<string> ValidTypes = new List<string>() {
-                "Raw",
-                "Powershell",
-                "Python",
-                "C"
-            };
-
-            if (!ValidTypes.Contains(_type))
+            catch (Exception ex)
             {
-                await Utils.ShowPopUp("Invalid export type provided");
-                return;
+                await Utils.ShowPopUp(ex.Message);
             }
-
-            string template_filepath = null;
-
-            if (_type != "Raw")
-            {
-                template_filepath = Package.Current.InstalledLocation.Path + $"\\ScriptTemplates\\{_type:s}Template.txt";
-                if (!File.Exists(template_filepath))
-                {
-                    await Utils.ShowPopUp($"SaveAs{_type}Script(): missing template");
-                    return;
-                }
-            }
-            
-            await GenerateBodyScript(_type, ViewModel.SelectedIrp, template_filepath);
         }
 
 
-        private async Task GenerateBodyScript(string TypeStr, IrpViewModel irp, string template_file)
+        private async void SaveAsCScript_Click(object sender, RoutedEventArgs e)
         {
-            //
-            // generate the script body
-            //
-            IBuffer output; // = new Windows.Storage.Streams.Buffer(0);
-
-            if (TypeStr == "Raw")
+            if (ViewModel.SelectedIrp == null)
             {
-                output = CryptographicBuffer.CreateFromByteArray(ViewModel.SelectedIrp.InputBuffer);
-            }
-            else
-            {
-                var DeviceName = ViewModel.SelectedIrp.DeviceName.Replace(@"\Device", @"\\.");
-                var IrpDataInStr = "";
-                var IrpDataOutStr = "\"\"";
-
-                foreach (byte c in ViewModel.SelectedIrp.InputBuffer)
-                    //IrpDataInStr += $"\\x{c:X2}";
-                    IrpDataInStr += $"{c:X2}";
-
-                if (ViewModel.SelectedIrp.OutputBufferLength > 0)
-                    IrpDataOutStr = $"b'\\x00'*{ViewModel.SelectedIrp.OutputBufferLength:d}";
-
-                var fmt = File.ReadAllText(template_file);
-                output = CryptographicBuffer.ConvertStringToBinary(
-                        String.Format(fmt,
-                        ViewModel.SelectedIrp.IoctlCode,
-                        DeviceName,
-                        ViewModel.SelectedIrp.DriverName,
-                        $"\"{IrpDataInStr}\"",
-                        ViewModel.SelectedIrp.OutputBufferLength
-                    ),
-                    BinaryStringEncoding.Utf8
-                );
+                await Utils.ShowPopUp("No IRP selected", "Missing IRP");
+                return;
             }
 
-
-            //
-            // write it to disk
-            //
-            var savePicker = new Windows.Storage.Pickers.FileSavePicker();
-            savePicker.SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.DocumentsLibrary;
-            savePicker.SuggestedFileName = $"Irp-0x{ViewModel.SelectedIrp.IoctlCode:x}-Session-{DateTime.Now.ToString("yyyyMMddTHH:mm:ssZ")}";
-
-            switch (TypeStr)
+            try
             {
-                case "Powershell":
-                    savePicker.FileTypeChoices.Add("PowerShell", new List<string>() { ".ps1" });
-                    break;
+                await ViewModel.SelectedIrp.ExportAs("C");
+            }
+            catch(Exception ex)
+            {
+                await Utils.ShowPopUp(ex.Message);
+            }
+        }
 
-                case "Python":
-                    savePicker.FileTypeChoices.Add("Python", new List<string>() { ".py" });
-                    break;
 
-                case "C":
-                    savePicker.FileTypeChoices.Add("C", new List<string>() { ".c" });
-                    break;
+        private async void SaveAsRawFile_Click(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel.SelectedIrp == null)
+            {
+                await Utils.ShowPopUp("No IRP selected", "Missing IRP");
+                return;
             }
 
-            StorageFile file = await savePicker.PickSaveFileAsync();
-            if (file != null)
+            try
             {
-                CachedFileManager.DeferUpdates(file);
-                await FileIO.WriteBufferAsync(file, output);
-                FileUpdateStatus status = await CachedFileManager.CompleteUpdatesAsync(file);
-                if (status == FileUpdateStatus.Complete)
-                {
-                    await Utils.ShowPopUp($"File {file.Name} was saved.");
-                    return;
-                }
+                await ViewModel.SelectedIrp.ExportAs("Raw");
             }
-
-            await Utils.ShowPopUp($"Couldn't save IRP as a {TypeStr} script...");
-            return;
+            catch(Exception ex)
+            {
+                await Utils.ShowPopUp(ex.Message);
+            }
+            
         }
 
 

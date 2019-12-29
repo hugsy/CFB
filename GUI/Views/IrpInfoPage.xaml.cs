@@ -1,4 +1,6 @@
-﻿using System;
+﻿using GUI.Helpers;
+using GUI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,6 +27,44 @@ namespace GUI.Views
         public IrpInfoPage()
         {
             this.InitializeComponent();
+        }
+
+        public IrpViewModel ViewModel = null;
+
+
+        public string IrpDetailPageTitle
+        {
+            get => $"IRP {ViewModel.Type} sent to {ViewModel.DeviceName} (IOCTL {ViewModel.IoctlCodeString})";
+        }
+
+
+        protected async override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            var irp = (IrpViewModel)e.Parameter;
+            if (irp == null)
+            {
+                await Utils.ShowPopUp("No IRP passed to the page");
+                Frame.GoBack();
+            }
+            else
+            {
+                ViewModel = irp;
+            }
+        }
+
+
+        private async void SaveAsPowerShell_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await ViewModel.ExportAs("Powershell");
+            }
+            catch(Exception ex)
+            {
+                await Utils.ShowPopUp(ex.Message);
+            }
         }
     }
 }

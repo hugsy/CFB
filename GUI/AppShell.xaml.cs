@@ -133,8 +133,10 @@ namespace GUI
                 // TODO add other pages
                 //
             }
-        }
 
+            NavView.IsBackEnabled = AppFrame.CanGoBack;
+        }
+        
 
         /// <summary>
         /// Open the browser page to report a bug

@@ -5,10 +5,210 @@
     xmlns:local="using:GUI.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
+    xmlns:vm="using:GUI.ViewModels"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
+        <RelativePanel>
+
+            <TextBlock
+                x:Name="PageTitle"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="{x:Bind IrpDetailPageTitle, Mode=OneWay}" />
+
+            <CommandBar
+                x:Name="mainCommandBar"
+                Background="Transparent"
+                RelativePanel.RightOf="PageTitle" 
+                HorizontalAlignment="Right"
+                >
+
+                <AppBarButton
+                    Icon="Save"
+                    Label="Save as Powershell script"
+                    Visibility="Visible" 
+                    Click="SaveAsPowerShell_Click"
+                    />
+
+            </CommandBar>
+
+        </RelativePanel>
+        
+            <controls:TabView 
+                Margin="0,50,0,0"
+                x:Name="Tabs">
+                
+                <controls:TabViewItem Header="IRP Metadata">
+                <Grid HorizontalAlignment="Stretch">
+                    <RelativePanel Margin="8,0,0,12">
+                        <TextBox
+                            x:Name="TimeStampTextBox"
+                            Grid.Row="0"
+                            Margin="0,0,0,0"
+                            Width="300"
+                            MinWidth="120"
+                            Header="Time Stamp"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.TimeStamp, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                             x:Name="DeviceNameTextBox"
+                             RelativePanel.Below="TimeStampTextBox"
+                             MinWidth="120"
+                             Width="300"
+                             Margin="0,20,0,0"
+                             Header="Device Name"
+                             IsReadOnly="True"
+                             RelativePanel.AlignLeftWithPanel="True"
+                             Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}"
+                         />
+
+                        <TextBox
+                            x:Name="DriverNameTextBox"
+                            RelativePanel.Below="TimeStampTextBox"
+                            RelativePanel.RightOf="DeviceNameTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="400,20,0,0"
+                            Header="Driver Name"
+                            IsReadOnly="True"
+                            RelativePanel.AlignLeftWithPanel="True"
+                            Text="{x:Bind ViewModel.DriverName, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="ProcessNameTextBox"
+                            RelativePanel.Below="DriverNameTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="0,20,0,0"
+                            Header="Process Name"
+                            IsReadOnly="True"
+                            RelativePanel.AlignLeftWithPanel="True"
+                            Text="{x:Bind ViewModel.ProcessName, Mode=OneWay}"
+                            />
+                            
+                            
+                        <TextBox
+                            x:Name="ThreadIdTextBox"
+                            RelativePanel.Below="DriverNameTextBox"
+                            RelativePanel.RightOf="ProcessNameTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="400,20,0,0"
+                            Header="Thread Id"
+                            IsReadOnly="True"
+                            RelativePanel.AlignLeftWithPanel="True"
+                            Text="{x:Bind ViewModel.ThreadId, Mode=OneWay}"
+                            />
+                        
+                        <TextBox
+                            x:Name="ProcessIdTextBox"
+                            RelativePanel.Below="DriverNameTextBox"
+                            RelativePanel.RightOf="ThreadIdTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="100,20,0,0"
+                            Header="Process Id"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.ProcessId, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="IrqlTextBox"
+                            RelativePanel.Below="ProcessNameTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="0,20,0,0"
+                            Header="IRQ Level"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.IrqLevel, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="IoctlCodeTextBox"
+                            RelativePanel.RightOf="IrqlTextBox"
+                            RelativePanel.Below="ThreadIdTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="100,20,0,0"
+                            Header="IOCTL Code"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.IoctlCodeString, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="TypeTextBox"
+                            RelativePanel.Below="ProcessIdTextBox"
+                            RelativePanel.RightOf="IoctlCodeTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="100,20,0,0"
+                            Header="IRP Major Function"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.Type, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="InputBufferLengthTextBox"
+                            RelativePanel.Below="IrqlTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="0,20,0,0"
+                            Header="Input Buffer Length"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.InputBufferLength, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="OutputBufferLengthTextBox"
+                            RelativePanel.RightOf="IrqlTextBox"
+                            RelativePanel.Below="IoctlCodeTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="100,20,0,0"
+                            Header="Output Buffer Length"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.OutputBufferLength, Mode=OneWay}"
+                            />
+
+                        <TextBox
+                            x:Name="StatusCodeTextBox"
+                            RelativePanel.Below="TypeTextBox"
+                            RelativePanel.RightOf="OutputBufferLengthTextBox"
+                            MinWidth="120"
+                            Width="300"
+                            Margin="100,20,0,0"
+                            Header="Status Code"
+                            IsReadOnly="True"
+                            Text="{x:Bind ViewModel.StatusFullString, Mode=OneWay}"
+                            />
+                    </RelativePanel>
+                </Grid>
+                </controls:TabViewItem>
+                
+                <controls:TabViewItem 
+                    Header="InputBuffer"
+                    Visibility="{x:Bind vm:Converters.VisibleIfGreaterThanZero(ViewModel.InputBufferLength), Mode=OneWay}"
+                    >
+                    <TextBlock Padding="16" x:Name="InputBufferTabViewBlock" >
+                        show here hexdump of InputBuffer
+                    </TextBlock>
+                </controls:TabViewItem>
+
+                <controls:TabViewItem 
+                    Header="OutputBuffer"
+                    Visibility="{x:Bind vm:Converters.VisibleIfGreaterThanZero(ViewModel.OutputBufferLength), Mode=OneWay}"
+                    >
+                    <TextBlock Padding="16" x:Name="OutputBufferTabViewBlock">
+                        show here hexdump of OutputBuffer
+                    </TextBlock>
+                </controls:TabViewItem>
+
+        </controls:TabView>
 
     </Grid>
 </Page>
