@@ -1,4 +1,6 @@
-﻿using System;
+﻿using GUI.Helpers;
+using GUI.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,18 +15,36 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-// The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
+
 
 namespace GUI.Views
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
+
     public sealed partial class ReplayIrpPage : Page
     {
         public ReplayIrpPage()
         {
             this.InitializeComponent();
+        }
+
+
+        public IrpViewModel ViewModel = null;
+
+
+        protected async override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            var irp = (IrpViewModel)e.Parameter;
+            if (irp == null)
+            {
+                await Utils.ShowPopUp("No IRP passed to the page");
+                Frame.GoBack();
+            }
+            else
+            {
+                ViewModel = irp;
+            }
         }
     }
 }
