@@ -42,7 +42,7 @@ int wmain(int argc, wchar_t** argv)
 
         if (hDevice == INVALID_HANDLE_VALUE)
         {{
-                wrintf(L"CreateFile() failed");
+                wprintf(L"CreateFile() failed");
                 break;
         }}
 
