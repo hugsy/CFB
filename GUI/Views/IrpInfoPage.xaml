@@ -51,7 +51,7 @@
                             MinWidth="120"
                             Header="Time Stamp"
                             IsReadOnly="True"
-                            Text="{x:Bind ViewModel.TimeStamp, Mode=OneWay}"
+                            Text="{x:Bind ViewModel.TimeStampString, Mode=OneWay}"
                             />
 
                         <TextBox

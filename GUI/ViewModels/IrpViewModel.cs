@@ -32,6 +32,7 @@ namespace GUI.ViewModels
 
 
         public DateTime TimeStamp       { get => DateTime.FromFileTime((long)Model.header.TimeStamp); }
+        public string TimeStampString   { get => TimeStamp.ToString("yyyy/MM/dd HH:mm:ss.fffffff"); }
         public uint ProcessId           { get => Model.header.ProcessId; }
         public uint ThreadId            { get => Model.header.ThreadId; }
         public string IrqLevel          { get => Model.IrqlAsString(); }
