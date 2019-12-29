@@ -46,6 +46,13 @@ namespace GUI.Views
         {
         }
 
+        private void DataGrid_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        {
+            if (ViewModel.SelectedIrp != null)
+                this.Frame.Navigate(typeof(Views.IrpInfoPage), ViewModel.SelectedIrp);
+        }
+
+
         private async void SaveAsPythonScript_Click(object sender, RoutedEventArgs e)
         {
             if (ViewModel.SelectedIrp == null)

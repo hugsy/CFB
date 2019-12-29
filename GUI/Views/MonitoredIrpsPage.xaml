@@ -89,6 +89,7 @@
                         CanUserResizeColumns="True"
                         AutoGenerateColumns="False"
                         Sorting="DataGrid_Sorting"
+                        DoubleTapped="DataGrid_DoubleTapped"
                         BorderThickness="0"
                         x:Name="IrpDataGrid"
                         GridLinesVisibility="None"

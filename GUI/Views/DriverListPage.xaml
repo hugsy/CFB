@@ -162,6 +162,7 @@
                             CanUserResizeColumns="True"
                             GridLinesVisibility="None"
                             IsReadOnly="True"
+                            DoubleTapped="DataGrid_DoubleTapped"
                             Sorting="DataGrid_Sorting"
                             AutoGenerateColumns="False"
                             Margin="0,10,0,0"

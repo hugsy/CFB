@@ -385,18 +385,20 @@ CompleteHandleInterceptedIrp(
 		return STATUS_SUCCESS;
 	}
 
+	
+	UINT32 OutputBufferLength = pIrpInfo->Header->OutputBufferLength;
 
 	//
 	// check the INTERCEPTED_IRP consistency 
 	//
-	if (pIrpInfo->Header->OutputBufferLength == 0)
+	if (OutputBufferLength == 0)
 		return STATUS_SUCCESS;
 
 	if (UserBuffer == NULL)
 	{
 		pIrpInfo->OutputBuffer = NULL;
 
-		if (pIrpInfo->Header->OutputBufferLength > 0)
+		if (OutputBufferLength > 0)
 			return STATUS_INVALID_PARAMETER_2;
 
 		return STATUS_SUCCESS;
@@ -406,29 +408,25 @@ CompleteHandleInterceptedIrp(
 	//
 	// if there's data to copy, do it here
 	//
-	pIrpInfo->OutputBuffer = ExAllocatePoolWithTag(
-		NonPagedPool, 
-		pIrpInfo->Header->OutputBufferLength, 
-		CFB_DEVICE_TAG
-	);
-	if (!pIrpInfo->OutputBuffer)
+	PVOID OutputBuffer = ExAllocatePoolWithTag(NonPagedPool, OutputBufferLength, CFB_DEVICE_TAG);
+	if (!OutputBuffer)
 		return STATUS_INSUFFICIENT_RESOURCES;
 
 	// TODO: add protection since UserBuffer can point to UM
 
-	RtlSecureZeroMemory(pIrpInfo->OutputBuffer, pIrpInfo->Header->OutputBufferLength);
+	RtlSecureZeroMemory(OutputBuffer, OutputBufferLength);
 
-	RtlCopyMemory(pIrpInfo->OutputBuffer, UserBuffer, pIrpInfo->Header->OutputBufferLength);
-	/*
+	RtlCopyMemory(OutputBuffer, UserBuffer, OutputBufferLength);
+
 #ifdef _DEBUG
-	if (pIrpInfo->OutputBuffer && Stack->MajorFunction)
+	if (OutputBuffer && OutputBufferLength)
 	{
-		UINT32 dwLength = pIrpInfo->Header->OutputBufferLength;
-		CfbDbgPrintOk(L"after copied output_buffer=%p, len=%u, type=%d\n", pIrpInfo->OutputBuffer, dwLength, pIrpInfo->Header->Type);
-		CfbHexDump(pIrpInfo->OutputBuffer, dwLength);
+		CfbDbgPrintOk(L"after copied output_buffer=%p, len=%u, type=%d, irql=%d\n", OutputBuffer, OutputBufferLength, pIrpInfo->Header->Type, pIrpInfo->Header->Irql);
+		//CfbHexDump(OutputBuffer, OutputBufferLength);
 	}
 #endif
-	*/
+
+	pIrpInfo->OutputBuffer = OutputBuffer;
 
 	return STATUS_SUCCESS;
 }

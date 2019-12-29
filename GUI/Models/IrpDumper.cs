@@ -155,7 +155,7 @@ namespace GUI.Models
                 //
                 // collect the irps from the broker
                 //
-                List<Irp> NewIrps = FetchIrps();
+                List<Irp> NewIrps = FetchAllIrps();
                 _taskInstance.Progress += (uint)NewIrps.Count;
 
                 if(NewIrps.Count > 0)
@@ -194,6 +194,24 @@ namespace GUI.Models
                 return msg.body.irps;
 
             throw new Exception($"GetInterceptedIrps() request returned FALSE, GLE=0x{msg.header.gle}");
+        }
+
+
+        //
+        // Fetch all IRPs from Broker queue until it's empty
+        //
+        private List<Irp> FetchAllIrps()
+        {
+            List<Irp> Irps = new List<Irp>();
+            while(true)
+            {
+                var irps = FetchIrps();
+                if (irps.Count == 0)
+                    break;
+                foreach (var irp in irps)
+                    Irps.Add(irp);
+            }
+            return Irps;
         }
 
 

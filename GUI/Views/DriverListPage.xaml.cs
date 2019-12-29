@@ -23,9 +23,7 @@ using Windows.UI.Popups;
 
 namespace GUI.Views
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
+
     public sealed partial class DriverListPage : Page
     {
         public DriverListPage()
@@ -132,8 +130,6 @@ namespace GUI.Views
                                 parameter =>
                                     driver.Name.Contains(parameter, StringComparison.OrdinalIgnoreCase)
                             )
-                        ).Select(
-                            driver => $"{driver.Name}"
                         );
                 }
             }
