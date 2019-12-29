@@ -1,4 +1,5 @@
 ﻿using GUI.Helpers;
+using GUI.Models;
 using GUI.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -27,7 +28,6 @@ namespace GUI.Views
             this.InitializeComponent();
         }
 
-
         public IrpViewModel ViewModel = null;
 
 
@@ -39,12 +39,32 @@ namespace GUI.Views
             if (irp == null)
             {
                 await Utils.ShowPopUp("No IRP passed to the page");
-                Frame.GoBack();
+                if (Frame.CanGoBack)
+                    Frame.GoBack();
+                else
+                    Frame.Navigate(typeof(Views.MonitoredIrpsPage));
+                return;
             }
-            else
+
+            if(irp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
             {
-                ViewModel = irp;
+                await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed");
+                if (Frame.CanGoBack)
+                    Frame.GoBack();
+                else
+                    Frame.Navigate(typeof(Views.MonitoredIrpsPage));
+                return;
             }
+
+            ViewModel = irp;
         }
+
+
+        public string ReplayIrpPageTitle
+        {
+            get => $"Replay IRP to {ViewModel.DeviceName}";
+        }
+
+
     }
 }

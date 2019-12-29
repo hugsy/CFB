@@ -193,9 +193,16 @@ namespace GUI.Views
             this.Frame.Navigate(typeof(Views.IrpInfoPage), ViewModel.SelectedIrp);
         }
 
-        private void SendToRepeater_Click(object sender, RoutedEventArgs e)
+        private async void SendToRepeater_Click(object sender, RoutedEventArgs e)
         {
-            this.Frame.Navigate(typeof(Views.ReplayIrpPage), ViewModel.SelectedIrp);
+            if (ViewModel.SelectedIrp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+            {
+                await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed");
+            }
+            else
+            {
+                this.Frame.Navigate(typeof(Views.ReplayIrpPage), ViewModel.SelectedIrp);
+            }
         }
 
 

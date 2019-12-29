@@ -1,4 +1,5 @@
 ﻿using GUI.Helpers;
+using GUI.Models;
 using GUI.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -32,7 +33,13 @@ namespace GUI.Views
 
         public string IrpDetailPageTitle
         {
-            get => $"IRP {ViewModel.Type} sent to {ViewModel.DeviceName} (IOCTL {ViewModel.IoctlCodeString})";
+            get
+            {
+                var msg = $"IRP {ViewModel.Type} sent to {ViewModel.DeviceName}";
+                if (ViewModel.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+                    msg += $" (IOCTL {ViewModel.IoctlCodeString})";
+                return msg;
+            }
         }
 
 

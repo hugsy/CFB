@@ -9,6 +9,14 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
+        <RelativePanel>
 
+            <TextBlock
+                x:Name="PageTitle"
+                Style="{ThemeResource TitleTextBlockStyle}"
+                Text="{x:Bind ReplayIrpPageTitle, Mode=OneWay}" 
+                />
+            
+        </RelativePanel>
     </Grid>
 </Page>

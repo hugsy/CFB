@@ -1,4 +1,5 @@
-﻿using Windows.UI.Xaml;
+﻿using GUI.Models;
+using Windows.UI.Xaml;
 
 namespace GUI.ViewModels
 {
@@ -21,7 +22,10 @@ namespace GUI.ViewModels
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.
         /// </summary>
         public static Visibility BooleanToVisibility(bool value) =>
-            value ? Visibility.Visible : Visibility.Collapsed; 
+            value ? Visibility.Visible : Visibility.Collapsed;
+
+        public static bool OnlyForDeviceIoControlIrp(IrpViewModel irp) =>
+            irp != null && irp.Model.header.Type == (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL;
 
         /// <summary>
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.

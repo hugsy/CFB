@@ -124,39 +124,7 @@ namespace GUI.Models
         public static string TypeAsString(UInt32 type)
         {
             var IrpType = (IrpMajorType)type;
-
-            switch (IrpType)
-            {
-                case IrpMajorType.IRP_MJ_CREATE:                    return nameof(IrpMajorType.IRP_MJ_CREATE);
-                case IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE:         return nameof(IrpMajorType.IRP_MJ_CREATE_NAMED_PIPE); 
-                case IrpMajorType.IRP_MJ_CLOSE:                     return nameof(IrpMajorType.IRP_MJ_CLOSE); 
-                case IrpMajorType.IRP_MJ_READ:                      return nameof(IrpMajorType.IRP_MJ_READ); 
-                case IrpMajorType.IRP_MJ_WRITE:                     return nameof(IrpMajorType.IRP_MJ_WRITE); 
-                case IrpMajorType.IRP_MJ_QUERY_INFORMATION:         return nameof(IrpMajorType.IRP_MJ_QUERY_INFORMATION); 
-                case IrpMajorType.IRP_MJ_SET_INFORMATION:           return nameof(IrpMajorType.IRP_MJ_SET_INFORMATION); 
-                case IrpMajorType.IRP_MJ_QUERY_EA:                  return nameof(IrpMajorType.IRP_MJ_QUERY_EA); 
-                case IrpMajorType.IRP_MJ_SET_EA:                    return nameof(IrpMajorType.IRP_MJ_SET_EA); 
-                case IrpMajorType.IRP_MJ_FLUSH_BUFFERS:             return nameof(IrpMajorType.IRP_MJ_FLUSH_BUFFERS); 
-                case IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION:  return nameof(IrpMajorType.IRP_MJ_QUERY_VOLUME_INFORMATION); 
-                case IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION:    return nameof(IrpMajorType.IRP_MJ_SET_VOLUME_INFORMATION); 
-                case IrpMajorType.IRP_MJ_DIRECTORY_CONTROL:         return nameof(IrpMajorType.IRP_MJ_DIRECTORY_CONTROL); 
-                case IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL:       return nameof(IrpMajorType.IRP_MJ_FILE_SYSTEM_CONTROL); 
-                case IrpMajorType.IRP_MJ_DEVICE_CONTROL:            return nameof(IrpMajorType.IRP_MJ_DEVICE_CONTROL); 
-                case IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL:   return nameof(IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL); 
-                case IrpMajorType.IRP_MJ_SHUTDOWN:                  return nameof(IrpMajorType.IRP_MJ_SHUTDOWN); 
-                case IrpMajorType.IRP_MJ_LOCK_CONTROL:              return nameof(IrpMajorType.IRP_MJ_LOCK_CONTROL);
-                case IrpMajorType.IRP_MJ_CLEANUP:                   return nameof(IrpMajorType.IRP_MJ_CLEANUP); 
-                case IrpMajorType.IRP_MJ_CREATE_MAILSLOT:           return nameof(IrpMajorType.IRP_MJ_CREATE_MAILSLOT);
-                case IrpMajorType.IRP_MJ_QUERY_SECURITY:            return nameof(IrpMajorType.IRP_MJ_QUERY_SECURITY);
-                case IrpMajorType.IRP_MJ_SET_SECURITY:              return nameof(IrpMajorType.IRP_MJ_SET_SECURITY);
-                case IrpMajorType.IRP_MJ_POWER:                     return nameof(IrpMajorType.IRP_MJ_POWER); 
-                case IrpMajorType.IRP_MJ_SYSTEM_CONTROL:            return nameof(IrpMajorType.IRP_MJ_SYSTEM_CONTROL);
-                case IrpMajorType.IRP_MJ_DEVICE_CHANGE:             return nameof(IrpMajorType.IRP_MJ_DEVICE_CHANGE);
-                case IrpMajorType.IRP_MJ_QUERY_QUOTA:               return nameof(IrpMajorType.IRP_MJ_QUERY_QUOTA);
-                case IrpMajorType.IRP_MJ_SET_QUOTA:                 return nameof(IrpMajorType.IRP_MJ_SET_QUOTA);
-                case IrpMajorType.IRP_MJ_PNP:                       return nameof(IrpMajorType.IRP_MJ_PNP);
-            }
-            return $"IRP_MJ_<unknown>_{type:x}";
+            return $"{Enum.GetName(typeof(IrpMajorType), IrpType)}";
         }
 
 
@@ -167,13 +135,7 @@ namespace GUI.Models
         public static string IrqlAsString(UInt32 irql)
         {
             var irqLevel = (IrqLevel)irql;
-            switch (irqLevel)
-            {
-                case IrqLevel.PASSIVE_LEVEL:       return nameof(IrqLevel.PASSIVE_LEVEL);
-                case IrqLevel.APC_LEVEL:           return nameof(IrqLevel.APC_LEVEL);
-                case IrqLevel.DPC_LEVEL:           return nameof(IrqLevel.DPC_LEVEL);
-            }
-            return $"IRQ_<unknown>_{irqLevel:x}";
+            return $"{Enum.GetName(typeof(IrqLevel), irqLevel)}";
         }
 
 
