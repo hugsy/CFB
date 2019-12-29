@@ -202,8 +202,10 @@ namespace GUI.Models
         //
         private List<Irp> FetchAllIrps()
         {
+            // don't allow more that number of items per request
+            uint ForceFlushLimit = 512; 
             List<Irp> Irps = new List<Irp>();
-            while(true)
+            while(Irps.Count < ForceFlushLimit)
             {
                 var irps = FetchIrps();
                 if (irps.Count == 0)

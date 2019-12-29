@@ -402,6 +402,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         break;
 
     case IRP_MJ_READ:
+    case IRP_MJ_WRITE:
         if (Irp->MdlAddress)
             UserBuffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
         break;
