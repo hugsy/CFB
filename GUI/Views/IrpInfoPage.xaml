@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
     xmlns:vm="using:GUI.ViewModels"
+    xmlns:h="using:GUI.Helpers"
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
@@ -194,18 +195,33 @@
                     Header="InputBuffer"
                     Visibility="{x:Bind vm:Converters.VisibleIfGreaterThanZero(ViewModel.InputBufferLength), Mode=OneWay}"
                     >
-                    <TextBlock Padding="16" x:Name="InputBufferTabViewBlock" >
-                        show here hexdump of InputBuffer
-                    </TextBlock>
-                </controls:TabViewItem>
+
+                <TextBox 
+                    x:Name="InputBufferTabViewBlock" 
+                    Text="{x:Bind h:Utils.HexDump(ViewModel.InputBuffer)}"
+                    TextWrapping="Wrap" 
+                    IsReadOnly="True"
+                    FontSize="16" 
+                    FontFamily="Consolas"
+                    VerticalAlignment="Stretch" 
+                    HorizontalAlignment="Stretch" 
+                    />
+            </controls:TabViewItem>
 
                 <controls:TabViewItem 
                     Header="OutputBuffer"
                     Visibility="{x:Bind vm:Converters.VisibleIfGreaterThanZero(ViewModel.OutputBufferLength), Mode=OneWay}"
                     >
-                    <TextBlock Padding="16" x:Name="OutputBufferTabViewBlock">
-                        show here hexdump of OutputBuffer
-                    </TextBlock>
+                <TextBox 
+                    x:Name="OutputBufferTabViewBlock" 
+                    Text="{x:Bind h:Utils.HexDump(ViewModel.OutputBuffer)}"
+                    TextWrapping="Wrap" 
+                    IsReadOnly="True"
+                    VerticalAlignment="Stretch" 
+                    HorizontalAlignment="Stretch" 
+                    FontSize="16" 
+                    FontFamily="Consolas"
+                    />
                 </controls:TabViewItem>
 
         </controls:TabView>
