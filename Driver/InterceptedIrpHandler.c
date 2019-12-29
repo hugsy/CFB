@@ -373,7 +373,7 @@ CompleteHandleInterceptedIrp(
     //
     switch (pIrpInfo->Header->Type)
     {
-    case IRP_MJ_WRITE:
+    case IRP_MJ_READ:
     case IRP_MJ_DEVICE_CONTROL:
     case IRP_MJ_INTERNAL_DEVICE_CONTROL:
         break;
