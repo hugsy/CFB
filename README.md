@@ -1,8 +1,8 @@
 # Canadian Furious Beaver
 
-<center>
-<img src="/Assets/img/logo/Logo_v2.png"/>
-</center>
+
+<img src="/Assets/img/logo/Logo_v1.svg" width="50%"/>
+
 
 
 ## Idea
