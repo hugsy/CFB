@@ -31,63 +31,86 @@ namespace GUI.Helpers
             await dialog.ShowAsync();
         }
 
-        /// <summary>
-        /// https://www.codeproject.com/Articles/36747/Quick-and-Dirty-HexDump-of-a-Byte-Array
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
-        public static string HexDump(byte[] bytes)
+
+        private static string _hexdump(byte[] bytes, int bytesPerLine = 16, bool showOffset = true, bool showAscii = true, int addressOffset = 0)
         {
-            int bytesPerLine = 16;
-            if (bytes == null) return "<null>";
-            int bytesLength = bytes.Length;
+            if (bytes == null) 
+                return "<null>";
 
-            char[] HexChars = "0123456789ABCDEF".ToCharArray();
-            int firstHexColumn = 8 + 3;
-            int firstCharColumn = firstHexColumn + bytesPerLine * 3 + (bytesPerLine - 1) / 8 + 2;                  
+            char[] hexCharset = "0123456789ABCDEF".ToCharArray();
+            char[] asciiCharset = "................................ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~.".ToCharArray();
 
-            int lineLength = firstCharColumn + bytesPerLine + Environment.NewLine.Length;
+            var lines = new List<string>();
+            var fieldSeparator = "   ";
 
-            char[] line = (new String(' ', lineLength - Environment.NewLine.Length) + Environment.NewLine).ToCharArray();
-            int expectedLines = (bytesLength + bytesPerLine - 1) / bytesPerLine;
-            StringBuilder result = new StringBuilder(expectedLines * lineLength);
-
-            for (int i = 0; i < bytesLength; i += bytesPerLine)
+            for (var off = 0; off < bytes.Length; off += bytesPerLine)
             {
-                line[0] = HexChars[(i >> 28) & 0xF];
-                line[1] = HexChars[(i >> 24) & 0xF];
-                line[2] = HexChars[(i >> 20) & 0xF];
-                line[3] = HexChars[(i >> 16) & 0xF];
-                line[4] = HexChars[(i >> 12) & 0xF];
-                line[5] = HexChars[(i >> 8) & 0xF];
-                line[6] = HexChars[(i >> 4) & 0xF];
-                line[7] = HexChars[(i >> 0) & 0xF];
+                var hexAddress = (addressOffset + off).ToString("x8");
+                var hexaLine  = new char[3 * (bytesPerLine + 1)];
+                var asciiLine = new char[bytesPerLine + 1];
+                var line = new StringBuilder();
 
-                int hexColumn = firstHexColumn;
-                int charColumn = firstCharColumn;
-
-                for (int j = 0; j < bytesPerLine; j++)
+                for (int i=0, j=0, k=0; i<bytesPerLine; i++, j+=3, k++)
                 {
-                    if (j > 0 && (j & 7) == 0) hexColumn++;
-                    if (i + j >= bytesLength)
+
+                    if(i == bytesPerLine / 2)
                     {
-                        line[hexColumn] = ' ';
-                        line[hexColumn + 1] = ' ';
-                        line[charColumn] = ' ';
+                        hexaLine[j]   = ' ';
+                        hexaLine[j+1] = ' ';
+                        hexaLine[j+2] = ' ';
+                        j += 3;
+
+                        asciiLine[k] = ' ';
+                        k++;
                     }
+
+                    if (off + i >= bytes.Length)
+                    {
+                        hexaLine[j] = ' ';
+                        hexaLine[j + 1] = ' ';
+                        hexaLine[j + 2] = ' ';
+
+                        asciiLine[k] = ' ';
+                        continue;
+                    }
+
+                    var b = bytes[off + i];
+                    hexaLine[j] = hexCharset[(b & 0xF0) >> 4];
+                    hexaLine[j+1] = hexCharset[(b & 0x0F)];
+                    hexaLine[j+2] = ' ';
+
+                    if ((b & 0x80) == 0x80)
+                        asciiLine[k] = '.';
                     else
-                    {
-                        byte b = bytes[i + j];
-                        line[hexColumn] = HexChars[(b >> 4) & 0xF];
-                        line[hexColumn + 1] = HexChars[b & 0xF];
-                        line[charColumn] = (b < 32 ? '·' : (char)b);
-                    }
-                    hexColumn += 3;
-                    charColumn++;
+                        asciiLine[k] = asciiCharset[b];
                 }
-                result.Append(line);
+
+                
+                if(showOffset)
+                {
+                    line.Append(hexAddress);
+                    line.Append(fieldSeparator);
+                }
+
+                line.Append(hexaLine);
+
+                if (showAscii)
+                {
+                    line.Append(fieldSeparator);
+                    line.Append(asciiLine);
+                }
+
+                lines.Add(line.ToString());
             }
-            return result.ToString();
+
+            return String.Join(Environment.NewLine, lines.ToArray()); 
         }
+
+
+        public static string Hexdump(byte[] bytes)
+            => _hexdump(bytes, 16, true, true, 0);
+
+        public static string SimpleHexdump(byte[] bytes)
+            => _hexdump(bytes, 16, false, false, 0);
     }
 }

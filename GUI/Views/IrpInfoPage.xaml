@@ -37,6 +37,13 @@
                     Click="SaveAsPowerShell_Click"
                     />
 
+                <AppBarButton
+                    Icon="Forward"
+                    Label="Send to Repeater"
+                    Visibility="{x:Bind vm:Converters.VisibleOnlyForDeviceIoControlIrp(ViewModel)}" 
+                    Click="ReplayIrp_Click"
+                    />
+
             </CommandBar>
 
         </RelativePanel>
@@ -202,7 +209,7 @@
 
                 <TextBox 
                     x:Name="InputBufferTabViewBlock" 
-                    Text="{x:Bind h:Utils.HexDump(ViewModel.InputBuffer)}"
+                    Text="{x:Bind h:Utils.Hexdump(ViewModel.InputBuffer)}"
                     TextWrapping="Wrap" 
                     IsReadOnly="True"
                     FontSize="16" 
@@ -218,7 +225,7 @@
                     >
                 <TextBox 
                     x:Name="OutputBufferTabViewBlock" 
-                    Text="{x:Bind h:Utils.HexDump(ViewModel.OutputBuffer)}"
+                    Text="{x:Bind h:Utils.Hexdump(ViewModel.OutputBuffer)}"
                     TextWrapping="Wrap" 
                     IsReadOnly="True"
                     VerticalAlignment="Stretch" 

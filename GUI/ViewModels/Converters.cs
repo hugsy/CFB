@@ -27,6 +27,9 @@ namespace GUI.ViewModels
         public static bool OnlyForDeviceIoControlIrp(IrpViewModel irp) =>
             irp != null && irp.Model.header.Type == (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL;
 
+        public static Visibility VisibleOnlyForDeviceIoControlIrp(IrpViewModel irp) =>
+            irp != null && irp.Model.header.Type == (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL ? Visibility.Visible : Visibility.Collapsed;
+
         /// <summary>
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.
         /// </summary>

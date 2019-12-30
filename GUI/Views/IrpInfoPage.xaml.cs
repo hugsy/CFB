@@ -71,5 +71,10 @@ namespace GUI.Views
                 await Utils.ShowPopUp(ex.Message);
             }
         }
+
+        private void ReplayIrp_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(ReplayIrpPage), ViewModel);
+        }
     }
 }

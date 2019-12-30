@@ -34,12 +34,14 @@
                     Icon="Send"
                     Label="Send IRP"
                     Visibility="Visible" 
+                    Click="SendIrp_Click"
                     />
 
                 <AppBarButton
                     Icon="Cancel"
                     Label="Cancel Replay"
-                    Visibility="Visible" 
+                    Visibility="Visible"
+                    Click="CancelReplay_Click"
                     />
 
                 <AppBarSeparator />
@@ -82,9 +84,21 @@
                     RelativePanel.Below="IoctlCodeTextBox"
                     MinWidth="120"
                     Width="300"
-                    Margin="100,20,0,0"
+                    Margin="50,20,0,0"
                     Header="Output Buffer Length"
                     Text="{x:Bind ViewModel.OutputBufferLength, Mode=OneWay}"
+                    />
+
+                <TextBox
+                    x:Name="StatusCodeTextBox"
+                    RelativePanel.RightOf="OutputBufferLengthTextBox"
+                    RelativePanel.Below="IoctlCodeTextBox"
+                    MinWidth="120"
+                    Width="300"
+                    Margin="50,20,0,0"
+                    Header="Status Code (populated by response)"
+                    IsReadOnly="True"
+                    Text=""
                     />
 
                 <!--
@@ -92,19 +106,32 @@
                 -->
 
                 <TextBox 
-                    x:Name="InputBufferTabViewBlock" 
-                    Text="{x:Bind h:Utils.HexDump(ViewModel.InputBuffer)}"
+                    x:Name="InputBufferTextBlock" 
+                    Text="{x:Bind h:Utils.SimpleHexdump(ViewModel.InputBuffer)}"
                     RelativePanel.Below="InputBufferLengthTextBox"
                     TextWrapping="Wrap" 
                     Margin="0,20,0,0"
+                    Width="600"
                     FontSize="16" 
                     FontFamily="Consolas"
-                    Header="Output Buffer Length"
-                    BorderBrush="Aqua"
+                    Header="Input Buffer"
                     HorizontalAlignment="Stretch" 
                     />
 
-
+                <TextBox 
+                    x:Name="OutputBufferTextBlock" 
+                    Text=""
+                    RelativePanel.Below="OutputBufferLengthTextBox"
+                    RelativePanel.RightOf="InputBufferTextBlock"
+                    TextWrapping="Wrap" 
+                    Margin="100,20,0,0"
+                    Width="600"
+                    FontSize="16" 
+                    FontFamily="Consolas"
+                    IsReadOnly="True"
+                    Header="Output Buffer (populated by response)"
+                    HorizontalAlignment="Stretch" 
+                    />
             </RelativePanel>
 
         </RelativePanel>

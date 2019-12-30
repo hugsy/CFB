@@ -66,5 +66,16 @@ namespace GUI.Views
         }
 
 
+        private void SendIrp_Click(object sender, RoutedEventArgs e)
+        {
+            // 1. check field 
+            // 2. build new irp
+            // 3. send irp
+        }
+
+        private void CancelReplay_Click(object sender, RoutedEventArgs e)
+        {
+            Frame.GoBack();
+        }
     }
 }
