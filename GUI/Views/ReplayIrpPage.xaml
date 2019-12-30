@@ -56,6 +56,7 @@
                     Header="Device Name"
                     RelativePanel.AlignLeftWithPanel="True"
                     Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}"
+                    TextChanged="DeviceName_TextChanged"
                     />
 
                 <TextBox
@@ -66,6 +67,7 @@
                     Margin="0,20,0,0"
                     Header="IOCTL Code"
                     Text="{x:Bind ViewModel.IoctlCodeString, Mode=OneWay}"
+                    TextChanged="IoctlCode_TextChanged"
                     />
 
                 <TextBox
@@ -76,6 +78,7 @@
                     Margin="0,20,0,0"
                     Header="Input Buffer Length"
                     Text="{x:Bind ViewModel.InputBufferLength, Mode=OneWay}"
+                    TextChanged="InputBufferLength_TextChanged"
                     />
 
                 <TextBox
@@ -87,6 +90,7 @@
                     Margin="50,20,0,0"
                     Header="Output Buffer Length"
                     Text="{x:Bind ViewModel.OutputBufferLength, Mode=OneWay}"
+                    TextChanged="OutputBufferLength_TextChanged"
                     />
 
                 <TextBox

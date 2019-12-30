@@ -77,5 +77,67 @@ namespace GUI.Views
         {
             Frame.GoBack();
         }
+
+        private bool IsValidDeviceName(string DeviceName)
+            => DeviceName.StartsWith("\\\\.\\");
+
+        private bool IsHex(string text)
+        {
+            try
+            {
+                Convert.ToInt32(text, 16);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
+        private bool IsInt(string text)
+        {
+            try
+            {
+                int.Parse(text);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+
+        private bool IsIntOrHex(string text)
+            => IsHex(text) || IsInt(text);
+
+        private void DeviceName_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            DeviceNameTextBox.BorderBrush = IsValidDeviceName(DeviceNameTextBox.Text) ?
+                new SolidColorBrush(Windows.UI.Colors.Green):
+                new SolidColorBrush(Windows.UI.Colors.Red);
+        }
+
+        private void IoctlCode_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            IoctlCodeTextBox.BorderBrush = IsIntOrHex(IoctlCodeTextBox.Text) ?
+                new SolidColorBrush(Windows.UI.Colors.Green) :
+                new SolidColorBrush(Windows.UI.Colors.Red);
+        }
+
+        private void InputBufferLength_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            InputBufferLengthTextBox.BorderBrush = IsIntOrHex(InputBufferLengthTextBox.Text) ?
+                new SolidColorBrush(Windows.UI.Colors.Green) :
+                new SolidColorBrush(Windows.UI.Colors.Red);
+        }
+
+        private void OutputBufferLength_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            OutputBufferLengthTextBox.BorderBrush = IsIntOrHex(OutputBufferLengthTextBox.Text) ?
+                new SolidColorBrush(Windows.UI.Colors.Green) :
+                new SolidColorBrush(Windows.UI.Colors.Red);
+        }
     }
 }
