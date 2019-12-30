@@ -29,7 +29,7 @@ namespace GUI
         public readonly string OpenIrpDbLabel              = "Load IRPs from file";
         public readonly string SaveIrpDbLabel              = "Save IRPs to file";
         public readonly string ManageDriversLabel          = "Add/remove drivers";
-        public readonly string ReplayIrpLabel              = "Forge custom IRP";
+        public readonly string SessionInfoLabel            = "Show current session info";
         public readonly string AboutLabel                  = "About CFB";
 
         public readonly string StartMonitoringLabel        = "Start Monitoring IRPs";
@@ -86,8 +86,8 @@ namespace GUI
                 else if (label == ManageDriversLabel)
                     targetPage = typeof(Views.DriverListPage);
 
-                else if (label == ReplayIrpLabel)
-                    targetPage = typeof(Views.ReplayIrpPage);
+                else if (label == SessionInfoLabel)
+                    targetPage = typeof(Views.SessionInfoPage);
 
                 //
                 // TODO: Add other pages
@@ -126,8 +126,8 @@ namespace GUI
                 else if (e.SourcePageType == typeof(Views.DriverListPage))
                     NavView.SelectedItem = AddRemoveDriversMenuItem;
 
-                else if (e.SourcePageType == typeof(Views.ReplayIrpPage))
-                    NavView.SelectedItem = ReplayIrpMenuItem;
+                else if (e.SourcePageType == typeof(Views.SessionInfoPage))
+                    NavView.SelectedItem = SessionInfoMenuItem;
 
                 //
                 // TODO add other pages

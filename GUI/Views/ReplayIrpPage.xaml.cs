@@ -62,7 +62,7 @@ namespace GUI.Views
 
         public string ReplayIrpPageTitle
         {
-            get => $"Replay IRP to {ViewModel.DeviceName}";
+            get => $"Replay IRP to {ViewModel.DeviceName} with IOCTL {ViewModel.IoctlCodeString}";
         }
 
 

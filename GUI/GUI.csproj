@@ -170,6 +170,9 @@
     <Compile Include="Views\SaveIrpsToFilePage.xaml.cs">
       <DependentUpon>SaveIrpsToFilePage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\SessionInfoPage.xaml.cs">
+      <DependentUpon>SessionInfoPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\SettingsPage.xaml.cs">
       <DependentUpon>SettingsPage.xaml</DependentUpon>
     </Compile>
@@ -253,6 +256,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\SaveIrpsToFilePage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\SessionInfoPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

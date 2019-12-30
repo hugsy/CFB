@@ -23,7 +23,11 @@
                 x:Name="mainCommandBar"
                 Background="Transparent"
                 RelativePanel.RightOf="PageTitle" 
-                HorizontalAlignment="Right"
+                DefaultLabelPosition="Right"
+                IsDynamicOverflowEnabled="False"
+                HorizontalAlignment="Stretch" 
+                HorizontalContentAlignment="Stretch" 
+                RelativePanel.AlignRightWithPanel="True"
                 >
 
                 <AppBarButton

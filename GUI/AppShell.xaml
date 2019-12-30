@@ -99,16 +99,16 @@
                 <NavigationViewItem
                     x:Name="AddRemoveDriversMenuItem"
                     Content="{x:Bind ManageDriversLabel}"
-                    ToolTipService.ToolTip="Add or remove IRP drivers.">
+                    ToolTipService.ToolTip="{x:Bind ManageDriversLabel}">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="NewFolder"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
                 <NavigationViewItem
-                    x:Name="ReplayIrpMenuItem"
-                    Content="{x:Bind ReplayIrpLabel}"
-                    ToolTipService.ToolTip="Forge a custom IRP, or replay a captured IRP">
+                    x:Name="SessionInfoMenuItem"
+                    Content="{x:Bind SessionInfoLabel}"
+                    ToolTipService.ToolTip="{x:Bind SessionInfoLabel}">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Next"/>
                     </NavigationViewItem.Icon>
@@ -118,7 +118,7 @@
                         x:Name="AboutMenuItem"
                         Content="{x:Bind AboutLabel}" 
                         ToolTipService.ToolTip="{x:Bind AboutLabel}"
-                        Icon=" Account" />
+                        Icon="Account" />
                 
             </NavigationView.MenuItems>
 
