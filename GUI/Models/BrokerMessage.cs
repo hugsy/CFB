@@ -61,6 +61,16 @@ namespace GUI.Models
         //used by GetInterceptedIrps
         public uint nb_irps;
         public List<Irp> irps;
+
+        // used by ReplayIrp
+        /// request
+        //public string device_name;
+        //public int ioctl_code;
+        //public byte[] input_buffer;
+        //public int input_buffer_length;
+        /// response
+        public byte[] output_buffer;
+        public int output_buffer_length;
     }
 
 
@@ -70,12 +80,9 @@ namespace GUI.Models
         public BrokerMessageBody body;
 
         public BrokerMessage() { }
+       
 
-
-        public BrokerMessage(MessageType type) : this(type, null) { }
-        
-
-        public BrokerMessage(MessageType type, byte[] args)
+        public BrokerMessage(MessageType type, byte[] args=null)
         {
             header = new BrokerMessageHeader();
             header.type = type;

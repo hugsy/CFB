@@ -66,20 +66,68 @@ namespace GUI.Views
         }
 
 
-        private void SendIrp_Click(object sender, RoutedEventArgs e)
+        private async void SendIrp_Click(object sender, RoutedEventArgs e)
         {
-            // 1. check field 
-            // 2. build new irp
-            // 3. send irp
+            // 0. empty former result
+            StatusCodeTextBox.Text = "";
+            OutputBufferTextBlock.Text = "";
+
+            // 1. check fields + sanitize
+            var DeviceName = DeviceNameTextBox.Text;
+            if (!IsValidDeviceName(DeviceName))
+                return;
+
+            int IoctlCode;
+            if (IsInt(IoctlCodeTextBox.Text))
+                IoctlCode = int.Parse(IoctlCodeTextBox.Text);
+            else if (IsHex(IoctlCodeTextBox.Text))
+                IoctlCode = Convert.ToInt32(IoctlCodeTextBox.Text, 16);
+            else
+                return;
+
+            int InputBufferLength;
+            if (IsInt(InputBufferLengthTextBox.Text))
+                InputBufferLength = int.Parse(InputBufferLengthTextBox.Text);
+            else
+                return;
+
+            int OutputBufferLength;
+            if (IsInt(OutputBufferLengthTextBox.Text))
+                OutputBufferLength = int.Parse(OutputBufferLengthTextBox.Text);
+            else
+                return;
+
+            byte[] InputBuffer = Utils.StringToByteArray(
+                InputBufferTextBlock.Text.Replace(" ", "")
+                .Replace("\r", "")
+                .Replace("\n", "")
+                .Replace("\t", "")
+            );
+
+
+            // 2. build & send forged irp
+            var irp = new IrpReplay();
+
+            try
+            {
+                Tuple<uint, byte[]> ioctl = await irp.SendIrp(DeviceName, IoctlCode, InputBuffer, InputBuffer.Length, OutputBufferLength);
+                StatusCodeTextBox.Text = $"0x{ioctl.Item1.ToString("x8")}";
+                OutputBufferTextBlock.Text = Utils.SimpleHexdump(ioctl.Item2);
+            }
+            catch(Exception ex)
+            {
+                await Utils.ShowPopUp($"Error: the following exception was triggered: {ex.Message}");
+            }
         }
 
+
         private void CancelReplay_Click(object sender, RoutedEventArgs e)
-        {
-            Frame.GoBack();
-        }
+            => Frame.GoBack();
+
 
         private bool IsValidDeviceName(string DeviceName)
             => DeviceName.StartsWith("\\\\.\\");
+
 
         private bool IsHex(string text)
         {

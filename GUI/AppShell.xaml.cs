@@ -29,7 +29,7 @@ namespace GUI
         public readonly string OpenIrpDbLabel              = "Load IRPs from file";
         public readonly string SaveIrpDbLabel              = "Save IRPs to file";
         public readonly string ManageDriversLabel          = "Add/remove drivers";
-        public readonly string SessionInfoLabel            = "Show current session info";
+        public readonly string SessionInfoLabel            = "Show session info";
         public readonly string AboutLabel                  = "About CFB";
 
         public readonly string StartMonitoringLabel        = "Start Monitoring IRPs";

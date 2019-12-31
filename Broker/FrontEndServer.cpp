@@ -182,14 +182,9 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 		SendDriverList();
 		break;
 
-	/*
-	case TaskType::GetDriverInfo:
-		//dbg(L"GetDriverInfo(lpDrivername='%s')\n", task.Data());
-
 	case TaskType::ReplayIrp:
-		//dbg(L"ReplayIrp()\n");
-		// TODO
-	*/
+		SendForgedIrp(json_request);
+		break;
 
 	default:
 		// push the task to request task list
@@ -362,18 +357,15 @@ Routine Description:
 
 Arguments:
 
-	Session -
-
+	None
 
 Return Value:
 
-	Returns 0 on success, -1 on failure.
+	Returns a ERROR_SUCCESS, or the corresponding WinError otherwise.
 
 --*/
 DWORD FrontEndServer::SendDriverList()
 {
-	int i=0;
-	
 	json j = {
 		{"header", {
 			{"is_success", true},
@@ -392,7 +384,6 @@ DWORD FrontEndServer::SendDriverList()
 			std::wstring driver_abspath = root + std::wstring(L"\\") + driver.first;
 			std::string driver_name = Utils::WideStringToString(driver_abspath);
 			j["body"]["drivers"].push_back(driver_name);
-			i++;
 		}
 	}
 	
@@ -401,7 +392,7 @@ DWORD FrontEndServer::SendDriverList()
 
 	if (!m_Session.FrontEndServer.Send(raw))
 	{
-		PrintErrorWithFunctionName(L"SendSynchronous(Drivers)");
+		PrintErrorWithFunctionName(L"SendSynchronous(SendDriverList)");
 		return ERROR_INVALID_DATA;
 	}
 
@@ -409,6 +400,69 @@ DWORD FrontEndServer::SendDriverList()
 
 	return ERROR_SUCCESS;
 }
+
+
+
+/*++
+
+Routine Description:
+
+	Sends a IOCTL to the specified device, providing all the arguments from the JSON requests
+
+Arguments:
+
+	Task - 
+
+Return Value:
+
+	Returns a ERROR_SUCCESS, or the corresponding WinError otherwise.
+
+--*/
+DWORD FrontEndServer::SendForgedIrp(json& json_request)
+{
+	auto decoded_body = Utils::base64_decode(json_request["body"]["param"]);
+	decoded_body.push_back(0);
+	auto json_body = json::parse(decoded_body);
+
+	auto DeviceName = json_body["device_name"].get<std::string>();
+	auto IoctlCode = json_body["ioctl_code"];
+	auto InputBufferLength = json_body["input_buffer_length"];
+	auto OutputBufferLength = json_body["output_buffer_length"];
+	auto InputBuffer = Utils::base64_decode(json_body["input_buffer"]);
+
+
+	std::vector<byte> OutputBuffer;
+	OutputBuffer.resize(OutputBufferLength);
+
+
+	//
+	// exec the devioctl here
+	//
+
+
+	json json_response;
+
+	json_response["header"]["is_success"] = true;
+	json_response["header"]["gle"] = ::GetLastError();
+	json_response["header"]["type"] = TaskType::ReplayIrp;
+
+	byte b[2] = { 0x41, 0x41 };
+	json_response["body"]["output_buffer"] = b;
+
+	const std::string& str = json_response.dump();
+	const std::vector<byte> raw(str.begin(), str.end());
+
+	if (!m_Session.FrontEndServer.Send(raw))
+	{
+		PrintErrorWithFunctionName(L"SendSynchronous(SendForgedIrp)");
+		return ERROR_INVALID_DATA;
+	}
+
+	dbg(L"ReplayIrp() done\n");
+
+	return ERROR_SUCCESS;
+}
+
 
 
 

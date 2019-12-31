@@ -310,6 +310,10 @@ namespace GUI.Models
         }
 
 
+        /// <summary>
+        /// Gets the names of all the drivers that are hooked by IrpDumper
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<string>> GetNamesOfHookedDrivers()
         {
             var msg = await SendAndReceive(MessageType.GetNamesOfHookedDrivers);
@@ -323,5 +327,27 @@ namespace GUI.Models
 
             return drivers;
         }
+
+
+        public async Task<Tuple<uint, byte[]>> ReplayIrp(string DeviceName, int ioctlCode, byte[] inputBuffer, int inputBufferLength, int outputBufferLength)
+        {
+            string args = $@"{{
+""device_name"": ""{DeviceName.Replace("\\","\\\\")}"",
+""ioctl_code"": {ioctlCode},
+""input_buffer"": ""{Utils.Base64Encode(inputBuffer)}"",
+""input_buffer_length"": {inputBufferLength},
+""output_buffer_length"": {outputBufferLength}
+}}";
+
+            args = args.Replace("\r", "").Replace("\n", "");
+            var msg = await SendAndReceive(MessageType.ReplayIrp, Encoding.ASCII.GetBytes(args));
+            if (!msg.header.is_success)
+                throw new Exception($"SendAndReceive({nameof(MessageType.ReplayIrp)}) operation returned FALSE: 0x{msg.header.gle:x}");
+
+            byte[] outputBuffer = msg.body.output_buffer;
+
+            return new Tuple<uint, byte[]>((uint)msg.header.gle,outputBuffer);
+        }
+
     }
 }

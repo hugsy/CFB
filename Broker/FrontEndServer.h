@@ -10,6 +10,8 @@ class Task;
 
 #include <optional>
 #include <string>
+#include "json.hpp"
+using json = nlohmann::json;
 
 //
 // Max number of JSON entries that can be served at a time
@@ -46,6 +48,7 @@ private:
 	//
 	DWORD SendInterceptedIrps();
 	DWORD SendDriverList();
+	DWORD SendForgedIrp(json&);
 };
 
 
