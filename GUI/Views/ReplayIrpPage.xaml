@@ -47,12 +47,19 @@
                 <AppBarSeparator />
             </CommandBar>
 
-            <RelativePanel Margin="10,60,0,0">
+            <RelativePanel Margin="10,60,0,0" x:Name="ThisPanel">
+                <ProgressBar
+                    RelativePanel.AlignTopWithPanel ="True"
+                    RelativePanel.AlignHorizontalCenterWithPanel="True"
+                    IsIndeterminate="True"
+                    Width="1000"
+                    Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                
                 <TextBox
                     x:Name="DeviceNameTextBox"
                     MinWidth="120"
                     Width="300"
-                    Margin="0,20,0,0"
+                    Margin="0,50,0,0"
                     Header="Device Name"
                     RelativePanel.AlignLeftWithPanel="True"
                     Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}"
@@ -136,8 +143,11 @@
                     Header="Output Buffer (populated by response)"
                     HorizontalAlignment="Stretch" 
                     />
-            </RelativePanel>
 
+
+                
+            </RelativePanel>
+            
         </RelativePanel>
     </Grid>
 </Page>

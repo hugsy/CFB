@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GUI.Native;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -137,5 +138,7 @@ namespace GUI.Helpers
             return val - (val < 58 ? 48 : 55);
         }
 
+        public static string FormatMessage(uint Status)
+            => $"{Enum.GetName(typeof(Win32Error), Status)} - 0x{Status:x8}";
     }
 }

@@ -68,55 +68,45 @@ namespace GUI.Views
 
         private async void SendIrp_Click(object sender, RoutedEventArgs e)
         {
-            // 0. empty former result
-            StatusCodeTextBox.Text = "";
-            OutputBufferTextBlock.Text = "";
-
-            // 1. check fields + sanitize
-            var DeviceName = DeviceNameTextBox.Text;
-            if (!IsValidDeviceName(DeviceName))
-                return;
-
-            int IoctlCode;
-            if (IsInt(IoctlCodeTextBox.Text))
-                IoctlCode = int.Parse(IoctlCodeTextBox.Text);
-            else if (IsHex(IoctlCodeTextBox.Text))
-                IoctlCode = Convert.ToInt32(IoctlCodeTextBox.Text, 16);
-            else
-                return;
-
-            int InputBufferLength;
-            if (IsInt(InputBufferLengthTextBox.Text))
-                InputBufferLength = int.Parse(InputBufferLengthTextBox.Text);
-            else
-                return;
-
-            int OutputBufferLength;
-            if (IsInt(OutputBufferLengthTextBox.Text))
-                OutputBufferLength = int.Parse(OutputBufferLengthTextBox.Text);
-            else
-                return;
-
-            byte[] InputBuffer = Utils.StringToByteArray(
-                InputBufferTextBlock.Text.Replace(" ", "")
-                .Replace("\r", "")
-                .Replace("\n", "")
-                .Replace("\t", "")
-            );
-
-
-            // 2. build & send forged irp
-            var irp = new IrpReplay();
-
             try
             {
+                ViewModel.IsLoading = true;
+
+                // 0. empty former result
+                StatusCodeTextBox.Text = "";
+                OutputBufferTextBlock.Text = "";
+
+                // 1. check fields + sanitize
+                var DeviceName = DeviceNameTextBox.Text;
+                //if (!IsValidDeviceName(DeviceName))
+                //    throw new InvalidDataException("Expected a valid device path");
+
+                int IoctlCode = Convert.ToInt32(IoctlCodeTextBox.Text, 16);
+                int InputBufferLength = int.Parse(InputBufferLengthTextBox.Text);
+                int OutputBufferLength = int.Parse(OutputBufferLengthTextBox.Text);
+
+                byte[] InputBuffer = Utils.StringToByteArray(
+                    InputBufferTextBlock.Text.Replace(" ", "")
+                    .Replace("\r", "")
+                    .Replace("\n", "")
+                    .Replace("\t", "")
+                );
+
+
+                // 2. build & send forged irp
+                var irp = new IrpReplay();
+
                 Tuple<uint, byte[]> ioctl = await irp.SendIrp(DeviceName, IoctlCode, InputBuffer, InputBuffer.Length, OutputBufferLength);
-                StatusCodeTextBox.Text = $"0x{ioctl.Item1.ToString("x8")}";
+                StatusCodeTextBox.Text = Utils.FormatMessage(ioctl.Item1);
                 OutputBufferTextBlock.Text = Utils.SimpleHexdump(ioctl.Item2);
             }
             catch(Exception ex)
             {
                 await Utils.ShowPopUp($"Error: the following exception was triggered: {ex.Message}");
+            }
+            finally
+            {
+                ViewModel.IsLoading = false;
             }
         }
 

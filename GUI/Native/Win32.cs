@@ -126,17 +126,6 @@ namespace GUI.Native
            bool RestartScan,
            ref uint Context,
            out uint ReturnLength);
-
-        [DllImport("kernel32.dll")]
-        static extern uint FormatMessage(
-            uint dwFlags, 
-            IntPtr lpSource,
-            uint dwMessageId, 
-            uint dwLanguageId, 
-            [Out] StringBuilder lpBuffer,
-            uint nSize, 
-            IntPtr Arguments
-        );
     }
 
 }

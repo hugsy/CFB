@@ -341,9 +341,6 @@ namespace GUI.Models
 
             args = args.Replace("\r", "").Replace("\n", "");
             var msg = await SendAndReceive(MessageType.ReplayIrp, Encoding.ASCII.GetBytes(args));
-            if (!msg.header.is_success)
-                throw new Exception($"SendAndReceive({nameof(MessageType.ReplayIrp)}) operation returned FALSE: 0x{msg.header.gle:x}");
-
             byte[] outputBuffer = msg.body.output_buffer;
 
             return new Tuple<uint, byte[]>((uint)msg.header.gle,outputBuffer);

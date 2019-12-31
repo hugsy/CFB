@@ -16,5 +16,14 @@ namespace Utils
 	std::vector<std::string> EnumerateDrivers();
 	std::vector<std::pair<std::wstring, std::wstring>> EnumerateObjectDirectory(const std::wstring& Root);
 	std::string WideStringToString(const std::wstring& original);
+
+	DWORD DeviceIoControlWrapper(
+		const char* lpszDeviceName,
+		const DWORD dwIoctlCode,
+		const PBYTE lpInputBuffer,
+		const DWORD dwInputBufferLength,
+		PBYTE lpOutputBuffer,
+		const DWORD dwOutputBufferLength
+	);
 };
 

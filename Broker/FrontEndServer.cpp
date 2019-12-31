@@ -434,20 +434,23 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 	std::vector<byte> OutputBuffer;
 	OutputBuffer.resize(OutputBufferLength);
 
-
-	//
-	// exec the devioctl here
-	//
+	DWORD dwRes = Utils::DeviceIoControlWrapper(
+		DeviceName.c_str(),
+		IoctlCode,
+		InputBuffer.data(),
+		InputBufferLength,
+		OutputBuffer.data(),
+		OutputBufferLength
+	);
 
 
 	json json_response;
 
-	json_response["header"]["is_success"] = true;
-	json_response["header"]["gle"] = ::GetLastError();
+	json_response["header"]["is_success"] = dwRes == ERROR_SUCCESS;
+	json_response["header"]["gle"] = dwRes;
 	json_response["header"]["type"] = TaskType::ReplayIrp;
 
-	byte b[2] = { 0x41, 0x41 };
-	json_response["body"]["output_buffer"] = b;
+	json_response["body"]["output_buffer"] = OutputBuffer;
 
 	const std::string& str = json_response.dump();
 	const std::vector<byte> raw(str.begin(), str.end());

@@ -242,3 +242,67 @@ std::string Utils::WideStringToString(const std::wstring& w)
 		s += (char)c;
 	return s;
 }
+
+
+/*++
+
+Simple wrapper to send ioctls
+
+--*/
+DWORD Utils::DeviceIoControlWrapper(
+	const char* lpszDeviceName,
+	const DWORD dwIoctlCode,
+	const PBYTE lpInputBuffer,
+	const DWORD dwInputBufferLength,
+	PBYTE lpOutputBuffer,
+	const DWORD dwOutputBufferLength
+)
+{
+	HANDLE hDevice = INVALID_HANDLE_VALUE;
+	DWORD dwRes = ERROR_SUCCESS;
+	BOOL bResult = FALSE;
+	DWORD lpBytesReturned = 0;
+
+	do
+	{
+		dbg(L"CreateFileA(%S)\n", lpszDeviceName);
+		hDevice = CreateFileA(
+			lpszDeviceName,
+			GENERIC_READ | GENERIC_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL
+		);
+
+		if (hDevice == INVALID_HANDLE_VALUE)
+			return ::GetLastError();
+
+		dbg(L"DeviceIoControl(%x)\n", dwIoctlCode);
+		bResult = DeviceIoControl(
+			hDevice,
+			dwIoctlCode,
+			lpInputBuffer,
+			dwInputBufferLength,
+			lpOutputBuffer,
+			dwOutputBufferLength,
+			&lpBytesReturned,
+			(LPOVERLAPPED)NULL
+		);
+
+		if (bResult == FALSE)
+		{
+			dwRes = ::GetLastError();
+			break;
+		}
+
+	} 
+	while (0);
+
+	if (hDevice != INVALID_HANDLE_VALUE)
+		CloseHandle(hDevice);
+
+	return dwRes;
+}
+

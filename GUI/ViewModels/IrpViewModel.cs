@@ -28,7 +28,16 @@ namespace GUI.ViewModels
         {
             get => _model;
         }
-   
+
+
+        private bool _isLoading = false;
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set => Set(ref _isLoading, value);
+        }
+
 
 
         public DateTime TimeStamp       { get => DateTime.FromFileTime((long)Model.header.TimeStamp); }
@@ -53,7 +62,7 @@ namespace GUI.ViewModels
                 : "N/A"; }
         public string StatusString       { get => $"0x{Status.ToString("x8")}"; }
 
-        public string StatusFullString   { get => $"{Enum.GetName(typeof(Win32Error), Status)} - {StatusString}"; }
+        public string StatusFullString   { get => Utils.FormatMessage(Status); }
 
 
         private string ShowStringMax(string s, int nb)
