@@ -101,7 +101,7 @@ namespace GUI.Views
 
 
                 // 2. build & send forged irp
-                var irp = new IrpReplay();
+                var irp = new IrpReplayViewModel();
 
                 Tuple<uint, byte[]> ioctl = await irp.SendIrp(DeviceName, IoctlCode, InputBuffer, InputBuffer.Length, OutputBufferLength);
                 StatusCodeTextBox.Text = Utils.FormatMessage(ioctl.Item1);

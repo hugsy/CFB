@@ -93,5 +93,12 @@ namespace GUI.Repositories
                 return false;
             }
         }
+
+
+        public int Count()
+        {
+            if (_irps == null) return 0;
+            return _irps.Count();
+        }
     }
 }

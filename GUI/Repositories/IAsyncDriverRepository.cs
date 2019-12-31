@@ -14,14 +14,21 @@ namespace GUI.Repositories
         /// <summary>
         /// Returns all drivers. 
         /// </summary>
-        Task<IEnumerable<Driver>> GetAsync(bool forceRefresh);
+        Task<IEnumerable<Driver>> GetAsync(bool forceRefresh=false);
 
 
         /// <summary>
-        /// Returns all IRPs matching a field matching the given pattern. 
+        /// Returns all drivers whose names match the given pattern. 
         /// </summary>
         Task<IEnumerable<Driver>> GetAsync(string pattern);
 
+        /// <summary>
+        /// Returns all hooked drivers 
+        /// </summary>
+        Task<IEnumerable<Driver>> GetAsync(bool onlyHooked, bool onlyEnabled);
+
+
+        int Count(bool onlyHooked, bool onlyEnabled);
     }
 }
 

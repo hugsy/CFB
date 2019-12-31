@@ -30,5 +30,8 @@ namespace GUI.Repositories
 
 
         Task<bool> Delete(int id);
+
+
+        int Count();
     }
 }

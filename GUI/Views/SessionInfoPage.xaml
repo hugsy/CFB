@@ -8,18 +8,54 @@
     mc:Ignorable="d"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <Grid>
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel>
+            <TextBlock 
+                Style="{ThemeResource HeaderTextBlockStyle}"
+                Text="Session Information" 
+            />
 
-        <TextBlock>
-        Show here info about the current session:
-            <LineBreak/>
-            - nb of drivers hooked<LineBreak/>
-            - nb of irp captured hooked<LineBreak/>
-            - if connected, info about the remote target<LineBreak/>
-            - etc. <LineBreak/>
-            
-        </TextBlock>
-        
+            <TextBlock 
+                Margin="5,25,0,5"
+                Style="{ThemeResource TitleTextBlockStyle}"     
+                Text="Status" />
 
+            <TextBlock
+                Margin="10,0,0,0"
+                Text="{x:Bind ViewModel.ConnectionStatus}" />
+
+            <TextBlock 
+                Margin="5,25,0,5"
+                Style="{ThemeResource TitleTextBlockStyle}"     
+                Text="IRP captured" />
+
+            <TextBlock
+                Margin="10,0,0,0"
+                Text="{x:Bind ViewModel.NumberOfIrpsCaptured}" />
+
+            <TextBlock 
+                Margin="5,25,0,5"
+                Style="{ThemeResource TitleTextBlockStyle}"     
+                Text="Number of Drivers" />
+
+            <TextBlock
+                Margin="10,0,0,0"
+                Text="{x:Bind ViewModel.NumberOfDrivers}" />
+
+            <TextBlock 
+                Margin="5,25,0,5"
+                Style="{ThemeResource TitleTextBlockStyle}"     
+                Text="Hooked Drivers" />
+
+            <TextBlock
+                Margin="10,0,0,0"
+                Text="{x:Bind ViewModel.NumberOfDriversHooked}" />
+
+            <TextBlock
+                x:Name="HookedDrivers"
+                Margin="10,0,0,0"
+                Text="{x:Bind ViewModel.HookedDriverList}" />
+
+        </StackPanel>
     </Grid>
 </Page>

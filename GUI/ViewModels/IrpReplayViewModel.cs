@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GUI.ViewModels
 {
-    public class IrpReplay
+    public class IrpReplayViewModel
     {
 
         /// <summary>

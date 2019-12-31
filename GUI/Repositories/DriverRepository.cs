@@ -14,6 +14,7 @@ namespace GUI.Repositories
     {
         private List<Driver> _drivers = null;
 
+
         /// <summary>
         /// Get all drivers
         /// </summary>
@@ -22,15 +23,7 @@ namespace GUI.Repositories
         public async Task<IEnumerable<Driver>> GetAsync(bool forceRefresh=false)
         {
             if (_drivers == null || forceRefresh)
-            {
-                //
-                // Fetch the complete list of driver from the broker. This 
-                // operation can be pretty long (1 or 2 ioctls / driver) so we 
-                // avoid running it often, only on first time or if user explicitly
-                // asks for a driver list refresh
-                //
                 _drivers = await App.BrokerSession.EnumerateDrivers();
-            }
 
             return _drivers;
         }
@@ -59,6 +52,33 @@ namespace GUI.Repositories
                           )
                   );
             });
+        }
+
+        public async Task<IEnumerable<Driver>> GetAsync(bool onlyHooked, bool onlyEnabled)
+        {
+            return await Task.Run(() =>
+            {
+                return _drivers
+                     .Where(
+                        x => (onlyHooked && x.IsHooked == true) ||
+                            (onlyEnabled && x.IsEnabled == true)
+                     );
+            });
+        }
+
+        public int Count(bool onlyHooked, bool onlyEnabled)
+        {
+            if (_drivers == null) 
+                return 0;
+
+            if (onlyHooked || onlyEnabled)
+                return _drivers
+                    .Where(
+                        x => (onlyHooked && x.IsHooked == true) || 
+                            (onlyEnabled && x.IsEnabled == true)
+                    ).Count();
+            else
+                return _drivers.Count();
         }
 
     }
