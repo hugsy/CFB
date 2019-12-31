@@ -15,7 +15,22 @@ Furious Beaver is a distributed tool for capturing IRPs sent to any Windows driv
 
 Although the GUI obviously requires a Windows 10 environment, the Broker itself can be deployed on any Windows 7+ host (x86 or x64). The target host must have `testsigning` BCD policy enabled, as the self-extracting driver is not WHQL friendly.
 
-![Canadian Furious Beaver demo](https://i.imgur.com/xMOIIhC.png)
+
+## Screenshots
+
+### Intercepted IRP view
+
+![Intercepted IRP view](https://i.imgur.com/xMOIIhC.png)
+
+### IRP details
+
+![IRP Metadata](https://i.imgur.com/zmh2QAw.png)
+![IRP InputBuffer](https://i.imgur.com/j0W9ljL.png)
+
+
+### IRP replay
+
+![IRP Replay](https://i.imgur.com/9Ybq27G.png)
 
 
 ## Concept
@@ -50,6 +65,12 @@ On this VM:
 Install VS 2015/2017/2019 redist x86 or x64 depending on your VM architecture.
 
 Follow the indications in the `Docs/` folder to improve your setup.
+
+
+## Command-line client
+
+Several command line tools (such as dumping all data to SQLite database, fuzzing IRP, etc.) can be found in the external repository
+[CFB-cli](https://github.com/hugsy/CFB-cli).
 
 
 ## Why the name?

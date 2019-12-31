@@ -17,9 +17,7 @@ using GUI.Models;
 
 namespace GUI.Views
 {
-    /// <summary>
-    /// An empty page that can be used on its own or navigated to within a Frame.
-    /// </summary>
+
     public sealed partial class SettingsPage : Page
     {
         private ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
@@ -66,12 +64,6 @@ namespace GUI.Views
             return true;
         }
 
-
-        private void onEnableAutoFuzzSetting_Click(object sender, RoutedEventArgs e)
-        {
-            localSettings.Values["EnableAutoFuzz"] = enableAutoFuzzCheckBox.IsOn;
-            autoFuzzStrategiesPanel.Visibility = enableAutoFuzzCheckBox.IsOn ? Visibility.Visible : Visibility.Collapsed;
-        }
 
 
         private void settingBrokerPollDelay_Changed(object sender, RoutedEventArgs e)
