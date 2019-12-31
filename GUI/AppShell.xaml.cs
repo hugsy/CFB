@@ -194,6 +194,9 @@ namespace GUI
                 var t = await App.BrokerSession.Reconnect();
                 if (t && App.BrokerSession.IsConnected)
                 {
+                    App.DumperTask.Trigger();
+                    App.DumperTask.Enabled = true;
+
                     IsConnectedAppBarButtonFont.Foreground = new SolidColorBrush(Windows.UI.Colors.Green);
                     IsConnectedAppBarButton.Label = ConnectedStatusLabel;
                     UpdateGlobalState(GlobalState_Connected);
@@ -211,6 +214,8 @@ namespace GUI
             UpdateGlobalState("Disconnecting...");
             try
             {
+                App.DumperTask.Enabled = false;
+
                 await App.BrokerSession.Close();
                 if (! App.BrokerSession.IsConnected)
                 {
@@ -234,9 +239,6 @@ namespace GUI
                 success = await Task.Run(App.BrokerSession.StartMonitoring);
                 if (success)
                 {
-                    App.DumperTask.Trigger();
-                    App.DumperTask.Enabled = true;
-
                     StartMonitoringLabelBtn.IsEnabled = false;
                     StopMonitoringLabelBtn.IsEnabled = true;
                     App.ViewModel.IsLoading = true;
@@ -265,8 +267,6 @@ namespace GUI
                 success = await Task.Run(App.BrokerSession.StopMonitoring);
                 if ( success )
                 {
-                    App.DumperTask.Enabled = false;
-
                     StartMonitoringLabelBtn.IsEnabled = true;
                     StopMonitoringLabelBtn.IsEnabled = false;
                     App.ViewModel.IsLoading = false;
