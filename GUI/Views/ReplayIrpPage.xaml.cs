@@ -26,7 +26,16 @@ namespace GUI.Views
         public ReplayIrpPage()
         {
             this.InitializeComponent();
+            this.Loading += OnLoading;
         }
+
+
+        private void OnLoading(FrameworkElement sender, object args)
+        {
+            ViewModel = new IrpViewModel();
+            ViewModel.Model.header.Type = (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL;
+        }
+
 
         public IrpViewModel ViewModel = null;
 
@@ -36,33 +45,31 @@ namespace GUI.Views
             base.OnNavigatedTo(e);
 
             var irp = (IrpViewModel)e.Parameter;
-            if (irp == null)
+            if (irp != null)
             {
-                await Utils.ShowPopUp("No IRP passed to the page");
-                if (Frame.CanGoBack)
-                    Frame.GoBack();
-                else
-                    Frame.Navigate(typeof(Views.MonitoredIrpsPage));
-                return;
-            }
+                if (irp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
+                {
+                    await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed");
+                    if (Frame.CanGoBack)
+                        Frame.GoBack();
+                    else
+                        Frame.Navigate(typeof(Views.MonitoredIrpsPage));
+                    return;
+                }
 
-            if(irp.Model.header.Type != (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL)
-            {
-                await Utils.ShowPopUp("Only IRP_MJ_DEVICE_CONTROL IRP can be replayed");
-                if (Frame.CanGoBack)
-                    Frame.GoBack();
-                else
-                    Frame.Navigate(typeof(Views.MonitoredIrpsPage));
-                return;
+                ViewModel = irp;
             }
-
-            ViewModel = irp;
         }
 
 
         public string ReplayIrpPageTitle
         {
-            get => $"Replay IRP to {ViewModel.DeviceName} with IOCTL {ViewModel.IoctlCodeString}";
+            get
+            {
+                if (ViewModel == null)
+                    return "Forge IRP";
+                return $"Replay IRP to {ViewModel.DeviceName} with IOCTL {ViewModel.IoctlCodeString}";
+            }
         }
 
 

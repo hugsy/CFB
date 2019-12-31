@@ -19,6 +19,11 @@ namespace GUI.ViewModels
         public static bool IsNotNull(object value) => value != null;
 
         /// <summary>
+        /// Returns a default integer value of 0 if the object is null.
+        /// </summary>
+        public static int DefaultIntegerIfNull(object value) => value == null ? 0 : (int)value;
+
+        /// <summary>
         /// Returns Visibility.Collapsed if the specified value is true; otherwise, returns Visibility.Visible.
         /// </summary>
         public static Visibility BooleanToVisibility(bool value) =>

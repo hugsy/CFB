@@ -40,7 +40,23 @@
                      x:Name="settingBrokerPollDelay" 
                      SelectionChanged="settingBrokerPollDelay_Changed"
                      Text="{x:Bind localSettings.Values['BackgroundTaskPollDelay'].ToString() }"/>
-  
+
+            <TextBlock Margin="5,25,0,5"
+                       Style="{ThemeResource TitleTextBlockStyle}"
+                       Text="Change the home page" />
+            
+            <TextBlock Text="Set the landing page once CFB-App is loading"/>
+
+            <ComboBox
+                Margin="0,5,1000,0" 
+                BorderThickness="5"
+                x:Name="settingHomePage" 
+                ItemsSource="{x:Bind HomePageList}" 
+                SelectedIndex = "{x:Bind vm:Converters.DefaultIntegerIfNull(localSettings.Values['HomePage'])}"
+                DisplayMemberPath="Name"
+                SelectionChanged="settingHomePage_Changed"
+                />
+            
         </StackPanel>
     </Grid>
 </Page>

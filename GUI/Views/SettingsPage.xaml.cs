@@ -14,6 +14,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using Windows.Storage;
 using GUI.Models;
+using System.Collections.ObjectModel;
 
 namespace GUI.Views
 {
@@ -22,10 +23,23 @@ namespace GUI.Views
     {
         private ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
+        private ObservableCollection<Type> HomePageList = new ObservableCollection<Type>();
 
         public SettingsPage()
         {
             this.InitializeComponent();
+
+            InitializeHomePageSettingComboBox();
+        }
+
+
+        private void InitializeHomePageSettingComboBox()
+        {
+            HomePageList.Add(typeof(MonitoredIrpsPage));
+            HomePageList.Add(typeof(SessionInfoPage));
+            HomePageList.Add(typeof(DriverListPage));
+            HomePageList.Add(typeof(SettingsPage));
+            HomePageList.Add(typeof(AboutPage));
         }
 
 
@@ -78,6 +92,11 @@ namespace GUI.Views
                 // fallback to default
                 localSettings.Values[IrpDumper.IrpDumperPollDelayKey] = IrpDumper.IrpDumperDefaultProbeValue;
             }
+        }
+
+        private void settingHomePage_Changed(object sender, RoutedEventArgs e)
+        {
+            localSettings.Values["HomePage"] = settingHomePage.SelectedIndex;
         }
     }
 }

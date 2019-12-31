@@ -17,7 +17,7 @@
             <TextBlock
                 x:Name="PageTitle"
                 Style="{ThemeResource TitleTextBlockStyle}"
-                Text="{x:Bind IrpDetailPageTitle, Mode=OneWay}" />
+                Text="{x:Bind IrpDetailPageTitle}" />
 
             <CommandBar
                 x:Name="mainCommandBar"

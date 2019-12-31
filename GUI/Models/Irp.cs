@@ -11,18 +11,18 @@ namespace GUI.Models
 
     public class IrpHeader
     {
-        public ulong TimeStamp;
-        public uint IrqLevel;
-        public uint Type;
-        public uint IoctlCode;
-        public uint ProcessId;
-        public uint ThreadId;
-        public uint InputBufferLength;
-        public uint OutputBufferLength;
-        public uint Status;
-        public string DriverName;
-        public string DeviceName;
-        public string ProcessName;
+        public ulong TimeStamp=0;
+        public uint IrqLevel=0;
+        public uint Type=0;
+        public uint IoctlCode=0;
+        public uint ProcessId=0;
+        public uint ThreadId=0;
+        public uint InputBufferLength=0;
+        public uint OutputBufferLength=0;
+        public uint Status=0;
+        public string DriverName="";
+        public string DeviceName="";
+        public string ProcessName="";
     }
 
 

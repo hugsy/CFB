@@ -14,7 +14,7 @@
             <TextBlock
                 x:Name="PageTitle"
                 Style="{ThemeResource TitleTextBlockStyle}"
-                Text="{x:Bind ReplayIrpPageTitle, Mode=OneWay}" 
+                Text="{x:Bind ReplayIrpPageTitle}" 
                 />
 
             <CommandBar

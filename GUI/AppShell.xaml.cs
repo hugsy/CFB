@@ -30,6 +30,7 @@ namespace GUI
         public readonly string SaveIrpDbLabel              = "Save IRPs to file";
         public readonly string ManageDriversLabel          = "Add/remove drivers";
         public readonly string SessionInfoLabel            = "Show session info";
+        public readonly string ReplayIrpLabel              = "Forge IRP";
         public readonly string AboutLabel                  = "About CFB";
 
         public readonly string StartMonitoringLabel        = "Start Monitoring IRPs";
@@ -89,6 +90,9 @@ namespace GUI
                 else if (label == SessionInfoLabel)
                     targetPage = typeof(Views.SessionInfoPage);
 
+                else if (label == ReplayIrpLabel)
+                    targetPage = typeof(Views.ReplayIrpPage);
+
                 //
                 // TODO: Add other pages
                 //
@@ -128,6 +132,9 @@ namespace GUI
 
                 else if (e.SourcePageType == typeof(Views.SessionInfoPage))
                     NavView.SelectedItem = SessionInfoMenuItem;
+
+                else if (e.SourcePageType == typeof(Views.ReplayIrpPage))
+                    NavView.SelectedItem = ReplayIrpMenuItem;
 
                 //
                 // TODO add other pages

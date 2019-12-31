@@ -69,6 +69,16 @@
             BackRequested="NavView_BackRequested">
 
             <NavigationView.MenuItems>
+
+                <NavigationViewItem
+                    x:Name="SessionInfoMenuItem"
+                    Content="{x:Bind SessionInfoLabel}"
+                    ToolTipService.ToolTip="{x:Bind SessionInfoLabel}">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Home"/>
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                
                 <NavigationViewItem
                     x:Name="MonitoredIrpsMenuItem"
                     Content="{x:Bind MonitoredIrpsListLabel}"
@@ -106,13 +116,14 @@
                 </NavigationViewItem>
 
                 <NavigationViewItem
-                    x:Name="SessionInfoMenuItem"
-                    Content="{x:Bind SessionInfoLabel}"
-                    ToolTipService.ToolTip="{x:Bind SessionInfoLabel}">
+                    x:Name="ReplayIrpMenuItem"
+                    Content="{x:Bind ReplayIrpLabel}"
+                    ToolTipService.ToolTip="{x:Bind ReplayIrpLabel}">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Next"/>
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+
 
                 <NavigationViewItem
                         x:Name="AboutMenuItem"

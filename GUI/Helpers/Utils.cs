@@ -33,7 +33,7 @@ namespace GUI.Helpers
         }
 
 
-        private static string _hexdump(byte[] bytes, int bytesPerLine = 16, bool showOffset = true, bool showAscii = true, int addressOffset = 0)
+        private static string hexdump(byte[] bytes, int bytesPerLine = 16, bool showOffset = true, bool showAscii = true, int addressOffset = 0)
         {
             if (bytes == null) 
                 return "<null>";
@@ -109,11 +109,11 @@ namespace GUI.Helpers
 
 
         public static string Hexdump(byte[] bytes)
-            => _hexdump(bytes, 16, true, true, 0);
+            => hexdump(bytes, 16, true, true, 0);
 
 
         public static string SimpleHexdump(byte[] bytes)
-            => _hexdump(bytes, 16, false, false, 0);
+            => hexdump(bytes, 16, false, false, 0);
 
 
         public static byte[] StringToByteArray(string hex)
