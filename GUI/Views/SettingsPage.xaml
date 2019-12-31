@@ -40,30 +40,6 @@
                      x:Name="settingBrokerPollDelay" 
                      SelectionChanged="settingBrokerPollDelay_Changed"
                      Text="{x:Bind localSettings.Values['BackgroundTaskPollDelay'].ToString() }"/>
-
-
-            <TextBlock Margin="5,25,0,5"
-                       Style="{ThemeResource TitleTextBlockStyle}"
-                       Text="Auto-Fuzz" />
-
-            <TextBlock Text="The auto-fuzz policy automatically run fuzzing instances for each IRP received. Althouth this helps finding bugs automatically, it might make the system unstable."/>
-
-            <ToggleSwitch x:Name="enableAutoFuzzCheckBox" 
-                          IsOn="{x:Bind (x:Boolean)localSettings.Values['EnableAutoFuzz']}"
-                          Toggled="onEnableAutoFuzzSetting_Click"
-                          OffContent="Auto-Fuzz Disabled" OnContent="Auto-Fuzz Enabled" 
-                          Header="Use Auto-Fuzz"/>
-
-            <StackPanel x:Name="autoFuzzStrategiesPanel"
-                        Visibility="{x:Bind vm:Converters.BooleanToVisibility(enableAutoFuzzCheckBox.IsOn)}">
-
-                <TextBlock Margin="35,5,0,5"
-                       Style="{ThemeResource TitleTextBlockStyle}"
-                       Text="Auto-Fuzz Strategies" />
-
-            </StackPanel>
-            
-            <TextBlock Text="TODO" />
   
         </StackPanel>
     </Grid>

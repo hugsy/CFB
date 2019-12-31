@@ -78,8 +78,8 @@ namespace GUI.Views
 
                 // 1. check fields + sanitize
                 var DeviceName = DeviceNameTextBox.Text;
-                //if (!IsValidDeviceName(DeviceName))
-                //    throw new InvalidDataException("Expected a valid device path");
+                if (!IsValidDeviceName(DeviceName))
+                    throw new InvalidDataException("Expected a valid device path");
 
                 int IoctlCode = Convert.ToInt32(IoctlCodeTextBox.Text, 16);
                 int InputBufferLength = int.Parse(InputBufferLengthTextBox.Text);
