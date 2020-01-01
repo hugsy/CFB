@@ -56,6 +56,7 @@ namespace GUI.ViewModels
 
         public string HookedDriverList
         {
+            // add a try/catch here
             get
             {
                 var DriverNames = new List<string>();

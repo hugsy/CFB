@@ -102,6 +102,7 @@ namespace GUI
             }
 
             NavView.IsPaneOpen = false;
+            NavView.IsBackEnabled = AppFrame.CanGoBack;
             AppFrame.Navigate(targetPage);
         }
 

@@ -22,6 +22,8 @@ using GUI.Models;
 using GUI.Repositories;
 using GUI.Views;
 using Windows.Storage;
+using Windows.UI.Core;
+using System.Diagnostics;
 
 namespace GUI
 {
@@ -67,6 +69,8 @@ namespace GUI
             }
 
             Window.Current.Activate();
+
+            Window.Current.CoreWindow.PointerPressed += CoreWindow_PointerPressed;
         }
 
         /// <summary>
@@ -130,6 +134,35 @@ namespace GUI
             base.OnBackgroundActivated(args);
             IBackgroundTaskInstance taskInstance = args.TaskInstance;
             DumperTask.SetInstance(taskInstance);
+        }
+
+
+        /// <summary>
+        /// Assign Back-Navigation mouse key to go back
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="args"></param>
+        private void CoreWindow_PointerPressed(CoreWindow sender, PointerEventArgs args)
+        {
+            if (args.CurrentPoint.Properties.IsXButton1Pressed)
+            {
+                var AppShell = Window.Current.Content as AppShell;
+                if (AppShell == null)
+                {
+                    Debug.WriteLine("AppShell is null - should never be here");
+                    return;
+                }
+
+                var AppFrame = AppShell.AppFrame; 
+                if (AppFrame == null)
+                {
+                    Debug.WriteLine("AppFrame is null");
+                    return;
+                }
+                
+                if (AppFrame.CanGoBack)
+                    AppFrame.GoBack();
+            }
         }
     }
 }
