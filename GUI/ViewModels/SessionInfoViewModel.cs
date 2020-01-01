@@ -59,7 +59,8 @@ namespace GUI.ViewModels
             get
             {
                 var DriverNames = new List<string>();
-                foreach (var driver in App.Drivers.GetAsync().Result)
+                var task = Task.Run(() =>App.Drivers.GetAsync());
+                foreach (var driver in task.Result)
                 {
                     if (driver.IsHooked)
                         DriverNames.Add($" → {driver.Name}");
