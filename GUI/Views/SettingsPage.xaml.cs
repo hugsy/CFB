@@ -23,23 +23,13 @@ namespace GUI.Views
     {
         private ApplicationDataContainer localSettings = ApplicationData.Current.LocalSettings;
 
-        private ObservableCollection<Type> HomePageList = new ObservableCollection<Type>();
+
+        public ObservableCollection<string> HomePageList => App.HomePageList;
+
 
         public SettingsPage()
         {
             this.InitializeComponent();
-
-            InitializeHomePageSettingComboBox();
-        }
-
-
-        private void InitializeHomePageSettingComboBox()
-        {
-            HomePageList.Add(typeof(MonitoredIrpsPage));
-            HomePageList.Add(typeof(SessionInfoPage));
-            HomePageList.Add(typeof(DriverListPage));
-            HomePageList.Add(typeof(SettingsPage));
-            HomePageList.Add(typeof(AboutPage));
         }
 
 
@@ -93,6 +83,7 @@ namespace GUI.Views
                 localSettings.Values[IrpDumper.IrpDumperPollDelayKey] = IrpDumper.IrpDumperDefaultProbeValue;
             }
         }
+
 
         private void settingHomePage_Changed(object sender, RoutedEventArgs e)
         {

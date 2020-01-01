@@ -45,7 +45,7 @@
                        Style="{ThemeResource TitleTextBlockStyle}"
                        Text="Change the home page" />
             
-            <TextBlock Text="Set the landing page once CFB-App is loading"/>
+            <TextBlock Text="Set the landing page once CFB-App is loaded"/>
 
             <ComboBox
                 Margin="0,5,1000,0" 
@@ -53,7 +53,6 @@
                 x:Name="settingHomePage" 
                 ItemsSource="{x:Bind HomePageList}" 
                 SelectedIndex = "{x:Bind vm:Converters.DefaultIntegerIfNull(localSettings.Values['HomePage'])}"
-                DisplayMemberPath="Name"
                 SelectionChanged="settingHomePage_Changed"
                 />
             

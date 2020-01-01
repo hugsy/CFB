@@ -19,6 +19,7 @@ using GUI.Models;
 using Windows.Storage;
 using Windows.UI.Popups;
 using GUI.Helpers;
+using GUI.Views;
 
 namespace GUI
 {
@@ -62,8 +63,10 @@ namespace GUI
         {
             var label = args.InvokedItem as string;
 
-            // default page should be the irp data grid
-            var targetPage = typeof(Views.MonitoredIrpsPage); 
+            var localSettings = ApplicationData.Current.LocalSettings;
+            var defaultPageName = App.HomePageList[(int)localSettings.Values["HomePage"]];
+            var defaultPage = Type.GetType(defaultPageName);
+            var targetPage = defaultPage;
 
             if (args.IsSettingsInvoked)
             {

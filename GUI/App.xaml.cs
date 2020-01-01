@@ -20,6 +20,8 @@ using Windows.ApplicationModel.Background;
 using GUI.ViewModels;
 using GUI.Models;
 using GUI.Repositories;
+using GUI.Views;
+using Windows.Storage;
 
 namespace GUI
 {
@@ -51,10 +53,14 @@ namespace GUI
 
             if (shell.AppFrame.Content == null)
             {
+                var localSettings = ApplicationData.Current.LocalSettings;
+                var defaultPageName = App.HomePageList[(int)localSettings.Values["HomePage"]];
+                var defaultPage = Type.GetType($"GUI.Views.{defaultPageName}");
+
                 // On launch the app frame content will be empty,
                 // so redirect to the default page (monitored irps)
                 shell.AppFrame.Navigate(
-                    typeof(Views.MonitoredIrpsPage),
+                    defaultPage,
                     null,
                     new Windows.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo()
                 );
@@ -102,6 +108,16 @@ namespace GUI
         public static ConnectionManager BrokerSession { get; private set; } = new ConnectionManager();
 
         public static IrpDumper DumperTask = new IrpDumper();
+
+
+        public static readonly ObservableCollection<string> HomePageList = new ObservableCollection<string>()
+        {
+            nameof(MonitoredIrpsPage),
+            nameof(SessionInfoPage),
+            nameof(DriverListPage),
+            nameof(SettingsPage),
+            nameof(AboutPage)
+        };
 
 
         /// <summary>
