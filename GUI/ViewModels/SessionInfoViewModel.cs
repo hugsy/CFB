@@ -43,10 +43,12 @@ namespace GUI.ViewModels
             get => $"{NumberOfDriversHooked:d} driver(s) hooked";
         }
 
+
         public bool IsConnected
         {
             get => App.BrokerSession.IsConnected;
         }
+
 
         public string ConnectionStatus
         {
@@ -59,6 +61,9 @@ namespace GUI.ViewModels
             // add a try/catch here
             get
             {
+                if (!IsConnected) 
+                    return "";
+
                 var DriverNames = new List<string>();
                 var task = Task.Run(() =>App.Drivers.GetAsync());
                 foreach (var driver in task.Result)
