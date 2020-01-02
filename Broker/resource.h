@@ -2,8 +2,14 @@
 // Microsoft Visual C++ generated include file.
 // Used by Broker.rc
 //
-#define IDR_CFB_DRIVER1                 101
 
+#ifdef _DEBUG
+#define CFB_PATH_DRIVER_PATH_RSC   "..\\x64\\Debug\\IrpDumper.sys"
+#else
+#define CFB_PATH_DRIVER_PATH_RSC   "..\\x64\\Release\\IrpDumper.sys"
+#endif
+
+#define IDR_CFB_DRIVER1                 101
 
 #define IDI_ICON3                       108
 #define SUBLANG_ENGLISH_US              0x01

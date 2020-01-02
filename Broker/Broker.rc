@@ -38,7 +38,7 @@ END
 // CFB_DRIVER
 //
 
-IDR_CFB_DRIVER1         CFB_DRIVER              "..\\x64\\Debug\\IrpDumper.sys"
+IDR_CFB_DRIVER1         CFB_DRIVER              CFB_PATH_DRIVER_PATH_RSC //"..\\x64\\Debug\\IrpDumper.sys"
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

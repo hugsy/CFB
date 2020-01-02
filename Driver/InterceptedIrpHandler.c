@@ -419,7 +419,7 @@ CompleteHandleInterceptedIrp(
     RtlCopyMemory(OutputBuffer, UserBuffer, OutputBufferLength);
 
 #ifdef _DEBUG
-    CfbDbgPrintOk(L"after copied output_buffer=%p, len=%u, type=%d, irql=%d\n", OutputBuffer, OutputBufferLength, pIrpInfo->Header->Type, pIrpInfo->Header->Irql);
+    //CfbDbgPrintOk(L"after copied output_buffer=%p, len=%u, type=%d, irql=%d\n", OutputBuffer, OutputBufferLength, pIrpInfo->Header->Type, pIrpInfo->Header->Irql);
     //CfbHexDump(OutputBuffer, OutputBufferLength);
 #endif
 
