@@ -13,7 +13,7 @@ namespace GUI.ViewModels
 {
     public class SaveLoadIrpsViewModel : BindableBase
     {
-        private string _filename = "temporary_db.cfb";
+        private readonly string _filename = "temporary_db.cfb";
 
         public SaveLoadIrpsViewModel()
         {
@@ -22,7 +22,7 @@ namespace GUI.ViewModels
             //
             Task.Run(() =>
             {
-               ApplicationData.Current.LocalFolder.CreateFileAsync(_filename, CreationCollisionOption.ReplaceExisting);
+                Windows.Foundation.IAsyncOperation<StorageFile> asyncOperation = ApplicationData.Current.LocalFolder.CreateFileAsync(_filename, CreationCollisionOption.ReplaceExisting);
             });
         }
 

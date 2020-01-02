@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using GUI.Helpers;
-using GUI.Models;
-using GUI.Native;
+
 using Windows.ApplicationModel;
 using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Provider;
 using Windows.Storage.Streams;
+
+using GUI.Helpers;
+using GUI.Models;
+
 
 namespace GUI.ViewModels
 {

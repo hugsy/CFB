@@ -15,7 +15,6 @@ using System.Text;
 using System.Runtime.InteropServices.WindowsRuntime;
 
 using GUI.Helpers;
-using GUI.Native;
 
 namespace GUI.Models
 {

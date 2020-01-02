@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using GUI.Helpers;
 using GUI.Models;
-using GUI.Native;
+
 
 namespace GUI.ViewModels
 {
@@ -104,9 +104,9 @@ namespace GUI.ViewModels
                 {
                     Model.IsEnabled = false;
                     Model.IsHooked = false;
-                    Model.Address = ~-1;
-                    Model.NumberOfRequestIntercepted = ~-1;
-                    Model.Name = $"Error 0x{msg.header.gle}";
+                    Model.Address = 0;
+                    Model.NumberOfRequestIntercepted = 0;
+                    Model.Name = $"Error {Utils.FormatMessage((uint)msg.header.gle)}";
                 }
             }
             else

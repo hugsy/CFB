@@ -5,7 +5,7 @@
  * 
  */
 
-namespace GUI.Native
+namespace GUI.Helpers
 {
     public enum Win32Error : uint
     {

@@ -1,7 +1,5 @@
-﻿using GUI.Native;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.UI.Popups;
@@ -33,7 +31,7 @@ namespace GUI.Helpers
         }
 
 
-        private static string hexdump(byte[] bytes, int bytesPerLine = 16, bool showOffset = true, bool showAscii = true, int addressOffset = 0)
+        private static string HexdumpI(byte[] bytes, int bytesPerLine = 16, bool showOffset = true, bool showAscii = true, int addressOffset = 0)
         {
             if (bytes == null) 
                 return "<null>";
@@ -109,11 +107,11 @@ namespace GUI.Helpers
 
 
         public static string Hexdump(byte[] bytes)
-            => hexdump(bytes, 16, true, true, 0);
+            => HexdumpI(bytes, 16, true, true, 0);
 
 
         public static string SimpleHexdump(byte[] bytes)
-            => hexdump(bytes, 16, false, false, 0);
+            => HexdumpI(bytes, 16, false, false, 0);
 
 
         public static byte[] StringToByteArray(string hex)
