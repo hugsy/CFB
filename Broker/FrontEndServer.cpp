@@ -96,7 +96,6 @@ std::vector<Task> FrontEndServer::ProcessNextRequest()
 		{
 			if (auto json_request = GetNextJsonStringMessage())
 			{
-				std::cerr << *json_request << std::endl;
 				auto t = ProcessJsonTask(*json_request);
 				tasks.push_back(t);
 			}
