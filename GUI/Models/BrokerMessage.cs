@@ -42,6 +42,17 @@ namespace GUI.Models
         public MessageType type;
     }
     
+    public  class ReplayIrpMessage
+    {
+        public byte[] output_buffer;
+        public int output_buffer_length;
+    }
+
+    public class GetInterceptedIrps
+    {
+        public uint nb_irps;
+        public List<Irp> irps;
+    }
 
     public class BrokerMessageBody
     {
@@ -58,18 +69,10 @@ namespace GUI.Models
         public Driver driver;
 
         //used by GetInterceptedIrps
-        public uint nb_irps;
-        public List<Irp> irps;
+        public GetInterceptedIrps intercepted_irps;
 
         // used by ReplayIrp
-        /// request
-        //public string device_name;
-        //public int ioctl_code;
-        //public byte[] input_buffer;
-        //public int input_buffer_length;
-        /// response
-        public byte[] output_buffer;
-        public int output_buffer_length;
+        public ReplayIrpMessage replay_irp;
     }
 
 

@@ -307,7 +307,7 @@ DWORD FrontEndServer::SendInterceptedIrps()
 	std::unique_lock<std::mutex> mlock(m_Session.m_IrpMutex);
 	size_t i = 0;
 
-	j["body"]["irps"] = json::array();
+	j["body"]["intercepted_irps"]["irps"] = json::array();
 
 	while(!m_Session.m_IrpQueue.empty() && i < CFB_FRONTEND_MAX_ENTRIES)
 	{
@@ -320,14 +320,14 @@ DWORD FrontEndServer::SendInterceptedIrps()
 		//
 		// format a new JSON entry
 		//
-		j["body"]["irps"].push_back(irp.ToJson());
+		j["body"]["intercepted_irps"]["irps"].push_back(irp.ToJson());
 
 		i++;
 	}
 
 	mlock.unlock();
 
-	j["body"]["nb_irps"] = i;
+	j["body"]["intercepted_irps"]["nb_irps"] = i;
 
 
 	//
@@ -421,7 +421,7 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 {
 	auto decoded_body = Utils::base64_decode(json_request["body"]["param"]);
 	decoded_body.push_back(0);
-	auto json_body = json::parse(decoded_body);
+	auto json_body = json::parse(decoded_body)["replay_irp"];
 
 	auto DeviceName = json_body["device_name"].get<std::string>();
 	auto IoctlCode = json_body["ioctl_code"];
@@ -449,7 +449,7 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 	json_response["header"]["gle"] = dwRes;
 	json_response["header"]["type"] = TaskType::ReplayIrp;
 
-	json_response["body"]["output_buffer"] = OutputBuffer;
+	json_response["body"]["replay_irp"]["output_buffer"] = OutputBuffer;
 
 	const std::string& str = json_response.dump();
 	const std::vector<byte> raw(str.begin(), str.end());

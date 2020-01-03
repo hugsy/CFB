@@ -15,6 +15,7 @@ using System.Text;
 using System.Runtime.InteropServices.WindowsRuntime;
 
 using GUI.Helpers;
+using System.Diagnostics;
 
 namespace GUI.Models
 {
@@ -183,15 +184,18 @@ namespace GUI.Models
             await sem.WaitAsync();
             try
             {
-                await this.SendBytes(
-                    Encoding.UTF8.GetBytes(
-                        JsonConvert.SerializeObject(
+                var req_str = JsonConvert.SerializeObject(
                             req,
                             Newtonsoft.Json.Formatting.None,
                             new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore }
-                        )
-                    )
                 );
+                Debug.WriteLine($"send -> {req_str}");
+
+                var req_raw = Encoding.UTF8.GetBytes(req_str);
+
+                await this.SendBytes(req_raw);
+
+
                 _Status = BrokerConnectionStatus.WaitingForResponse;
 
                 RawResponse = await this.ReceiveBytes();
@@ -202,7 +206,10 @@ namespace GUI.Models
                 sem.Release();
             }
 
-            res = JsonConvert.DeserializeObject<BrokerMessage>(Encoding.Default.GetString(RawResponse));
+            var res_str = Encoding.Default.GetString(RawResponse);
+            Debug.WriteLine($"recv <- {res_str}");
+
+            res = JsonConvert.DeserializeObject<BrokerMessage>(res_str);
             return res;
         }
 
@@ -330,17 +337,17 @@ namespace GUI.Models
 
         public async Task<Tuple<uint, byte[]>> ReplayIrp(string DeviceName, int ioctlCode, byte[] inputBuffer, int inputBufferLength, int outputBufferLength)
         {
-            string args = $@"{{
+            string args = $@"{{ ""replay_irp"": {{
 ""device_name"": ""{DeviceName.Replace("\\","\\\\")}"",
 ""ioctl_code"": {ioctlCode},
 ""input_buffer"": ""{Utils.Base64Encode(inputBuffer)}"",
 ""input_buffer_length"": {inputBufferLength},
 ""output_buffer_length"": {outputBufferLength}
-}}";
+}} }}";
 
             args = args.Replace("\r", "").Replace("\n", "");
             var msg = await SendAndReceive(MessageType.ReplayIrp, Encoding.ASCII.GetBytes(args));
-            byte[] outputBuffer = msg.body.output_buffer;
+            byte[] outputBuffer = msg.body.replay_irp.output_buffer;
 
             return new Tuple<uint, byte[]>((uint)msg.header.gle,outputBuffer);
         }

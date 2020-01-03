@@ -191,7 +191,7 @@ namespace GUI.Models
             var msg = Task.Run(() => App.BrokerSession.GetInterceptedIrps()).Result;
 
             if (msg.header.is_success)
-                return msg.body.irps;
+                return msg.body.intercepted_irps.irps;
 
             throw new Exception($"GetInterceptedIrps() request returned FALSE, GLE=0x{msg.header.gle}");
         }

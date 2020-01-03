@@ -183,7 +183,6 @@
     <ResourceCompile Include="Broker.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\x64\Release\IrpDumper.sys" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
