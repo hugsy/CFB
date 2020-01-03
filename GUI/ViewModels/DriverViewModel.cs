@@ -111,7 +111,7 @@ namespace GUI.ViewModels
             }
             else
             {
-                var driver = msg.body.driver;
+                var driver = msg.body.driver_info.driver;
                 if(!String.Equals(driver.Name, Model.Name, StringComparison.OrdinalIgnoreCase))
                     throw new Exception("unexpected driver info");
                 Model.IsHooked = true;

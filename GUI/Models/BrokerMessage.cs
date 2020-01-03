@@ -54,24 +54,28 @@ namespace GUI.Models
         public List<Irp> irps;
     }
 
+    public class GetDriverListMessage
+    {
+        public List<String> drivers;
+    }
+
+    public class GetDriverInfo
+    {
+        public Driver driver;
+    }
+
     public class BrokerMessageBody
     {
         public BrokerMessageBody() { }
 
-        // used by requests
+        // used by requests (generic message)
         public uint param_length;
         public string param;
 
-        // used by EnumerateDrivers && GetNamesOfHookedDrivers
-        public List<String> drivers;  
-
-        // used by GetDriverInfo
-        public Driver driver;
-
-        //used by GetInterceptedIrps
+        public GetDriverListMessage hooked_driver_list;
+        public GetDriverListMessage driver_list;
+        public GetDriverInfo driver_info;
         public GetInterceptedIrps intercepted_irps;
-
-        // used by ReplayIrp
         public ReplayIrpMessage replay_irp;
     }
 

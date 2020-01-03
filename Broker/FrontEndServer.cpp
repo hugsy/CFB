@@ -222,10 +222,10 @@ BOOL FrontEndServer::ForwardReply()
 		PHOOKED_DRIVER_INFO data = (PHOOKED_DRIVER_INFO)task.Data();
 		if (task.Length() && data)
 		{
-			json_response["body"]["driver"]["Address"] = data->DriverAddress;
-			json_response["body"]["driver"]["IsEnabled"] = data->Enabled;
-			json_response["body"]["driver"]["Name"] = Utils::WideStringToString(std::wstring(data->Name));
-			json_response["body"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
+			json_response["body"]["driver_info"]["driver"]["Address"] = data->DriverAddress;
+			json_response["body"]["driver_info"]["driver"]["IsEnabled"] = data->Enabled;
+			json_response["body"]["driver_info"]["driver"]["Name"] = Utils::WideStringToString(std::wstring(data->Name));
+			json_response["body"]["driver_info"]["driver"]["NumberOfRequestIntercepted"] = data->NumberOfRequestIntercepted;
 		}
 		break;
 	}
@@ -237,11 +237,11 @@ BOOL FrontEndServer::ForwardReply()
 
 		std::string delimiter = ";";
 		size_t pos = 0;
-		json_response["body"]["drivers"] = json::array();
+		json_response["body"]["hooked_driver_list"]["drivers"] = json::array();
 		while ((pos = driver_list_cs.find(delimiter)) != std::string::npos)
 		{
 			std::string drvname = driver_list_cs.substr(0, pos);
-			json_response["body"]["drivers"].push_back(drvname);
+			json_response["body"]["hooked_driver_list"]["drivers"].push_back(drvname);
 			driver_list_cs.erase(0, pos + delimiter.length());
 		}
 
@@ -373,8 +373,9 @@ DWORD FrontEndServer::SendDriverList()
 		}
 	}};
 
-	j["body"]["drivers"] = json::array();
+	j["body"]["driver_list"]["drivers"] = json::array();
 	
+	size_t nb_drivers = 0;
 	std::vector<std::wstring> roots = { L"\\Driver" , L"\\FileSystem" };
 	for (auto root : roots)
 	{
@@ -382,10 +383,13 @@ DWORD FrontEndServer::SendDriverList()
 		{
 			std::wstring driver_abspath = root + std::wstring(L"\\") + driver.first;
 			std::string driver_name = Utils::WideStringToString(driver_abspath);
-			j["body"]["drivers"].push_back(driver_name);
+			j["body"]["driver_list"]["drivers"].push_back(driver_name);
+			nb_drivers++;
 		}
 	}
-	
+
+	j["body"]["driver_list"]["nb_drivers"] = nb_drivers;
+
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
 

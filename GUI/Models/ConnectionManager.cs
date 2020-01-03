@@ -225,7 +225,7 @@ namespace GUI.Models
             List<Driver> drivers = new List<Driver>();
             List<string> hooked_driver_names = await GetNamesOfHookedDrivers();
 
-            foreach (string driver_name in msg.body.drivers)
+            foreach (string driver_name in msg.body.driver_list.drivers)
             {
                 var d = new Driver(driver_name);
                 if (hooked_driver_names.Contains(d.Name.ToLower()))
@@ -328,7 +328,7 @@ namespace GUI.Models
 
             List<string> drivers = new List<string>();
 
-            foreach (string driver_name in msg.body.drivers)
+            foreach (string driver_name in msg.body.hooked_driver_list.drivers)
                 drivers.Add(driver_name);
 
             return drivers;
