@@ -9,6 +9,8 @@
 #include <stdlib.h>
 
 
+#define MAX_REGSZ_SIZE 255
+
 namespace Utils
 {
 	std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
@@ -25,5 +27,30 @@ namespace Utils
 		PBYTE lpOutputBuffer,
 		const DWORD dwOutputBufferLength
 	);
+
+	namespace Registry
+	{
+
+		DWORD ReadDword(
+			HKEY hKeyRoot,
+			const std::wstring& SubKey,
+			const std::wstring& KeyName,
+			PDWORD lpdwKeyValue
+		);
+
+		BOOL ReadBool(
+			HKEY hKeyRoot,
+			const std::wstring& SubKey,
+			const std::wstring& KeyName,
+			PBOOL lpbKeyValue
+		);
+
+		DWORD ReadWString(
+			HKEY hKeyRoot,
+			const std::wstring& SubKey,
+			const std::wstring& KeyName,
+			std::wstring& KeyValue
+		);
+	};
 };
 

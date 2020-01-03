@@ -58,7 +58,6 @@ namespace GUI.ViewModels
 
         public string HookedDriverList
         {
-            // add a try/catch here
             get
             {
                 if (!IsConnected) 

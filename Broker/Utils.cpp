@@ -306,3 +306,89 @@ DWORD Utils::DeviceIoControlWrapper(
 	return dwRes;
 }
 
+
+DWORD Utils::Registry::ReadDword(
+	HKEY hKeyRoot, 
+	const std::wstring& SubKey, 
+	const std::wstring& KeyName, 
+	PDWORD lpdwKeyValue
+)
+{
+	HKEY hKey;
+	LSTATUS lStatus = ::RegOpenKeyExW(hKeyRoot, SubKey.c_str(), 0, KEY_READ, &hKey);
+	if (lStatus != ERROR_SUCCESS)
+		return lStatus;
+
+	DWORD dwKeyValueSize = sizeof(DWORD);
+	
+	lStatus = ::RegQueryValueExW(hKey,
+		KeyName.c_str(),
+		0,
+		NULL,
+		(PBYTE)lpdwKeyValue,
+		&dwKeyValueSize
+	);
+
+	RegCloseKey(hKey);
+	return lStatus;
+}
+
+
+BOOL Utils::Registry::ReadBool(
+	HKEY hKeyRoot,
+	const std::wstring& SubKey,
+	const std::wstring& KeyName,
+	PBOOL lpbKeyValue
+)
+{
+	HKEY hKey;
+	LSTATUS lStatus = ::RegOpenKeyExW(hKeyRoot, SubKey.c_str(), 0, KEY_READ, &hKey);
+	if (lStatus != ERROR_SUCCESS)
+		return lStatus;
+
+	DWORD dwKeyValueSize = sizeof(BOOL);
+
+	lStatus = ::RegQueryValueExW(hKey,
+		KeyName.c_str(),
+		0,
+		NULL,
+		(PBYTE)lpbKeyValue,
+		&dwKeyValueSize
+	);
+
+	RegCloseKey(hKey);
+	return lStatus;
+}
+
+
+
+
+DWORD Utils::Registry::ReadWString(
+	HKEY hKeyRoot,
+	const std::wstring& SubKey,
+	const std::wstring& KeyName,
+	std::wstring& KeyValue
+)
+{
+	HKEY hKey;
+	LSTATUS lStatus = ::RegOpenKeyExW(hKeyRoot, SubKey.c_str(), 0, KEY_READ, &hKey);
+	if (lStatus != ERROR_SUCCESS)
+		return lStatus;
+
+	WCHAR lpwsBuffer[MAX_REGSZ_SIZE] = { 0 };
+	DWORD dwBufferSize = MAX_REGSZ_SIZE;
+
+	lStatus = ::RegQueryValueExW(hKey,
+		KeyName.c_str(),
+		0,
+		NULL,
+		(PBYTE)lpwsBuffer,
+		&dwBufferSize
+	);
+
+	if (lStatus == ERROR_SUCCESS)
+		KeyValue = lpwsBuffer;
+
+	RegCloseKey(hKey);
+	return lStatus;
+}
