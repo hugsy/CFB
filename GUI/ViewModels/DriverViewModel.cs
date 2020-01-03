@@ -74,11 +74,11 @@ namespace GUI.ViewModels
         }
 
 
-        public bool TryToggleHookStatus()
+        public async Task<bool> TryToggleHookStatus()
         {
             bool data_changed = IsHooked ?
-                Task.Run(() => App.BrokerSession.UnhookDriver(Name)).Result :
-                Task.Run(() => App.BrokerSession.HookDriver(Name)).Result;
+                await App.BrokerSession.UnhookDriver(Name):
+                await App.BrokerSession.HookDriver(Name);
 
             if (data_changed)
                 PropagateChangesToView();

@@ -110,16 +110,6 @@
                         </StackPanel>
 
                         <StackPanel Margin="0,20,0,20">
-                            <TextBlock FontWeight="SemiBold" Text="Number of devices"/>
-
-                            <!--
-                            <TextBlock IsTextSelectionEnabled="True" Text="{x:Bind ViewModel.SelectedDriver.Devices.Count, Mode=OneWay}" />
-                            -->
-
-                            <TextBlock IsTextSelectionEnabled="True" Text="Todo" />
-                        </StackPanel>
-
-                        <StackPanel Margin="0,20,0,20">
                             <TextBlock FontWeight="SemiBold" Text="Is hooked?" />
                             <TextBlock Text="{x:Bind ViewModel.SelectedDriver.IsHooked, Mode=OneWay}" />
                         </StackPanel>
@@ -141,7 +131,7 @@
 
                         <StackPanel Margin="0,20,0,20">
                             <Button x:Name="SelectedDriverEnableDisableBtn" Click="SelectedDriverEnableDisableBtn_Click" Margin="10" Width="150">
-                                <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.EnableDisableSelectedDriverText}" />
+                                <TextBlock x:Name="SelectedDriverEnableDisableBtnLbl" FontWeight="SemiBold" Text="{x:Bind ViewModel.EnableDisableSelectedDriverText}" />
                             </Button>
                         </StackPanel>
                     </StackPanel>

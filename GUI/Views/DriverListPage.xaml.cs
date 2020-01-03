@@ -143,11 +143,31 @@ namespace GUI.Views
         }
 
 
-        private void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
+        private async void SelectedDriverEnableDisableBtn_Click(object sender, RoutedEventArgs e)
         {
             var Driver = ViewModel.SelectedDriver;
-            if (Driver != null && Driver.TryToggleHookStatus())
-                RefreshDataGrid();
+            if (Driver != null)
+            {
+                try
+                {
+                    await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+                    {
+                        SelectedDriverEnableDisableBtn.IsEnabled = false;
+                        ViewModel.IsLoading = true;
+                    });
+
+                    if (await Driver.TryToggleHookStatus())
+                        RefreshDataGrid();
+                }
+                finally
+                {
+                    await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+                    {
+                        ViewModel.IsLoading = false;
+                        SelectedDriverEnableDisableBtn.IsEnabled = true;
+                    });
+                }
+            }
         }
 
 
