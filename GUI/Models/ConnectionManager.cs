@@ -36,23 +36,22 @@ namespace GUI.Models
     /// </summary>
     public class ConnectionManager
     {
-        private readonly ApplicationDataContainer LocalSettings = ApplicationData.Current.LocalSettings;
         private StreamSocket ClientSocket;
         private BrokerConnectionStatus _Status;
-        private readonly Uri uri;
+        private Uri uri;
         private static readonly SemaphoreSlim sem = new SemaphoreSlim(1, 1);
 
 
 
         public ConnectionManager()
         {
-            uri = new Uri(LocalSettings.Values["IrpBrokerLocation"].ToString());
             ReinitializeSocket();
         }
 
 
         private void ReinitializeSocket()
         {
+            uri = new Uri(ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString());
             ClientSocket = new StreamSocket();
             ClientSocket.Control.KeepAlive = true;
             //ClientSocket.Control.NoDelay = false;
@@ -177,13 +176,14 @@ namespace GUI.Models
 
         private async Task<BrokerMessage> SendAndReceive(MessageType type, byte[] args = null)
         {
-            BrokerMessage req, res;
-            byte[] RawResponse;
+            BrokerMessage req, res = null;
             req = new BrokerMessage(type, args);
+            string StrResponse = "";
 
             await sem.WaitAsync();
             try
             {
+
                 var req_str = JsonConvert.SerializeObject(
                             req,
                             Newtonsoft.Json.Formatting.None,
@@ -198,18 +198,28 @@ namespace GUI.Models
 
                 _Status = BrokerConnectionStatus.WaitingForResponse;
 
-                RawResponse = await this.ReceiveBytes();
-                _Status = BrokerConnectionStatus.Connected;
+                while (_Status == BrokerConnectionStatus.WaitingForResponse)
+                {
+                    var RawResponse = await this.ReceiveBytes();
+                    var res_str = Encoding.Default.GetString(RawResponse);
+                    StrResponse += res_str;
+                    try
+                    {
+                        res = JsonConvert.DeserializeObject<BrokerMessage>(StrResponse);
+                    }
+                    catch(Exception ex)
+                    {
+                        continue;
+                    }
+                    _Status = BrokerConnectionStatus.Connected;
+                }
             }
             finally
             {
                 sem.Release();
             }
 
-            var res_str = Encoding.Default.GetString(RawResponse);
-            Debug.WriteLine($"recv <- {res_str}");
-
-            res = JsonConvert.DeserializeObject<BrokerMessage>(res_str);
+            Debug.WriteLine($"recv <- {StrResponse}");
             return res;
         }
 

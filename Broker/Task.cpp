@@ -68,7 +68,7 @@ const wchar_t* Task::TypeAsString()
 {
 	switch (m_Type)
 	{
-		ToString(TaskType::IoctlResponse);
+		ToString(TaskType::GetOsInfo);
 		ToString(TaskType::HookDriver);
 		ToString(TaskType::UnhookDriver);
 		ToString(TaskType::GetDriverInfo);

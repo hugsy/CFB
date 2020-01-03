@@ -173,6 +173,10 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 
 	switch (task.Type())
 	{
+	case TaskType::GetOsInfo:
+		SendOsInfo();
+		break;
+
 	case TaskType::GetInterceptedIrps:
 		SendInterceptedIrps();
 		break;
@@ -192,6 +196,20 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 
 	return task;
 }
+
+
+
+
+DWORD FrontEndServer::SendReply(json& j)
+{
+	const std::string& str = j.dump();
+	const std::vector<byte> raw(str.begin(), str.end());
+
+	return m_Session.FrontEndServer.Send(raw)
+		? ERROR_SUCCESS
+		: ERROR_INVALID_DATA;
+}
+
 
 
 BOOL FrontEndServer::ForwardReply()
@@ -258,21 +276,21 @@ BOOL FrontEndServer::ForwardReply()
 	}
 	}
 
+	DWORD dwRes = SendReply(json_response);
 
-	const std::string& str = json_response.dump();
-	const std::vector<byte> raw(str.begin(), str.end());
-	if (!m_Session.FrontEndServer.Send(raw))
+	if (dwRes != ERROR_SUCCESS)
 	{
 		PrintErrorWithFunctionName(L"SendSynchronous(Ioctl)");
 	}
 	else
 	{
-		dbg(L"json reply:\n%S\n", str.data());
 		task.SetState(TaskState::Completed);
 	}
 	
 	return true;
 }
+
+
 
 
 
@@ -334,16 +352,7 @@ DWORD FrontEndServer::SendInterceptedIrps()
 	// Write the data back
 	//
 
-	const std::string& str = j.dump();
-	const std::vector<byte> raw(str.begin(), str.end());
-
-	if (!m_Session.FrontEndServer.Send(raw))
-	{
-		PrintErrorWithFunctionName(L"SendSynchronous(Irps)");
-		return ERROR_INVALID_DATA;
-	}
-
-	return ERROR_SUCCESS;
+	return SendReply(j);
 }
 
 
@@ -390,18 +399,7 @@ DWORD FrontEndServer::SendDriverList()
 
 	j["body"]["driver_list"]["nb_drivers"] = nb_drivers;
 
-	const std::string& str = j.dump();
-	const std::vector<byte> raw(str.begin(), str.end());
-
-	if (!m_Session.FrontEndServer.Send(raw))
-	{
-		PrintErrorWithFunctionName(L"SendSynchronous(SendDriverList)");
-		return ERROR_INVALID_DATA;
-	}
-
-	dbg(L"EnumerateDrivers() done\n");
-
-	return ERROR_SUCCESS;
+	return SendReply(j);
 }
 
 
@@ -455,21 +453,22 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 
 	json_response["body"]["replay_irp"]["output_buffer"] = OutputBuffer;
 
-	const std::string& str = json_response.dump();
-	const std::vector<byte> raw(str.begin(), str.end());
-
-	if (!m_Session.FrontEndServer.Send(raw))
-	{
-		PrintErrorWithFunctionName(L"SendSynchronous(SendForgedIrp)");
-		return ERROR_INVALID_DATA;
-	}
-
-	dbg(L"ReplayIrp() done\n");
-
-	return ERROR_SUCCESS;
+	return SendReply(json_response);
 }
 
 
+DWORD FrontEndServer::SendOsInfo()
+{
+
+	json json_response;
+
+	json_response["header"]["is_success"] = true;
+	json_response["header"]["gle"] = ERROR_SUCCESS;
+	json_response["header"]["type"] = TaskType::GetOsInfo;
+
+
+	return SendReply(json_response);
+}
 
 
 /*++

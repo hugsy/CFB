@@ -22,7 +22,7 @@ enum class TaskState : uint16_t
 enum class TaskType : uint32_t
 {
 	TaskTypeMin = 0,
-	IoctlResponse,
+	GetOsInfo,
 	HookDriver,
 	UnhookDriver,
 	GetDriverInfo,

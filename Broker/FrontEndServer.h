@@ -38,7 +38,7 @@ private:
 	Session& m_Session;
 	std::vector<byte> m_ReceivedBytes;
 
-
+	DWORD SendReply(json& j);
 	Task ProcessJsonTask(const std::string& json_request_as_string);
 	std::optional<std::string> GetNextJsonStringMessage();
 
@@ -49,6 +49,7 @@ private:
 	DWORD SendInterceptedIrps();
 	DWORD SendDriverList();
 	DWORD SendForgedIrp(json&);
+	DWORD SendOsInfo();
 };
 
 
