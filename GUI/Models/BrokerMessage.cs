@@ -15,7 +15,7 @@ namespace GUI.Models
     /// </summary>
     public enum MessageType : uint
     {
-        IoctlResponse                = 1, // useless now, todo replace with something more useful
+        GetOsInfo                    = 1,
         HookDriver                   = 2,
         UnhookDriver                 = 3,
         GetDriverInfo                = 4,
@@ -64,6 +64,16 @@ namespace GUI.Models
         public Driver driver;
     }
 
+    public class GetOsInfoMessage
+    {
+        public uint version_major;
+        public uint version_minor;
+        public String version_build;
+        
+        public uint cpu_arch;
+        public uint cpu_num;
+    }
+
     public class BrokerMessageBody
     {
         public BrokerMessageBody() { }
@@ -77,6 +87,7 @@ namespace GUI.Models
         public GetDriverInfo driver_info;
         public GetInterceptedIrps intercepted_irps;
         public ReplayIrpMessage replay_irp;
+        public GetOsInfoMessage os_info;
     }
 
 

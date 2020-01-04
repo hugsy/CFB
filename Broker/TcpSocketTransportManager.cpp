@@ -312,6 +312,7 @@ static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 				case TaskType::GetInterceptedIrps:	continue;
 				case TaskType::EnumerateDrivers:	continue;
 				case TaskType::ReplayIrp:			continue;
+				case TaskType::GetOsInfo:			continue;
 				}
 
 				//

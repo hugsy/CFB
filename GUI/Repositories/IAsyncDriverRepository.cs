@@ -11,11 +11,12 @@ namespace GUI.Repositories
 {
     public interface IAsyncDriverRepository
     {
+        IEnumerable<Driver> Get();
+
         /// <summary>
         /// Returns all drivers. 
         /// </summary>
         Task<IEnumerable<Driver>> GetAsync(bool forceRefresh=false);
-
 
         /// <summary>
         /// Returns all drivers whose names match the given pattern. 

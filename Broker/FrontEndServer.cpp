@@ -175,22 +175,27 @@ Task FrontEndServer::ProcessJsonTask(const std::string& json_request_as_string)
 	{
 	case TaskType::GetOsInfo:
 		SendOsInfo();
+		dbg(L"task %s done\n", task.TypeAsString());
+		task.SetState(TaskState::Completed);
 		break;
 
 	case TaskType::GetInterceptedIrps:
 		SendInterceptedIrps();
+		task.SetState(TaskState::Completed);
 		break;
 
 	case TaskType::EnumerateDrivers:
-		SendDriverList();
+		SendDriverList(); 
+		task.SetState(TaskState::Completed);
 		break;
 
 	case TaskType::ReplayIrp:
 		SendForgedIrp(json_request);
+		task.SetState(TaskState::Completed);
 		break;
 
 	default:
-		// push the task to request task list
+		// push the task to request task list to be handled by the backend thread
 		m_Session.RequestTasks.push(task);
 	}
 
@@ -205,6 +210,7 @@ DWORD FrontEndServer::SendReply(json& j)
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
 
+	std::cerr << str << std::endl;
 	return m_Session.FrontEndServer.Send(raw)
 		? ERROR_SUCCESS
 		: ERROR_INVALID_DATA;
@@ -459,14 +465,57 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 
 DWORD FrontEndServer::SendOsInfo()
 {
+	//
+	// OS version
+	//
+	DWORD dwVersionMajor, dwVersionMinor;
+	std::wstring VersionBuild;
+	Utils::Registry::ReadDword(
+		HKEY_LOCAL_MACHINE,
+		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
+		std::wstring(L"CurrentMajorVersionNumber"),
+		&dwVersionMajor
+	);
 
+
+	Utils::Registry::ReadDword(
+		HKEY_LOCAL_MACHINE,
+		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
+		std::wstring(L"CurrentMinorVersionNumber"),
+		&dwVersionMinor
+	);
+
+	Utils::Registry::ReadWString(
+		HKEY_LOCAL_MACHINE,
+		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
+		std::wstring(L"CurrentBuildNumber"),
+		VersionBuild
+	);
+
+
+	//
+	// CPU info
+	//
+	SYSTEM_INFO si = { 0 };
+	::GetNativeSystemInfo(&si);
+
+
+	//
+	// build and send response
+	//
 	json json_response;
 
 	json_response["header"]["is_success"] = true;
 	json_response["header"]["gle"] = ERROR_SUCCESS;
 	json_response["header"]["type"] = TaskType::GetOsInfo;
 
+	json_response["body"]["os_info"]["version_major"] = dwVersionMajor;
+	json_response["body"]["os_info"]["version_minor"] = dwVersionMinor;
+	json_response["body"]["os_info"]["version_build"] = Utils::WideStringToString(VersionBuild);
 
+	json_response["body"]["os_info"]["cpu_num"] = si.wProcessorArchitecture;
+	json_response["body"]["os_info"]["cpu_arch"] = si.dwNumberOfProcessors;
+	
 	return SendReply(json_response);
 }
 

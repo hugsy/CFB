@@ -95,7 +95,7 @@ namespace GUI.Models
 
         public bool IsConnected
         {
-            get => _Status == BrokerConnectionStatus.Connected;
+            get => _Status != BrokerConnectionStatus.Disconnected && _Status != BrokerConnectionStatus.Disconnecting;
         }
 
         public string TargetHost
@@ -183,7 +183,6 @@ namespace GUI.Models
             await sem.WaitAsync();
             try
             {
-
                 var req_str = JsonConvert.SerializeObject(
                             req,
                             Newtonsoft.Json.Formatting.None,
@@ -209,6 +208,7 @@ namespace GUI.Models
                     }
                     catch(Exception ex)
                     {
+                        Debug.WriteLine($"SendAndReceive(): {ex.Message}");
                         continue;
                     }
                     _Status = BrokerConnectionStatus.Connected;
@@ -362,5 +362,10 @@ namespace GUI.Models
             return new Tuple<uint, byte[]>((uint)msg.header.gle,outputBuffer);
         }
 
+
+        public async Task<GetOsInfoMessage> GetOsInfo()
+        {
+            return (await SendAndReceive(MessageType.GetOsInfo)).body.os_info;
+        }
     }
 }

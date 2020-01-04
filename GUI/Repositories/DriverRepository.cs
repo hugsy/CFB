@@ -14,6 +14,11 @@ namespace GUI.Repositories
     {
         private List<Driver> _drivers = null;
 
+        public IEnumerable<Driver> Get()
+        {
+            return _drivers ?? new List<Driver>();
+        }
+
 
         /// <summary>
         /// Get all drivers

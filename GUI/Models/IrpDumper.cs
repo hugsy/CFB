@@ -44,7 +44,9 @@ namespace GUI.Models
 
         private void ResetBackgroundTask()
         { 
+            // unregister in case the app wasn't shut down properly
             UnregisterBackgroundTask();
+
             _trigger = new ApplicationTrigger();
             var requestTask = BackgroundExecutionManager.RequestAccessAsync();
             var builder = new BackgroundTaskBuilder();
@@ -136,7 +138,7 @@ namespace GUI.Models
         //
         // Periodic callback for the task: this is where we actually do the job of fetching new IRPs
         //
-        private void PeriodicTimerCallback(ThreadPoolTimer timer)
+        private async void PeriodicTimerCallback(ThreadPoolTimer timer)
         {
             // is there a pending cancellation request
             if (_cancelRequested)
@@ -155,7 +157,8 @@ namespace GUI.Models
                 //
                 // collect the irps from the broker
                 //
-                List<Irp> NewIrps = FetchAllIrps();
+                List<Irp> NewIrps = new List<Irp>(); 
+                var NbIrps = await FetchAllIrps(NewIrps);
                 _taskInstance.Progress += (uint)NewIrps.Count;
 
                 if(NewIrps.Count > 0)
@@ -167,7 +170,7 @@ namespace GUI.Models
                     //
                     foreach (var irp in NewIrps)
                     {
-                        App.Irps.Insert(irp);
+                        await App.Irps.Insert(irp);
                     }
 
                     App.ViewModel.UpdateUi();
@@ -179,6 +182,7 @@ namespace GUI.Models
                 _cancelRequested = true;
                 _cancelReason = BackgroundTaskCancellationReason.ConditionLoss;
                 _cancelReasonExtra = e.Message;
+                StopFetcher();
             }
         }
 
@@ -186,9 +190,9 @@ namespace GUI.Models
         //
         // Fetch new IRPs
         //
-        private List<Irp> FetchIrps()
+        private async Task<List<Irp>> FetchIrps()
         {
-            var msg = Task.Run(() => App.BrokerSession.GetInterceptedIrps()).Result;
+            var msg = await App.BrokerSession.GetInterceptedIrps();
 
             if (msg.header.is_success)
                 return msg.body.intercepted_irps.irps;
@@ -200,20 +204,23 @@ namespace GUI.Models
         //
         // Fetch all IRPs from Broker queue until it's empty
         //
-        private List<Irp> FetchAllIrps()
+        private async Task<uint> FetchAllIrps(List<Irp> Irps)
         {
             // don't allow more that number of items per request
-            uint ForceFlushLimit = 512; 
-            List<Irp> Irps = new List<Irp>();
-            while(Irps.Count < ForceFlushLimit)
+            uint ForceFlushLimit = 512;
+            uint Count = 0; 
+
+            while(Count < ForceFlushLimit)
             {
-                var irps = FetchIrps();
+                var irps = await FetchIrps();
                 if (irps.Count == 0)
                     break;
                 foreach (var irp in irps)
                     Irps.Add(irp);
+                Count += (uint)irps.Count;
             }
-            return Irps;
+
+            return Count;
         }
 
 

@@ -25,7 +25,14 @@ namespace GUI.Views
         public SessionInfoViewModel ViewModel = new SessionInfoViewModel();
 
         public SessionInfoPage()
-            => this.InitializeComponent();
+        {
+            this.InitializeComponent();
+            this.Loaded += OnLoaded;
+        }
 
+        private async void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            await ViewModel.RefreshValues();
+        }
     }
 }
