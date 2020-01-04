@@ -210,7 +210,6 @@ DWORD FrontEndServer::SendReply(json& j)
 	const std::string& str = j.dump();
 	const std::vector<byte> raw(str.begin(), str.end());
 
-	std::cerr << str << std::endl;
 	return m_Session.FrontEndServer.Send(raw)
 		? ERROR_SUCCESS
 		: ERROR_INVALID_DATA;
@@ -513,8 +512,8 @@ DWORD FrontEndServer::SendOsInfo()
 	json_response["body"]["os_info"]["version_minor"] = dwVersionMinor;
 	json_response["body"]["os_info"]["version_build"] = Utils::WideStringToString(VersionBuild);
 
-	json_response["body"]["os_info"]["cpu_num"] = si.wProcessorArchitecture;
-	json_response["body"]["os_info"]["cpu_arch"] = si.dwNumberOfProcessors;
+	json_response["body"]["os_info"]["cpu_num"] = si.dwNumberOfProcessors; 
+	json_response["body"]["os_info"]["cpu_arch"] = si.wProcessorArchitecture;
 	
 	return SendReply(json_response);
 }
