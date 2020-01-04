@@ -19,9 +19,10 @@ namespace GUI.ViewModels
 
 
         public SessionInfoViewModel()
-        {
-            RefreshValues();
+        {   
+            RefreshValues(); 
         }
+
 
 
         public async Task RefreshValues()
@@ -119,7 +120,7 @@ namespace GUI.ViewModels
 
         public string RemoteOsVersion
         {
-            get => $"{RemoteMajorVersion:d}.{RemoteMinorVersion:d}.{RemoteBuildVersion:s}";
+            get => $"WinVer={RemoteMajorVersion}.{RemoteMinorVersion}.{RemoteBuildVersion}";
         }
 
         public uint RemoteNumberOfProcessor

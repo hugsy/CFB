@@ -74,11 +74,11 @@
                     Text="Remote target information" />
 
                 <TextBlock Margin="0,10,0,0" Text="OS Version" />
-                <TextBlock Text="{x:Bind ViewModel.RemoteOsVersion}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteOsVersion}" />
 
                 <TextBlock Margin="0,10,0,0" Text="CPU Info" />
-                <TextBlock Text="{x:Bind ViewModel.RemoteNumberOfProcessor}" />
-                <TextBlock Text="{x:Bind ViewModel.RemoteCpuArchitectureString}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteNumberOfProcessorString}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteCpuArchitectureString}" />
                 
             </StackPanel>
 
