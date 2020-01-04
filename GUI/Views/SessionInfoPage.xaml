@@ -10,6 +10,13 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        
+        <ProgressBar
+            Margin="0,50,0,0"
+            VerticalAlignment="Top"
+            IsIndeterminate="True"
+            Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Grid.ColumnSpan="2" />
+        
         <StackPanel>
             <TextBlock 
                 Style="{ThemeResource HeaderTextBlockStyle}"
@@ -71,7 +78,7 @@
 
                 <TextBlock Margin="0,10,0,0" Text="CPU Info" />
                 <TextBlock Text="{x:Bind ViewModel.RemoteNumberOfProcessor}" />
-                <TextBlock Text="{x:Bind ViewModel.RemoteCpuArchitecture}" />
+                <TextBlock Text="{x:Bind ViewModel.RemoteCpuArchitectureString}" />
                 
             </StackPanel>
 

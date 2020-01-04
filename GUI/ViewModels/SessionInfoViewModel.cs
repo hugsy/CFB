@@ -1,6 +1,7 @@
 ﻿using GUI.Models;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -16,12 +17,9 @@ namespace GUI.ViewModels
         private uint _cpuArchitecture = 0;
         private uint _cpuNumber = 0;
 
-        private List<Driver> Drivers;
-
 
         public SessionInfoViewModel()
         {
-            Drivers = App.Drivers.Get().ToList();
             RefreshValues();
         }
 
@@ -29,11 +27,11 @@ namespace GUI.ViewModels
         public async Task RefreshValues()
         {
             var msg = await App.BrokerSession.GetOsInfo();
-            _versionMajor = msg.version_major;
-            _versionMinor = msg.version_minor;
-            _versionBuild = msg.version_build;
-            _cpuArchitecture = msg.cpu_arch;
-            _cpuNumber = msg.cpu_num;
+            RemoteMajorVersion = msg.version_major;
+            RemoteMinorVersion = msg.version_minor;
+            RemoteBuildVersion = msg.version_build;
+            RemoteCpuArchitecture = msg.cpu_arch;
+            RemoteNumberOfProcessor = msg.cpu_num;
         }
 
 
@@ -90,39 +88,62 @@ namespace GUI.ViewModels
                 if (!IsConnected) 
                     return "";
 
-                var DriverNames = GetHookedDriverList();
+                var DriverNames = new List<string>();
+                foreach (var driver in App.Drivers.Get())
+                {
+                    if (driver.IsHooked)
+                        DriverNames.Add($" → {driver.Name}");
+                }
                 return String.Join(System.Environment.NewLine, DriverNames);
             }
         }
 
-        private List<string> GetHookedDriverList()
+
+        public uint RemoteMajorVersion
         {
-            var DriverNames = new List<string>();
-            var drivers = App.Drivers.Get();
-            foreach (var driver in Drivers)
-            {
-                if (driver.IsHooked)
-                    DriverNames.Add($" → {driver.Name}");
-            }
-            return DriverNames;
+            get => _versionMajor;
+            set => Set(ref _versionMajor, value);
         }
 
+        public uint RemoteMinorVersion
+        {
+            get => _versionMinor;
+            set => Set(ref _versionMinor, value);
+        }
+
+        public string RemoteBuildVersion
+        {
+            get => _versionBuild;
+            set => Set(ref _versionBuild, value);
+        }
 
         public string RemoteOsVersion
         {
-            get => $"{_versionMajor:d}.{_versionMinor:d}.{_versionBuild:s}";
+            get => $"{RemoteMajorVersion:d}.{RemoteMinorVersion:d}.{RemoteBuildVersion:s}";
         }
 
-        public string RemoteNumberOfProcessor
+        public uint RemoteNumberOfProcessor
         {
-            get => $"{_cpuNumber} logical processor(s)";
+            get => _cpuNumber;
+            set => Set(ref _cpuNumber, value);
         }
 
-        public string RemoteCpuArchitecture
+        public uint RemoteCpuArchitecture
+        {
+            get => _cpuArchitecture;
+            set => Set(ref _cpuArchitecture, value);
+        }
+
+        public string RemoteNumberOfProcessorString
+        {
+            get => $"{RemoteNumberOfProcessor:d} logical processor(s)";
+        }
+
+        public string RemoteCpuArchitectureString
         {
             get
             {
-                switch(_cpuArchitecture)
+                switch(RemoteCpuArchitecture)
                 {
                     case 0: return "PROCESSOR_ARCHITECTURE_INTEL";
                     case 5: return "PROCESSOR_ARCHITECTURE_ARM";

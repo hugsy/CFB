@@ -1,4 +1,5 @@
 ﻿using GUI.ViewModels;
+using Microsoft.Toolkit.Uwp.Helpers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -32,7 +33,22 @@ namespace GUI.Views
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            await ViewModel.RefreshValues();
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                ViewModel.IsLoading = true;
+            });
+            
+            try
+            {
+                await ViewModel.RefreshValues();
+            }
+            catch
+            { }
+
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                ViewModel.IsLoading = false;
+            });
         }
     }
 }
