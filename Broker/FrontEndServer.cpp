@@ -467,23 +467,15 @@ DWORD FrontEndServer::SendOsInfo()
 	//
 	// OS version
 	//
+	OSVERSIONINFOW VersionInformation = { 0 };
+	VersionInformation.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
+	RtlGetVersion(&VersionInformation);
+
 	DWORD dwVersionMajor, dwVersionMinor;
+	dwVersionMajor = VersionInformation.dwMajorVersion;
+	dwVersionMinor = VersionInformation.dwMinorVersion;
+
 	std::wstring VersionBuild;
-	Utils::Registry::ReadDword(
-		HKEY_LOCAL_MACHINE,
-		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
-		std::wstring(L"CurrentMajorVersionNumber"),
-		&dwVersionMajor
-	);
-
-
-	Utils::Registry::ReadDword(
-		HKEY_LOCAL_MACHINE,
-		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
-		std::wstring(L"CurrentMinorVersionNumber"),
-		&dwVersionMinor
-	);
-
 	Utils::Registry::ReadWString(
 		HKEY_LOCAL_MACHINE,
 		std::wstring(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"),
