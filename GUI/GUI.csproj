@@ -27,6 +27,7 @@
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <PackageCertificateKeyFile>D:\Code\CFB\GUI\GUI_TemporaryKey.pfx</PackageCertificateKeyFile>
     <PackageCertificateThumbprint>5E0EEC9CE69267064D02197F6E77A195658DEFD7</PackageCertificateThumbprint>
+    <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
