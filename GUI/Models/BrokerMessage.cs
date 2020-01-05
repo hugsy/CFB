@@ -72,6 +72,10 @@ namespace GUI.Models
         
         public uint cpu_arch;
         public uint cpu_num;
+
+        public String username;
+        public String integrity;
+        public uint pid;
     }
 
     public class BrokerMessageBody

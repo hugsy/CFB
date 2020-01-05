@@ -16,11 +16,14 @@ namespace GUI.ViewModels
         private string _versionBuild = "0";
         private uint _cpuArchitecture = 0;
         private uint _cpuNumber = 0;
+        private string _userName = "";
+        private string _integrityLevel = "";
+        private uint _processId = 0;
 
 
         public SessionInfoViewModel()
         {   
-            RefreshValues(); 
+            Task.Run(RefreshValues); 
         }
 
 
@@ -28,11 +31,17 @@ namespace GUI.ViewModels
         public async Task RefreshValues()
         {
             var msg = await App.BrokerSession.GetOsInfo();
+
             RemoteMajorVersion = msg.version_major;
             RemoteMinorVersion = msg.version_minor;
             RemoteBuildVersion = msg.version_build;
+
             RemoteCpuArchitecture = msg.cpu_arch;
             RemoteNumberOfProcessor = msg.cpu_num;
+
+            UserName = msg.username;
+            IntegrityLevel = msg.integrity;
+            ProcessId = msg.pid;
         }
 
 
@@ -154,6 +163,24 @@ namespace GUI.ViewModels
                 }
                 return "PROCESSOR_ARCHITECTURE_UNKNOWN";
             }
+        }
+
+        public string UserName
+        {
+            get => _userName;
+            set => Set(ref _userName, value);
+        }
+
+        public string IntegrityLevel
+        {
+            get => _integrityLevel;
+            set => Set(ref _integrityLevel, value);
+        }
+
+        public uint ProcessId
+        {
+            get => _processId;
+            set => Set(ref _processId, value);
         }
     }
 }

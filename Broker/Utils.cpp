@@ -249,13 +249,13 @@ std::string Utils::WideStringToString(const std::wstring& w)
 Simple wrapper to send ioctls
 
 --*/
-DWORD Utils::DeviceIoControlWrapper(
+DWORD Utils::Io::DeviceIoControlWrapper(
 	const char* lpszDeviceName,
 	const DWORD dwIoctlCode,
 	const PBYTE lpInputBuffer,
 	const DWORD dwInputBufferLength,
 	PBYTE lpOutputBuffer,
-	const DWORD dwOutputBufferLength
+	LPDWORD lpdwOutputBufferLength
 )
 {
 	HANDLE hDevice = INVALID_HANDLE_VALUE;
@@ -286,7 +286,7 @@ DWORD Utils::DeviceIoControlWrapper(
 			lpInputBuffer,
 			dwInputBufferLength,
 			lpOutputBuffer,
-			dwOutputBufferLength,
+			*lpdwOutputBufferLength,
 			&lpBytesReturned,
 			(LPOVERLAPPED)NULL
 		);
@@ -297,6 +297,7 @@ DWORD Utils::DeviceIoControlWrapper(
 			break;
 		}
 
+		*lpdwOutputBufferLength = lpBytesReturned;
 	} 
 	while (0);
 
@@ -361,8 +362,6 @@ BOOL Utils::Registry::ReadBool(
 }
 
 
-
-
 DWORD Utils::Registry::ReadWString(
 	HKEY hKeyRoot,
 	const std::wstring& SubKey,
@@ -391,4 +390,84 @@ DWORD Utils::Registry::ReadWString(
 
 	RegCloseKey(hKey);
 	return lStatus;
+}
+
+
+DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
+{
+	HANDLE hProcessHandle = INVALID_HANDLE_VALUE;
+	HANDLE hProcessToken = INVALID_HANDLE_VALUE;
+	DWORD dwRes = ERROR_SUCCESS;
+	PTOKEN_MANDATORY_LABEL pTIL = NULL;
+	DWORD dwIntegrityLevel = SECURITY_MANDATORY_MEDIUM_RID;
+
+	do
+	{
+		hProcessHandle = GetCurrentProcess();
+
+		if (!OpenProcessToken(hProcessHandle, TOKEN_QUERY, &hProcessToken))
+		{
+			dwRes = ::GetLastError();
+			break;
+		}
+
+		DWORD dwLengthNeeded;
+
+		if (!GetTokenInformation(hProcessToken, TokenIntegrityLevel, NULL, 0, &dwLengthNeeded))
+		{
+			dwRes = ::GetLastError();
+			if (dwRes != ERROR_INSUFFICIENT_BUFFER)
+			{
+				dwRes = ::GetLastError();
+				break;
+			}
+		}
+
+		pTIL = (PTOKEN_MANDATORY_LABEL)LocalAlloc(LPTR, dwLengthNeeded);
+		if(!pTIL)
+		{
+			dwRes = ::GetLastError();
+			break;
+		}
+
+
+		if (!GetTokenInformation(hProcessToken, TokenIntegrityLevel, pTIL, dwLengthNeeded, &dwLengthNeeded))
+		{
+			dwRes = ::GetLastError();
+			if (dwRes != ERROR_INSUFFICIENT_BUFFER)
+			{
+				dwRes = ::GetLastError();
+				break;
+			}
+		}
+
+		dwIntegrityLevel = *GetSidSubAuthority(
+			pTIL->Label.Sid,
+			(DWORD)(UCHAR)(*GetSidSubAuthorityCount(pTIL->Label.Sid) - 1)
+		);
+
+		LocalFree(pTIL);
+
+
+		if (dwIntegrityLevel == SECURITY_MANDATORY_LOW_RID)
+			IntegrityLevelName = L"Low";
+
+		else if ( SECURITY_MANDATORY_MEDIUM_RID < dwIntegrityLevel && dwIntegrityLevel < SECURITY_MANDATORY_HIGH_RID)
+			IntegrityLevelName = L"Medium";
+
+		else if (dwIntegrityLevel >= SECURITY_MANDATORY_HIGH_RID)
+			IntegrityLevelName = L"High";
+
+		else if (dwIntegrityLevel >= SECURITY_MANDATORY_SYSTEM_RID)
+			IntegrityLevelName = L"System";
+
+	} while (0);
+
+	if (hProcessToken != INVALID_HANDLE_VALUE)
+		::CloseHandle(hProcessToken);
+
+	if (hProcessHandle != INVALID_HANDLE_VALUE)
+		::CloseHandle(hProcessHandle);
+
+	return ERROR_SUCCESS;
 }

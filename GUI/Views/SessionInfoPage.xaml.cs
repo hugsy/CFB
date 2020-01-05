@@ -37,18 +37,20 @@ namespace GUI.Views
             {
                 ViewModel.IsLoading = true;
             });
-            
+
             try
             {
                 await ViewModel.RefreshValues();
             }
             catch
             { }
-
-            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            finally
             {
-                ViewModel.IsLoading = false;
-            });
+                await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+                {
+                    ViewModel.IsLoading = false;
+                });
+            }
         }
     }
 }

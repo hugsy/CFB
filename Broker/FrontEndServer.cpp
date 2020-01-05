@@ -433,20 +433,20 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 	auto DeviceName = json_body["device_name"].get<std::string>();
 	auto IoctlCode = json_body["ioctl_code"];
 	auto InputBufferLength = json_body["input_buffer_length"];
-	auto OutputBufferLength = json_body["output_buffer_length"];
+	auto OutputBufferLength = json_body["output_buffer_length"].get<DWORD>();
 	auto InputBuffer = Utils::base64_decode(json_body["input_buffer"]);
 
 
 	std::vector<byte> OutputBuffer;
 	OutputBuffer.resize(OutputBufferLength);
 
-	DWORD dwRes = Utils::DeviceIoControlWrapper(
+	DWORD dwRes = Utils::Io::DeviceIoControlWrapper(
 		DeviceName.c_str(),
 		IoctlCode,
 		InputBuffer.data(),
 		InputBufferLength,
 		OutputBuffer.data(),
-		OutputBufferLength
+		&OutputBufferLength
 	);
 
 
@@ -457,6 +457,7 @@ DWORD FrontEndServer::SendForgedIrp(json& json_request)
 	json_response["header"]["type"] = TaskType::ReplayIrp;
 
 	json_response["body"]["replay_irp"]["output_buffer"] = OutputBuffer;
+	json_response["body"]["replay_irp"]["output_buffer_length"] = OutputBufferLength;
 
 	return SendReply(json_response);
 }
@@ -492,6 +493,25 @@ DWORD FrontEndServer::SendOsInfo()
 
 
 	//
+	// Process info
+	//
+	DWORD dwUserNameLength = MAX_USERNAME_SIZE;
+	UCHAR lpBufferUserName[MAX_USERNAME_SIZE + 1] = { 0 };
+	if (!::GetUserNameA((LPSTR)lpBufferUserName, &dwUserNameLength))
+	{
+		dwUserNameLength = sizeof("<unknown>");
+		::RtlCopyMemory(lpBufferUserName, "<unknown>", dwUserNameLength);
+	}
+
+	std::string UserName(reinterpret_cast<char const*>(lpBufferUserName), dwUserNameLength-1);
+
+	std::wstring IntegrityLevelName;
+	if (Utils::Process::GetIntegrityLevel(IntegrityLevelName) != ERROR_SUCCESS)
+		IntegrityLevelName = L"<unknown>";
+
+	DWORD dwProcessId = ::GetCurrentProcessId();
+
+	//
 	// build and send response
 	//
 	json json_response;
@@ -507,6 +527,10 @@ DWORD FrontEndServer::SendOsInfo()
 	json_response["body"]["os_info"]["cpu_num"] = si.dwNumberOfProcessors; 
 	json_response["body"]["os_info"]["cpu_arch"] = si.wProcessorArchitecture;
 	
+	json_response["body"]["os_info"]["username"] = UserName;
+	json_response["body"]["os_info"]["pid"] = dwProcessId;
+	json_response["body"]["os_info"]["integrity"] = Utils::WideStringToString(IntegrityLevelName);
+
 	return SendReply(json_response);
 }
 
