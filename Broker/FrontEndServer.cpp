@@ -527,6 +527,7 @@ DWORD FrontEndServer::SendOsInfo()
 	json_response["body"]["os_info"]["cpu_num"] = si.dwNumberOfProcessors; 
 	json_response["body"]["os_info"]["cpu_arch"] = si.wProcessorArchitecture;
 	
+	json_response["body"]["os_info"]["version"] = CFB_VERSION;
 	json_response["body"]["os_info"]["username"] = UserName;
 	json_response["body"]["os_info"]["pid"] = dwProcessId;
 	json_response["body"]["os_info"]["integrity"] = Utils::WideStringToString(IntegrityLevelName);

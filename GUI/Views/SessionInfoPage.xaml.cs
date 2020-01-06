@@ -1,4 +1,6 @@
 ﻿using GUI.ViewModels;
+using GUI.Helpers;
+
 using Microsoft.Toolkit.Uwp.Helpers;
 using System;
 using System.Collections.Generic;
@@ -14,8 +16,7 @@ using Windows.UI.Xaml.Data;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
-
-
+using System.Threading.Tasks;
 
 namespace GUI.Views
 {
@@ -28,29 +29,22 @@ namespace GUI.Views
         public SessionInfoPage()
         {
             this.InitializeComponent();
-            this.Loaded += OnLoaded;
         }
 
-        private async void OnLoaded(object sender, RoutedEventArgs e)
-        {
-            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
-            {
-                ViewModel.IsLoading = true;
-            });
 
-            try
-            {
-                await ViewModel.RefreshValues();
-            }
-            catch
-            { }
-            finally
-            {
-                await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
-                {
-                    ViewModel.IsLoading = false;
-                });
-            }
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+
+            ViewModel.IsLoading = true;
+            ViewModel.StartPeriodicTimer();
+            ViewModel.IsLoading = false;
+        }
+
+
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            ViewModel.StopPeriodicTimer();
         }
     }
 }

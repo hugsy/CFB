@@ -74,20 +74,20 @@
                     Text="Remote target information" />
 
                 <TextBlock Margin="0,10,0,0" Text="OS Version" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteOsVersion}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteOsVersion, Mode=OneWay}" />
 
                 <TextBlock Margin="0,10,0,0" Text="CPU Info" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteNumberOfProcessorString}" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteCpuArchitectureString}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteNumberOfProcessorString, Mode=OneWay}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.RemoteCpuArchitectureString, Mode=OneWay}" />
 
                 <TextBlock Margin="0,10,0,0" Text="User" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.UserName}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.UserName, Mode=OneWay}" />
 
                 <TextBlock Margin="0,10,0,0" Text="Integrity" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.IntegrityLevel}" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.IntegrityLevel, Mode=OneWay}" />
 
-                <TextBlock Margin="0,10,0,0" Text="Process / Thread IDs" />
-                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.ProcessId}" />
+                <TextBlock Margin="0,10,0,0" Text="Process Info" />
+                <TextBlock Margin="10,0,0,0" Text="{x:Bind ViewModel.ProcessInfo, Mode=OneWay}" />
             </StackPanel>
 
         </StackPanel>

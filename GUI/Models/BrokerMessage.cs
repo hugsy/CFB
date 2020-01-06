@@ -76,6 +76,7 @@ namespace GUI.Models
         public String username;
         public String integrity;
         public uint pid;
+        public uint version;
     }
 
     public class BrokerMessageBody

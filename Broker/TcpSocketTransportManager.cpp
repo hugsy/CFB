@@ -136,7 +136,7 @@ SOCKET TcpSocketTransportManager::Accept()
 
 	WCHAR lpswIpClient[256] = { 0, };
 	InetNtopW(AF_INET, &SockInfoClient.sin_addr.s_addr, lpswIpClient, _countof(lpswIpClient));
-	xlog(LOG_SUCCESS, L"New TCP client %s:%d\n", lpswIpClient, ntohs(SockInfoClient.sin_port));
+	xlog(LOG_SUCCESS, L"New TCP client %s:%d (handle=%d)\n", lpswIpClient, ntohs(SockInfoClient.sin_port), ClientSocket);
 
 	m_dwServerState = ServerState::ReadyToReadFromClient;
 	return ClientSocket;
@@ -294,6 +294,7 @@ static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 			dbg(L"gracefully disconnecting handle=0x%x\n", ClientSocket);
 			fContinue = false;
 			dwRetCode = ERROR_SUCCESS;
+			xlog(LOG_SUCCESS, L"TCP client handle=%d disconnected\n", ClientSocket);
 			continue;
 		}
 
@@ -309,10 +310,10 @@ static DWORD ProcessTcpRequest(_In_ LPVOID lpParameter)
 			{
 				switch (task.Type())
 				{
+				case TaskType::GetOsInfo:			continue;
 				case TaskType::GetInterceptedIrps:	continue;
 				case TaskType::EnumerateDrivers:	continue;
 				case TaskType::ReplayIrp:			continue;
-				case TaskType::GetOsInfo:			continue;
 				}
 
 				//

@@ -1,4 +1,5 @@
 ﻿using GUI.Models;
+using Microsoft.Toolkit.Uwp.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.System.Threading;
 
 namespace GUI.ViewModels
 {
@@ -19,31 +21,58 @@ namespace GUI.ViewModels
         private string _userName = "";
         private string _integrityLevel = "";
         private uint _processId = 0;
+        private float _version = 0;
+
+        private ThreadPoolTimer PeriodicTimer;
 
 
         public SessionInfoViewModel()
-        {   
-            Task.Run(RefreshValues); 
+        {
+            StartPeriodicTimer();
         }
 
 
-
-        public async Task RefreshValues()
+        public void StartPeriodicTimer()
         {
+            TimeSpan period = TimeSpan.FromSeconds(2);
+            PeriodicTimer = ThreadPoolTimer.CreatePeriodicTimer(
+                async (src) => { if (!await RefreshValues()) src.Cancel(); }, 
+                period
+            );
+        }
+
+
+        public async Task<bool> RefreshValues()
+        {
+            if (!App.BrokerSession.IsConnected)
+                return false;
+
             var msg = await App.BrokerSession.GetOsInfo();
 
-            RemoteMajorVersion = msg.version_major;
-            RemoteMinorVersion = msg.version_minor;
-            RemoteBuildVersion = msg.version_build;
+            await DispatcherHelper.ExecuteOnUIThreadAsync(() =>
+            {
+                RemoteMajorVersion = msg.version_major;
+                RemoteMinorVersion = msg.version_minor;
+                RemoteBuildVersion = msg.version_build;
 
-            RemoteCpuArchitecture = msg.cpu_arch;
-            RemoteNumberOfProcessor = msg.cpu_num;
+                RemoteCpuArchitecture = msg.cpu_arch;
+                RemoteNumberOfProcessor = msg.cpu_num;
 
-            UserName = msg.username;
-            IntegrityLevel = msg.integrity;
-            ProcessId = msg.pid;
+                UserName = msg.username;
+                IntegrityLevel = msg.integrity;
+                ProcessId = msg.pid;
+                Version = msg.version;
+            });
+
+            return true;
         }
 
+
+
+        public void StopPeriodicTimer()
+        {
+            PeriodicTimer.Cancel();
+        }
 
         private bool _isLoading = false;
 
@@ -112,19 +141,30 @@ namespace GUI.ViewModels
         public uint RemoteMajorVersion
         {
             get => _versionMajor;
-            set => Set(ref _versionMajor, value);
+            set
+            {
+                Set(ref _versionMajor, value);
+                OnPropertyChanged("RemoteOsVersion");
+            }
         }
 
         public uint RemoteMinorVersion
         {
             get => _versionMinor;
-            set => Set(ref _versionMinor, value);
+            set {
+                Set(ref _versionMinor, value);
+                OnPropertyChanged("RemoteOsVersion");
+            }
         }
 
         public string RemoteBuildVersion
         {
             get => _versionBuild;
-            set => Set(ref _versionBuild, value);
+            set
+            {
+                Set(ref _versionBuild, value);
+                OnPropertyChanged("RemoteOsVersion");
+            }
         }
 
         public string RemoteOsVersion
@@ -135,19 +175,26 @@ namespace GUI.ViewModels
         public uint RemoteNumberOfProcessor
         {
             get => _cpuNumber;
-            set => Set(ref _cpuNumber, value);
-        }
-
-        public uint RemoteCpuArchitecture
-        {
-            get => _cpuArchitecture;
-            set => Set(ref _cpuArchitecture, value);
+            set { 
+                Set(ref _cpuNumber, value);
+                OnPropertyChanged("RemoteNumberOfProcessorString");
+            }
         }
 
         public string RemoteNumberOfProcessorString
         {
             get => $"{RemoteNumberOfProcessor:d} logical processor(s)";
         }
+
+        public uint RemoteCpuArchitecture
+        {
+            get => _cpuArchitecture;
+            set { 
+                Set(ref _cpuArchitecture, value);
+                OnPropertyChanged("RemoteCpuArchitectureString");
+            }
+        }
+
 
         public string RemoteCpuArchitectureString
         {
@@ -180,7 +227,24 @@ namespace GUI.ViewModels
         public uint ProcessId
         {
             get => _processId;
-            set => Set(ref _processId, value);
+            set {
+                Set(ref _processId, value);
+                OnPropertyChanged("ProcessInfo");
+            }
+        }
+
+        public float Version
+        {
+            get => _version;
+            set {
+                Set(ref _version, value);
+                OnPropertyChanged("ProcessInfo");
+            }
+        }
+
+        public string ProcessInfo
+        {
+            get => $"Broker.exe v.{Version:.02f} running as PID={ProcessId}";
         }
     }
 }
