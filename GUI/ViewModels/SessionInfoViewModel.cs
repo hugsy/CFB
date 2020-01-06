@@ -26,17 +26,16 @@ namespace GUI.ViewModels
         private ThreadPoolTimer PeriodicTimer;
 
 
-        public SessionInfoViewModel()
-        {
-            StartPeriodicTimer();
-        }
+        public SessionInfoViewModel(){}
 
 
         public void StartPeriodicTimer()
         {
-            TimeSpan period = TimeSpan.FromSeconds(2);
+            TimeSpan period = TimeSpan.FromSeconds(4);
             PeriodicTimer = ThreadPoolTimer.CreatePeriodicTimer(
-                async (src) => { if (!await RefreshValues()) src.Cancel(); }, 
+                async (src) => { 
+                    if (!await RefreshValues()) src.Cancel(); 
+                }, 
                 period
             );
         }
@@ -244,7 +243,7 @@ namespace GUI.ViewModels
 
         public string ProcessInfo
         {
-            get => $"Broker.exe v.{Version:.02f} running as PID={ProcessId}";
+            get => $"Broker.exe v.{Version.ToString("n2")} running as PID={ProcessId}";
         }
     }
 }
