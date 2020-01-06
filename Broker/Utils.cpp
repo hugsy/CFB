@@ -403,9 +403,9 @@ DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
 
 	do
 	{
-		hProcessHandle = GetCurrentProcess();
+		hProcessHandle = ::GetCurrentProcess();
 
-		if (!OpenProcessToken(hProcessHandle, TOKEN_QUERY, &hProcessToken))
+		if (!::OpenProcessToken(hProcessHandle, TOKEN_QUERY, &hProcessToken))
 		{
 			dwRes = ::GetLastError();
 			break;
@@ -413,7 +413,7 @@ DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
 
 		DWORD dwLengthNeeded;
 
-		if (!GetTokenInformation(hProcessToken, TokenIntegrityLevel, NULL, 0, &dwLengthNeeded))
+		if (!::GetTokenInformation(hProcessToken, TokenIntegrityLevel, NULL, 0, &dwLengthNeeded))
 		{
 			dwRes = ::GetLastError();
 			if (dwRes != ERROR_INSUFFICIENT_BUFFER)
@@ -423,7 +423,7 @@ DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
 			}
 		}
 
-		pTIL = (PTOKEN_MANDATORY_LABEL)LocalAlloc(LPTR, dwLengthNeeded);
+		pTIL = (PTOKEN_MANDATORY_LABEL)::LocalAlloc(LPTR, dwLengthNeeded);
 		if(!pTIL)
 		{
 			dwRes = ::GetLastError();
@@ -431,7 +431,7 @@ DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
 		}
 
 
-		if (!GetTokenInformation(hProcessToken, TokenIntegrityLevel, pTIL, dwLengthNeeded, &dwLengthNeeded))
+		if (!::GetTokenInformation(hProcessToken, TokenIntegrityLevel, pTIL, dwLengthNeeded, &dwLengthNeeded))
 		{
 			dwRes = ::GetLastError();
 			if (dwRes != ERROR_INSUFFICIENT_BUFFER)
@@ -441,12 +441,12 @@ DWORD Utils::Process::GetIntegrityLevel(std::wstring& IntegrityLevelName)
 			}
 		}
 
-		dwIntegrityLevel = *GetSidSubAuthority(
+		dwIntegrityLevel = *::GetSidSubAuthority(
 			pTIL->Label.Sid,
-			(DWORD)(UCHAR)(*GetSidSubAuthorityCount(pTIL->Label.Sid) - 1)
+			(DWORD)(UCHAR)(*::GetSidSubAuthorityCount(pTIL->Label.Sid) - 1)
 		);
 
-		LocalFree(pTIL);
+		::LocalFree(pTIL);
 
 
 		if (dwIntegrityLevel == SECURITY_MANDATORY_LOW_RID)
