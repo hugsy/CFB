@@ -56,7 +56,8 @@ namespace GUI
             if (shell.AppFrame.Content == null)
             {
                 var localSettings = ApplicationData.Current.LocalSettings;
-                var defaultPageName = App.HomePageList[(int)localSettings.Values["HomePage"]];
+                var homePageIndex = localSettings.Values["HomePage"]!=null ? (int)localSettings.Values["HomePage"] : 0;
+                var defaultPageName = App.HomePageList[homePageIndex];
                 var defaultPage = Type.GetType($"GUI.Views.{defaultPageName}");
 
                 // On launch the app frame content will be empty,

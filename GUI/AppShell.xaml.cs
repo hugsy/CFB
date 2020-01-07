@@ -64,7 +64,8 @@ namespace GUI
             var label = args.InvokedItem as string;
 
             var localSettings = ApplicationData.Current.LocalSettings;
-            var defaultPageName = App.HomePageList[(int)localSettings.Values["HomePage"]];
+            var homePageIndex = localSettings.Values["HomePage"] != null ? (int)localSettings.Values["HomePage"] : 0;
+            var defaultPageName = App.HomePageList[homePageIndex];
             var defaultPage = Type.GetType(defaultPageName);
             var targetPage = defaultPage;
 
