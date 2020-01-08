@@ -31,10 +31,12 @@ namespace GUI.ViewModels
 
         public void StartPeriodicTimer()
         {
-            TimeSpan period = TimeSpan.FromSeconds(4);
+            TimeSpan period = TimeSpan.FromSeconds(2);
             PeriodicTimer = ThreadPoolTimer.CreatePeriodicTimer(
-                async (src) => { 
-                    if (!await RefreshValues()) src.Cancel(); 
+                async (src) => {
+                    var success = await RefreshValues();
+                    if (!success) 
+                        src.Cancel(); 
                 }, 
                 period
             );

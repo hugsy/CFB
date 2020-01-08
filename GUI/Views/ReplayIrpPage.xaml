@@ -53,6 +53,7 @@
                     RelativePanel.AlignHorizontalCenterWithPanel="True"
                     IsIndeterminate="True"
                     Width="1000"
+                    FontFamily="Consolas"
                     Visibility="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
                 
                 <TextBox
@@ -61,6 +62,8 @@
                     Width="300"
                     Margin="0,50,0,0"
                     Header="Device Name"
+                    FontFamily="Consolas"
+                    FontSize="16" 
                     RelativePanel.AlignLeftWithPanel="True"
                     Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}"
                     TextChanged="DeviceName_TextChanged"
@@ -73,6 +76,8 @@
                     Width="300"
                     Margin="0,20,0,0"
                     Header="IOCTL Code"
+                    FontFamily="Consolas"
+                    FontSize="16" 
                     Text="{x:Bind ViewModel.IoctlCodeString, Mode=OneWay}"
                     TextChanged="IoctlCode_TextChanged"
                     />
@@ -83,6 +88,8 @@
                     MinWidth="120"
                     Width="300"
                     Margin="0,20,0,0"
+                    FontFamily="Consolas"
+                    FontSize="16" 
                     Header="Input Buffer Length"
                     Text="{x:Bind ViewModel.InputBufferLength, Mode=OneWay}"
                     TextChanged="InputBufferLength_TextChanged"
@@ -95,6 +102,8 @@
                     MinWidth="120"
                     Width="300"
                     Margin="50,20,0,0"
+                    FontFamily="Consolas"
+                    FontSize="16" 
                     Header="Output Buffer Length"
                     Text="{x:Bind ViewModel.OutputBufferLength, Mode=OneWay}"
                     TextChanged="OutputBufferLength_TextChanged"
@@ -107,7 +116,9 @@
                     MinWidth="120"
                     Width="300"
                     Margin="50,20,0,0"
-                    Header="Status Code (populated by response)"
+                    FontFamily="Consolas"
+                    FontSize="16" 
+                    Header="Status Code"
                     IsReadOnly="True"
                     Text=""
                     />
@@ -140,7 +151,7 @@
                     FontSize="16" 
                     FontFamily="Consolas"
                     IsReadOnly="True"
-                    Header="Output Buffer (populated by response)"
+                    Header="Output Buffer"
                     HorizontalAlignment="Stretch" 
                     />
 
