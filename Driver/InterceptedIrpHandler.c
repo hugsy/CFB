@@ -399,7 +399,7 @@ CompleteHandleInterceptedIrp(
         pIrpInfo->OutputBuffer = NULL;
 
         if (OutputBufferLength > 0)
-            return STATUS_INVALID_PARAMETER_2;
+            return STATUS_INVALID_PARAMETER_3;
 
         return STATUS_SUCCESS;
     }

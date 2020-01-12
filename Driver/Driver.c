@@ -388,6 +388,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         }
     }
 
+
     //
     // And call the original routine
     //
@@ -404,6 +405,8 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     case IRP_MJ_READ:
         if (Irp->MdlAddress)
             UserBuffer = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+        else
+            UserBuffer = Irp->UserBuffer;
         break;
 
     default:
@@ -417,7 +420,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     //
     // Collect the result from the result
     //
-    if (IoctlStatus != STATUS_PENDING &&
+    if (pCurrentOwnerProcess != PsGetCurrentProcess() &&
         IsMonitoringEnabled() && 
         curDriver->Enabled == TRUE && 
         pIrpInfo != NULL
@@ -443,7 +446,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         else
         {
             SetNewIrpInQueueAlert();
-            CfbDbgPrintOk(L"pushed IRPs[%d] = %p\n", GetIrpListSize() ? GetIrpListSize() - 1 : 0, pIrpInfo);
+            CfbDbgPrintOk(L"pushed IRPs[%d] = %p (type=%d)\n", GetIrpListSize() ? GetIrpListSize() - 1 : 0, pIrpInfo, pIrpInfo->Header->Type);
         }
     }
 
