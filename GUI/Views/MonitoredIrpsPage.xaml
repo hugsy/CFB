@@ -41,21 +41,21 @@
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Export the IRP as a PowerShell script" 
+                Text="Export the IRP as a PowerShell snippet" 
                 Click="SaveAsPowershellScript_Click" 
                 />
 
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Export the IRP as a Python script" 
+                Text="Export the IRP as a Python snippet" 
                 Click="SaveAsPythonScript_Click"
                 />
             
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Export the IRP as a C (.exe/.dll) script" 
+                Text="Export the IRP as a C++ (.exe/.dll) snippet" 
                 Click="SaveAsCScript_Click"
                 />
 

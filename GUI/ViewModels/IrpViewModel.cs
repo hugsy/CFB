@@ -137,15 +137,17 @@ namespace GUI.ViewModels
             }
             else
             {
+                var DriverName = this.DriverName;
                 var DeviceName = this.DeviceName.Replace(@"\Device", @"\\.");
+                if (TypeStr == "C")
+                {
+                    DeviceName = DeviceName.Replace(@"\", @"\\");
+                    DriverName = DriverName.Replace(@"\", @"\\");
+                }
                 var IrpDataInStr = "";
-                var IrpDataOutStr = "\"\"";
 
                 foreach (byte c in this.Model.body.InputBuffer)
                     IrpDataInStr += $"{c:X2}";
-
-                if (this.OutputBufferLength > 0)
-                    IrpDataOutStr = $"b'\\x00'*{this.OutputBufferLength:d}";
 
                 var fmt = File.ReadAllText(template_file);
                 output = CryptographicBuffer.ConvertStringToBinary(
@@ -153,7 +155,7 @@ namespace GUI.ViewModels
                         fmt,
                         this.IoctlCode,
                         DeviceName,
-                        this.DriverName,
+                        DriverName,
                         $"\"{IrpDataInStr}\"",
                         this.OutputBufferLength
                     ),
@@ -180,7 +182,7 @@ namespace GUI.ViewModels
                     break;
 
                 case "C":
-                    savePicker.FileTypeChoices.Add("C", new List<string>() { ".c" });
+                    savePicker.FileTypeChoices.Add("C++", new List<string>() { ".cpp" });
                     break;
 
                 case "Raw":

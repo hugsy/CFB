@@ -5,57 +5,51 @@
  *
  */
 
- // Change here to 0 to make it a standalone executable
- #define BUILD_AS_DLL 1
+ // Change to 0 to make it a standalone executable
+ #define BUILD_AS_DLL 0
+
+ // Change to 0 to not show the error messages
+ #define DEBUG 1
 
 #include <windows.h>
 #include <winioctl.h>
 #include <stdio.h>
 #include <stdint.h>
 
+#include <string>
+#include <iostream>
+#include <vector>
 
-#define DRIVER_NAME   L"{1:s}"
-#define DEVICE_NAME   L"{2:s}"
+#define DEVICE_NAME   L"{1:s}"
+#define DRIVER_NAME   L"{2:s}"
 #define IOCTL_CODE    0x{0:x}
 
-uint8_t IrpDataIn[]    = {3:s}
-uint8_t IrpDataOut[]   = {4:s}
+using namespace std;
+
 
 HMODULE g_hLoadLibrary = NULL;
-ULONG_PTR g_pfnCreateFile = NULL;
-ULONG_PTR g_pfnCloseHandle = NULL;
-ULONG_PTR g_pfnDeviceIoControl = NULL;
-ULONG_PTR g_pfnGetLastError = NULL;
+
+typedef HANDLE (WINAPI *CreateFileSig)(LPCWSTR,DWORD,DWORD,LPSECURITY_ATTRIBUTES,DWORD,DWORD,HANDLE);
+typedef BOOL (WINAPI *CloseHandleSig)(HANDLE);
+typedef BOOL (WINAPI* DeviceIoControlSig)(HANDLE,DWORD,LPVOID,DWORD,LPVOID,DWORD,LPDWORD,LPOVERLAPPED);
+typedef DWORD (WINAPI* GetLastErrorSig)();
 
 
-#if BUILD_AS_DLL == 1
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
+BOOL HexStrToHexVector(const std::string& in, std::vector<uint8_t>& out)
 {{
-    switch (ul_reason_for_call)
+    for(size_t i=0; i<in.size(); i+=2)
     {{
-    case DLL_PROCESS_ATTACH:
-        InjectPayload()
-        return FALSE;
-
-    case DLL_THREAD_ATTACH:
-    case DLL_PROCESS_DETACH:
-    case DLL_THREAD_DETACH:
-        break;
-	}}
-	return TRUE;
+        uint8_t b = (((in[i]-'0')<<4)&0x0f) | ((in[i+1]-'0')&0x0f);
+        out.push_back(b);
+    }}
+    return TRUE;
 }}
 
-__declspec(dllexport) DWORD TestInjection() 
-{{
-    wprintf(L"TestInjection() works\n");
-    return ERROR_SUCCESS;
-}}
-#endif
 
 #if BUILD_AS_DLL == 1
-__declspec(dllexport) DWORD InjectPayload()
+extern "C" __declspec(dllexport) DWORD InjectPayload()
 #else
-int wmain(int argc, wchar_t** argv)
+int main(int argc, char** argv)
 #endif
 {{
     HANDLE hDevice = INVALID_HANDLE_VALUE;
@@ -63,26 +57,26 @@ int wmain(int argc, wchar_t** argv)
     DWORD lpBytesReturned = 0;
 
     if(!g_hLoadLibrary)
-        g_hLoadLibrary = LoadLibrary(_TEXT("kernel32.dll"));
+        g_hLoadLibrary = GetModuleHandle(TEXT("kernel32.dll"));
 
-    if(!g_pfnCreateFile)
-        g_pfnCreateFile = GetProcAddress( g_hLoadLibrary, _TEXT("CreateFileW"));
+    CreateFileSig pfnCreateFile = (CreateFileSig)GetProcAddress(g_hLoadLibrary, TEXT("CreateFileW"));
+    CloseHandleSig pfnCloseHandle = (CloseHandleSig)GetProcAddress( g_hLoadLibrary, TEXT("CloseHandle"));
+    DeviceIoControlSig pfnDeviceIoControl = (DeviceIoControlSig)GetProcAddress( g_hLoadLibrary, TEXT("DeviceIoControl"));
+    GetLastErrorSig pfnGetLastError = (GetLastErrorSig)GetProcAddress( g_hLoadLibrary, TEXT("GetLastError"));
 
-    if(!g_pfnCloseHandle)
-        g_pfnCloseHandle = GetProcAddress( g_hLoadLibrary, _TEXT("CloseHandle"));
+    std::vector<uint8_t> IrpDataIn;
+    HexStrToHexVector( std::string({3:s}), IrpDataIn );
+    std::vector<uint8_t> IrpDataOut;
+    IrpDataOut.resize({4:d});
 
-    if(!g_pfnDeviceIoControl)
-        g_pfnDeviceIoControl = GetProcAddress( g_hLoadLibrary, _TEXT("DeviceIoControl"));
-
-    if(!g_pfnGetLastError)
-        g_pfnGetLastError = GetProcAddress( g_hLoadLibrary, _TEXT("GetLastError"));
 
     do
     {{
-        wprintf(L"Getting handle for device '%s' with code %#x\n", DRIVER_PATH, IOCTL_CODE);
-
-        hDevice = g_pfnCreateFile(
-            DRIVER_PATH,
+#ifdef DEBUG
+        wprintf(L"Getting handle for device '%s' with code %#x\n", DEVICE_NAME, IOCTL_CODE);
+#endif
+        hDevice = pfnCreateFile(
+            DEVICE_NAME,
             GENERIC_READ | GENERIC_WRITE,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
@@ -93,26 +87,31 @@ int wmain(int argc, wchar_t** argv)
 
         if (hDevice == INVALID_HANDLE_VALUE)
         {{
-                wprintf(L"CreateFile() failed");
-                break;
+#ifdef DEBUG
+            wprintf(L"CreateFile() failed");
+#endif
+            break;
         }}
 
-        wprintf(L"Got device %#lx, sending payload\n", hDevice);
-
-        bResult = g_pfnDeviceIoControl(
+#ifdef DEBUG
+        wprintf(L"Got device %p, sending payload\n", hDevice);
+#endif
+        bResult = pfnDeviceIoControl(
             hDevice,
             IOCTL_CODE,
-            IrpDataIn,
-            sizeof(IrpDataIn),
-            IrpDataOut,
-            sizeof(IrpDataOut),
+            IrpDataIn.data(),
+            IrpDataIn.size(),
+            IrpDataOut.data(),
+            IrpDataOut.size(),
             &lpBytesReturned,
             (LPOVERLAPPED) NULL
         );
 
         if (bResult==FALSE)
         {{
+#ifdef DEBUG
             wprintf(L"DeviceIoControl failed");
+#endif
             break;
         }}
     }}
@@ -120,9 +119,39 @@ int wmain(int argc, wchar_t** argv)
 
     if(hDevice != INVALID_HANDLE_VALUE)
     {{
-        wprintf(L"Closing device %#lx\n", hDevice);
-        g_pfnCloseHandle(hDevice);
+#ifdef DEBUG
+        wprintf(L"Closing device %p\n", hDevice);
+#endif
+        pfnCloseHandle(hDevice);
     }}
 
-    return g_pfnGetLastError();
+    return pfnGetLastError();
 }}
+
+
+#if BUILD_AS_DLL == 1
+extern "C" BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
+{{
+    switch (ul_reason_for_call)
+    {{
+    case DLL_PROCESS_ATTACH:
+        InjectPayload();
+        return FALSE;
+
+    case DLL_THREAD_ATTACH:
+    case DLL_PROCESS_DETACH:
+    case DLL_THREAD_DETACH:
+        break;
+    }}
+
+    return TRUE;
+}}
+
+extern "C" __declspec(dllexport) DWORD TestInjection()
+{{
+#ifdef DEBUG
+    wprintf(L"TestInjection() works\n");
+#endif
+    return ERROR_SUCCESS;
+}}
+#endif
