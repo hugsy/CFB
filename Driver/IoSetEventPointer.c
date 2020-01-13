@@ -6,7 +6,7 @@
 /*++
 
 --*/
-VOID SetNewIrpInQueueAlert()
+VOID NotifyUserNewEvent()
 {
 	KeSetEvent( g_EventNotificationPointer, 2, FALSE );
 }

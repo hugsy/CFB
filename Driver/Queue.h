@@ -11,7 +11,7 @@
 
 void InitializeQueueStructures();
 
-NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData);
+NTSTATUS PushToQueue(_In_ PINTERCEPTED_IRP pData);
 NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData);
 NTSTATUS FlushQueue();
 NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize);

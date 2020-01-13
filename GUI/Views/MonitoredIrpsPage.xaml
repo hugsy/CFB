@@ -15,7 +15,6 @@
         <MenuFlyout 
             x:Key="DataGridContextMenu" 
             x:Name="IrpDatagridMenuFlyout"
-            
             >
 
             <MenuFlyoutItem
@@ -56,10 +55,10 @@
             <MenuFlyoutItem
                 Style="{ThemeResource MenuFlyoutItemRevealStyle}"
                 Tag="&#xE14D;"
-                Text="Export the IRP as a C script" 
+                Text="Export the IRP as a C (.exe/.dll) script" 
                 Click="SaveAsCScript_Click"
                 />
-            
+
         </MenuFlyout>
     </Page.Resources>
 

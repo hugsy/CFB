@@ -437,6 +437,8 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     //
     if (pIrpInfo)
     {
+        DWORD dwType = pIrpInfo->Header->Type;
+        DWORD dwSize;
         NTSTATUS Status = PushToQueue(pIrpInfo);
         if (!NT_SUCCESS(Status))
         {
@@ -445,8 +447,9 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
         }
         else
         {
-            SetNewIrpInQueueAlert();
-            CfbDbgPrintOk(L"pushed IRPs[%d] = %p (type=%d)\n", GetIrpListSize() ? GetIrpListSize() - 1 : 0, pIrpInfo, pIrpInfo->Header->Type);
+            dwSize = GetIrpListSize() ? GetIrpListSize() - 1 : 0;
+            CfbDbgPrintOk(L"pushing IRPs[%d] = %p (type=%d)\n", dwSize, pIrpInfo, dwType);
+            NotifyUserNewEvent();
         }
     }
 

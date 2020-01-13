@@ -7,5 +7,5 @@ PKEVENT g_EventNotificationPointer;
 
 NTSTATUS HandleIoSetEventPointer( IN PIRP Irp, IN PIO_STACK_LOCATION Stack );
 VOID ClearNotificationPointer();
-VOID SetNewIrpInQueueAlert();
+VOID NotifyUserNewEvent();
 VOID UnsetNewIrpInQueueAlert();

@@ -43,7 +43,7 @@ UINT32 GetIrpListSize()
 Push a new item at the end of the queue.
 
 --*/
-NTSTATUS PushToQueue(IN PINTERCEPTED_IRP pData)
+NTSTATUS PushToQueue(_In_ PINTERCEPTED_IRP pData)
 {
 	NTSTATUS Status;
 
