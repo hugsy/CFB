@@ -33,7 +33,7 @@
                 <AppBarButton
                     Icon="Save"
                     Label="Save as Powershell script"
-                    Visibility="Visible" 
+                    Visibility="{x:Bind vm:Converters.VisibleOnlyForDeviceIoControlIrp(ViewModel)}" 
                     Click="SaveAsPowerShell_Click"
                     />
 
