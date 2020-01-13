@@ -149,7 +149,8 @@ namespace GUI.ViewModels
 
                 var fmt = File.ReadAllText(template_file);
                 output = CryptographicBuffer.ConvertStringToBinary(
-                        String.Format(fmt,
+                    String.Format(
+                        fmt,
                         this.IoctlCode,
                         DeviceName,
                         this.DriverName,
