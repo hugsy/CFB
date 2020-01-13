@@ -181,6 +181,10 @@ namespace GUI.ViewModels
                 case "C":
                     savePicker.FileTypeChoices.Add("C", new List<string>() { ".c" });
                     break;
+
+                case "Raw":
+                    savePicker.FileTypeChoices.Add("Raw", new List<string>() { ".bin" });
+                    break;
             }
 
             StorageFile file = await savePicker.PickSaveFileAsync();
