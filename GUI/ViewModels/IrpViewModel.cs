@@ -60,6 +60,9 @@ namespace GUI.ViewModels
                 Model.header.Type == (uint)IrpMajorType.IRP_MJ_DEVICE_CONTROL || Model.header.Type == (uint)IrpMajorType.IRP_MJ_INTERNAL_DEVICE_CONTROL 
                 ? $"0x{IoctlCode.ToString("x8")}"
                 : "N/A"; }
+
+        public string IoctlCodeDetailString { get => Utils.PrintParsedIoctlCode(this.IoctlCode); }
+
         public string StatusString       { get => $"0x{Status.ToString("x8")}"; }
 
         public string StatusFullString   { get => Utils.FormatMessage(Status); }

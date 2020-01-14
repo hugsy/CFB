@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.UI.Popups;
 
+using GUI.Helpers.Constants.Ioctl;
+
 namespace GUI.Helpers
 {
     public static class Utils
@@ -138,5 +140,8 @@ namespace GUI.Helpers
 
         public static string FormatMessage(uint Status)
             => $"{Enum.GetName(typeof(Win32Error), Status)} - 0x{Status:x8}";
+
+        public static string PrintParsedIoctlCode(uint IoctlCode)
+            => new IoctlHelperStub(IoctlCode).ToString();
     }
 }

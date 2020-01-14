@@ -133,6 +133,7 @@
     <Compile Include="AppShell.xaml.cs">
       <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\Constants.cs" />
     <Compile Include="Helpers\Utils.cs" />
     <Compile Include="Models\BrokerMessage.cs" />
     <Compile Include="Models\ConnectionManager.cs" />

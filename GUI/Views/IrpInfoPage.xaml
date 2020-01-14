@@ -150,7 +150,16 @@
                             Header="IOCTL Code"
                             IsReadOnly="True"
                             Text="{x:Bind ViewModel.IoctlCodeString, Mode=OneWay}"
-                            />
+                            >
+                            <ToolTipService.ToolTip>
+                                <ToolTip 
+                                    Content="{x:Bind ViewModel.IoctlCodeDetailString, Mode=OneWay}"
+                                    Placement="Right"
+                                    HorizontalOffset="20"
+                                    MinWidth="100"
+                                    />
+                            </ToolTipService.ToolTip>
+                        </TextBox>
 
                         <TextBox
                             x:Name="TypeTextBox"
