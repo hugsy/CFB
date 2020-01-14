@@ -8,13 +8,11 @@
  // Change to 1 to build as a DLL
  #define BUILD_AS_DLL 0
 
- // Change to 1 to show the error messages
- #define DEBUG 0
-
 #include <windows.h>
 #include <winioctl.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include <string>
 #include <iostream>
@@ -63,10 +61,14 @@ int main(int argc, char** argv)
     if(!g_hLoadLibrary)
         g_hLoadLibrary = GetModuleHandle(TEXT("kernel32.dll"));
 
+    assert(g_hLoadLibrary);
+
     CreateFileSig pfnCreateFile = (CreateFileSig)GetProcAddress(g_hLoadLibrary, TEXT("CreateFileW"));
     CloseHandleSig pfnCloseHandle = (CloseHandleSig)GetProcAddress( g_hLoadLibrary, TEXT("CloseHandle"));
     DeviceIoControlSig pfnDeviceIoControl = (DeviceIoControlSig)GetProcAddress( g_hLoadLibrary, TEXT("DeviceIoControl"));
     GetLastErrorSig pfnGetLastError = (GetLastErrorSig)GetProcAddress( g_hLoadLibrary, TEXT("GetLastError"));
+
+    assert( pfnCreateFile && pfnCloseHandle && pfnDeviceIoControl && pfnGetLastError);
 
     std::vector<uint8_t> IrpDataIn;
     unhexlify( std::string({3:s}), IrpDataIn );
@@ -76,9 +78,6 @@ int main(int argc, char** argv)
 
     do
     {{
-#ifdef DEBUG
-        wprintf(L"Getting handle for device '%s' with code %#x\n", DEVICE_NAME, IOCTL_CODE);
-#endif
         hDevice = pfnCreateFile(
             DEVICE_NAME,
             GENERIC_READ | GENERIC_WRITE,
@@ -91,15 +90,10 @@ int main(int argc, char** argv)
 
         if (hDevice == INVALID_HANDLE_VALUE)
         {{
-#ifdef DEBUG
-            wprintf(L"CreateFile() failed");
-#endif
             break;
         }}
 
-#ifdef DEBUG
-        wprintf(L"Got device %p, sending payload\n", hDevice);
-#endif
+
         bResult = pfnDeviceIoControl(
             hDevice,
             IOCTL_CODE,
@@ -113,9 +107,6 @@ int main(int argc, char** argv)
 
         if (bResult==FALSE)
         {{
-#ifdef DEBUG
-            wprintf(L"DeviceIoControl failed");
-#endif
             break;
         }}
     }}
@@ -123,9 +114,6 @@ int main(int argc, char** argv)
 
     if(hDevice != INVALID_HANDLE_VALUE)
     {{
-#ifdef DEBUG
-        wprintf(L"Closing device %p\n", hDevice);
-#endif
         pfnCloseHandle(hDevice);
     }}
 
@@ -153,9 +141,6 @@ extern "C" BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPV
 
 extern "C" __declspec(dllexport) DWORD TestInjection()
 {{
-#ifdef DEBUG
-    wprintf(L"TestInjection() works\n");
-#endif
     return ERROR_SUCCESS;
 }}
 #endif
