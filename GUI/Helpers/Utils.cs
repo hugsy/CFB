@@ -144,4 +144,23 @@ namespace GUI.Helpers
         public static string PrintParsedIoctlCode(uint IoctlCode)
             => new IoctlHelperStub(IoctlCode).ToString();
     }
+
+    public class IoctlHelperStub
+    {
+        public FileDeviceType DeviceType;
+        public AccessType AccessType;
+        public MethodType MethodType;
+        public UInt16 FunctionNumber;
+
+        public IoctlHelperStub(uint IoctlCode)
+        {
+            this.DeviceType = (FileDeviceType)((IoctlCode >> 16) & 0x0000ffff);
+            this.AccessType = (AccessType)((IoctlCode >> 14) & 0x00000003);
+            this.MethodType = (MethodType)(IoctlCode & 0x0000003);
+            this.FunctionNumber = (UInt16)((IoctlCode >> 2) & 0x0000fff);
+        }
+
+        public override string ToString()
+            => $"CTL_CODE(DeviceType={this.DeviceType}, Function=0x{this.FunctionNumber:x3}, Method={this.MethodType}, Access={this.AccessType})";
+    }
 }
