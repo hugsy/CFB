@@ -1,4 +1,7 @@
-#include "ServiceManager.h"
+#include "main.h"
+
+extern Session* Sess;
+
 
 /*++
 
@@ -17,6 +20,68 @@ defines all the functions to properly:
 
 
 
+
+/*++
+
+Routine Description:
+
+Creates the service manager object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Nothing, throw an exception on any error
+
+--*/
+ServiceManager::ServiceManager()
+{
+	if (!ExtractDriverFromResource())
+		RAISE_GENERIC_EXCEPTION("ExtractDriverFromResource() failed");
+
+	bIsDriverExtracted = TRUE;
+
+	if (!LoadDriver())
+		RAISE_GENERIC_EXCEPTION("LoadDriver() failed");
+
+	bIsDriverLoaded = TRUE;
+}
+
+
+
+/*++
+
+Routine Description:
+
+Destroy the service manager object.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+	Nothing, throw an exception on any error
+	
+--*/
+ServiceManager::~ServiceManager() noexcept(false)
+{
+	if (bIsDriverLoaded)
+	{
+		if (!UnloadDriver())
+			RAISE_GENERIC_EXCEPTION("UnloadDriver() failed");
+	}
+
+	if (bIsDriverExtracted)
+	{
+		if (!DeleteDriverFromDisk())
+			RAISE_GENERIC_EXCEPTION("DeleteDriverFromDisk() failed");
+	}
+}
 
 
 /*++
@@ -82,13 +147,13 @@ BOOL ServiceManager::ExtractDriverFromResource()
 	}
 
 	DWORD dwWritten;
-	if (!WriteFile(hDriverFile, hgDriverRsc, dwDriverSize, &dwWritten, NULL))
+	if (!::WriteFile(hDriverFile, hgDriverRsc, dwDriverSize, &dwWritten, NULL))
 	{
 		PrintErrorWithFunctionName(L"WriteFile()");
 		retcode = FALSE;
 	}
 
-	CloseHandle(hDriverFile);
+	::CloseHandle(hDriverFile);
 	return retcode;
 }
 
@@ -117,54 +182,6 @@ BOOL ServiceManager::DeleteDriverFromDisk()
 	return DeleteFile(lpszFilePath);
 }
 
-
-/*++
-
-Routine Description:
-
-Creates the service manager object.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-	Nothing, throw an exception on any error
-
---*/
-ServiceManager::ServiceManager()
-{
-	if (!LoadDriver())
-		RAISE_GENERIC_EXCEPTION("LoadDriver() failed");
-
-}
-
-
-
-/*++
-
-Routine Description:
-
-Destroy the service manager object.
-
-
-Arguments:
-
-	None
-
-
-Return Value:
-	Nothing, throw an exception on any error
-	
---*/
-ServiceManager::~ServiceManager() noexcept(false)
-{
-	if (!UnloadDriver())
-		RAISE_GENERIC_EXCEPTION("UnloadDriver() failed");
-
-}
 
 
 /*++
@@ -277,12 +294,12 @@ Return Value:
 --*/
 BOOL ServiceManager::UnloadDriver()
 {
-	SERVICE_STATUS ServiceStatus;
+	SERVICE_STATUS DriverServiceStatus;
 
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Stopping service '%s'\n", CFB_SERVICE_NAME);
 #endif
-	if (!ControlService(hService, SERVICE_CONTROL_STOP, &ServiceStatus))
+	if (!::ControlService(hService, SERVICE_CONTROL_STOP, &DriverServiceStatus))
 	{
 		PrintErrorWithFunctionName(L"ControlService");
 		return FALSE;
@@ -291,15 +308,207 @@ BOOL ServiceManager::UnloadDriver()
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Service '%s' stopped\n", CFB_SERVICE_NAME);
 #endif
-	if (!DeleteService(hService))
+	if (!::DeleteService(hService))
 	{
 		PrintErrorWithFunctionName(L"DeleteService");
 		return FALSE;
 	}
 
 
-	CloseServiceHandle(hService);
-	CloseServiceHandle(hSCManager);
+	::CloseServiceHandle(hService);
+	::CloseServiceHandle(hSCManager);
 
 	return TRUE;
+}
+
+
+
+static VOID ServiceCtrlHandler(DWORD dwCtrlCode)
+{
+	ServiceManager& ServiceManager = Sess->ServiceManager;
+
+	switch (dwCtrlCode)
+	{
+	case SERVICE_CONTROL_CONTINUE:
+	case SERVICE_CONTROL_INTERROGATE:
+	case SERVICE_CONTROL_PAUSE:
+	case SERVICE_CONTROL_SHUTDOWN:
+		xlog(LOG_ERROR, L"Unhandled control code: 0x%x\n", dwCtrlCode);
+		break;
+
+	case SERVICE_CONTROL_STOP:
+
+		if (ServiceManager.m_ServiceStatus.dwCurrentState != SERVICE_RUNNING)
+			break;
+
+		/*
+		 * Perform tasks necessary to stop the service here
+		 */
+
+		ServiceManager.m_ServiceStatus.dwControlsAccepted = 0;
+		ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
+		ServiceManager.m_ServiceStatus.dwWin32ExitCode = 0;
+		ServiceManager.m_ServiceStatus.dwCheckPoint = 4;
+
+		if (::SetServiceStatus(ServiceManager.m_StatusHandle, &ServiceManager.m_ServiceStatus) == FALSE)
+		{
+			xlog(LOG_DEBUG, L"SetServiceStatus() failed");
+			break;
+		}
+
+		// This will signal the worker thread to start shutting down
+		Sess->Stop();
+		::SetEvent(ServiceManager.m_ServiceStopEvent);
+		break;
+
+	default:
+		break;
+	}
+
+	return;
+}
+
+
+/*++
+
+Routine Description:
+
+Static routine to initialize the own process service. 
+
+
+Arguments:
+
+	argc - 
+
+	argv - 
+
+
+Return Value:
+
+	None
+
+--*/
+static VOID ServiceMain(DWORD argc, LPWSTR* argv)
+{
+	ServiceManager& ServiceManager = Sess->ServiceManager;
+
+	do
+	{
+
+		ServiceManager.m_StatusHandle = ::RegisterServiceCtrlHandler(WIN32_SERVICE_NAME, ServiceCtrlHandler);
+		if (!ServiceManager.m_StatusHandle)
+		{
+			xlog(LOG_ERROR, L"RegisterServiceCtrlHandler() failed\n");
+			break;
+		}
+
+		::ZeroMemory(&ServiceManager.m_ServiceStatus, sizeof(ServiceManager.m_ServiceStatus));
+		ServiceManager.m_ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+		ServiceManager.m_ServiceStatus.dwControlsAccepted = 0;
+		ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
+		ServiceManager.m_ServiceStatus.dwWin32ExitCode = 0;
+		ServiceManager.m_ServiceStatus.dwServiceSpecificExitCode = 0;
+		ServiceManager.m_ServiceStatus.dwCheckPoint = 0;
+
+		if (::SetServiceStatus(ServiceManager.m_StatusHandle, &ServiceManager.m_ServiceStatus) == FALSE)
+		{
+			xlog(LOG_ERROR, L"SetServiceStatus() failed\n");
+			break;
+		}
+
+
+		ServiceManager.m_ServiceStopEvent = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+		if (ServiceManager.m_ServiceStopEvent == NULL)
+		{
+			ServiceManager.m_ServiceStatus.dwControlsAccepted = 0;
+			ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
+			ServiceManager.m_ServiceStatus.dwWin32ExitCode = ::GetLastError();
+			ServiceManager.m_ServiceStatus.dwCheckPoint = 1;
+
+			if (::SetServiceStatus(ServiceManager.m_StatusHandle, &ServiceManager.m_ServiceStatus) == FALSE)
+			{
+				xlog(LOG_ERROR, L"SetServiceStatus() failed\n");
+			}
+			break;
+		}
+
+
+		ServiceManager.m_ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+		ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
+		ServiceManager.m_ServiceStatus.dwWin32ExitCode = 0;
+		ServiceManager.m_ServiceStatus.dwCheckPoint = 0;
+
+		if (::SetServiceStatus(ServiceManager.m_StatusHandle, &ServiceManager.m_ServiceStatus) == FALSE)
+		{
+			xlog(LOG_ERROR, L"SetServiceStatus() failed\n");
+			break;
+		}
+
+		dbg(L"CFB background service ready, starting thread...\n");
+
+
+		//
+		// Let's start CFB in background
+		//
+
+		HANDLE hThread = ::CreateThread(NULL, 0, RunForever, NULL, 0, NULL);
+		if (!hThread)
+		{
+			xlog(LOG_ERROR, L"Failed to start the RunForever() thread\n");
+			break;
+		}
+
+		::WaitForSingleObject(hThread, INFINITE);
+		
+		::CloseHandle(ServiceManager.m_ServiceStopEvent);
+
+		//
+		// Propagate the stop info to the service controller
+		//
+		ServiceManager.m_ServiceStatus.dwControlsAccepted = 0;
+		ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
+		ServiceManager.m_ServiceStatus.dwWin32ExitCode = 0;
+		ServiceManager.m_ServiceStatus.dwCheckPoint = 3;
+
+		if (::SetServiceStatus(ServiceManager.m_StatusHandle, &ServiceManager.m_ServiceStatus) == FALSE)
+		{
+			xlog(LOG_ERROR, L"SetServiceStatus() failed\n");
+		}
+
+	} 
+	while (0);
+
+
+	return;
+}
+
+
+/*++
+
+Routine Description:
+
+Static routine to register the own process service.
+
+
+Arguments:
+
+	None
+
+
+Return Value:
+
+	None
+
+--*/
+BOOL ServiceManager::RegisterService()
+{
+	auto lpswServiceName = (LPWSTR)WIN32_SERVICE_NAME;
+
+	SERVICE_TABLE_ENTRY ServiceTable[] =
+	{
+		{lpswServiceName, (LPSERVICE_MAIN_FUNCTION)ServiceMain},
+		{NULL, NULL}
+	};
+
+	return ::StartServiceCtrlDispatcher(ServiceTable);
 }

@@ -51,8 +51,8 @@ void Session::Start()
 void Session::Stop()
 {
 	m_State = SessionState::Idle;
-	ResetEvent(m_hTerminationEvent);
-	SetEvent(m_hTerminationEvent);
+	::ResetEvent(m_hTerminationEvent);
+	::SetEvent(m_hTerminationEvent);
 }
 
 

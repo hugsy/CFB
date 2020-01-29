@@ -22,8 +22,9 @@ for communicating with the IrpDumper driver by:
 #include "main.h"
 
 
-static HANDLE g_hTerminationEvent;
+Session* Sess;
 
+static HANDLE g_hTerminationEvent;
 
 /*++
 
@@ -198,107 +199,26 @@ static BOOL CtrlHandler(DWORD fdwCtrlType)
 
 Routine Description:
 
-The entrypoint for the broker.
+Run forever loop, can be run from either the standalone mode or own process service.
 
 
 Arguments:
 
-	argc - 
-
-	argv - 
+	lpParameter - unused parameter, here only for WINAPI compatibility.
 
 
 Return Value:
 
-	Returns EXIT_SUCCESS on success, EXIT_FAILURE
+	Return 0 on success, or the last error code.
 
 --*/
-int wmain(int argc, wchar_t** argv)
+DWORD RunForever(LPVOID lpParameter)
 {
-	int retcode = EXIT_SUCCESS;
-	HANDLE hDriver = INVALID_HANDLE_VALUE;
-	HANDLE hGui = INVALID_HANDLE_VALUE;
+	UNREFERENCED_PARAMETER(lpParameter);
+
+	DWORD retcode = ERROR_SUCCESS;
 	HANDLE ThreadHandles[3] = { 0 };
 	DWORD dwWaitResult = 0;
-	BOOL bHasDebugPriv = FALSE;
-	BOOL bHasLoadDriverPriv = FALSE;
-	Sess = nullptr;
-
-
-	HANDLE hStdErr = GetStdHandle(STD_ERROR_HANDLE);
-	DWORD dwConsoleMode;
-
-	::GetConsoleMode(hStdErr, &dwConsoleMode);
-	dwConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-	::SetConsoleMode(hStdErr, dwConsoleMode);
-
-
-	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
-
-#ifdef _DEBUG
-	xlog(LOG_DEBUG, L"DEBUG mode on\n");
-#endif
-
-
-	//
-	// Check the privileges
-	//
-	const wchar_t* lpszPrivilegeNames[2] = { L"SeDebugPrivilege", L"SeLoadDriverPrivilege" };
-
-	for (int i = 0; i < _countof(lpszPrivilegeNames); i++)
-	{
-		BOOL fHasPriv = FALSE;
-		if (!AssignPrivilegeToSelf(lpszPrivilegeNames[i]))
-		{
-			xlog(LOG_CRITICAL, L"%s requires '%s', cannot proceed...\n", argv[0], lpszPrivilegeNames[i]);
-			return EXIT_FAILURE;
-		}
-	}
-
-	dbg(L"Privilege check succeeded...\n");
-
-
-	//
-	// Extract the IrpDumper driver from the resources
-	//
-	if (!ServiceManager::ExtractDriverFromResource())
-	{
-		xlog(LOG_CRITICAL, L"Failed to extract driver from resource, aborting...\n");
-		return EXIT_FAILURE;
-	}
-
-	dbg(L"Driver extracted...\n");
-
-
-	//
-	// The session is ready to be initialized
-	//
-
-	dbg(L"Initializing the session...\n");
-	
-	try
-	{
-		Sess = new Session();
-	}
-	catch (std::runtime_error& e)
-	{
-		xlog(LOG_CRITICAL, L"Failed to initialize the session, reason: %S\n", e.what());
-		ServiceManager::DeleteDriverFromDisk();
-		return EXIT_FAILURE;
-	}
-
-
-	//
-	// Install the Ctrl-C handler to clean up properly
-	//
-	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
-	{
-		xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
-		delete Sess;
-		ServiceManager::DeleteDriverFromDisk();
-		return EXIT_FAILURE;
-	}
-	
 
 
 	//
@@ -307,22 +227,29 @@ int wmain(int argc, wchar_t** argv)
 
 	if (!StartBackendManagerThread(Sess))
 	{
-		retcode = EXIT_FAILURE;
-		goto __DestroyEnvironment;
+		xlog(LOG_CRITICAL, L"StartBackendManagerThread() failed\n");
+		return retcode;
 	}
 
-	
+
 	//
 	// Initialize the gui <-> broker thread
 	//
 
 	if (!FrontendThreadRoutine(Sess))
 	{
-		retcode = EXIT_FAILURE;
-		goto __DestroyEnvironment;
+		xlog(LOG_CRITICAL, L"FrontendThreadRoutine() failed\n");
+		return retcode;
 	}
 
-	xlog(LOG_SUCCESS, L"ThreadIds[]=[Frontend=%d,Backend=%d,IrpFetcher=%d]\n", GetThreadId(Sess->m_hFrontendThread), GetThreadId(Sess->m_hBackendThread), GetThreadId(Sess->m_hIrpFetcherThread));
+
+	xlog(
+		LOG_SUCCESS, 
+		L"ThreadIds[]=[Frontend=%d,Backend=%d,IrpFetcher=%d]\n", 
+		::GetThreadId(Sess->m_hFrontendThread), 
+		::GetThreadId(Sess->m_hBackendThread), 
+		::GetThreadId(Sess->m_hIrpFetcherThread)
+	);
 
 
 	//
@@ -347,35 +274,156 @@ int wmain(int argc, wchar_t** argv)
 	{
 	case WAIT_OBJECT_0:
 		xlog(LOG_SUCCESS, L"All threads ended, cleaning up...\n");
+		retcode = ERROR_SUCCESS;
 		break;
 
 	default:
 		PrintErrorWithFunctionName(L"WaitForMultipleObjects");
-		retcode = EXIT_FAILURE;
+		retcode = ::GetLastError();
 		break;
 	}
 
+	return retcode;
+}
 
-__DestroyEnvironment:
+
+/*++
+
+Routine Description:
+
+The entrypoint for the broker.
+
+
+Arguments:
+
+	argc - 
+
+	argv - 
+
+
+Return Value:
+
+	Returns EXIT_SUCCESS on success, EXIT_FAILURE
+
+--*/
+int wmain(int argc, wchar_t** argv)
+{
+	int retcode = EXIT_SUCCESS;
+	HANDLE hDriver = INVALID_HANDLE_VALUE;
+	HANDLE hGui = INVALID_HANDLE_VALUE;
+	
+	
+	BOOL bHasDebugPriv = FALSE;
+	BOOL bHasLoadDriverPriv = FALSE;
+	
+	Sess = nullptr;
+
+
+	HANDLE hStdErr = GetStdHandle(STD_ERROR_HANDLE);
+	DWORD dwConsoleMode;
+
+	::GetConsoleMode(hStdErr, &dwConsoleMode);
+	dwConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	::SetConsoleMode(hStdErr, dwConsoleMode);
+
+
+	xlog(LOG_INFO, L"Starting %s (part of %s (v%.02f) - by <%s>)\n", argv[0], CFB_PROGRAM_NAME_SHORT, CFB_VERSION, CFB_AUTHOR);
+
+#ifdef _DEBUG
+	xlog(LOG_DEBUG, L"DEBUG mode on\n");
+#endif
+
+
+	//
+	// Check the privileges first, if we don't have them there is no point going further
+	//
+	const wchar_t* lpszPrivilegeNames[2] = { L"SeDebugPrivilege", L"SeLoadDriverPrivilege" };
+
+	for (int i = 0; i < _countof(lpszPrivilegeNames); i++)
+	{
+		BOOL fHasPriv = FALSE;
+		if (!AssignPrivilegeToSelf(lpszPrivilegeNames[i]))
+		{
+			xlog(LOG_CRITICAL, L"%s requires '%s', cannot proceed...\n", argv[0], lpszPrivilegeNames[i]);
+			return EXIT_FAILURE;
+		}
+	}
+
+	dbg(L"Privilege check succeeded...\n");
+
+
+	//
+	// The session is ready to be initialized
+	//
+
+	dbg(L"Initializing the session...\n");
+	
+	try
+	{
+		Sess = new Session();
+	}
+	catch (std::runtime_error& e)
+	{
+		xlog(LOG_CRITICAL, L"Failed to initialize the session, reason: %S\n", e.what());
+		return EXIT_FAILURE;
+	}
+
+	do
+	{
+
+		//
+		// Should we run as a background service
+		//
+		if (argc > 1 && !wcscmp(argv[1], L"--service"))
+		{
+			Sess->ServiceManager.bRunInBackground = TRUE;
+			if (!Sess->ServiceManager.RegisterService())
+			{
+				xlog(LOG_CRITICAL, L"Failed to register service...\n");
+				retcode = EXIT_FAILURE;
+				break;
+			}
+		}
+
+
+		if (Sess->ServiceManager.bRunInBackground == FALSE)
+		{
+			if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
+			{
+				xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
+				retcode = EXIT_FAILURE;
+				break;
+			}
+		}
+
+
+		if (RunForever(NULL) != ERROR_SUCCESS)
+		{
+			xlog(LOG_ERROR, L"RunForever() returned with error\n");
+			break;
+		}
+
+		dbg(L"RunForever() finished successfully\n");
+	} 
+	while (0);
+
+
 	//
 	// Deleting the session will automatically destroy the FrontEnd/BackEnd server, along with 
 	// the service manager.
 	//
-	delete Sess;
-
-
-	//
-	// Cleanup
-	//
-	if (!ServiceManager::DeleteDriverFromDisk())
+	try
 	{
-		xlog(LOG_ERROR, L"An error occured while deleting driver from disk\n");
+		if (Sess != nullptr)
+		{
+			delete Sess;
+		}
+	}
+	catch (std::runtime_error & e)
+	{
+		xlog(LOG_CRITICAL, L"An error occured while deleting the session: %S\n", e.what());
 		retcode = EXIT_FAILURE;
 	}
-#ifdef _DEBUG
-	else
-		dbg(L"Driver deleted\n");
-#endif
 
 
 #ifdef _DEBUG

@@ -9,4 +9,6 @@
 
 #include <iostream>
 
-Session* Sess;
+
+DWORD RunForever(LPVOID lpParameter);
+

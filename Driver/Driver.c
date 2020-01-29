@@ -13,9 +13,7 @@
 UINT16 g_dwNumberOfHandle;
 
 static PDEVICE_OBJECT g_DeviceObject;
-//static IO_REMOVE_LOCK g_DriverRemoveLock;
-//static KSPIN_LOCK g_SpinLock;
-//static KLOCK_QUEUE_HANDLE g_SpinLockQueue;
+
 
 //
 // Not more than one process can interact with the device object
@@ -753,13 +751,13 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
         break;
 
     default:
-        CfbDbgPrintErr(L"Received invalid ioctl code 0x%X\n", IoctlCode);
+        CfbDbgPrintErr(L"Received invalid ioctl code %#x\n", IoctlCode);
         Status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
 
     if (!NT_SUCCESS(Status))
-        CfbDbgPrintErr(L"IOCTL #%x returned %#x\n", IoctlCode, Status);
+        CfbDbgPrintErr(L"IOCTL %#x returned %#x\n", IoctlCode, Status);
 
     
     return CompleteRequest(Irp, Status, dwDataWritten);
