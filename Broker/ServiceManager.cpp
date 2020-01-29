@@ -341,10 +341,6 @@ static VOID ServiceCtrlHandler(DWORD dwCtrlCode)
 		if (ServiceManager.m_ServiceStatus.dwCurrentState != SERVICE_RUNNING)
 			break;
 
-		/*
-		 * Perform tasks necessary to stop the service here
-		 */
-
 		ServiceManager.m_ServiceStatus.dwControlsAccepted = 0;
 		ServiceManager.m_ServiceStatus.dwCurrentState = SERVICE_STOP_PENDING;
 		ServiceManager.m_ServiceStatus.dwWin32ExitCode = 0;
@@ -355,10 +351,9 @@ static VOID ServiceCtrlHandler(DWORD dwCtrlCode)
 			xlog(LOG_DEBUG, L"SetServiceStatus() failed");
 			break;
 		}
-
-		// This will signal the worker thread to start shutting down
-		Sess->Stop();
+	
 		::SetEvent(ServiceManager.m_ServiceStopEvent);
+		Sess->Stop();
 		break;
 
 	default:
@@ -451,7 +446,7 @@ static VOID ServiceMain(DWORD argc, LPWSTR* argv)
 		// Let's start CFB in background
 		//
 
-		HANDLE hThread = ::CreateThread(NULL, 0, RunForever, NULL, 0, NULL);
+		HANDLE hThread = ::CreateThread(NULL, 0, RunForever, &ServiceManager.m_ServiceStopEvent, 0, NULL);
 		if (!hThread)
 		{
 			xlog(LOG_ERROR, L"Failed to start the RunForever() thread\n");
@@ -474,6 +469,12 @@ static VOID ServiceMain(DWORD argc, LPWSTR* argv)
 		{
 			xlog(LOG_ERROR, L"SetServiceStatus() failed\n");
 		}
+
+
+		//
+		// Delete the session (i.e. stop the process service and unload the driver)
+		//
+		delete Sess;
 
 	} 
 	while (0);

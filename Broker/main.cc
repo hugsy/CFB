@@ -204,7 +204,7 @@ Run forever loop, can be run from either the standalone mode or own process serv
 
 Arguments:
 
-	lpParameter - unused parameter, here only for WINAPI compatibility.
+	lpParameter - unused parameter if running in standalone, holds a handle to the stop event if running as a service.
 
 
 Return Value:
@@ -212,14 +212,13 @@ Return Value:
 	Return 0 on success, or the last error code.
 
 --*/
-DWORD RunForever(LPVOID lpParameter)
+DWORD RunForever(_In_ LPVOID lpParameter)
 {
-	UNREFERENCED_PARAMETER(lpParameter);
 
 	DWORD retcode = ERROR_SUCCESS;
-	HANDLE ThreadHandles[3] = { 0 };
+	HANDLE ThreadHandles[4] = { INVALID_HANDLE_VALUE };
+	DWORD dwNumberOfHandles = 3 + ((lpParameter != NULL) ? 1 : 0);
 	DWORD dwWaitResult = 0;
-
 
 	//
 	// Initialize the broker <-> driver thread
@@ -262,13 +261,18 @@ DWORD RunForever(LPVOID lpParameter)
 
 
 	//
-	// Wait for those 2 threads to finish
+	// Wait for the threads to finish
 	//
 	ThreadHandles[0] = Sess->m_hFrontendThread;
 	ThreadHandles[1] = Sess->m_hIrpFetcherThread;
 	ThreadHandles[2] = Sess->m_hBackendThread;
 
-	dwWaitResult = ::WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
+	if (lpParameter)
+	{
+		ThreadHandles[3] = *((PHANDLE)lpParameter);
+	}
+
+	dwWaitResult = ::WaitForMultipleObjects(dwNumberOfHandles, ThreadHandles, TRUE, INFINITE);
 
 	switch (dwWaitResult)
 	{
@@ -394,16 +398,15 @@ int wmain(int argc, wchar_t** argv)
 				retcode = EXIT_FAILURE;
 				break;
 			}
+
+			if (RunForever(NULL) != ERROR_SUCCESS)
+			{
+				xlog(LOG_ERROR, L"RunForever() returned with error\n");
+				break;
+			}
+
+			dbg(L"RunForever() finished successfully\n");
 		}
-
-
-		if (RunForever(NULL) != ERROR_SUCCESS)
-		{
-			xlog(LOG_ERROR, L"RunForever() returned with error\n");
-			break;
-		}
-
-		dbg(L"RunForever() finished successfully\n");
 	} 
 	while (0);
 
