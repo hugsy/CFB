@@ -27,14 +27,11 @@ OPEN_EXISTING = 3
 
 def hexdump(source, length=0x10):
     result = []
-    align = 18
-    separator = "."
-
     for i in range(0, len(source), length):
         chunk = bytearray(source[i:i + length])
         hexa = " ".join([c for c in chunk])
-        text = "".join([chr(b) if 0x20 <= b < 0x7F else separator for b in chunk])
-        result.append("{{addr:#0{{aw}}x}}    {{data:<{{dw}}}}    {{text}}".format(aw=align,addr=base+i,dw=3*length,data=hexa,text=text))
+        text = "".join([chr(b) if 0x20 <= b < 0x7F else "." for b in chunk])
+        result.append("{{addr:#018x}}    {{data:<{{dw}}}}    {{text}}".format(addr=base+i,dw=3*length,data=hexa,text=text))
     return os.linesep.join(result)
 
 

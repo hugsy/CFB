@@ -16,6 +16,10 @@ defines all the functions to properly:
 - delete the PE file from disk
 
 
+CFB can also be installed as a process service to facilitate automation, using sc.exe:
+	sc.exe create CFB_Broker binPath= "\path\to\Broker.exe --service" DisplayName= "Furious Beaver process service"
+	
+Then can be manipulated with the usual `sc start/stop`, and uninstalled with `sc delete`
 --*/
 
 
