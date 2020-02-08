@@ -55,10 +55,19 @@ namespace GUI
 
             if (shell.AppFrame.Content == null)
             {
-                var localSettings = ApplicationData.Current.LocalSettings;
-                var homePageIndex = localSettings.Values["HomePage"]!=null ? (int)localSettings.Values["HomePage"] : 0;
-                var defaultPageName = App.HomePageList[homePageIndex];
-                var defaultPage = Type.GetType($"GUI.Views.{defaultPageName}");
+                Type defaultPage;
+
+                try
+                {
+                    var localSettings = ApplicationData.Current.LocalSettings;
+                    var homePageIndex = localSettings.Values["HomePage"] != null ? (int)localSettings.Values["HomePage"] : 0;
+                    var defaultPageName = App.HomePageList[homePageIndex];
+                    defaultPage = Type.GetType($"GUI.Views.{defaultPageName}");
+                }
+                catch (Exception ex)
+                {
+                    defaultPage = Type.GetType($"GUI.Views.{nameof(MonitoredIrpsPage)}");
+                }
 
                 // On launch the app frame content will be empty,
                 // so redirect to the default page (monitored irps)

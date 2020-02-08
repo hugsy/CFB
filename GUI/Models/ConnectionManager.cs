@@ -51,7 +51,8 @@ namespace GUI.Models
 
         private void ReinitializeSocket()
         {
-            uri = new Uri(ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString());
+            var IrpLocation = ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString();
+            uri = new Uri(IrpLocation ?? "");
             ClientSocket = new StreamSocket();
             ClientSocket.Control.KeepAlive = true;
             //ClientSocket.Control.NoDelay = false;
