@@ -22,8 +22,9 @@ for communicating with the IrpDumper driver by:
 #include "main.h"
 
 
-static HANDLE g_hTerminationEvent;
+Session* Sess;
 
+static HANDLE g_hTerminationEvent;
 
 /*++
 
@@ -198,6 +199,102 @@ static BOOL CtrlHandler(DWORD fdwCtrlType)
 
 Routine Description:
 
+Run forever loop, can be run from either the standalone mode or own process service.
+
+
+Arguments:
+
+	lpParameter - unused parameter if running in standalone, holds a handle to the stop event if running as a service.
+
+
+Return Value:
+
+	Return 0 on success, or the last error code.
+
+--*/
+DWORD RunForever(_In_ LPVOID lpParameter)
+{
+
+	DWORD retcode = ERROR_SUCCESS;
+	HANDLE ThreadHandles[4] = { INVALID_HANDLE_VALUE };
+	DWORD dwNumberOfHandles = 3 + ((lpParameter != NULL) ? 1 : 0);
+	DWORD dwWaitResult = 0;
+
+	//
+	// Initialize the broker <-> driver thread
+	//
+
+	if (!StartBackendManagerThread(Sess))
+	{
+		xlog(LOG_CRITICAL, L"StartBackendManagerThread() failed\n");
+		return retcode;
+	}
+
+
+	//
+	// Initialize the gui <-> broker thread
+	//
+
+	if (!FrontendThreadRoutine(Sess))
+	{
+		xlog(LOG_CRITICAL, L"FrontendThreadRoutine() failed\n");
+		return retcode;
+	}
+
+
+	xlog(
+		LOG_SUCCESS, 
+		L"ThreadIds[]=[Frontend=%d,Backend=%d,IrpFetcher=%d]\n", 
+		::GetThreadId(Sess->m_hFrontendThread), 
+		::GetThreadId(Sess->m_hBackendThread), 
+		::GetThreadId(Sess->m_hIrpFetcherThread)
+	);
+
+
+	//
+	// Start everything
+	//
+	Sess->Start();
+	ResumeThread(Sess->m_hFrontendThread);
+	ResumeThread(Sess->m_hIrpFetcherThread);
+	ResumeThread(Sess->m_hBackendThread);
+
+
+	//
+	// Wait for the threads to finish
+	//
+	ThreadHandles[0] = Sess->m_hFrontendThread;
+	ThreadHandles[1] = Sess->m_hIrpFetcherThread;
+	ThreadHandles[2] = Sess->m_hBackendThread;
+
+	if (lpParameter)
+	{
+		ThreadHandles[3] = *((PHANDLE)lpParameter);
+	}
+
+	dwWaitResult = ::WaitForMultipleObjects(dwNumberOfHandles, ThreadHandles, TRUE, INFINITE);
+
+	switch (dwWaitResult)
+	{
+	case WAIT_OBJECT_0:
+		xlog(LOG_SUCCESS, L"All threads ended, cleaning up...\n");
+		retcode = ERROR_SUCCESS;
+		break;
+
+	default:
+		PrintErrorWithFunctionName(L"WaitForMultipleObjects");
+		retcode = ::GetLastError();
+		break;
+	}
+
+	return retcode;
+}
+
+
+/*++
+
+Routine Description:
+
 The entrypoint for the broker.
 
 
@@ -218,10 +315,11 @@ int wmain(int argc, wchar_t** argv)
 	int retcode = EXIT_SUCCESS;
 	HANDLE hDriver = INVALID_HANDLE_VALUE;
 	HANDLE hGui = INVALID_HANDLE_VALUE;
-	HANDLE ThreadHandles[3] = { 0 };
-	DWORD dwWaitResult = 0;
+	
+	
 	BOOL bHasDebugPriv = FALSE;
 	BOOL bHasLoadDriverPriv = FALSE;
+	
 	Sess = nullptr;
 
 
@@ -241,7 +339,7 @@ int wmain(int argc, wchar_t** argv)
 
 
 	//
-	// Check the privileges
+	// Check the privileges first, if we don't have them there is no point going further
 	//
 	const wchar_t* lpszPrivilegeNames[2] = { L"SeDebugPrivilege", L"SeLoadDriverPrivilege" };
 
@@ -259,18 +357,6 @@ int wmain(int argc, wchar_t** argv)
 
 
 	//
-	// Extract the IrpDumper driver from the resources
-	//
-	if (!ServiceManager::ExtractDriverFromResource())
-	{
-		xlog(LOG_CRITICAL, L"Failed to extract driver from resource, aborting...\n");
-		return EXIT_FAILURE;
-	}
-
-	dbg(L"Driver extracted...\n");
-
-
-	//
 	// The session is ready to be initialized
 	//
 
@@ -283,99 +369,64 @@ int wmain(int argc, wchar_t** argv)
 	catch (std::runtime_error& e)
 	{
 		xlog(LOG_CRITICAL, L"Failed to initialize the session, reason: %S\n", e.what());
-		ServiceManager::DeleteDriverFromDisk();
 		return EXIT_FAILURE;
 	}
 
-
-	//
-	// Install the Ctrl-C handler to clean up properly
-	//
-	if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
+	do
 	{
-		xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
-		delete Sess;
-		ServiceManager::DeleteDriverFromDisk();
-		return EXIT_FAILURE;
-	}
-	
+
+		//
+		// Should we run as a background service
+		//
+		if (argc > 1 && !wcscmp(argv[1], L"--service"))
+		{
+			Sess->ServiceManager.bRunInBackground = TRUE;
+			if (!Sess->ServiceManager.RegisterService())
+			{
+				xlog(LOG_CRITICAL, L"Failed to register service...\n");
+				retcode = EXIT_FAILURE;
+				break;
+			}
+		}
 
 
-	//
-	// Initialize the broker <-> driver thread
-	//
+		if (Sess->ServiceManager.bRunInBackground == FALSE)
+		{
+			if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE))
+			{
+				xlog(LOG_CRITICAL, L"Could not setup SetConsoleCtrlHandler()...\n");
+				retcode = EXIT_FAILURE;
+				break;
+			}
 
-	if (!StartBackendManagerThread(Sess))
-	{
-		retcode = EXIT_FAILURE;
-		goto __DestroyEnvironment;
-	}
+			if (RunForever(NULL) != ERROR_SUCCESS)
+			{
+				xlog(LOG_ERROR, L"RunForever() returned with error\n");
+				break;
+			}
 
-	
-	//
-	// Initialize the gui <-> broker thread
-	//
-
-	if (!FrontendThreadRoutine(Sess))
-	{
-		retcode = EXIT_FAILURE;
-		goto __DestroyEnvironment;
-	}
-
-	xlog(LOG_SUCCESS, L"ThreadIds[]=[Frontend=%d,Backend=%d,IrpFetcher=%d]\n", GetThreadId(Sess->m_hFrontendThread), GetThreadId(Sess->m_hBackendThread), GetThreadId(Sess->m_hIrpFetcherThread));
+			dbg(L"RunForever() finished successfully\n");
+		}
+	} 
+	while (0);
 
 
-	//
-	// Start everything
-	//
-	Sess->Start();
-	ResumeThread(Sess->m_hFrontendThread);
-	ResumeThread(Sess->m_hIrpFetcherThread);
-	ResumeThread(Sess->m_hBackendThread);
-
-
-	//
-	// Wait for those 2 threads to finish
-	//
-	ThreadHandles[0] = Sess->m_hFrontendThread;
-	ThreadHandles[1] = Sess->m_hIrpFetcherThread;
-	ThreadHandles[2] = Sess->m_hBackendThread;
-
-	dwWaitResult = ::WaitForMultipleObjects(_countof(ThreadHandles), ThreadHandles, TRUE, INFINITE);
-
-	switch (dwWaitResult)
-	{
-	case WAIT_OBJECT_0:
-		xlog(LOG_SUCCESS, L"All threads ended, cleaning up...\n");
-		break;
-
-	default:
-		PrintErrorWithFunctionName(L"WaitForMultipleObjects");
-		retcode = EXIT_FAILURE;
-		break;
-	}
-
-
-__DestroyEnvironment:
 	//
 	// Deleting the session will automatically destroy the FrontEnd/BackEnd server, along with 
 	// the service manager.
 	//
-	delete Sess;
-
-
-	//
-	// Cleanup
-	//
-	if (!ServiceManager::DeleteDriverFromDisk())
+	try
 	{
-		xlog(LOG_ERROR, L"An error occured while deleting driver from disk\n");
+		if (Sess != nullptr)
+		{
+			delete Sess;
+		}
+	}
+	catch (std::runtime_error & e)
+	{
+		xlog(LOG_CRITICAL, L"An error occured while deleting the session: %S\n", e.what());
 		retcode = EXIT_FAILURE;
 	}
-#ifdef _DEBUG
-	else
-		dbg(L"Driver deleted\n");
-#endif
 
 
 #ifdef _DEBUG

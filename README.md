@@ -9,7 +9,7 @@
 
 Furious Beaver is a distributed tool for capturing IRPs sent to any Windows driver. It operates in 2 parts:
 
-1. the "Broker" cobines both a user-land and driver agent that will self-extract and install a driver on the targeted system. 
+1. the "Broker" combines both a user-land agent and a self-extractable driver (`IrpDumper.sys`) that will install itself on the targeted system. 
   Once running it will expose (depending on the compilation options) a remote named pipe (reachable from 
   `\\target.ip.address\pipe\cfb`), or a TCP port listening on TCP/1337. The communication protocol was made to be simple by design 
   (i.e. not secure) allowing any [3rd party tool](https://github.com/hugsy/cfb-cli) to dump the driver IRPs from the same Broker 
