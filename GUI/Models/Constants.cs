@@ -33,6 +33,12 @@ namespace GUI.Models
         /// </summary>
         public const string ProjectIssueUrl = @"https://github.com/hugsy/cfb/issues";
 
+    }
+
+
+    public static class DefaultSettings
+    {
+        public const string IrpBrokerUri = "tcp://127.0.0.1:1337";
 
     }
 }
