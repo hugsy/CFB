@@ -51,11 +51,13 @@ namespace GUI.Models
 
         private void ReinitializeSocket()
         {
-            var IrpLocation = ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString();
-            uri = new Uri(IrpLocation ?? "");
+            var IrpLocation = ApplicationData.Current.LocalSettings.Values.ContainsKey("IrpBrokerLocation") ? 
+                ApplicationData.Current.LocalSettings.Values["IrpBrokerLocation"].ToString() : 
+                Models.DefaultSettings.IrpBrokerUri;
+            uri = new Uri(IrpLocation);
             ClientSocket = new StreamSocket();
             ClientSocket.Control.KeepAlive = true;
-            //ClientSocket.Control.NoDelay = false;
+            ClientSocket.Control.NoDelay = false;
             _Status = BrokerConnectionStatus.Disconnected;
         }
 

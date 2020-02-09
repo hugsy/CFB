@@ -64,7 +64,7 @@ namespace GUI
                     var defaultPageName = App.HomePageList[homePageIndex];
                     defaultPage = Type.GetType($"GUI.Views.{defaultPageName}");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     defaultPage = Type.GetType($"GUI.Views.{nameof(MonitoredIrpsPage)}");
                 }
