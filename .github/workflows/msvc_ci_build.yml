@@ -22,6 +22,7 @@ jobs:
         Import-Module .\.ci\Invoke-VS.ps1
         Invoke-VisualStudio2019x64
         msbuild -t:restore .\Broker\Broker.vcxproj
+        vcpkg install wil:x64-windows
         msbuild CFB.sln -nologo /m /p:Configuration=Release /p:Platform=x64
 
     - name: Prepare artifact
