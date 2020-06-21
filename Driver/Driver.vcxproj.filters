@@ -19,11 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="Driver.inf">
-      <Filter>Driver Files</Filter>
-    </Inf>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="IoAddDriver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -109,5 +104,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <Inf Include="Driver.inf">
+      <Filter>Driver Files</Filter>
+    </Inf>
   </ItemGroup>
 </Project>

@@ -1,8 +1,7 @@
-# Canadian Furious Beaver
-
 
 <img src="/Assets/img/logo/Logo_v1.svg" width="50%"/>
 
+![CI Build for MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20for%20MSVC/badge.svg)
 
 
 ## Idea
