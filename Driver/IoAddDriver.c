@@ -226,7 +226,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 		//
 		// Cannot hook itself
 		//
-		if (wcsncmp(lpObjectName, CFB_DRIVER_NAME, wcslen(CFB_DRIVER_NAME)) == 0)
+		if (wcsncmp(lpObjectName, CFB_DRIVER_PATH, wcslen(CFB_DRIVER_PATH)) == 0)
 		{
 			Status = STATUS_INVALID_PARAMETER;
 			break;
