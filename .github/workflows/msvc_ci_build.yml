@@ -21,7 +21,7 @@ jobs:
       run: |
         Import-Module .\.ci\Invoke-VS.ps1
         Invoke-VisualStudio2019x64
-        msbuild -nologo /m /p:Configuration=Release /p:Platform=x64 .\Broker\Broker.vcxproj
+        msbuild -nologo /m /p:Configuration=Release /p:Platform=x64 CFB.sln
 
     - name: Prepare artifact
       id: prepare_artifact

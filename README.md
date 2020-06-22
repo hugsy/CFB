@@ -1,7 +1,7 @@
 
 <img src="/Assets/img/logo/Logo_v1.svg" width="50%"/>
 
-[![CI Build for MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions?query=workflow%3A%22CI+Build+for+MSVC%22)
+[![CI Build Broker for MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions/)
 
 
 ## Idea
