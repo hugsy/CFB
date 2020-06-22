@@ -21,6 +21,7 @@ jobs:
       run: |
         Import-Module .\.ci\Invoke-VS.ps1
         Invoke-VisualStudio2019x64
+        Install-Package NuGet.CommandLine
         vcpkg install wil:x64-windows
         nuget.exe restore .\Broker\Broker.vcxproj
         msbuild CFB.sln -nologo /m /p:Configuration=Release /p:Platform=x64
