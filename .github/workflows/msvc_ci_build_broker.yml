@@ -1,0 +1,40 @@
+name: CI Build Broker for MSVC
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: "Building CFB"
+    runs-on: [windows-latest]
+    strategy:
+      fail-fast: false
+
+    steps:
+    - name: Checkout CFB solution
+      uses: actions/checkout@v2
+
+    - name: Build CFB Solution
+      shell: pwsh
+      run: |
+        Import-Module .\.ci\Invoke-VS.ps1
+        Invoke-VisualStudio2019x64
+        msbuild -nologo /m /p:Configuration=Release /p:Platform=x64 .\Broker\Broker.vcxproj
+
+    - name: Prepare artifact
+      id: prepare_artifact
+      shell: pwsh
+      run: |
+        mkdir build\
+        cp x64\Release\Broker.exe build\
+        cp x64\Release\IrpDumper.sys build\
+        cp x64\Release\Driver.inf build\
+
+    - name: Publish artifact
+      id: publish_artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: cfb_broker_latest_msvc_x64
+        path: build\
