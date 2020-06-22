@@ -51,6 +51,9 @@
     <ClCompile Include="PipeTransportManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SafeHandle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -104,6 +107,9 @@
     <ClInclude Include="PipeTransportManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SafeHandle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Broker.rc">
@@ -114,8 +120,5 @@
     <Image Include="..\Assets\img\logo\logo.ico">
       <Filter>Resource Files</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>

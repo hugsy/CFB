@@ -243,7 +243,7 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 	//
 	// Get a handle to the device
 	//
-	wil::unique_handle hIrpDumperDevice(
+	SafeHandle hIrpDumperDevice(
 		::CreateFile(
 			CFB_USER_DEVICE_NAME,
 			GENERIC_READ | GENERIC_WRITE,
@@ -255,7 +255,7 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 		)
 	);
 
-	if (hIrpDumperDevice==NULL || hIrpDumperDevice.get()==INVALID_HANDLE_VALUE)
+	if (hIrpDumperDevice==NULL || hIrpDumperDevice.Get()==INVALID_HANDLE_VALUE)
 	{
 		PrintErrorWithFunctionName(L"CreateFile(hDeviceObject)");
 		return ERROR_DEVICE_NOT_AVAILABLE;
@@ -265,8 +265,8 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 	//
 	// Create an event for the driver to notify the broker new data has arrived
 	//
-	wil::unique_handle hIrpDataEvent(
-		ShareHandleWithDriver(hIrpDumperDevice.get())
+	SafeHandle hIrpDataEvent(
+		ShareHandleWithDriver(hIrpDumperDevice.Get())
 	);
 
 	if (!hIrpDataEvent)
@@ -278,7 +278,7 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 
 	const HANDLE Handles[2] = {
 		Sess.m_hTerminationEvent,
-		hIrpDataEvent.get()
+		hIrpDataEvent.Get()
 	};
 
 	xlog(LOG_SUCCESS, L"[IrpCollectorThreadRoutine] listening for new IRPs from driver...\n");
@@ -299,7 +299,7 @@ DWORD IrpCollectorThreadRoutine(_In_ LPVOID lpParameter)
 			dbg(L"new IRP data Event\n");
 
 			DWORD dwNbIrpDumped = 0;
-			DWORD dwRes = FetchAllIrpFromDevice(hIrpDumperDevice.get(), hIrpDataEvent.get(), Sess, &dwNbIrpDumped);
+			DWORD dwRes = FetchAllIrpFromDevice(hIrpDumperDevice.Get(), hIrpDataEvent.Get(), Sess, &dwNbIrpDumped);
 			
 			dbg(L"fetched %d IRP from driver\n", dwNbIrpDumped);
 			break;
@@ -437,7 +437,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 {
 	Session& Sess = *(reinterpret_cast<Session*>(lpParameter));
 
-	wil::unique_handle hIrpDumperDevice(
+	SafeHandle hIrpDumperDevice(
 		::CreateFile(
 			CFB_USER_DEVICE_NAME,
 			GENERIC_READ | GENERIC_WRITE,
@@ -449,7 +449,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 		)
 	);
 
-	if (hIrpDumperDevice == NULL || hIrpDumperDevice.get() == INVALID_HANDLE_VALUE)
+	if (hIrpDumperDevice == NULL || hIrpDumperDevice.Get() == INVALID_HANDLE_VALUE)
 	{
 		PrintErrorWithFunctionName(L"CreateFile(hDeviceObject)");
 		return ERROR_DEVICE_NOT_AVAILABLE;
@@ -490,7 +490,7 @@ DWORD BackendConnectionHandlingThread(_In_ LPVOID lpParameter)
 			//
 			// send the request to the driver
 			//
-			auto response_task = SendTaskToDriver(request_task, hIrpDumperDevice.get());
+			auto response_task = SendTaskToDriver(request_task, hIrpDumperDevice.Get());
 
 			//
 			// push to response task list

@@ -148,6 +148,7 @@
     <ClCompile Include="Irp.cpp" />
     <ClCompile Include="main.cc" />
     <ClCompile Include="PipeTransportManager.cpp" />
+    <ClCompile Include="SafeHandle.cpp" />
     <ClCompile Include="ServiceManager.cpp" />
     <ClCompile Include="Session.cpp" />
     <ClCompile Include="Task.cpp" />
@@ -166,6 +167,7 @@
     <ClInclude Include="nt.h" />
     <ClInclude Include="PipeTransportManager.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SafeHandle.h" />
     <ClInclude Include="ServerTransportManager.h" />
     <ClInclude Include="ServiceManager.h" />
     <ClInclude Include="Session.h" />
@@ -185,17 +187,6 @@
   <ItemGroup>
     <Image Include="..\Assets\img\logo\logo.ico" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\Microsoft.Windows.ImplementationLibrary.1.0.200519.2\build\native\Microsoft.Windows.ImplementationLibrary.targets" Condition="Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.200519.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" />
-  </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\Microsoft.Windows.ImplementationLibrary.1.0.200519.2\build\native\Microsoft.Windows.ImplementationLibrary.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.ImplementationLibrary.1.0.200519.2\build\native\Microsoft.Windows.ImplementationLibrary.targets'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

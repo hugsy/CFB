@@ -212,7 +212,9 @@ BOOL ServiceManager::LoadDriver()
 	xlog(LOG_DEBUG, L"Loading '%s'\n", CFB_DRIVER_NAME);
 #endif
 
-	hSCManager = OpenSCManager(L"", SERVICES_ACTIVE_DATABASE, SC_MANAGER_CREATE_SERVICE);
+	hSCManager = ServiceManagerHandle( 
+		::OpenSCManager(L"", SERVICES_ACTIVE_DATABASE, SC_MANAGER_CREATE_SERVICE)
+	);
 
 	if (!hSCManager)
 	{
@@ -227,20 +229,22 @@ BOOL ServiceManager::LoadDriver()
 	xlog(LOG_DEBUG, L"Creating the service '%s' for kernel driver '%s'\n", CFB_SERVICE_NAME, lpPath);
 #endif 
 	
-	hService = CreateService(
-		hSCManager,
-		CFB_SERVICE_NAME,
-		CFB_SERVICE_DESCRIPTION,
-		SERVICE_START | DELETE | SERVICE_STOP,
-		SERVICE_KERNEL_DRIVER,
-		SERVICE_DEMAND_START,
-		SERVICE_ERROR_IGNORE,
-		lpPath,
-		NULL,
-		NULL,
-		NULL,
-		NULL,
-		NULL
+	hService = ServiceManagerHandle(
+		::CreateService(
+			hSCManager.Get(),
+			CFB_SERVICE_NAME,
+			CFB_SERVICE_DESCRIPTION,
+			SERVICE_START | DELETE | SERVICE_STOP,
+			SERVICE_KERNEL_DRIVER,
+			SERVICE_DEMAND_START,
+			SERVICE_ERROR_IGNORE,
+			lpPath,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL
+		)
 	);
 
 	//
@@ -254,7 +258,9 @@ BOOL ServiceManager::LoadDriver()
 			return FALSE;
 		}
 
-		hService = OpenService(hSCManager, CFB_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP);
+		hService = ServiceManagerHandle(
+			::OpenService(hSCManager.Get(), CFB_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP)
+		);
 		if (!hSCManager)
 		{
 			PrintErrorWithFunctionName(L"OpenService()");
@@ -269,7 +275,7 @@ BOOL ServiceManager::LoadDriver()
 	xlog(LOG_DEBUG, L"Starting service '%s'\n", CFB_SERVICE_NAME);
 #endif 
 
-	if (!StartService(hService, 0, NULL))
+	if (!::StartService(hService.Get(), 0, NULL))
 	{
 		PrintErrorWithFunctionName(L"StartService()");
 		return FALSE;
@@ -303,7 +309,7 @@ BOOL ServiceManager::UnloadDriver()
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Stopping service '%s'\n", CFB_SERVICE_NAME);
 #endif
-	if (!::ControlService(hService, SERVICE_CONTROL_STOP, &DriverServiceStatus))
+	if (!::ControlService(hService.Get(), SERVICE_CONTROL_STOP, &DriverServiceStatus))
 	{
 		PrintErrorWithFunctionName(L"ControlService");
 		return FALSE;
@@ -312,15 +318,15 @@ BOOL ServiceManager::UnloadDriver()
 #ifdef _DEBUG
 	xlog(LOG_DEBUG, L"Service '%s' stopped\n", CFB_SERVICE_NAME);
 #endif
-	if (!::DeleteService(hService))
+	if (!::DeleteService(hService.Get()))
 	{
 		PrintErrorWithFunctionName(L"DeleteService");
 		return FALSE;
 	}
 
 
-	::CloseServiceHandle(hService);
-	::CloseServiceHandle(hSCManager);
+	//::CloseServiceHandle(hService);
+	//::CloseServiceHandle(hSCManager);
 
 	return TRUE;
 }

@@ -1,8 +1,8 @@
 #include "common.h"
 
-#include <wil\resource.h>
 #include "resource.h"
 #include "CfbException.h"
+#include "SafeHandle.h"
 
 
 #define CFB_DRIVER_LOCATION_DIRECTORY L"C:\\Windows\\System32\\Drivers"
@@ -15,6 +15,22 @@
  }
 
 
+class ServiceManagerHandle : public GenericHandle<SC_HANDLE>
+{
+public:
+	using GenericHandle<SC_HANDLE>::GenericHandle;
+
+	void Close() override
+	{
+		if (bool(_h))
+		{
+			::CloseServiceHandle(_h);
+			_h = nullptr;
+		}
+	}
+};
+
+
 class ServiceManager 
 {
 public:
@@ -25,7 +41,7 @@ public:
 	
 
 	SERVICE_STATUS m_ServiceStatus = { 0 };
-	SERVICE_STATUS_HANDLE m_StatusHandle = NULL;
+	SERVICE_STATUS_HANDLE m_StatusHandle = nullptr;
 	HANDLE m_ServiceStopEvent = INVALID_HANDLE_VALUE;
 	BOOL bRunInBackground = FALSE;
 
@@ -38,10 +54,12 @@ private:
 	BOOL DeleteDriverFromDisk();
 
 
-	SC_HANDLE hService = NULL;
-	SC_HANDLE hSCManager = NULL;
+	ServiceManagerHandle hService = nullptr;
+	ServiceManagerHandle hSCManager = nullptr;
 
 	BOOL bIsDriverLoaded = FALSE;
 	BOOL bIsDriverExtracted = FALSE;
 
 };
+
+
