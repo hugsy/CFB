@@ -14,7 +14,7 @@ extern PLIST_ENTRY g_HookedDriverHead;
 
 VOID InitializeIoAddDriverStructure()
 {
-	KeInitializeSpinLock(&g_AddRemoveDriverSpinLock);
+    KeInitializeSpinLock(&g_AddRemoveDriverSpinLock);
 }
 
 
@@ -24,19 +24,19 @@ VOID InitializeIoAddDriverStructure()
 --*/
 NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 {
-	NTSTATUS Status = STATUS_SUCCESS;
+    NTSTATUS Status = STATUS_SUCCESS;
 
-	/* make sure the list is not full */
-	if (GetNumberOfHookedDrivers() == CFB_MAX_HOOKED_DRIVERS)
-	{
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
+    /* make sure the list is not full */
+    if (GetNumberOfHookedDrivers() == CFB_MAX_HOOKED_DRIVERS)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
 
-	/* lookup the driver by name, and swap it if found */
-	UNICODE_STRING UnicodeName;
+    /* lookup the driver by name, and swap it if found */
+    UNICODE_STRING UnicodeName;
     PDRIVER_OBJECT pDriver;
     PDEVICE_OBJECT pDevice;
-	
+    
 
 
     RtlInitUnicodeString(&UnicodeName, lpObjectName);
@@ -64,7 +64,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
         break;
 
     case Device:
-		
+        
         Status = ObReferenceObjectByName(
             &UnicodeName,
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
@@ -76,8 +76,8 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
             (PVOID*)&pDevice
         );
 
-		// always returns 0xc0000024 
-		
+        // always returns 0xc0000024 
+        
 
         if (!NT_SUCCESS(Status))
             return Status;
@@ -92,40 +92,40 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     }
 
 
-	//
-	// check if driver is already hooked
-	//
+    //
+    // check if driver is already hooked
+    //
 
-	if ( IsDriverHooked(pDriver) )
-	{
-		return STATUS_ALREADY_REGISTERED;
-	}
-
-
-	//
-	// create the new hooked driver pool object, and chain it to the rest
-	//
-
-	PHOOKED_DRIVER NewDriver = ExAllocatePoolWithTag(NonPagedPool, sizeof(HOOKED_DRIVER), CFB_DEVICE_TAG);
-	if (!NewDriver)
-	{
-		return STATUS_INSUFFICIENT_RESOURCES;
-	}
-
-	RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
+    if ( IsDriverHooked(pDriver) )
+    {
+        return STATUS_ALREADY_REGISTERED;
+    }
 
 
-	wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpObjectName);
-	RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
-	NewDriver->DriverObject = pDriver;
+    //
+    // create the new hooked driver pool object, and chain it to the rest
+    //
 
-	
+    PHOOKED_DRIVER NewDriver = ExAllocatePoolWithTag(NonPagedPool, sizeof(HOOKED_DRIVER), CFB_DEVICE_TAG);
+    if (!NewDriver)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
 
-	KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
+    RtlSecureZeroMemory(NewDriver, sizeof(HOOKED_DRIVER));
 
-	//
-	// Exchange pointers for all the major functions
-	//
+
+    wcscpy_s(NewDriver->Name, sizeof(NewDriver->Name) / sizeof(wchar_t), lpObjectName);
+    RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
+    NewDriver->DriverObject = pDriver;
+
+    
+
+    KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
+
+    //
+    // Exchange pointers for all the major functions
+    //
     for (DWORD i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
         PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
@@ -137,47 +137,47 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     }
 
 
-	//
-	// Exchange pointer for Fast IO dispatcher
-	//
-	
-	if (pDriver->FastIoDispatch)
-	{
-		PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
-			(PVOID*)&pDriver->FastIoDispatch->FastIoDeviceControl,
-			(PVOID)InterceptGenericFastIoDeviceControl
-		);
+    //
+    // Exchange pointer for Fast IO dispatcher
+    //
+    
+    if (pDriver->FastIoDispatch)
+    {
+        PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
+            (PVOID*)&pDriver->FastIoDispatch->FastIoDeviceControl,
+            (PVOID)InterceptGenericFastIoDeviceControl
+        );
 
-		NewDriver->FastIoDeviceControl = OldFastIoDeviceControl;
+        NewDriver->FastIoDeviceControl = OldFastIoDeviceControl;
 
-		PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
-			(PVOID*)&pDriver->FastIoDispatch->FastIoRead,
-			(PVOID)InterceptGenericFastIoRead
-		);
+        PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
+            (PVOID*)&pDriver->FastIoDispatch->FastIoRead,
+            (PVOID)InterceptGenericFastIoRead
+        );
 
-		NewDriver->FastIoRead = OldFastIoRead;
+        NewDriver->FastIoRead = OldFastIoRead;
 
-		PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
-			(PVOID*)&pDriver->FastIoDispatch->FastIoWrite,
-			(PVOID)InterceptGenericFastIoWrite
-		);
+        PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
+            (PVOID*)&pDriver->FastIoDispatch->FastIoWrite,
+            (PVOID)InterceptGenericFastIoWrite
+        );
 
-		NewDriver->FastIoWrite = OldFastIoWrite;
-	}
+        NewDriver->FastIoWrite = OldFastIoWrite;
+    }
 
-	//
-	// add it to the list
-	//
+    //
+    // add it to the list
+    //
     InsertTailList(g_HookedDriverHead, &(NewDriver->ListEntry));
 
-	//
-	// Set the driver as ready
-	//
-	NewDriver->Enabled = TRUE;
+    //
+    // Set the driver as ready
+    //
+    NewDriver->Enabled = TRUE;
 
-	KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
+    KeReleaseInStackQueuedSpinLock(&g_AddRemoveSpinLockQueue);
 
-	return Status;
+    return Status;
 }
 
 
@@ -187,50 +187,50 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
 NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
 {
 
-	NTSTATUS Status = STATUS_SUCCESS;
-	LPWSTR lpObjectName;
-	ULONG InputBufferLen;
+    NTSTATUS Status = STATUS_SUCCESS;
+    LPWSTR lpObjectName;
+    ULONG InputBufferLen;
 
-	do
-	{
+    do
+    {
 
-		//
-		// Check IRP arguments
-		//
+        //
+        // Check IRP arguments
+        //
 
-		lpObjectName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
+        lpObjectName = (LPWSTR)Irp->AssociatedIrp.SystemBuffer;
 
-		if (!lpObjectName)
-		{
-			Status = STATUS_INVALID_PARAMETER;
-			break;
-		}
+        if (!lpObjectName)
+        {
+            Status = STATUS_INVALID_PARAMETER;
+            break;
+        }
 
-		InputBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
+        InputBufferLen = Stack->Parameters.DeviceIoControl.InputBufferLength;
 
-		if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
-		{
-			CfbDbgPrintErr(L"Input buffer too large\n");
-			Status = STATUS_BUFFER_OVERFLOW;
-			break;
-		}
+        if (InputBufferLen >= HOOKED_DRIVER_MAX_NAME_LEN)
+        {
+            CfbDbgPrintErr(L"Input buffer too large\n");
+            Status = STATUS_BUFFER_OVERFLOW;
+            break;
+        }
 
 
         CfbDbgPrintInfo(L"Adding AddObjectByName('%s') \n", lpObjectName);
 
 
-		//
-		// Add the driver
-		//
+        //
+        // Add the driver
+        //
 
-		//
-		// Cannot hook itself
-		//
-		if (wcsncmp(lpObjectName, CFB_DRIVER_PATH, wcslen(CFB_DRIVER_PATH)) == 0)
-		{
-			Status = STATUS_INVALID_PARAMETER;
-			break;
-		}
+        //
+        // Cannot hook itself
+        //
+        if (wcsncmp(lpObjectName, CFB_DRIVER_PATH, wcslen(CFB_DRIVER_PATH)) == 0)
+        {
+            Status = STATUS_INVALID_PARAMETER;
+            break;
+        }
 
         if (wcsncmp(lpObjectName, L"\\driver", 7) == 0)
         {
@@ -248,12 +248,10 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
         {
             Status = STATUS_INVALID_PARAMETER;
         }
-		
-		CfbDbgPrintOk(L"AddObjectByName('%s') returned %#x\n", lpObjectName, Status);
-	}
-	while(0);
+        
+        CfbDbgPrintOk(L"AddObjectByName('%s') returned %#x\n", lpObjectName, Status);
+    }
+    while(0);
 
-	return Status;
+    return Status;
 }
-
-

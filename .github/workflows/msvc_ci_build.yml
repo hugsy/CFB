@@ -19,7 +19,7 @@ jobs:
     - name: Build CFB Solution
       shell: pwsh
       run: |
-        Import-Module .\.ci\Invoke-VS.ps1
+        Import-Module .\.github\Invoke-VS.ps1
         Invoke-VisualStudio2019x64
         msbuild -nologo /m /p:Configuration=Release /p:Platform=x64 CFB.sln
 

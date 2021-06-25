@@ -5,26 +5,26 @@
 
 | CI  | Discord |
 |:---:|:---:|
-| [![Broker - Build MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions/) |[![Discord](https://img.shields.io/badge/Discord-CFB-purple)](https://discord.com/channels/705160148813086841/858060281749307453) |
+| [![Broker - Build MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions/) |[![Discord](https://img.shields.io/badge/Discord-CFB-purple)](https://discord.com/channels/705160148813086841/858077410490580992) |
 
 
 ## Idea
 
 Furious Beaver is a distributed tool for capturing IRPs sent to any Windows driver. It operates in 2 parts:
 
-1. the "Broker" combines both a user-land agent and a self-extractable driver (`IrpDumper.sys`) that will install itself on the targeted system. 
-  Once running it will expose (depending on the compilation options) a remote named pipe (reachable from 
-  `\\target.ip.address\pipe\cfb`), or a TCP port listening on TCP/1337. The communication protocol was made to be simple by design 
-  (i.e. not secure) allowing any [3rd party tool](https://github.com/hugsy/cfb-cli) to dump the driver IRPs from the same Broker 
+1. the "Broker" combines both a user-land agent and a self-extractable driver (`IrpDumper.sys`) that will install itself on the targeted system.
+  Once running it will expose (depending on the compilation options) a remote named pipe (reachable from
+  `\\target.ip.address\pipe\cfb`), or a TCP port listening on TCP/1337. The communication protocol was made to be simple by design
+  (i.e. not secure) allowing any [3rd party tool](https://github.com/hugsy/cfb-cli) to dump the driver IRPs from the same Broker
   easily (via simple JSON messages).
 
-2. the GUI is a Windows 10 UWP app made in a `ProcMon`-style: it will connect to wherever the broker is, and provide a convienent 
- GUI for manipulating the broker (driver enumeration, hooking and IRP capturing). It also offers facililties for forging/replaying 
- IRPs, auto-fuzzing (i.e. apply specific fuzzing policies on *each* IRP captured), or extract IRP in various formats (raw, as a 
- Python script, as a PowerShell script) for further analysis. The captured data can be saved on disk in an easily parsable format 
+2. the GUI is a Windows 10 UWP app made in a `ProcMon`-style: it will connect to wherever the broker is, and provide a convienent
+ GUI for manipulating the broker (driver enumeration, hooking and IRP capturing). It also offers facililties for forging/replaying
+ IRPs, auto-fuzzing (i.e. apply specific fuzzing policies on *each* IRP captured), or extract IRP in various formats (raw, as a
+ Python script, as a PowerShell script) for further analysis. The captured data can be saved on disk in an easily parsable format
  (`*.cfb` = SQLite) for further analysis, and/or reload afterwards in the GUI.
 
-Although the GUI obviously requires a Windows 10 environment (UWP App), the Broker itself can be deployed on any Windows 7+ host (x86 or x64). 
+Although the GUI obviously requires a Windows 10 environment (UWP App), the Broker itself can be deployed on any Windows 7+ host (x86 or x64).
 The target host must have `testsigning` BCD policy enabled, as the self-extracting driver is not WHQL friendly.
 
 
@@ -86,7 +86,7 @@ On this target machine, simply enable BCD test signing flag (in `cmd.exe` as Adm
 C:\> bcdedit.exe /set {whatever-profile} testsigning on
 ```
 
-If using in Debug mode, `IrpDumper.sys` will provide a lot more valuable information as to what's being hooked (the price of performance). 
+If using in Debug mode, `IrpDumper.sys` will provide a lot more valuable information as to what's being hooked (the price of performance).
 All those info can be visible via tools like `DebugView.exe` or a kernel debugger like WinDbg. In either case, you must enable kernel debug
 BCD flag (in `cmd.exe` as Admin):
 
@@ -99,7 +99,7 @@ It is also recommended to edit the KD verbosity level, via:
   - directly from WinDbg for only the current session (`ed nt!Kd_Default_Mask 0xf`)
 
 
-If you plan on (re-)compiling any of the tools, you must install VS (2019 preferred). If using the Release binaries, you only need VS C++ Redist installed 
+If you plan on (re-)compiling any of the tools, you must install VS (2019 preferred). If using the Release binaries, you only need VS C++ Redist installed
 (x86 or x64 depending on your VM architecture).
 
 Follow the indications in the `Docs/` folder to improve your setup.
