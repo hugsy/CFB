@@ -1,7 +1,11 @@
 
-<img src="/Assets/img/logo/Logo_v1.svg" width="50%"/>
+<p align="center">
+  <img src="/Assets/img/logo/Logo_v1.svg" width="50%" alt="logo" />
+</p>
 
-[![CI Build Broker for MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions/)
+| CI  | Discord |
+|:---:|:---:|
+| [![Broker - Build MSVC](https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg)](https://github.com/hugsy/CFB/actions/) |[![Discord](https://img.shields.io/badge/Discord-CFB-purple)](https://discord.com/channels/705160148813086841/858060281749307453) |
 
 
 ## Idea
