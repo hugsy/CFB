@@ -5,6 +5,11 @@ on:
     branches:
       - master
 
+env:
+  ARCH: x64
+  CONFIGURATION: Release
+  BUILD_DIR: build
+  
 jobs:
   build:
     name: "Building CFB"
@@ -13,28 +18,32 @@ jobs:
       fail-fast: false
 
     steps:
-    - name: Checkout CFB solution
-      uses: actions/checkout@v2
+    
+    - uses: actions/checkout@v2
+
+    - name: Inject slug/short variables
+      uses: rlespinasse/github-slug-action@v3.x  
 
     - name: Build CFB Solution
       shell: pwsh
       run: |
         Import-Module .\.github\Invoke-VS.ps1
-        Invoke-VisualStudio2019x64
-        msbuild -nologo /m /p:Configuration=Release /p:Platform=x64 CFB.sln
+        Invoke-VisualStudio2019${{ env.ARCH }}
+        msbuild -nologo /m /p:Configuration=${{ env.CONFIGURATION }} /p:Platform=${{ env.ARCH }} CFB.sln
 
     - name: Prepare artifact
       id: prepare_artifact
       shell: pwsh
       run: |
-        mkdir build\
-        cp x64\Release\Broker.exe build\
-        cp x64\Release\IrpDumper.sys build\
-        cp x64\Release\Driver.inf build\
+        New-Item -Type Directory ${{ env.BUILD_DIR }}\
+        Copy-Item ${{ env.ARCH }}\${{ env.CONFIGURATION }}\Broker.exe ${{ env.BUILD_DIR }}\
+        Copy-Item ${{ env.ARCH }}\${{ env.CONFIGURATION }}\IrpDumper.sys ${{ env.BUILD_DIR }}\
+        Copy-Item ${{ env.ARCH }}\${{ env.CONFIGURATION }}\Driver.inf ${{ env.BUILD_DIR }}\
+
 
     - name: Publish artifact
       id: publish_artifact
       uses: actions/upload-artifact@v2
       with:
-        name: cfb_broker_latest_msvc_x64
-        path: build\
+        name: cfb_broker_${{ env.GITHUB_REF_SLUG }}_${{ env.ARCH }}_${{ env.GITHUB_SHA_SHORT }}
+        path: ${{ env.BUILD_DIR }}\

@@ -43,5 +43,5 @@ ErrorControl  = 1              ; SERVICE_ERROR_NORMAL
 [Strings]
 ManufacturerName="BlahCat Corp"
 DiskName="IrpDumper Installation Disk"
-ServiceName = "Broker"
-ServiceDesc = "Broker: usermode service for CFB's IrpDumper driver"
+ServiceName = "IrpDumper"
+ServiceDesc = "IrpDumper is the driver that hooks the IRPs, and can't be controlled via the Broker tool."

@@ -287,7 +287,7 @@ NTSTATUS HandleInterceptedIrp(IN PHOOKED_DRIVER Driver, IN PDEVICE_OBJECT pDevic
     temp.Tid = HandleToULong(PsGetCurrentThreadId());
     temp.Type = (CFB_INTERCEPTED_IRP_TYPE_IRP |(UINT32)Stack->MajorFunction);
 
-    wcsncpy( temp.DriverName, Driver->Name, wcslen( Driver->Name ) );
+    wcsncpy_s( temp.DriverName, MAX_PATH*sizeof(WCHAR), Driver->Name, _TRUNCATE);
 
     Status = GetDeviceNameFromDeviceObject( pDeviceObject, temp.DeviceName, MAX_PATH );
     if ( !NT_SUCCESS( Status ) )
@@ -457,7 +457,7 @@ HandleInterceptedFastIo(
     temp.Type = Type;
     temp.IoctlCode = IoctlCode;
 
-    wcsncpy(temp.DriverName, Driver->Name, wcslen(Driver->Name));
+    wcsncpy_s(temp.DriverName, MAX_PATH*sizeof(WCHAR), Driver->Name, _TRUNCATE);
 
     Status = GetDeviceNameFromDeviceObject(pDeviceObject, temp.DeviceName, MAX_PATH);
     if (!NT_SUCCESS(Status))

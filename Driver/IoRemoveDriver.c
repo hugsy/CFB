@@ -108,7 +108,7 @@ NTSTATUS RemoveAllDrivers()
         PHOOKED_DRIVER Driver = CONTAINING_RECORD(Entry, HOOKED_DRIVER, ListEntry);
 
 		WCHAR OldDriverName[HOOKED_DRIVER_MAX_NAME_LEN]={ 0, };
-		wcscpy( OldDriverName, Driver->Name );
+		wcscpy_s( OldDriverName, HOOKED_DRIVER_MAX_NAME_LEN-sizeof(WCHAR), Driver->Name );
         
 		Status = RemoveDriverByName( Driver->Name );
 		if (!NT_SUCCESS(Status))
