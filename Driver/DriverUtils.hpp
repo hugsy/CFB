@@ -164,7 +164,11 @@ protected:
 class KMutex
 {
 public:
-    KMutex();
+    void
+    Init();
+
+    void
+    Clean();
 
     void
     Lock();
@@ -173,7 +177,7 @@ public:
     Unlock();
 
 private:
-    KMUTEX _mutex;
+    KMUTEX _mutex={0};
 };
 
 
@@ -183,9 +187,15 @@ private:
 class KSpinLock
 {
 public:
-    KSpinLock();
+    void
+    Init();
+
+    void
+    Clean();
+
     void
     Lock();
+
     void
     Unlock();
 
@@ -201,9 +211,15 @@ private:
 class KQueuedSpinLock
 {
 public:
-    KQueuedSpinLock();
+    void
+    Init();
+
+    void
+    Clean();
+
     void
     Lock();
+
     void
     Unlock();
 

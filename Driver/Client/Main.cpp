@@ -2,7 +2,6 @@
 #include <wil/resource.h>
 
 #include <string>
-#include <iostream>
 
 #include "Common.hpp"
 #include "Log.hpp"
@@ -11,11 +10,13 @@
 
 int wmain(int argc, const wchar_t* argv[])
 {
+    info("getting a handle to '%S'", CFB_DEVICE_PATH);
+
     std::wstring DriverToHook(L"tcpip.sys");
     DWORD nbBytesReturned;
 
     wil::unique_handle hFile(::CreateFileW(
-        CFB_DEVICE_PATH,
+        CFB_USER_DEVICE_PATH,
         GENERIC_WRITE | GENERIC_READ,
         0,
         nullptr,
@@ -28,7 +29,6 @@ int wmain(int argc, const wchar_t* argv[])
         err("Failed to open '%S'", CFB_DEVICE_NAME);
         return -1;
     }
-
 
     bool bSuccess = ::DeviceIoControl(
         hFile.get(),

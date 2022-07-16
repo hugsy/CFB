@@ -6,20 +6,24 @@
 
 struct GlobalContext Globals;
 
+
 void
 GlobalContext::Setup()
 {
     dbg("Setting up global context");
     ::InitializeListHead(&HookedDriverHead);
+    OwnerSpinLock.Init();
+    HookedDriverSpinLock.Init();
 }
+
 
 void
 GlobalContext::Cleanup()
 {
     dbg("Cleaning up global context");
+    OwnerSpinLock.Clean();
+    HookedDriverSpinLock.Clean();
 }
-
-
 
 
 EXTERN_C
@@ -110,7 +114,7 @@ DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
             // TODO: add some sort of authentication process
             Globals.Owner = pCallingProcess;
             Globals.SessionId++;
-            ok("Locked device to EPROCESS=%p, starting session=%d...\n", Globals.Owner, Globals.SessionId);
+            ok("Locked device to EPROCESS=%p, starting session=%d...", Globals.Owner, Globals.SessionId);
             Status = STATUS_SUCCESS;
         }
         else if (pCallingProcess == Globals.Owner)
@@ -146,7 +150,7 @@ DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
 
     auto scoped_lock = CFB::Driver::Utils::ScopedLock(Globals.OwnerSpinLock);
     Globals.Owner = nullptr;
-    ok("Unlocked device...\n");
+    ok("Unlocked device...");
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
 
@@ -262,7 +266,7 @@ DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation(Irp);
     if (pStack == nullptr)
     {
-        err("IoGetCurrentIrpStackLocation() failed (IRP %p)\n", Irp);
+        err("IoGetCurrentIrpStackLocation() failed (IRP %p)", Irp);
         return CompleteRequest(Irp, Status, 0);
     }
 

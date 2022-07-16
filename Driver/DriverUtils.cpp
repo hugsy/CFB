@@ -9,9 +9,16 @@
 namespace CFB::Driver::Utils
 {
 #pragma region KMutex
-    KMutex::KMutex()
+    void
+    KMutex::Init()
     {
+        dbg("Creating KMutex");
         ::KeInitializeMutex(&_mutex, 0);
+    }
+
+    void
+    KMutex::Clean()
+    {
     }
 
     void KMutex::Lock()
@@ -27,9 +34,17 @@ namespace CFB::Driver::Utils
 #pragma endregion
 
 #pragma region KSpinLock
-    KSpinLock::KSpinLock()
+    void
+    KSpinLock::Init()
     {
+        dbg("Creating KSpinLock");
         KeInitializeSpinLock(&_SpinLock);
+    }
+
+    void
+    KSpinLock::Clean()
+    {
+        dbg("Cleaning up KSpinLock");
     }
 
     void
@@ -46,10 +61,18 @@ namespace CFB::Driver::Utils
 #pragma endregion
 
 #pragma region KQueuedSpinLock
-    KQueuedSpinLock::KQueuedSpinLock()
+    void
+    KQueuedSpinLock::Init()
     {
         dbg("Creating KQueuedSpinLock");
         ::KeInitializeSpinLock(&_SpinLock);
+
+    }
+
+    void
+    KQueuedSpinLock::Clean()
+    {
+        dbg("Cleaning up KQueuedSpinLock");
     }
 
     void

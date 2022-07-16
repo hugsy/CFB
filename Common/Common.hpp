@@ -4,7 +4,6 @@
 #include <ntddk.h>
 #else
 #include <windows.h>
-#include "targetver.h"
 #endif // CFB_KERNEL_DRIVER
 
 //
@@ -33,13 +32,15 @@ using usize = SIZE_T;
 #define CFB_DEVICE_NAME             L"IrpMonitor"
 #define CFB_DEVICE_PATH             L"\\Device\\" CFB_DEVICE_NAME
 #define CFB_DOS_DEVICE_PATH         L"\\??\\" CFB_DEVICE_NAME
+#define CFB_USER_DEVICE_PATH        L"\\\\.\\" CFB_DEVICE_NAME
+
 #define CFB_DEVICE_TAG				'CFB '
 
 #ifndef boolstr
-#define boolstr(x) ( (x) ? "true" : "false")
+#define boolstr(x)                  ( (x) ? "true" : "false")
 #endif
 
 #ifndef boolstrw
-#define boolstrw(x) ( (x) ? L"true" : L"false")
+#define boolstrw(x)                 ( (x) ? L"true" : L"false")
 #endif
 
