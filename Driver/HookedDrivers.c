@@ -49,18 +49,18 @@ Return Value:
 	Returns STATUS_SUCCESS on success.
 
 --*/
-UINT32 
+UINT32
 GetNumberOfHookedDrivers()
 {
     UINT32 i = 0;
-    
+
     KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
     if (!IsListEmpty(g_HookedDriverHead))
     {
 		PLIST_ENTRY Entry;
-        for (i = 0, Entry = g_HookedDriverHead->Flink; 
-            Entry != g_HookedDriverHead; 
+        for (i = 0, Entry = g_HookedDriverHead->Flink;
+            Entry != g_HookedDriverHead;
             Entry = Entry->Flink, i++);
     }
 
@@ -74,12 +74,12 @@ GetNumberOfHookedDrivers()
 
 Routine Description:
 
-Return a null terminated wide-string formed with all names of hooked drivers, separated 
+Return a null terminated wide-string formed with all names of hooked drivers, separated
 with a comma ','.
 
 
 Arguments:
- 
+
     None
 
 Return Value:
@@ -223,7 +223,7 @@ NTSTATUS GetHookedDriverByName(_In_ LPWSTR lpDriverName, _Out_ PHOOKED_DRIVER *p
 
             Entry = Entry->Flink;
 
-        } 
+        }
 		while (Entry != g_HookedDriverHead);
 
     }
@@ -268,7 +268,7 @@ PHOOKED_DRIVER GetHookedDriverFromDeviceObject(_In_ PDEVICE_OBJECT DeviceObject)
 
 		Entry = Entry->Flink;
 
-	} 
+	}
 	while (Entry != g_HookedDriverHead);
 
 	return NULL;

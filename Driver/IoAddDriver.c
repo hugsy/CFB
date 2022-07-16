@@ -36,8 +36,6 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     UNICODE_STRING UnicodeName;
     PDRIVER_OBJECT pDriver;
     PDEVICE_OBJECT pDevice;
-    
-
 
     RtlInitUnicodeString(&UnicodeName, lpObjectName);
 
@@ -64,7 +62,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
         break;
 
     case Device:
-        
+
         Status = ObReferenceObjectByName(
             &UnicodeName,
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
@@ -76,15 +74,15 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
             (PVOID*)&pDevice
         );
 
-        // always returns 0xc0000024 
-        
+        // always returns 0xc0000024
+
 
         if (!NT_SUCCESS(Status))
             return Status;
 
 
         pDriver = pDevice->DriverObject;
-        
+
         break;
 
     default:
@@ -119,7 +117,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     RtlUnicodeStringCopy(&NewDriver->UnicodeName, &UnicodeName);
     NewDriver->DriverObject = pDriver;
 
-    
+
 
     KeAcquireInStackQueuedSpinLock(&g_AddRemoveDriverSpinLock, &g_AddRemoveSpinLockQueue);
 
@@ -140,7 +138,7 @@ NTSTATUS AddObjectByName(LPWSTR lpObjectName, HOOKABLE_OBJECT_T Type)
     //
     // Exchange pointer for Fast IO dispatcher
     //
-    
+
     if (pDriver->FastIoDispatch)
     {
         PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
@@ -248,7 +246,7 @@ NTSTATUS HandleIoAddDriver(PIRP Irp, PIO_STACK_LOCATION Stack)
         {
             Status = STATUS_INVALID_PARAMETER;
         }
-        
+
         CfbDbgPrintOk(L"AddObjectByName('%s') returned %#x\n", lpObjectName, Status);
     }
     while(0);

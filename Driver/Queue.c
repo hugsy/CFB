@@ -21,7 +21,7 @@ void InitializeQueueStructures()
 	//KeInitializeSpinLock(&IrpQueueSpinLock);
 	//ExInitializeFastMutex(&FlushQueueMutex);
 	ExInitializeFastMutex(&QueueMutex);
-	InitializeListHead(g_InterceptedIrpHead); 
+	InitializeListHead(g_InterceptedIrpHead);
 	InterceptedIrpListSize = 0;
 	return;
 }
@@ -68,14 +68,14 @@ NTSTATUS PushToQueue(_In_ PINTERCEPTED_IRP pData)
 
 /*++
 
-Peek into the first item of the hooked driver linked list (if any), to determine the 
+Peek into the first item of the hooked driver linked list (if any), to determine the
 total size of the intercepted IRP (header + body).
 
 --*/
 NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 {
 	NTSTATUS Status = STATUS_UNSUCCESSFUL;
-    
+
 	ExAcquireFastMutex(&QueueMutex);
 
 	if (IsListEmpty(g_InterceptedIrpHead))
@@ -93,7 +93,7 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 	}
 
 	ExReleaseFastMutex(&QueueMutex);
-    
+
 	return Status;
 }
 
@@ -103,7 +103,7 @@ NTSTATUS PeekHeadEntryExpectedSize(OUT PUINT32 pdwExpectedSize)
 Pops the heading item out of the queue.
 
 --*/
-NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP *pData)
+NTSTATUS PopFromQueue(OUT PINTERCEPTED_IRP* pData)
 {
 	NTSTATUS Status;
 
@@ -135,7 +135,7 @@ Empty the entire queue.
 --*/
 NTSTATUS FlushQueue()
 {
-	NTSTATUS Status = STATUS_SUCCESS; 
+	NTSTATUS Status = STATUS_SUCCESS;
 
 	ExAcquireFastMutex(&QueueMutex);
 
@@ -154,15 +154,15 @@ NTSTATUS FlushQueue()
 
 			CfbDbgPrintErr(L"An error occured : status=0x%x\n", Status);
 		}
-        else
-        {
-            FreeInterceptedIrp(pIrp);
-        }
+		else
+		{
+			FreeInterceptedIrp(pIrp);
+		}
 	}
 
 	ExReleaseFastMutex(&QueueMutex);
-	
-	CfbDbgPrintOk( L"Message queue flushed...\n" );
+
+	CfbDbgPrintOk(L"Message queue flushed...\n");
 
 	return STATUS_SUCCESS;
 }

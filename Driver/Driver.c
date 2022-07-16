@@ -94,7 +94,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
     PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, NormalPagePriority);
     if ( !Buffer )
         return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
-        
+
 
     Status = PopFromQueue(&pInterceptedIrp);
 
@@ -123,7 +123,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT
     // Copy the IRP output buffer (if any)
     //
     if (pInterceptedIrpHeader->OutputBufferLength && pInterceptedIrp->OutputBuffer)
-    {		
+    {
         ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
         //CfbDbgPrintInfo(L"RawBuffer+%d=%p <- OutputBufferLength=%x, OutputBuffer=%p\n", BufferOffset, RawBuffer, pInterceptedIrpHeader->OutputBufferLength, pInterceptedIrp->OutputBuffer);
         RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
@@ -155,8 +155,8 @@ Return Value:
     Returns STATUS_NOT_IMPLEMENTED.
 
 --*/
-NTSTATUS 
-_Function_class_(DRIVER_DISPATCH) 
+NTSTATUS
+_Function_class_(DRIVER_DISPATCH)
 IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
@@ -167,7 +167,7 @@ IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     CfbDbgPrintInfo(L"MajorFunction = 0x%x\n", IoGetCurrentIrpStackLocation(Irp)->MajorFunction);
 #endif
 
-    return CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0); 
+    return CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0);
 }
 
 
@@ -191,8 +191,8 @@ Return Value:
     Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS 
-_Function_class_(DRIVER_DISPATCH) 
+NTSTATUS
+_Function_class_(DRIVER_DISPATCH)
 DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp )
 {
     UNREFERENCED_PARAMETER( DeviceObject );
@@ -226,7 +226,7 @@ Return Value:
     Returns STATUS_SUCCESS on success.
 
 --*/
-NTSTATUS 
+NTSTATUS
 DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
@@ -240,7 +240,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     CfbDbgPrintInfo(L"Loading driver IrpDumper\n");
     pCurrentOwnerProcess = NULL;
 
-    UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME); 
+    UNICODE_STRING DeviceName = RTL_CONSTANT_STRING(CFB_DEVICE_NAME);
     UNICODE_STRING DeviceSymlink = RTL_CONSTANT_STRING(CFB_DEVICE_LINK);
 
 
@@ -282,7 +282,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
     DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
     DriverObject->DriverUnload = DriverUnloadRoutine;
-    
+
 
 
     //
@@ -298,10 +298,10 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     CfbDbgPrintOk( L"Symlink '%s' to device object '%s' created\n", CFB_DEVICE_LINK, CFB_DEVICE_NAME );
 
-    g_DeviceObject->Flags |= DO_DIRECT_IO; 
+    g_DeviceObject->Flags |= DO_DIRECT_IO;
     g_DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
-    
+
     //
     // Initializing the locks and structures
     //
@@ -314,7 +314,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     InitializeQueueStructures();
     InitializeTestCaseStructures();
     InitializeIoAddDriverStructure();
-    
+
     return Status;
 }
 
@@ -350,7 +350,7 @@ typedef NTSTATUS(*PDRIVER_DISPATCH)(IN PDEVICE_OBJECT DeviceObject, OUT PIRP Irp
 #endif
 
 NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
-{ 
+{
 
     PHOOKED_DRIVER curDriver = GetHookedDriverFromDeviceObject(DeviceObject);
     if (!curDriver)
@@ -365,7 +365,7 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
             L"This could indicates a corruption of the hooked driver list, you should probably reboot...\n"
         );
         return CompleteRequest( Irp, STATUS_NO_SUCH_DEVICE, 0 );
-    } 
+    }
 
 
     //
@@ -419,8 +419,8 @@ NTSTATUS InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp
     // Collect the result from the result
     //
     if (pCurrentOwnerProcess != PsGetCurrentProcess() &&
-        IsMonitoringEnabled() && 
-        curDriver->Enabled == TRUE && 
+        IsMonitoringEnabled() &&
+        curDriver->Enabled == TRUE &&
         pIrpInfo != NULL
     )
     {
@@ -475,7 +475,7 @@ Return Value:
 
 --*/
 VOID _Function_class_(DRIVER_UNLOAD) DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
-{  
+{
 
     //
     // Unswap all hooked drivers left to avoid new IRPs to be handled by the driver
@@ -562,7 +562,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJEC
     PAGED_CODE();
 
     KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
-    
+
     g_dwNumberOfHandle--;
 
     if (g_dwNumberOfHandle == 0 && pCurrentOwnerProcess != NULL)
@@ -628,7 +628,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
         PEPROCESS pCallingProcess = PsGetCurrentProcess();
 
         KeAcquireInStackQueuedSpinLock(&SpinLockOwner, &SpinLockQueueOwner);
-    
+
         if (pCurrentOwnerProcess == NULL )
         {
             //
@@ -638,7 +638,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
             CfbDbgPrintOk(L"Locked device to EPROCESS=%p...\n", pCurrentOwnerProcess);
             g_dwNumberOfHandle++;
             Status = STATUS_SUCCESS;
-        }   
+        }
         else if (pCallingProcess == pCurrentOwnerProcess)
         {
             //
@@ -666,7 +666,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJE
 
 Routine Description:
 
-This routine handles the dispatch of DeviceIoControl() sent to a IrpDumper device object. It will 
+This routine handles the dispatch of DeviceIoControl() sent to a IrpDumper device object. It will
 parse the IRP and invoke the routine associated to the specific IOCTL code.
 
 
@@ -702,7 +702,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
     ULONG dwDataWritten = 0;
 
 
-    
+
     switch (IoctlCode)
     {
 
@@ -759,7 +759,7 @@ NTSTATUS _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVI
     if (!NT_SUCCESS(Status))
         CfbDbgPrintErr(L"IOCTL %#x returned %#x\n", IoctlCode, Status);
 
-    
+
     return CompleteRequest(Irp, Status, dwDataWritten);
 }
 
@@ -812,7 +812,7 @@ NTSTATUS InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp 
 {
     return InterceptGenericRoutine(DeviceObject, Irp);
 }
-    
+
 
 /*++
 
@@ -824,7 +824,7 @@ The WriteFile() interception routine wrapper.
 Arguments:
 
     - DeviceObject
-    
+
     - Irp
 
 
@@ -860,7 +860,7 @@ Return Value:
     Returns TRUE on success.
 
 --*/
-BOOLEAN 
+BOOLEAN
 InterceptGenericFastIoRoutine(
     _In_ PDEVICE_OBJECT DeviceObject,
     _In_ UINT32 Type,
@@ -956,39 +956,39 @@ BOOLEAN InterceptGenericFastIoDeviceControl(
     // Capture the input
     //
     if (!InterceptGenericFastIoRoutine(
-        DeviceObject, 
+        DeviceObject,
         CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL,
-        InputBuffer, 
-        InputBufferLength, 
-        IoControlCode, 
+        InputBuffer,
+        InputBufferLength,
+        IoControlCode,
         CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
         &pIrp)
     )
         return FALSE;
-    
+
     PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
     PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
     BOOLEAN bRes = OriginalFastIoDeviceControl(
-        FileObject, 
-        Wait, 
-        InputBuffer, 
-        InputBufferLength, 
-        OutputBuffer, 
-        OutputBufferLength, 
-        IoControlCode, 
-        IoStatus, 
+        FileObject,
+        Wait,
+        InputBuffer,
+        InputBufferLength,
+        OutputBuffer,
+        OutputBufferLength,
+        IoControlCode,
+        IoStatus,
         DeviceObject
     );
-    
+
     //
     // Capture the output - pIrp was already initialized
     //
     if (!InterceptGenericFastIoRoutine(
-        DeviceObject, 
+        DeviceObject,
         CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL,
-        OutputBuffer, 
-        OutputBufferLength, 
-        IoControlCode, 
+        OutputBuffer,
+        OutputBufferLength,
+        IoControlCode,
         CFB_FASTIO_USE_OUTPUT_BUFFER,
         &pIrp
     ))
@@ -1060,18 +1060,18 @@ BOOLEAN InterceptGenericFastIoRead(
         DeviceObject
     );
 
-    
+
     if (!InterceptGenericFastIoRoutine(
-        DeviceObject, 
+        DeviceObject,
         CFB_INTERCEPTED_IRP_TYPE_FASTIO_READ,
-        Buffer, 
-        Length, 
+        Buffer,
+        Length,
         (ULONG)-1,
         CFB_FASTIO_USE_OUTPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
         &pIrp
     ))
         return FALSE;
-    
+
     return bRes;
 }
 
@@ -1123,10 +1123,10 @@ BOOLEAN InterceptGenericFastIoWrite(
 {
     PINTERCEPTED_IRP pIrp = NULL;
     if (!InterceptGenericFastIoRoutine(
-        DeviceObject, 
+        DeviceObject,
         CFB_INTERCEPTED_IRP_TYPE_FASTIO_WRITE,
-        Buffer, 
-        Length, 
+        Buffer,
+        Length,
         (ULONG)-1,
         CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
         &pIrp

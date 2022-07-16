@@ -3,13 +3,19 @@ name: CI Build Broker for MSVC
 on:
   push:
     branches:
-      - master
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # regenerate regularly the driver because of the certificate expiry date
+    - cron:  '0 0 * * *'
 
 env:
   ARCH: x64
   CONFIGURATION: Release
   BUILD_DIR: build
-  
+
 jobs:
   build:
     name: "Building CFB"
@@ -18,11 +24,11 @@ jobs:
       fail-fast: false
 
     steps:
-    
+
     - uses: actions/checkout@v2
 
     - name: Inject slug/short variables
-      uses: rlespinasse/github-slug-action@v3.x  
+      uses: rlespinasse/github-slug-action@v3.x
 
     - name: Build CFB Solution
       shell: pwsh
