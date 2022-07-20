@@ -12,6 +12,12 @@ namespace CFB::Driver
 {
 struct HookedDriver
 {
+    enum class HookState
+    {
+        Unhooked,
+        Hooked
+    };
+
     ///
     /// @brief The next HookedDriver entry (if any)
     ///
@@ -29,7 +35,7 @@ struct HookedDriver
     UNICODE_STRING Path;
 
     ///
-    /// @brief A pointer to the driver object. The object refcount has been incremented by the manager.
+    /// @brief A pointer to the driver object. The object refcount has been incremented by the constructor.
     /// The destructor makes sure to release it.
     ///
     PDRIVER_OBJECT DriverObject;
@@ -64,27 +70,36 @@ struct HookedDriver
     ///
     Utils::KFastMutex Mutex;
 
-    HookedDriver(const wchar_t* _Path, const PDRIVER_OBJECT _DriverObject);
+    ///
+    /// @brief
+    ///
+    HookState State;
+
+    HookedDriver(const wchar_t* _Path);
 
     ~HookedDriver();
 
     static void*
-    operator new(usize sz)
+    operator new(const usize sz)
     {
-        dbg("Allocating HookedDriver");
         void* Memory = ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
         ::RtlSecureZeroMemory(Memory, sz);
+        dbg("Allocating HookedDriver at %p", Memory);
         return Memory;
     }
 
     static void
-    operator delete(void* m)
+    operator delete(void* Memory)
     {
-        dbg("Deallocating HookedDriver");
-        return ::ExFreePoolWithTag(m, CFB_DEVICE_TAG);
+        dbg("Deallocating HookedDriver at %p", Memory);
+        return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
     void
     SwapCallbacks();
+
+
+    void
+    RestoreCallbacks();
 };
 } // namespace CFB::Driver

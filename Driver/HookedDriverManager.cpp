@@ -46,48 +46,62 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
         }
     }
 
-    dbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
-
-    //
-    // Refuse to hook IrpMonitor
-    //
-    if ( pDriver == Globals->DriverObject )
     {
-        ObDereferenceObject(pDriver);
-        return STATUS_ACCESS_DENIED;
-    }
-
-    {
-        Utils::ScopedLock lock(Mutex);
+        dbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
+        Utils::ScopedWrapper DriverObj(
+            pDriver,
+            [&pDriver]()
+            {
+                ObDereferenceObject(pDriver);
+            });
 
         //
-        // Check if the driver is already hooked
+        // Refuse to hook IrpMonitor
         //
-        auto FromDriverAddress = [&pDriver](const HookedDriver* h)
+        if ( pDriver == Globals->DriverObject )
         {
-            return h->DriverObject == pDriver;
-        };
-
-        if ( Entries.Find(FromDriverAddress) != nullptr )
-        {
-            ObDereferenceObject(pDriver);
-            return STATUS_ALREADY_REGISTERED;
+            return STATUS_ACCESS_DENIED;
         }
 
-        dbg("HookedDriverManager::InsertDriver(): Driver %p is not hooked, hooking now...", pDriver);
+        {
+            Utils::ScopedLock lock(Mutex);
 
-        //
-        // Allocate the new HookedDriver, this will result in all the `IRP_MJ_*` of the driver being
-        // redirected to IrpMonitor
-        //
-        auto NewHookedDriver = new HookedDriver(Path, pDriver);
+            //
+            // Check if the driver is already hooked
+            //
+            auto FromDriverAddress = [&DriverObj](const HookedDriver* h)
+            {
+                return h->DriverObject == DriverObj.get();
+            };
 
-        //
-        // Last, insert the driver to the linked list
-        //
-        Entries += NewHookedDriver;
+            if ( Entries.Find(FromDriverAddress) != nullptr )
+            {
+                return STATUS_ALREADY_REGISTERED;
+            }
 
-        dbg("Added '%S' to the hooked driver list", NewHookedDriver->Path.Buffer);
+            //
+            // Check if there's space
+            //
+            if ( Entries.Size() >= CFB_MAX_HOOKED_DRIVERS )
+            {
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            dbg("HookedDriverManager::InsertDriver(): Driver %p is not hooked, hooking now...", DriverObj.get());
+
+            //
+            // Allocate the new HookedDriver, this will result in all the `IRP_MJ_*` of the driver being
+            // redirected to IrpMonitor
+            //
+            auto NewHookedDriver = new HookedDriver(Path);
+
+            //
+            // Last, insert the driver to the linked list
+            //
+            Entries += NewHookedDriver;
+
+            dbg("Added '%S' to the hooked driver list", NewHookedDriver->Path.Buffer);
+        }
     }
 
     return STATUS_SUCCESS;
@@ -96,26 +110,30 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
 NTSTATUS
 HookedDriverManager::RemoveDriver(const wchar_t* Path)
 {
-    Utils::ScopedLock lock(Mutex);
-
     UNICODE_STRING UnicodePath = {0};
     ::RtlInitUnicodeString(&UnicodePath, Path);
 
     const usize PathMaxLength = min(UnicodePath.Length, CFB_DRIVER_MAX_PATH);
+    dbg("Trying to remove '%S' from the hooked driver list", UnicodePath.Buffer);
 
-    auto FromDriverPath = [&UnicodePath, &PathMaxLength](const HookedDriver* h)
     {
-        return ::RtlCompareUnicodeString(&h->Path, &UnicodePath, true) == 0;
-    };
+        Utils::ScopedLock lock(Mutex);
+        auto FromDriverPath = [&UnicodePath, &PathMaxLength](const HookedDriver* h)
+        {
+            return ::RtlCompareUnicodeString(&h->Path, &UnicodePath, true) == 0;
+        };
 
-    auto MatchedDriver = Entries.Find(FromDriverPath);
-    if ( MatchedDriver == nullptr )
-    {
-        return STATUS_NOT_FOUND;
+        auto MatchedDriver = Entries.Find(FromDriverPath);
+        if ( MatchedDriver == nullptr )
+        {
+            return STATUS_NOT_FOUND;
+        }
+
+        dbg("Removing HookedDriver %p ...", MatchedDriver);
+
+        Entries -= MatchedDriver;
+        delete MatchedDriver;
     }
-
-    Entries -= MatchedDriver;
-    delete MatchedDriver;
 
     return STATUS_SUCCESS;
 }

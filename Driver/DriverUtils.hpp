@@ -287,7 +287,7 @@ template<typename T>
 class LinkedList
 {
 public:
-    LinkedList() : m_TotalEntry(0), m_Mutex()
+    LinkedList() : m_TotalEntry(0), m_SpinLock()
     {
         ::InitializeListHead(&m_ListHead);
     };
@@ -301,7 +301,7 @@ public:
     void
     Insert(T* NewEntry)
     {
-        ScopedLock lock(m_Mutex);
+        ScopedLock lock(m_SpinLock);
         ::InsertTailList(&m_ListHead, &NewEntry->Next);
         m_TotalEntry++;
     }
@@ -315,7 +315,7 @@ public:
     bool
     Remove(T* Entry)
     {
-        ScopedLock lock(m_Mutex);
+        ScopedLock lock(m_SpinLock);
         m_TotalEntry--;
         return ::RemoveEntryList(&Entry->Next);
     }
@@ -330,7 +330,7 @@ public:
     T*
     Find(N condition)
     {
-        ScopedLock lock(m_Mutex);
+        ScopedLock lock(m_SpinLock);
         if ( !::IsListEmpty(&m_ListHead) )
         {
             for ( PLIST_ENTRY Entry = m_ListHead.Flink; Entry != &m_ListHead; Entry = Entry->Flink )
@@ -346,7 +346,7 @@ public:
     }
 
 private:
-    KQueuedSpinLock m_Mutex;
+    KQueuedSpinLock m_SpinLock;
     LIST_ENTRY m_ListHead;
     usize m_TotalEntry;
 };

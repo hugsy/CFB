@@ -5,6 +5,8 @@
 #include "HookedDriver.hpp"
 #include "Log.hpp"
 
+#define CFB_MAX_HOOKED_DRIVERS 32
+
 namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver

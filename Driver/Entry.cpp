@@ -181,7 +181,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
 
     case IOCTL_UnhookDriver:
-        // Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
+        Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
         break;
 
         /*

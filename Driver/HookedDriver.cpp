@@ -1,27 +1,43 @@
 #include "HookedDriver.hpp"
 
+#include "Native.hpp"
 
 namespace Callbacks = CFB::Driver::Callbacks;
 namespace Utils     = CFB::Driver::Utils;
 
 namespace CFB::Driver
 {
-HookedDriver::HookedDriver(const wchar_t* _Path, const PDRIVER_OBJECT _DriverObject) :
+HookedDriver::HookedDriver(const wchar_t* _Path) :
     Enabled(false),
-    DriverObject(_DriverObject),
+    DriverObject(nullptr),
     Next(),
     OriginalRoutines(),
     FastIoRead(nullptr),
     FastIoWrite(nullptr),
     FastIoDeviceControl(nullptr),
-    InterceptedIrpsCount(0)
+    InterceptedIrpsCount(0),
+    State(HookState::Unhooked)
 {
     dbg("Creating HookedDriver('%S')", _Path);
+
 
     //
     // Initialize the members
     //
     ::RtlInitUnicodeString(&Path, _Path);
+
+    //
+    // Increment the refcount to the driver
+    //
+    ::ObReferenceObjectByName(
+        &Path,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        0,
+        *IoDriverObjectType,
+        KernelMode,
+        nullptr,
+        (PVOID*)&DriverObject);
 
     //
     // Swap the callbacks of the driver
@@ -31,12 +47,14 @@ HookedDriver::HookedDriver(const wchar_t* _Path, const PDRIVER_OBJECT _DriverObj
 
 HookedDriver::~HookedDriver()
 {
-    dbg("Destroying HookedDriver '%wS'", Path);
+    dbg("Destroying HookedDriver '%S'", Path.Buffer);
+
+    Enabled = false;
 
     //
     // Restore the callbacks
     //
-    /// TODO:
+    // RestoreCallbacks();
 
     //
     // Decrements the refcount to the DriverObject
@@ -48,6 +66,12 @@ void
 HookedDriver::SwapCallbacks()
 {
     Utils::ScopedLock lock(Mutex);
+
+    if ( State != HookState::Unhooked )
+    {
+        warn("Invalid state: expecting 'Unhooked'");
+        return;
+    }
 
     //
     // Hook all `IRP_MJ_*`
@@ -84,5 +108,51 @@ HookedDriver::SwapCallbacks()
 
         FastIoWrite = OldFastIoWrite;
     }
+
+    //
+    // Switch state flag to hooked
+    //
+    State = HookState::Hooked;
+}
+
+void
+HookedDriver::RestoreCallbacks()
+{
+    Utils::ScopedLock lock(Mutex);
+
+    if ( State != HookState::Hooked )
+    {
+        warn("Invalid state: expecting 'Hooked'");
+        return;
+    }
+
+    //
+    // Restore the original callbacks
+    //
+
+    for ( u16 i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++ )
+    {
+        InterlockedExchangePointer((PVOID*)&DriverObject->MajorFunction[i], (PVOID)OriginalRoutines[i]);
+    }
+
+    //
+    // Restore Fast IO Dispatch pointers
+    //
+
+    if ( DriverObject->FastIoDispatch )
+    {
+        InterlockedExchangePointer(
+            (PVOID*)DriverObject->FastIoDispatch->FastIoDeviceControl,
+            (PVOID)FastIoDeviceControl);
+
+        InterlockedExchangePointer((PVOID*)&DriverObject->FastIoDispatch->FastIoRead, (PVOID)FastIoRead);
+
+        InterlockedExchangePointer((PVOID*)&DriverObject->FastIoDispatch->FastIoWrite, (PVOID)FastIoWrite);
+    }
+
+    //
+    // Switch back state flag
+    //
+    State = HookState::Hooked;
 }
 } // namespace CFB::Driver

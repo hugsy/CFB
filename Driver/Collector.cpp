@@ -2,6 +2,8 @@
 
 namespace CFB::Driver
 {
+
+
 template<typename T>
 bool
 DataCollector<T>::Push(T*)

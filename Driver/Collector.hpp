@@ -21,6 +21,11 @@ struct DataCollector
     PKEVENT Event;
 
     ///
+    /// @brief Item count
+    ///
+    usize Count;
+
+    ///
     /// @brief
     ///
     Utils::LinkedList<T> Data;
@@ -29,6 +34,14 @@ struct DataCollector
     /// @brief
     ///
     Utils::KFastMutex Mutex;
+
+    DataCollector()
+    {
+    }
+
+    ~DataCollector()
+    {
+    }
 
     ///
     /// @brief Push data to the back of the queue
