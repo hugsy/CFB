@@ -8,9 +8,12 @@ set(DRIVER_HEADER_DIR ${DRIVER_SOURCE_DIR})
 set(
     DRIVER_HEADER_FILES
 
-    ${DRIVER_HEADER_DIR}/Entry.hpp
+    ${DRIVER_HEADER_DIR}/Context.hpp
+    ${DRIVER_HEADER_DIR}/Native.hpp
     ${DRIVER_HEADER_DIR}/DriverUtils.hpp
-    ${DRIVER_HEADER_DIR}/IoDriver.hpp
+    ${DRIVER_HEADER_DIR}/HookedDriverManager.hpp
+    ${DRIVER_HEADER_DIR}/HookedDriver.hpp
+    ${DRIVER_HEADER_DIR}/Callbacks.hpp
 )
 
 set(
@@ -18,9 +21,9 @@ set(
 
     ${DRIVER_SOURCE_DIR}/Entry.cpp
     ${DRIVER_SOURCE_DIR}/DriverUtils.cpp
-
-    ${DRIVER_SOURCE_DIR}/IoAddDriver.cpp
-    ${DRIVER_SOURCE_DIR}/IoRemoveDriver.cpp
+    ${DRIVER_SOURCE_DIR}/HookedDriverManager.cpp
+    ${DRIVER_SOURCE_DIR}/HookedDriver.cpp
+    ${DRIVER_SOURCE_DIR}/Callbacks.cpp
 )
 
 wdk_add_driver(

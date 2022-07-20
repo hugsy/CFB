@@ -1,5 +1,26 @@
+#pragma once
+
 #include "Common.hpp"
 #include "Log.hpp"
+
+///
+/// @brief Basic fake exception dispatcher
+///
+/// @param Status
+///
+void __cdecl throws(NTSTATUS Status);
+
+void* __cdecl
+operator new(size_t Size, POOL_TYPE PoolType = PagedPool, ULONG PoolTag = CFB_DEVICE_TAG);
+
+void __cdecl
+operator delete(void* Memory, usize Size);
+
+void* __cdecl
+operator new[](size_t Size, POOL_TYPE PoolType);
+
+void __cdecl
+operator delete[](void* Memory, usize Size);
 
 namespace CFB::Driver::Utils
 {
@@ -22,7 +43,7 @@ public:
     ~ScopedLock()
     {
         _lock.Unlock();
-        dbg("Scope unocking: %p", &_lock);
+        dbg("Scope unlocking: %p", &_lock);
     }
 
 private:
@@ -30,6 +51,12 @@ private:
 };
 
 
+///
+/// @brief
+///
+/// @tparam T
+/// @tparam D
+///
 template<typename T, typename D>
 class ScopedWrapper
 {
@@ -55,6 +82,11 @@ private:
 };
 
 
+///
+/// @brief
+///
+/// @tparam T
+///
 template<typename T>
 class KAlloc
 {
@@ -65,6 +97,7 @@ public:
         _mem(nullptr),
         _valid(false)
     {
+        dbg("In KAlloc()");
         if ( !sz || sz >= MAXUSHORT )
         {
             return;
@@ -81,7 +114,7 @@ public:
 
     ~KAlloc()
     {
-        if(valid())
+        if ( valid() )
         {
             __free();
         }
@@ -94,9 +127,9 @@ public:
         {
             ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
             ::ExFreePoolWithTag(_mem, _tag);
-            _mem = nullptr;
-            _tag = 0;
-            _sz  = 0;
+            _mem   = nullptr;
+            _tag   = 0;
+            _sz    = 0;
             _valid = false;
         }
     }
@@ -164,11 +197,9 @@ protected:
 class KMutex
 {
 public:
-    void
-    Init();
+    KMutex();
 
-    void
-    Clean();
+    ~KMutex();
 
     void
     Lock();
@@ -177,7 +208,29 @@ public:
     Unlock();
 
 private:
-    KMUTEX _mutex={0};
+    KMUTEX _mutex = {0};
+};
+
+///
+/// @brief Wrapper for FAST_MUTEXes
+///
+///
+class KFastMutex
+{
+
+public:
+    KFastMutex();
+
+    ~KFastMutex();
+
+    void
+    Lock();
+
+    void
+    Unlock();
+
+private:
+    FAST_MUTEX _mutex = {0};
 };
 
 
@@ -187,11 +240,9 @@ private:
 class KSpinLock
 {
 public:
-    void
-    Init();
+    KSpinLock();
 
-    void
-    Clean();
+    ~KSpinLock();
 
     void
     Lock();
@@ -201,7 +252,7 @@ public:
 
 private:
     KSPIN_LOCK _SpinLock = 0;
-    KIRQL _OldIrql = 0;
+    KIRQL _OldIrql       = 0;
 };
 
 
@@ -211,11 +262,9 @@ private:
 class KQueuedSpinLock
 {
 public:
-    void
-    Init();
+    KQueuedSpinLock();
 
-    void
-    Clean();
+    ~KQueuedSpinLock();
 
     void
     Lock();
@@ -224,8 +273,160 @@ public:
     Unlock();
 
 private:
-    KSPIN_LOCK _SpinLock = 0;
-    KLOCK_QUEUE_HANDLE _LockQueueHandle = { 0 };
+    KSPIN_LOCK _SpinLock                = 0;
+    KLOCK_QUEUE_HANDLE _LockQueueHandle = {0};
 };
 
-}
+
+///
+/// @brief
+///
+/// @tparam T
+///
+template<typename T>
+class LinkedList
+{
+public:
+    LinkedList() : m_TotalEntry(0), m_Mutex()
+    {
+        ::InitializeListHead(&m_ListHead);
+    };
+
+    usize
+    Size() const
+    {
+        return m_TotalEntry;
+    }
+
+    void
+    Insert(T* NewEntry)
+    {
+        ScopedLock lock(m_Mutex);
+        ::InsertTailList(&m_ListHead, &NewEntry->Next);
+        m_TotalEntry++;
+    }
+
+    void
+    operator+=(T* NewEntry)
+    {
+        Insert(NewEntry);
+    }
+
+    bool
+    Remove(T* Entry)
+    {
+        ScopedLock lock(m_Mutex);
+        m_TotalEntry--;
+        return ::RemoveEntryList(&Entry->Next);
+    }
+
+    void
+    operator-=(T* Entry)
+    {
+        Remove(Entry);
+    }
+
+    template<typename N>
+    T*
+    Find(N condition)
+    {
+        ScopedLock lock(m_Mutex);
+        if ( !::IsListEmpty(&m_ListHead) )
+        {
+            for ( PLIST_ENTRY Entry = m_ListHead.Flink; Entry != &m_ListHead; Entry = Entry->Flink )
+            {
+                auto CurrentItem = CONTAINING_RECORD(Entry, T, Next);
+                if ( condition(CurrentItem) == true )
+                {
+                    return CurrentItem;
+                }
+            }
+        }
+        return nullptr;
+    }
+
+private:
+    KMutex m_Mutex;
+    LIST_ENTRY m_ListHead;
+    usize m_TotalEntry;
+};
+
+
+///
+/// @brief
+///
+/// @tparam T
+///
+template<typename T>
+class SharedPointer
+{
+
+public:
+    SharedPointer(T* _ptr) : m_Count(nullptr), m_Pointer(_ptr)
+    {
+        m_Count = new int(1);
+    }
+
+    ~SharedPointer()
+    {
+        if ( !m_Count )
+        {
+            return;
+        }
+        (*count)--;
+        if ( *m_Count == 0 )
+        {
+            delete m_Pointer;
+            delete m_Count;
+        }
+    }
+
+    SharedPointer(const SharedPointer<T>& other)
+    {
+        ScopedLock lock(m_Mutex);
+        m_Pointer = other.m_Pointer;
+        m_Count   = other.count;
+        (*m_Count)++;
+    }
+
+    SharedPointer<T>&
+    operator=(const SharedPointer<T>& other)
+    {
+        ScopedLock lock(m_Mutex);
+        m_Pointer = other.m_Pointer;
+        m_Count   = other.m_Count;
+        (*m_Count)++;
+        return *this;
+    }
+
+    size_t
+    count() const
+    {
+        return (m_Count != nullptr) ? *m_Count : 0;
+    }
+
+    T*
+    get()
+    {
+        return m_Pointer;
+    }
+
+    T*
+    operator*()
+    {
+        return get();
+    }
+
+    T*
+    operator->()
+    {
+        return get();
+    }
+
+private:
+    T* m_Pointer;
+    usize* m_Count;
+    KFastMutex m_Mutex;
+};
+
+} // namespace CFB::Driver::Utils

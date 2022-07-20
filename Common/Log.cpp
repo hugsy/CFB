@@ -13,19 +13,26 @@
 #define __WFILE__ WIDEN(__FILE__)
 #define __WFUNCTION__ WIDEN(__FUNCTION__)
 
+#ifdef CFB_KERNEL_DRIVER
+#ifdef _DEBUG
+#define CFB_LOG_VERBOSE_LEVEL DPFLTR_INFO_LEVEL
+#else
+#define CFB_LOG_VERBOSE_LEVEL DPFLTR_WARNING_LEVEL
+#endif
+#endif
+
 namespace CFB::Log
 {
     void
     log(const char* fmtstr, ...)
     {
-        char buffer[1024] = { 0 };
         va_list args;
-
         va_start(args, fmtstr);
+        char buffer[1024] = { 0 };
 
 #ifdef CFB_KERNEL_DRIVER
         RtlStringCchVPrintfA(buffer, countof(buffer), fmtstr, args);
-        KdPrint(("%s", buffer));
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, CFB_LOG_VERBOSE_LEVEL, buffer);
 #else
         ::vsprintf_s(buffer, countof(buffer), fmtstr, args);
         std::cout << buffer;

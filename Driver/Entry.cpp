@@ -1,36 +1,21 @@
-#include "Entry.hpp"
-
+#include "Common.hpp"
+#include "Context.hpp"
 #include "IoctlCodes.hpp"
-#include "IoDriver.hpp"
+#include "Messages.hpp"
+#include "Utils.hpp"
 
+#define DEVICE_NAME CFB_DEVICE_NAME
+#define DEVICE_PATH CFB_DEVICE_PATH
+#define DOS_DEVICE_PATH CFB_DOS_DEVICE_PATH
 
-struct GlobalContext Globals;
-
-
-void
-GlobalContext::Setup()
-{
-    dbg("Setting up global context");
-    ::InitializeListHead(&HookedDriverHead);
-    OwnerSpinLock.Init();
-    HookedDriverSpinLock.Init();
-}
-
-
-void
-GlobalContext::Cleanup()
-{
-    dbg("Cleaning up global context");
-    OwnerSpinLock.Clean();
-    HookedDriverSpinLock.Clean();
-}
+struct GlobalContext* Globals = nullptr;
 
 
 EXTERN_C
 NTSTATUS
 CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PTR Information)
 {
-    Irp->IoStatus.Status = Status;
+    Irp->IoStatus.Status      = Status;
     Irp->IoStatus.Information = Information;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     return Status;
@@ -60,7 +45,7 @@ DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 
     ok("Device '%S' unloaded", DEVICE_NAME);
 
-    Globals.Cleanup();
+    delete Globals;
     ok("Context cleaned up");
     return;
 }
@@ -70,54 +55,53 @@ DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 ///
 ///
 NTSTATUS
-_Function_class_(DRIVER_DISPATCH)
-DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
+_Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(pObject);
     PAGED_CODE();
 
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
-    PIO_STACK_LOCATION lpStack = ::IoGetCurrentIrpStackLocation(Irp);
+    NTSTATUS Status                        = STATUS_UNSUCCESSFUL;
+    PIO_STACK_LOCATION lpStack             = ::IoGetCurrentIrpStackLocation(Irp);
     PIO_SECURITY_CONTEXT lpSecurityContext = lpStack->Parameters.Create.SecurityContext;
 
 
     //
     // Ensure the calling process has SeDebugPrivilege
     //
-    PPRIVILEGE_SET lpRequiredPrivileges = nullptr;
-    UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)] = { 0 };
+    PPRIVILEGE_SET lpRequiredPrivileges                                                            = nullptr;
+    UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)] = {0};
 
-    lpRequiredPrivileges = (PPRIVILEGE_SET)ucPrivilegesBuffer;
-    lpRequiredPrivileges->PrivilegeCount = 1;
-    lpRequiredPrivileges->Control = PRIVILEGE_SET_ALL_NECESSARY;
-    lpRequiredPrivileges->Privilege[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
+    lpRequiredPrivileges                             = (PPRIVILEGE_SET)ucPrivilegesBuffer;
+    lpRequiredPrivileges->PrivilegeCount             = 1;
+    lpRequiredPrivileges->Control                    = PRIVILEGE_SET_ALL_NECESSARY;
+    lpRequiredPrivileges->Privilege[0].Luid.LowPart  = SE_DEBUG_PRIVILEGE;
     lpRequiredPrivileges->Privilege[0].Luid.HighPart = 0;
-    lpRequiredPrivileges->Privilege[0].Attributes = 0;
+    lpRequiredPrivileges->Privilege[0].Attributes    = 0;
 
-    if (SePrivilegeCheck(
-            lpRequiredPrivileges,
-            &lpSecurityContext->AccessState->SubjectSecurityContext,
-            Irp->RequestorMode) == false)
+    if ( SePrivilegeCheck(
+             lpRequiredPrivileges,
+             &lpSecurityContext->AccessState->SubjectSecurityContext,
+             Irp->RequestorMode) == false )
     {
         Status = STATUS_PRIVILEGE_NOT_HELD;
     }
     else
     {
-        auto scoped_lock = CFB::Driver::Utils::ScopedLock(Globals.OwnerSpinLock);
+        auto scoped_lock          = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
         PEPROCESS pCallingProcess = ::PsGetCurrentProcess();
 
-        if (Globals.Owner == nullptr)
+        if ( Globals->Owner == nullptr )
         {
             //
             // If there's no process owner, affect one and increment the handle counter
             //
-            // TODO: add some sort of authentication process
-            Globals.Owner = pCallingProcess;
-            Globals.SessionId++;
-            ok("Locked device to EPROCESS=%p, starting session=%d...", Globals.Owner, Globals.SessionId);
+            /// TODO: add some sort of authentication process
+            Globals->Owner = pCallingProcess;
+            Globals->SessionId++;
+            ok("Locked device to EPROCESS=%p, starting session=%d...", Globals->Owner, Globals->SessionId);
             Status = STATUS_SUCCESS;
         }
-        else if (pCallingProcess == Globals.Owner)
+        else if ( pCallingProcess == Globals->Owner )
         {
             //
             // If the CreateFile() originates from the owner process, increment the handle counter
@@ -142,14 +126,13 @@ DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 ///
 ///
 NTSTATUS
-_Function_class_(DRIVER_DISPATCH)
-DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
+_Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(Device);
     PAGED_CODE();
 
-    auto scoped_lock = CFB::Driver::Utils::ScopedLock(Globals.OwnerSpinLock);
-    Globals.Owner = nullptr;
+    auto scoped_lock = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
+    Globals->Owner   = nullptr;
     ok("Unlocked device...");
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
@@ -160,8 +143,7 @@ DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
 ///
 ///
 NTSTATUS
-_Function_class_(DRIVER_DISPATCH)
-DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
+_Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
     PAGED_CODE();
@@ -169,69 +151,75 @@ DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // This should never happen as we checked the process when getting the handle, but still
     //
-    if (::PsGetCurrentProcess() != Globals.Owner)
+    if ( ::PsGetCurrentProcess() != Globals->Owner )
     {
         return CompleteRequest(Irp, STATUS_ACCESS_DENIED, 0);
     }
 
-    NTSTATUS Status = STATUS_SUCCESS;
+    NTSTATUS Status                 = STATUS_SUCCESS;
     PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
     NT_ASSERT(CurrentStack);
 
-    ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
-    ULONG dwDataWritten = 0;
+    const ULONG IoctlCode       = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+    PVOID InputBuffer           = Irp->AssociatedIrp.SystemBuffer;
+    const ULONG InputBufferLen  = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
+    PVOID OutputBuffer          = Irp->AssociatedIrp.SystemBuffer;
+    const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
+    ULONG dwDataWritten         = 0;
 
-    switch (IoctlCode)
+    IoMessage Message;
+    ::RtlSecureZeroMemory(&Message, sizeof(Message));
+    ::RtlCopyMemory(&Message, InputBuffer, min(InputBufferLen, sizeof(IoMessage)));
+
+    // CFB::Utils::Hexdump(&Message, sizeof(Message));
+
+    switch ( IoctlCode )
     {
     case IOCTL_HookDriver:
-        Status = CFB::Driver::Ioctl::HookDriver(Irp, CurrentStack);
+        Status = Globals->DriverManager.InsertDriver(Message.DriverName);
         break;
 
     case IOCTL_UnhookDriver:
-        Status = CFB::Driver::Ioctl::UnhookDriver(Irp, CurrentStack);
+        Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
         break;
 
-    /*
-    case IOCTL_UnhookDriver:
-        Status = HandleIoRemoveDriver(Irp, CurrentStack);
-        break;
+        /*
+        case IOCTL_EnableMonitoring:
+            Status = HandleIoEnableMonitoring(Irp, CurrentStack );
+            break;
 
-    case IOCTL_EnableMonitoring:
-        Status = HandleIoEnableMonitoring(Irp, CurrentStack );
-        break;
+        case IOCTL_DisableMonitoring:
+            Status = HandleIoDisableMonitoring(Irp, CurrentStack );
+            break;
 
-    case IOCTL_DisableMonitoring:
-        Status = HandleIoDisableMonitoring(Irp, CurrentStack );
-        break;
+        case IOCTL_GetNumberOfDrivers:
+            Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
+            break;
 
-    case IOCTL_GetNumberOfDrivers:
-        Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
-        break;
+        case IOCTL_GetNamesOfDrivers:
+            Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
+            break;
 
-    case IOCTL_GetNamesOfDrivers:
-        Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
-        break;
+        case IOCTL_GetDriverInfo:
+            Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
+            break;
 
-    case IOCTL_GetDriverInfo:
-        Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
-        break;
+        case IOCTL_SetEventPointer:
+            Status = HandleIoSetEventPointer(Irp, CurrentStack);
+            break;
 
-    case IOCTL_SetEventPointer:
-        Status = HandleIoSetEventPointer(Irp, CurrentStack);
-        break;
+        case IOCTL_StoreTestCase:
+            Status = HandleIoStoreTestCase(Irp, CurrentStack);
+            break;
 
-    case IOCTL_StoreTestCase:
-        Status = HandleIoStoreTestCase(Irp, CurrentStack);
-        break;
+        case IOCTL_EnableDriver:
+            Status = HandleIoEnableDriverMonitoring(Irp, CurrentStack);
+            break;
 
-    case IOCTL_EnableDriver:
-        Status = HandleIoEnableDriverMonitoring(Irp, CurrentStack);
-        break;
-
-    case IOCTL_DisableDriver:
-        Status = HandleIoDisableDriverMonitoring(Irp, CurrentStack);
-        break;
-    */
+        case IOCTL_DisableDriver:
+            Status = HandleIoDisableDriverMonitoring(Irp, CurrentStack);
+            break;
+        */
 
     default:
         err("Received invalid ioctl code 0x%08x", IoctlCode);
@@ -239,7 +227,7 @@ DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
         break;
     }
 
-    if (!NT_SUCCESS(Status))
+    if ( !NT_SUCCESS(Status) )
     {
         err("IOCTL %#x returned %#x", IoctlCode, Status);
         dwDataWritten = 0;
@@ -255,8 +243,7 @@ DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 /// buffer.
 ///
 NTSTATUS
-_Function_class_(DRIVER_DISPATCH)
-DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
+_Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
     PAGED_CODE();
@@ -264,7 +251,7 @@ DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
     PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation(Irp);
-    if (pStack == nullptr)
+    if ( pStack == nullptr )
     {
         err("IoGetCurrentIrpStackLocation() failed (IRP %p)", Irp);
         return CompleteRequest(Irp, Status, 0);
@@ -344,8 +331,7 @@ DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 /// @brief Handle cleanup
 ///
 NTSTATUS
-_Function_class_(DRIVER_DISPATCH)
-DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
+_Function_class_(DRIVER_DISPATCH) DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
     UNREFERENCED_PARAMETER(Irp);
@@ -363,72 +349,71 @@ NTSTATUS
 DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
+
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
     do
     {
-        info("Loading global context...");
-        Globals.Setup();
+        info("Initializing global context...");
+        Globals = new GlobalContext();
 
         info("Loading device '%S'...", DEVICE_NAME);
+        PDEVICE_OBJECT DeviceObject = nullptr;
+        UNICODE_STRING name         = RTL_CONSTANT_STRING(DEVICE_PATH);
+        UNICODE_STRING symLink      = RTL_CONSTANT_STRING(DOS_DEVICE_PATH);
 
-        UNICODE_STRING name = RTL_CONSTANT_STRING(DEVICE_PATH);
-        UNICODE_STRING symLink = RTL_CONSTANT_STRING(DOS_DEVICE_PATH);
-
-        for (auto i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
+        for ( auto i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++ )
         {
             DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
         }
 
-        DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateRoutine;
-        DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCloseRoutine;
+        DriverObject->MajorFunction[IRP_MJ_CREATE]         = DriverCreateRoutine;
+        DriverObject->MajorFunction[IRP_MJ_CLOSE]          = DriverCloseRoutine;
         DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
-        DriverObject->MajorFunction[IRP_MJ_READ] = DriverReadRoutine;
-        DriverObject->MajorFunction[IRP_MJ_CLEANUP] = DriverCleanup;
-        DriverObject->DriverUnload = DriverUnloadRoutine;
+        DriverObject->MajorFunction[IRP_MJ_READ]           = DriverReadRoutine;
+        DriverObject->MajorFunction[IRP_MJ_CLEANUP]        = DriverCleanup;
+        DriverObject->DriverUnload                         = DriverUnloadRoutine;
 
-    Status = ::IoCreateDevice(
-        DriverObject,
-        0,
-        &name,
-        FILE_DEVICE_UNKNOWN,
-        FILE_DEVICE_SECURE_OPEN,
-        true,
-        &Globals.DeviceObject
-    );
-    if (!NT_SUCCESS(Status))
-    {
-        err("Error creating device object (0x%08X)", Status);
-        break;
-    }
-
-    ok("Device '%S' successfully created", DEVICE_NAME);
-
-    Status = ::IoCreateSymbolicLink(&symLink, &name);
-    if (!NT_SUCCESS(Status))
-    {
-        err("IoCreateSymbolicLink() failed: 0x%08X", Status);
-        break;
-    }
-
-    ok("Symlink for '%S' created", DEVICE_NAME);
-
-    Globals.DeviceObject->Flags |= DO_DIRECT_IO;
-    Globals.DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
-
-    ok("Device initialization  for '%S' done", DEVICE_NAME);
-
-    }
-    while(false);
-
-    if(!NT_SUCCESS(Status))
-    {
-        if (Globals.DeviceObject)
+        Status =
+            ::IoCreateDevice(DriverObject, 0, &name, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, true, &DeviceObject);
+        if ( !NT_SUCCESS(Status) )
         {
-            ::IoDeleteDevice(Globals.DeviceObject);
+            err("Error creating device object (0x%08X)", Status);
+            break;
         }
 
-        Globals.Cleanup();
+        ok("Device '%S' successfully created", DEVICE_NAME);
+
+        Status = ::IoCreateSymbolicLink(&symLink, &name);
+        if ( !NT_SUCCESS(Status) )
+        {
+            err("IoCreateSymbolicLink() failed: 0x%08X", Status);
+            break;
+        }
+
+        ok("Symlink for '%S' created", DEVICE_NAME);
+
+        DeviceObject->Flags |= DO_DIRECT_IO;
+        DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
+
+        Globals->DeviceObject = DeviceObject;
+        Globals->DriverObject = DriverObject;
+
+        ok("Device initialization  for '%S' done", DEVICE_NAME);
+
+    } while ( false );
+
+    if ( !NT_SUCCESS(Status) )
+    {
+        if ( Globals )
+        {
+            if ( Globals->DeviceObject )
+            {
+                ::IoDeleteDevice(Globals->DeviceObject);
+            }
+
+            delete Globals;
+        }
     }
 
     return Status;

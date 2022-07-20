@@ -7,6 +7,7 @@ set(
 
     ${COMMON_SOURCE_DIR}/Common.hpp
     ${COMMON_SOURCE_DIR}/Log.hpp
+    ${COMMON_SOURCE_DIR}/Messages.hpp
     ${COMMON_SOURCE_DIR}/Utils.hpp
     ${COMMON_SOURCE_DIR}/IoctlCodes.hpp
 )
