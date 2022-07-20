@@ -19,7 +19,7 @@ struct HookedDriverManager
     ///
     /// @brief A mutex to protect access to the critical resources
     ///
-    Utils::KFastMutex Mutex;
+    Utils::KQueuedSpinLock Mutex;
 
     ///
     /// @brief Construct a new Hooked Driver Manager object

@@ -346,7 +346,7 @@ public:
     }
 
 private:
-    KMutex m_Mutex;
+    KQueuedSpinLock m_Mutex;
     LIST_ENTRY m_ListHead;
     usize m_TotalEntry;
 };

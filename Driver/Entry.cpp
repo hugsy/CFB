@@ -11,9 +11,8 @@
 struct GlobalContext* Globals = nullptr;
 
 
-EXTERN_C
 NTSTATUS
-CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PTR Information)
+static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PTR Information)
 {
     Irp->IoStatus.Status      = Status;
     Irp->IoStatus.Information = Information;
@@ -173,6 +172,8 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 
     // CFB::Utils::Hexdump(&Message, sizeof(Message));
 
+    dbg("attempting to process ioctl %x", IoctlCode);
+
     switch ( IoctlCode )
     {
     case IOCTL_HookDriver:
@@ -180,7 +181,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
 
     case IOCTL_UnhookDriver:
-        Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
+        // Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
         break;
 
         /*
@@ -227,11 +228,14 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
     }
 
+    dbg("ioctl 0x%08x returned with Status=0x%x", IoctlCode, Status);
     if ( !NT_SUCCESS(Status) )
     {
         err("IOCTL %#x returned %#x", IoctlCode, Status);
         dwDataWritten = 0;
     }
+
+    // DbgBreakPoint();
 
     return CompleteRequest(Irp, Status, dwDataWritten);
 }

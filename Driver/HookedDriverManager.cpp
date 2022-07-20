@@ -86,6 +86,8 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
         // Last, insert the driver to the linked list
         //
         Entries += NewHookedDriver;
+
+        dbg("Added '%S' to the hooked driver list", NewHookedDriver->Path.Buffer);
     }
 
     return STATUS_SUCCESS;
