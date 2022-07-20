@@ -60,7 +60,9 @@ struct GlobalContext
     operator new(usize sz)
     {
         dbg("Allocating GlobalContext");
-        return ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        void* Memory = ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        ::RtlSecureZeroMemory(Memory, sz);
+        return Memory;
     }
 
     static void
