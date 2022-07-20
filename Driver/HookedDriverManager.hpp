@@ -17,13 +17,18 @@ struct HookedDriverManager
     Utils::LinkedList<HookedDriver> Entries;
 
     ///
-    /// @brief A Spin Lock to protect access to the critical resources
+    /// @brief A mutex to protect access to the critical resources
     ///
-    Utils::KSpinLock SpinLock;
+    Utils::KFastMutex Mutex;
 
-
+    ///
+    /// @brief Construct a new Hooked Driver Manager object
+    ///
     HookedDriverManager();
 
+    ///
+    /// @brief Destroy the Hooked Driver Manager object
+    ///
     ~HookedDriverManager();
 
     static void*

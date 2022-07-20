@@ -26,7 +26,7 @@ HookedDriver::HookedDriver(const wchar_t* _Path, const PDRIVER_OBJECT _DriverObj
     //
     // Swap the callbacks of the driver
     //
-    SwapCallbacks();
+    // SwapCallbacks();
 }
 
 HookedDriver::~HookedDriver()

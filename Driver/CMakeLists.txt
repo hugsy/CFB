@@ -14,6 +14,7 @@ set(
     ${DRIVER_HEADER_DIR}/HookedDriverManager.hpp
     ${DRIVER_HEADER_DIR}/HookedDriver.hpp
     ${DRIVER_HEADER_DIR}/Callbacks.hpp
+    ${DRIVER_HEADER_DIR}/Collector.hpp
 )
 
 set(
@@ -24,6 +25,7 @@ set(
     ${DRIVER_SOURCE_DIR}/HookedDriverManager.cpp
     ${DRIVER_SOURCE_DIR}/HookedDriver.cpp
     ${DRIVER_SOURCE_DIR}/Callbacks.cpp
+    ${DRIVER_SOURCE_DIR}/Collector.cpp
 )
 
 wdk_add_driver(

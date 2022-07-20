@@ -58,17 +58,17 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
     }
 
     {
-        Utils::ScopedLock lock(SpinLock);
+        Utils::ScopedLock lock(Mutex);
 
         //
         // Check if the driver is already hooked
         //
-        auto IsDriverHooked = [&pDriver](const HookedDriver* h)
+        auto FromDriverAddress = [&pDriver](const HookedDriver* h)
         {
             return h->DriverObject == pDriver;
         };
 
-        if ( Entries.Find(IsDriverHooked) != nullptr )
+        if ( Entries.Find(FromDriverAddress) != nullptr )
         {
             ObDereferenceObject(pDriver);
             return STATUS_ALREADY_REGISTERED;
@@ -77,14 +77,15 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
         dbg("HookedDriverManager::InsertDriver(): Driver %p is not hooked, hooking now...", pDriver);
 
         //
-        // Allocate the new HookedDriver, this will result in the IRP_MJ_* being redirected
+        // Allocate the new HookedDriver, this will result in all the `IRP_MJ_*` of the driver being
+        // redirected to IrpMonitor
         //
-        auto New = new HookedDriver(Path, pDriver);
+        auto NewHookedDriver = new HookedDriver(Path, pDriver);
 
         //
         // Last, insert the driver to the linked list
         //
-        Entries += New;
+        Entries += NewHookedDriver;
     }
 
     return STATUS_SUCCESS;
@@ -93,7 +94,7 @@ HookedDriverManager::InsertDriver(const wchar_t* Path)
 NTSTATUS
 HookedDriverManager::RemoveDriver(const wchar_t* Path)
 {
-    Utils::ScopedLock lock(this->SpinLock);
+    Utils::ScopedLock lock(Mutex);
 
     UNICODE_STRING UnicodePath = {0};
     ::RtlInitUnicodeString(&UnicodePath, Path);
@@ -112,6 +113,8 @@ HookedDriverManager::RemoveDriver(const wchar_t* Path)
     }
 
     Entries -= MatchedDriver;
+    delete MatchedDriver;
+
     return STATUS_SUCCESS;
 }
 

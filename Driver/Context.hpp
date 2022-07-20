@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Collector.hpp"
 #include "Common.hpp"
 #include "DriverUtils.hpp"
 #include "HookedDriverManager.hpp"
@@ -40,6 +41,9 @@ struct GlobalContext
     /// @brief
     ///
     CFB::Driver::HookedDriverManager DriverManager;
+
+
+    CFB::Driver::DataCollector<CFB::Driver::CapturedIrp> IrpCollector;
 
 
     GlobalContext() : DriverObject(nullptr), DeviceObject(nullptr), Owner(nullptr), OwnerSpinLock(), SessionId(-1)
