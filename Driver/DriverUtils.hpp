@@ -316,14 +316,28 @@ public:
     Remove(T* Entry)
     {
         ScopedLock lock(m_SpinLock);
-        m_TotalEntry--;
-        return ::RemoveEntryList(&Entry->Next);
+        bool bSuccess = ::RemoveEntryList(&Entry->Next);
+        if ( bSuccess )
+            m_TotalEntry--;
+        return bSuccess;
     }
 
     void
     operator-=(T* Entry)
     {
         Remove(Entry);
+    }
+
+    T*
+    PopTail()
+    {
+        ScopedLock lock(m_SpinLock);
+        if ( Size() == 0 )
+            return nullptr;
+        auto LastEntry = ::RemoveTailList(&m_ListHead);
+        auto LastItem  = CONTAINING_RECORD(LastEntry, T, Next);
+        m_TotalEntry--;
+        return LastItem;
     }
 
     template<typename N>
