@@ -36,15 +36,20 @@ struct HookedDriverManager
     static void*
     operator new(usize sz)
     {
-        dbg("Allocating HookedDriverManager");
-        return ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        void* Memory = ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        if ( Memory )
+        {
+            dbg("Allocating HookedDriverManager at %p", Memory);
+            ::RtlSecureZeroMemory(Memory, sz);
+        }
+        return Memory;
     }
 
     static void
-    operator delete(void* m)
+    operator delete(void* Memory)
     {
         dbg("Deallocating HookedDriverManager");
-        return ::ExFreePoolWithTag(m, CFB_DEVICE_TAG);
+        return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
     ///
