@@ -23,7 +23,6 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     //
     ::RtlInitUnicodeString(&Path, UnicodePath->Buffer);
 
-    dbg("Creating HookedDriver('%S')", UnicodePath->Buffer);
     dbg("Creating HookedDriver('%S')", Path.Buffer);
 
     //
