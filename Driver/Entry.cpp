@@ -161,18 +161,18 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 
     const ULONG IoctlCode       = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
     PVOID InputBuffer           = Irp->AssociatedIrp.SystemBuffer;
-    const ULONG InputBufferLen  = CurrentStack->Parameters.DeviceIoControl.InputBufferLength;
+    const ULONG InputBufferLen  = min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, sizeof(IoMessage));
     PVOID OutputBuffer          = Irp->AssociatedIrp.SystemBuffer;
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
     ULONG dwDataWritten         = 0;
 
     IoMessage Message;
     ::RtlSecureZeroMemory(&Message, sizeof(Message));
-    ::RtlCopyMemory(&Message, InputBuffer, min(InputBufferLen, sizeof(IoMessage)));
+    ::RtlCopyMemory(&Message, InputBuffer, InputBufferLen);
 
-    // CFB::Utils::Hexdump(&Message, sizeof(Message));
+    CFB::Utils::Hexdump(&Message, InputBufferLen);
 
-    dbg("attempting to process ioctl %x", IoctlCode);
+    dbg("Attempting to process IOCTL %#x", IoctlCode);
 
     switch ( IoctlCode )
     {
@@ -184,22 +184,22 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
         break;
 
+    case IOCTL_GetNumberOfDrivers:
+        dwDataWritten = Globals->DriverManager.Entries.Size();
+        break;
+
+    case IOCTL_EnableMonitoring:
+        Status = Globals->DriverManager.SetMonitoringState(Message.DriverName, true);
+        break;
+
+    case IOCTL_DisableMonitoring:
+        Status = Globals->DriverManager.SetMonitoringState(Message.DriverName, false);
+        break;
+
         /*
-        case IOCTL_EnableMonitoring:
-            Status = HandleIoEnableMonitoring(Irp, CurrentStack );
-            break;
-
-        case IOCTL_DisableMonitoring:
-            Status = HandleIoDisableMonitoring(Irp, CurrentStack );
-            break;
-
-        case IOCTL_GetNumberOfDrivers:
-            Status = HandleIoGetNumberOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
-            break;
-
-        case IOCTL_GetNamesOfDrivers:
-            Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
-            break;
+    case IOCTL_GetNamesOfDrivers:
+        Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
+        break;
 
         case IOCTL_GetDriverInfo:
             Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);

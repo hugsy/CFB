@@ -7,7 +7,7 @@ namespace Utils     = CFB::Driver::Utils;
 
 namespace CFB::Driver
 {
-HookedDriver::HookedDriver(const wchar_t* _Path) :
+HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     Enabled(false),
     DriverObject(nullptr),
     Next(),
@@ -18,18 +18,18 @@ HookedDriver::HookedDriver(const wchar_t* _Path) :
     InterceptedIrpsCount(0),
     State(HookState::Unhooked)
 {
-    dbg("Creating HookedDriver('%S')", _Path);
-
-
     //
     // Initialize the members
     //
-    ::RtlInitUnicodeString(&Path, _Path);
+    ::RtlInitUnicodeString(&Path, UnicodePath->Buffer);
+
+    dbg("Creating HookedDriver('%S')", UnicodePath->Buffer);
+    dbg("Creating HookedDriver('%S')", Path.Buffer);
 
     //
     // Increment the refcount to the driver
     //
-    ::ObReferenceObjectByName(
+    NTSTATUS Status = ::ObReferenceObjectByName(
         &Path,
         OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
         NULL,
@@ -38,6 +38,9 @@ HookedDriver::HookedDriver(const wchar_t* _Path) :
         KernelMode,
         nullptr,
         (PVOID*)&DriverObject);
+
+    NT_ASSERT(NT_SUCCESS(Status));
+    NT_ASSERT(DriverObject != nullptr);
 
     //
     // Swap the callbacks of the driver

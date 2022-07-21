@@ -75,7 +75,7 @@ struct HookedDriver
     ///
     HookState State;
 
-    HookedDriver(const wchar_t* _Path);
+    HookedDriver(const PUNICODE_STRING UnicodePath);
 
     ~HookedDriver();
 

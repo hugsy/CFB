@@ -345,6 +345,33 @@ public:
         return nullptr;
     }
 
+    template<typename L>
+    bool
+    ForEach(L lambda)
+    {
+        ScopedLock lock(m_SpinLock);
+        bool bSuccess = true;
+        if ( !::IsListEmpty(&m_ListHead) )
+        {
+            for ( PLIST_ENTRY Entry = m_ListHead.Flink; Entry != &m_ListHead; Entry = Entry->Flink )
+            {
+                auto CurrentItem = CONTAINING_RECORD(Entry, T, Next);
+                bSuccess &= lambda(CurrentItem);
+            }
+        }
+        return bSuccess;
+    }
+
+    void
+    Reset()
+    {
+        ScopedLock lock(m_SpinLock);
+        while ( !::IsListEmpty(&m_ListHead) )
+        {
+            ::RemoveHeadList(&m_ListHead);
+        }
+    }
+
 private:
     KQueuedSpinLock m_SpinLock;
     LIST_ENTRY m_ListHead;

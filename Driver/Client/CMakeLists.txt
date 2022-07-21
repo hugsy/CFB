@@ -17,6 +17,6 @@ if(DEBUG)
     target_compile_definitions(DriverClient PRIVATE _DEBUG=1 DEBUG=1)
 endif(DEBUG)
 
-target_include_directories(DriverClient PUBLIC CommonLibUser ${CFB_DEPENDENCIES}/wil/include)
+target_include_directories(DriverClient PUBLIC CommonLibUser ${CFB_DEPENDENCIES}/wil/include ${CFB_DEPENDENCIES}/argparse)
 target_link_options(DriverClient PUBLIC /SUBSYSTEM:Console)
 target_link_libraries(DriverClient CommonLibUser)
