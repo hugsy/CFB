@@ -16,10 +16,6 @@ static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PT
     return Status;
 }
 
-#ifndef PDRIVER_DISPATCH
-typedef NTSTATUS (*PDRIVER_DISPATCH)(IN PDEVICE_OBJECT DeviceObject, OUT PIRP Irp);
-#endif
-
 ///
 /// @brief This is the main interception routine: it will find the HookedDriver  associated to a DeviceObject. If
 /// any is found, and capture mode is enabled the IRP data will be pushed to the queue of captured data.
@@ -43,7 +39,6 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     };
 
     HookedDriver* const Driver = Globals->DriverManager.Entries.Find(FilterByDeviceAddress);
-
     if ( Driver == nullptr )
     {
         //
@@ -210,11 +205,16 @@ InterceptGenericFastIoRoutine(
 {
     auto ByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
-        return h->DriverObject->DeviceObject == DeviceObject;
+        for ( PDEVICE_OBJECT CurrentDevice = h->DriverObject->DeviceObject; CurrentDevice;
+              CurrentDevice                = CurrentDevice->NextDevice )
+        {
+            if ( CurrentDevice == DeviceObject )
+                return true;
+        }
+        return false;
     };
 
     HookedDriver* const Driver = Globals->DriverManager.Entries.Find(ByDeviceAddress);
-
     if ( Driver == nullptr )
     {
         err("Failed to find driver for InterceptGenericFastIoRoutine(). "
@@ -230,7 +230,8 @@ InterceptGenericFastIoRoutine(
     if ( Driver->Enabled )
     {
         Status =
-            HandleInterceptedFastIo(Driver, DeviceObject, Type, IoControlCode, Buffer, BufferLength, Flags, &*pIrpOut);
+            HandleInterceptedFastIo(Driver, DeviceObject, Type, IoControlCode, Buffer, BufferLength, Flags,
+    &*pIrpOut);
     }
     */
 
