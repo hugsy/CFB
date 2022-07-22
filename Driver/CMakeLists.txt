@@ -15,6 +15,7 @@ set(
     ${DRIVER_HEADER_DIR}/HookedDriver.hpp
     ${DRIVER_HEADER_DIR}/Callbacks.hpp
     ${DRIVER_HEADER_DIR}/Collector.hpp
+    ${DRIVER_HEADER_DIR}/CapturedIrp.hpp
 )
 
 set(
@@ -26,6 +27,7 @@ set(
     ${DRIVER_SOURCE_DIR}/HookedDriver.cpp
     ${DRIVER_SOURCE_DIR}/Callbacks.cpp
     ${DRIVER_SOURCE_DIR}/Collector.cpp
+    ${DRIVER_SOURCE_DIR}/CapturedIrp.cpp
 )
 
 wdk_add_driver(

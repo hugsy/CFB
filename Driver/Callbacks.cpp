@@ -56,7 +56,11 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     if ( Driver->Enabled )
     {
-        dbg("TODO: push IRP data to queue");
+        auto CapturedIrp = new CFB::Driver::CapturedIrp(Driver, DeviceObject, Irp);
+
+        // TODO: push to queue
+
+        delete CapturedIrp;
 
         Driver->InterceptedIrpsCount++;
     }
