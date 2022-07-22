@@ -18,4 +18,7 @@ ObReferenceObjectByName(
     _Inout_opt_ PVOID ParseContext,
     _Out_ PVOID* ObjectPtr);
 
+extern NTKERNELAPI PSTR
+PsGetProcessImageFileName(_In_ PEPROCESS Process);
+
 EXTERN_C_END

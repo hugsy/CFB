@@ -3,12 +3,6 @@
 #include "Common.hpp"
 #include "Log.hpp"
 
-///
-/// @brief Basic fake exception dispatcher
-///
-/// @param Status
-///
-void __cdecl throws(NTSTATUS Status);
 
 void* __cdecl
 operator new(size_t Size, POOL_TYPE PoolType = PagedPool, ULONG PoolTag = CFB_DEVICE_TAG);
@@ -83,7 +77,7 @@ private:
 
 
 ///
-/// @brief
+/// @brief Generic allocator in the kernel
 ///
 /// @tparam T
 ///
@@ -92,46 +86,30 @@ class KAlloc
 {
 public:
     KAlloc(const usize sz = 0, const u32 tag = CFB_DEVICE_TAG, POOL_TYPE type = PagedPool) :
+        _type(type),
         _tag(tag),
         _sz(sz),
-        _mem(nullptr),
-        _valid(false)
+        _mem(nullptr)
     {
-        dbg("In KAlloc()");
-        if ( !sz || sz >= MAXUSHORT )
+        if ( sz == 0 || sz >= MAXUSHORT )
         {
-            return;
+            ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
         }
 
-        auto p = ::ExAllocatePoolWithTag(type, _sz, _tag);
-        if ( p )
+        auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
+        if ( !p )
         {
-            _mem = reinterpret_cast<T>(p);
-            ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
-            _valid = true;
+            ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
         }
+
+        dbg("KAlloc(sz=%d) = %p", _sz, _mem);
+        _mem = reinterpret_cast<T>(p);
+        ::RtlSecureZeroMemory((PVOID)_mem, _sz);
     }
 
     ~KAlloc()
     {
-        if ( valid() )
-        {
-            __free();
-        }
-    }
-
-    virtual void
-    __free()
-    {
-        if ( _mem != nullptr )
-        {
-            ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
-            ::ExFreePoolWithTag(_mem, _tag);
-            _mem   = nullptr;
-            _tag   = 0;
-            _sz    = 0;
-            _valid = false;
-        }
+        __free();
     }
 
     KAlloc(const KAlloc&) = delete;
@@ -166,15 +144,9 @@ public:
         return _sz;
     }
 
-    bool
-    valid() const
-    {
-        return _valid;
-    }
-
     operator bool() const
     {
-        return _valid && _mem != nullptr && _sz > 0;
+        return _mem != nullptr && _sz > 0;
     }
 
     friend bool
@@ -184,10 +156,24 @@ public:
     }
 
 protected:
+    virtual void
+    __free()
+    {
+        if ( _mem != nullptr )
+        {
+            dbg("KFree(%p)", _mem);
+            ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
+            ::ExFreePoolWithTag(_mem, _tag);
+            _mem = nullptr;
+            _tag = 0;
+            _sz  = 0;
+        }
+    }
+
     T _mem;
     usize _sz;
     u32 _tag;
-    bool _valid;
+    POOL_TYPE _type;
 };
 
 

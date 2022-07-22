@@ -1,13 +1,6 @@
 #include "DriverUtils.hpp"
 
 
-void __cdecl throws(NTSTATUS Status)
-{
-    UNICODE_STRING usFuncName           = RTL_CONSTANT_STRING(L"RtlRaiseStatus");
-    VOID (*pfnRtlRaiseStatus)(NTSTATUS) = (void(__cdecl*)(NTSTATUS))::MmGetSystemRoutineAddress(&usFuncName);
-    pfnRtlRaiseStatus(Status);
-}
-
 ///
 /// @brief Basic allocator/deallocator for the kernel
 ///

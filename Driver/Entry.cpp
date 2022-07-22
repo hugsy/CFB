@@ -228,7 +228,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
     }
 
-    dbg("ioctl 0x%08x returned with Status=0x%x", IoctlCode, Status);
+    dbg("Routine for IOCTL 0x%08x returned with Status=0x%x", IoctlCode, Status);
     if ( !NT_SUCCESS(Status) )
     {
         err("IOCTL %#x returned %#x", IoctlCode, Status);
@@ -254,7 +254,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
 
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
-    PIO_STACK_LOCATION pStack = IoGetCurrentIrpStackLocation(Irp);
+    PIO_STACK_LOCATION pStack = ::IoGetCurrentIrpStackLocation(Irp);
     if ( pStack == nullptr )
     {
         err("IoGetCurrentIrpStackLocation() failed (IRP %p)", Irp);

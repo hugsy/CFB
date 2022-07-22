@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CapturedIrp.hpp"
 #include "Collector.hpp"
 #include "Common.hpp"
 #include "DriverUtils.hpp"
