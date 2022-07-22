@@ -34,9 +34,9 @@ public:
         ProcessName(),
         DeviceName(),
         DriverName(),
-        MajorFunction(0)
+        MajorFunction(0),
+        Method(-1)
     {
-        ULONG Method             = -1;
         PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
         //
@@ -65,20 +65,20 @@ public:
             InputBufferLength  = Stack->Parameters.DeviceIoControl.InputBufferLength;
             OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
             IoctlCode          = Stack->Parameters.DeviceIoControl.IoControlCode;
-            Data               = Utils::KAlloc<u8*>(InputBufferLength);
+            InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
             Method             = METHOD_FROM_CTL_CODE(IoctlCode);
             break;
 
         case IRP_MJ_WRITE:
             InputBufferLength  = Stack->Parameters.Write.Length;
             OutputBufferLength = 0;
-            Data               = Utils::KAlloc<u8*>(InputBufferLength);
+            InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
             break;
 
         case IRP_MJ_READ:
             InputBufferLength  = 0;
             OutputBufferLength = Stack->Parameters.Read.Length;
-            Data               = Utils::KAlloc<u8*>(OutputBufferLength);
+            OutputBuffer       = Utils::KAlloc<u8*>(OutputBufferLength);
             Method             = (DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
                                  (DeviceObject->Flags & DO_DIRECT_IO)   ? METHOD_IN_DIRECT :
                                                                           -1;
@@ -86,11 +86,6 @@ public:
 
         default:
             break;
-        }
-
-        if ( Method != -1 )
-        {
-            GetIrpData(Irp, Method);
         }
     }
 
@@ -121,11 +116,15 @@ public:
         return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
+    NTSTATUS
+    CapturePreCallData(_In_ PIRP Irp);
+
+    NTSTATUS
+    CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus);
+
+    LIST_ENTRY Next;
 
 private:
-    NTSTATUS
-    GetIrpData(_In_ PIRP Irp, _In_ ULONG Method);
-
     NTSTATUS
     GetDeviceName();
 
@@ -135,7 +134,6 @@ private:
     NTSTATUS
     GetDriverName(const HookedDriver* Driver);
 
-    LIST_ENTRY Next;
     LARGE_INTEGER TimeStamp;
     u8 Irql;
     Type Type;
@@ -149,10 +147,12 @@ private:
     wchar_t wsDeviceName[CFB_DRIVER_MAX_PATH];
     wchar_t wsProcessName[CFB_DRIVER_MAX_PATH];
     NTSTATUS Status;
-    Utils::KAlloc<u8*> Data;
+    Utils::KAlloc<u8*> InputBuffer;
+    Utils::KAlloc<u8*> OutputBuffer;
     PDEVICE_OBJECT DeviceObject;
     UNICODE_STRING DriverName;
     UNICODE_STRING DeviceName;
     UNICODE_STRING ProcessName;
+    ULONG Method;
 };
 } // namespace CFB::Driver

@@ -7,10 +7,15 @@ namespace CFB::Driver
 {
 
 NTSTATUS
-CapturedIrp::GetIrpData(_In_ PIRP Irp, _In_ ULONG Method)
+CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 {
     NTSTATUS Status          = STATUS_SUCCESS;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
+
+    if ( Method != -1 )
+    {
+        return STATUS_INVALID_PARAMETER_2;
+    }
 
     do
     {
@@ -19,7 +24,10 @@ CapturedIrp::GetIrpData(_In_ PIRP Irp, _In_ ULONG Method)
              Method == METHOD_NEITHER )
         {
             if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16) )
-                RtlCopyMemory(Data.get(), Stack->Parameters.DeviceIoControl.Type3InputBuffer, Data.size());
+                RtlCopyMemory(
+                    InputBuffer.get(),
+                    Stack->Parameters.DeviceIoControl.Type3InputBuffer,
+                    InputBuffer.size());
             else
                 Status = STATUS_INVALID_PARAMETER;
             break;
@@ -28,7 +36,7 @@ CapturedIrp::GetIrpData(_In_ PIRP Irp, _In_ ULONG Method)
         if ( Method == METHOD_BUFFERED )
         {
             if ( Irp->AssociatedIrp.SystemBuffer )
-                RtlCopyMemory(Data.get(), Irp->AssociatedIrp.SystemBuffer, Data.size());
+                RtlCopyMemory(InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, InputBuffer.size());
             else
                 Status = STATUS_INVALID_PARAMETER_1;
             break;
@@ -49,12 +57,57 @@ CapturedIrp::GetIrpData(_In_ PIRP Irp, _In_ ULONG Method)
                 break;
             }
 
-            RtlCopyMemory(Data.get(), pDataAddr, Data.size());
+            RtlCopyMemory(InputBuffer.get(), pDataAddr, InputBuffer.size());
         }
 
     } while ( false );
 
     return Status;
+}
+
+NTSTATUS
+CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS IoctlStatus)
+{
+    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
+    PVOID UserBuffer         = nullptr;
+
+    Status = IoctlStatus;
+
+    //
+    // Check if the operation supports having output buffer
+    //
+    switch ( Stack->MajorFunction )
+    {
+    case IRP_MJ_DEVICE_CONTROL:
+    case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+        UserBuffer = Irp->UserBuffer;
+        break;
+
+    case IRP_MJ_READ:
+        if ( Irp->MdlAddress )
+            UserBuffer = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+        else
+            UserBuffer = Irp->UserBuffer;
+        break;
+
+    default:
+        return STATUS_SUCCESS;
+    }
+
+    //
+    // Check if there's actual data to be copied
+    //
+    if ( OutputBufferLength == 0 || UserBuffer == nullptr )
+    {
+        return STATUS_SUCCESS;
+    }
+
+    //
+    // If here, just copy the buffer
+    //
+    RtlCopyMemory(OutputBuffer.get(), UserBuffer, OutputBufferLength);
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS

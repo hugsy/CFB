@@ -27,6 +27,8 @@ static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PT
 NTSTATUS
 InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
+    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
+
     auto FilterByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
         for ( PDEVICE_OBJECT CurrentDevice = h->DriverObject->DeviceObject; CurrentDevice;
@@ -54,100 +56,52 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Capture the IRP data if enabled
     //
+    CFB::Driver::CapturedIrp* CapturedIrp = nullptr;
     if ( Driver->Enabled )
     {
-        auto CapturedIrp = new CFB::Driver::CapturedIrp(Driver, DeviceObject, Irp);
-
-        // TODO: push to queue
-
-        delete CapturedIrp;
-
-        Driver->InterceptedIrpsCount++;
-    }
-
-    /*
-    PINTERCEPTED_IRP pIrpInfo = NULL;
-    if ( IsMonitoringEnabled() && curDriver->Enabled == TRUE && pCurrentOwnerProcess != PsGetCurrentProcess() )
-    {
-        NTSTATUS Status = HandleInterceptedIrp(curDriver, DeviceObject, Irp, &pIrpInfo);
-
-        if ( !NT_SUCCESS(Status) && Status != STATUS_NOT_IMPLEMENTED )
+        CapturedIrp = new CFB::Driver::CapturedIrp(Driver, DeviceObject, Irp);
+        if ( CapturedIrp )
         {
-            CfbDbgPrintWarn(L"HandleInterceptedIrp() failed (status=0x%X)\n", Status);
-        }
-        else
-        {
-            curDriver->NumberOfRequestIntercepted++;
+            CapturedIrp->CapturePreCallData(Irp);
         }
     }
-    */
-
 
     //
-    // And call the original routine
+    // Call the original routine
     //
-    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
-    PVOID UserBuffer         = nullptr;
-
-    switch ( Stack->MajorFunction )
-    {
-    case IRP_MJ_DEVICE_CONTROL:
-    case IRP_MJ_INTERNAL_DEVICE_CONTROL:
-        UserBuffer = Irp->UserBuffer;
-        break;
-
-    case IRP_MJ_READ:
-        if ( Irp->MdlAddress )
-            UserBuffer = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-        else
-            UserBuffer = Irp->UserBuffer;
-        break;
-
-    default:
-        break;
-    }
-
     PDRIVER_DISPATCH OriginalIoctlDeviceControl = Driver->OriginalRoutines[Stack->MajorFunction];
     NTSTATUS IoctlStatus                        = OriginalIoctlDeviceControl(DeviceObject, Irp);
 
     //
     // Collect the result from the result
     //
-
-    /*
-    if ( pCurrentOwnerProcess != PsGetCurrentProcess() && IsMonitoringEnabled() && curDriver->Enabled == TRUE &&
-         pIrpInfo != NULL )
+    if ( Driver->Enabled )
     {
-        NTSTATUS Status = CompleteHandleInterceptedIrp(UserBuffer, IoctlStatus, pIrpInfo);
-        if ( !NT_SUCCESS(Status) )
-            CfbDbgPrintWarn(L"CompleteHandleInterceptedIrp() failed, Status=0x%x\n", Status);
-    }
+        if ( CapturedIrp )
+        {
+            CapturedIrp->CapturePostCallData(Irp, IoctlStatus);
+            if ( false == Globals->IrpCollector.Push(CapturedIrp) )
+            {
+                //
+                // Pushing failed, there might a problem with the queue. Disable interception to
+                // avoid more damage
+                //
+                warn("Failed to push new IRP %p to the queue", CapturedIrp);
+                Driver->Enabled = false;
 
-    //
-    // Push the new irp to the queue and notify the broker
-    //
-    if ( pIrpInfo )
-    {
-        DWORD dwType = pIrpInfo->Header->Type;
-        DWORD dwSize;
-        NTSTATUS Status = PushToQueue(pIrpInfo);
-        if ( !NT_SUCCESS(Status) )
-        {
-            CfbDbgPrintErr(L"PushToQueue(%p) failed, status=0x%x\n", pIrpInfo, Status);
-            FreeInterceptedIrp(pIrpInfo);
-        }
-        else
-        {
-            dwSize = GetIrpListSize() ? GetIrpListSize() - 1 : 0;
-            CfbDbgPrintOk(L"pushing IRPs[%d] = %p (type=%d)\n", dwSize, pIrpInfo, dwType);
-            NotifyUserNewEvent();
+                //
+                // Destroy the data
+                //
+                delete CapturedIrp;
+            }
+            else
+            {
+                Driver->InterceptedIrpsCount++;
+            }
         }
     }
 
     return IoctlStatus;
-    */
-
-    return STATUS_SUCCESS;
 }
 
 NTSTATUS
