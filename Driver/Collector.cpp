@@ -18,13 +18,16 @@ DataCollector<T>::SetEvent(HANDLE hEvent)
         return false;
     }
 
-    //
-    // Exchange the current value, if it was associated to an existing Event, free the reference
-    //
-    PKEVENT pOldEvent = InterlockedExchangePointer((PVOID*)&Event, pKernelNotifEvent);
-    if ( pOldEvent )
+    if ( Event )
     {
-        ObDereferenceObject(pOldEvent);
+        //
+        // Exchange the current value, if it was associated to an existing Event, free the reference
+        //
+        PKEVENT pOldEvent = InterlockedExchangePointer((PVOID*)&Event, pKernelNotifEvent);
+        if ( pOldEvent )
+        {
+            ObDereferenceObject(pOldEvent);
+        }
     }
 
     return true;
@@ -45,7 +48,10 @@ DataCollector<T>::Push(T* Item)
     //
     // Set the event to notify the broker some data is ready
     //
-    ::KeSetEvent(Event, 2, false);
+    if ( Event )
+    {
+        ::KeSetEvent(Event, 2, false);
+    }
 
     return false;
 }
@@ -71,9 +77,9 @@ DataCollector<T>::Pop()
     //
     // Unset the event is no data is ready
     //
-    if ( Count == 0 )
+    if ( Count == 0 && Event )
     {
-        ::KeClearEvent(&Event);
+        ::KeClearEvent(Event);
     }
 
     return Item;
