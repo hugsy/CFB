@@ -32,7 +32,7 @@ struct HookedDriver
     ///
     /// @brief The absolute path of to the driver underneath
     ///
-    UNICODE_STRING Path;
+    Utils::KUnicodeString Path;
 
     ///
     /// @brief A pointer to the driver object. The object refcount has been incremented by the constructor.

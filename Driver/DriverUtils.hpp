@@ -110,11 +110,22 @@ public:
     KAlloc(const KAlloc&) = delete;
 
     KAlloc&
-    operator=(const KAlloc&) = delete;
+    operator=(const KAlloc& other) noexcept
+    {
+        dbg("In KAlloc::operator=(const KAlloc&)");
+        if ( this != &other )
+        {
+            _mem = other._mem;
+            _tag = other._tag;
+            _sz  = other._sz;
+        }
+        return *this;
+    }
 
     KAlloc&
     operator=(KAlloc&& other) noexcept
     {
+        dbg("In KAlloc::operator=(const KAlloc&&)");
         if ( this != &other )
         {
             _mem       = other._mem;
@@ -196,10 +207,31 @@ protected:
 class KUnicodeString
 {
 public:
-    KUnicodeString(const wchar_t* src);
+    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = PagedPool);
+
+    KUnicodeString(const wchar_t* src, const POOL_TYPE type = PagedPool);
+
     ~KUnicodeString();
 
-    PUNICODE_STRING
+    KUnicodeString&
+    operator=(KUnicodeString&& other) noexcept
+    {
+        if ( this != &other )
+        {
+            _len    = other._len;
+            _buffer = other._buffer;
+            ::RtlCopyUnicodeString(&_str, other.get());
+        }
+        return *this;
+    }
+
+    friend bool
+    operator==(KUnicodeString const& lhs, KUnicodeString const& rhs)
+    {
+        return lhs._len == rhs._len && lhs._buffer == rhs._buffer;
+    }
+
+    const PUNICODE_STRING
     get();
 
     ///
@@ -218,7 +250,7 @@ public:
     const usize
     size() const;
 
-private:
+protected:
     usize _len;
     UNICODE_STRING _str;
     KAlloc<wchar_t*> _buffer;

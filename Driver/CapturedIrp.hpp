@@ -31,10 +31,10 @@ public:
         Pid(::HandleToULong(::PsGetCurrentProcessId())),
         Tid(::HandleToULong(::PsGetCurrentThreadId())),
         DeviceObject(_DeviceObject),
-        ProcessName(),
-        DeviceName(),
-        DriverName(),
         MajorFunction(0),
+        DriverName(L""),
+        DeviceName(L""),
+        ProcessName(L""),
         Method(-1)
     {
         PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
@@ -45,18 +45,9 @@ public:
         KeQuerySystemTime(&TimeStamp);
 
         MajorFunction = Stack->MajorFunction;
-        if ( !NT_SUCCESS(GetDeviceName()) )
-        {
-            RtlInitUnicodeString(&DeviceName, L"Unknown device");
-        }
-        if ( !NT_SUCCESS(GetDriverName(HookedDriver)) )
-        {
-            ::RtlInitUnicodeString(&DriverName, L"Unknown driver");
-        }
-        if ( !NT_SUCCESS(GetProcessName()) )
-        {
-            ::RtlInitUnicodeString(&ProcessName, L"Unknown process");
-        }
+        GetDeviceName();
+        GetDriverName(HookedDriver);
+        GetProcessName();
 
         switch ( MajorFunction )
         {
@@ -150,7 +141,7 @@ private:
     GetProcessName();
 
     NTSTATUS
-    GetDriverName(const HookedDriver* Driver);
+    GetDriverName(HookedDriver* const Driver);
 
     LARGE_INTEGER TimeStamp;
     u8 Irql;
@@ -161,16 +152,13 @@ private:
     u32 Tid;
     u32 InputBufferLength;
     u32 OutputBufferLength;
-    // wchar_t wsDriverName[CFB_DRIVER_MAX_PATH];
-    // wchar_t wsDeviceName[CFB_DRIVER_MAX_PATH];
-    // wchar_t wsProcessName[CFB_DRIVER_MAX_PATH];
     NTSTATUS Status;
     Utils::KAlloc<u8*> InputBuffer;
     Utils::KAlloc<u8*> OutputBuffer;
     PDEVICE_OBJECT DeviceObject;
-    UNICODE_STRING DriverName;
-    UNICODE_STRING DeviceName;
-    UNICODE_STRING ProcessName;
+    Utils::KUnicodeString DriverName;
+    Utils::KUnicodeString DeviceName;
+    Utils::KUnicodeString ProcessName;
     ULONG Method;
 };
 } // namespace CFB::Driver

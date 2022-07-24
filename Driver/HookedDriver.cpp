@@ -16,20 +16,20 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     FastIoWrite(nullptr),
     FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
-    State(HookState::Unhooked)
+    State(HookState::Unhooked),
+    Path(UnicodePath->Buffer, NonPagedPool)
 {
+    dbg("Creating HookedDriver('%wZ')", &Path);
+
     //
     // Initialize the members
     //
-    ::RtlInitUnicodeString(&Path, UnicodePath->Buffer);
-
-    dbg("Creating HookedDriver('%wZ')", &Path);
 
     //
     // Increment the refcount to the driver
     //
     NTSTATUS Status = ::ObReferenceObjectByName(
-        &Path,
+        Path.get(),
         OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
         NULL,
         0,
@@ -49,7 +49,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
 
 HookedDriver::~HookedDriver()
 {
-    dbg("Destroying HookedDriver '%wZ'", &Path);
+    dbg("Destroying HookedDriver '%wZ'", Path.get());
 
     Enabled = false;
 

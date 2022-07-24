@@ -43,13 +43,18 @@ namespace CFB::Driver::Utils
 
 #pragma region KUnicodeString
 
-KUnicodeString::KUnicodeString(const wchar_t* src)
+KUnicodeString::KUnicodeString(const wchar_t* src, const POOL_TYPE type)
 {
     dbg("KUnicodeString::KUnicodeString('%S')", src);
     _len    = ::wcslen(src);
-    _buffer = KAlloc<wchar_t*>((_len + 1) * sizeof(wchar_t));
+    _buffer = KAlloc<wchar_t*>((_len + 1) * sizeof(wchar_t), CFB_DEVICE_TAG, type);
     ::RtlCopyMemory(_buffer.get(), src, size());
     ::RtlInitUnicodeString(&_str, _buffer.get());
+}
+
+KUnicodeString::KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type)
+{
+    KUnicodeString::KUnicodeString(src->Buffer, type);
 }
 
 const usize
@@ -69,7 +74,7 @@ KUnicodeString::~KUnicodeString()
     dbg("KUnicodeString::~KUnicodeString(%p)", _str);
 }
 
-PUNICODE_STRING
+const PUNICODE_STRING
 KUnicodeString::get()
 {
     return &_str;

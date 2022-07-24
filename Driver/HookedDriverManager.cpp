@@ -110,7 +110,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             Entries += NewHookedDriver;
 
-            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path, Entries.Size());
+            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.get(), Entries.Size());
         }
     }
 
@@ -131,10 +131,9 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
     dbg("HookedDriverManager::RemoveDriver('%wZ', %d)", UnicodePath, UnicodePath->Length);
 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
-    auto FromDriverPath       = [&UnicodePath, &PathMaxLength](const HookedDriver* h)
+    auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
     {
-        dbg("Comparing '%wZ' vs '%wZ'", h->Path, UnicodePath);
-        return ::RtlCompareUnicodeString(&h->Path, UnicodePath, true) == 0;
+        return ::RtlCompareUnicodeString(h->Path.get(), UnicodePath, true) == 0;
     };
 
     auto MatchedDriver = Entries.Find(FromDriverPath);
@@ -159,7 +158,6 @@ HookedDriverManager::RemoveAllDrivers()
     Entries.ForEach(
         [](const HookedDriver* Entry)
         {
-            dbg("Removing driver '%wZ'", &Entry->Path);
             delete Entry;
             return true;
         });
@@ -171,9 +169,7 @@ HookedDriverManager::RemoveAllDrivers()
 NTSTATUS
 HookedDriverManager::SetMonitoringState(const wchar_t* Path, bool bEnable)
 {
-    UNICODE_STRING UnicodePath = {0};
-    ::RtlInitUnicodeString(&UnicodePath, Path);
-    return SetMonitoringState(&UnicodePath, bEnable);
+    return SetMonitoringState(Utils::KUnicodeString(Path).get(), bEnable);
 }
 
 NTSTATUS
@@ -182,9 +178,9 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
     Utils::ScopedLock lock(Mutex);
 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
-    auto FromDriverPath       = [&UnicodePath, &PathMaxLength](const HookedDriver* h)
+    auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
     {
-        return ::RtlCompareUnicodeString(&h->Path, UnicodePath, true) == 0;
+        return ::RtlCompareUnicodeString(h->Path.get(), UnicodePath, true) == 0;
     };
 
     auto MatchedDriver = Entries.Find(FromDriverPath);

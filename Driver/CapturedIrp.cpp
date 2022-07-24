@@ -136,7 +136,7 @@ CapturedIrp::GetDeviceName()
         return Status;
     }
 
-    ::RtlCopyUnicodeString(&DeviceName, &DeviceNameInfo.get()->Name);
+    DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
     return STATUS_SUCCESS;
 }
 
@@ -165,14 +165,17 @@ CapturedIrp::GetProcessName()
         return Status;
     }
 
-    Status = ::RtlAnsiStringToUnicodeString(&ProcessName, &aStr, true);
+    UNICODE_STRING uStr;
+    Status = ::RtlAnsiStringToUnicodeString(&uStr, &aStr, true);
+
+    ProcessName = Utils::KUnicodeString(&uStr);
     return Status;
 }
 
 NTSTATUS
-CapturedIrp::GetDriverName(const HookedDriver* Driver)
+CapturedIrp::GetDriverName(HookedDriver* const Driver)
 {
-    ::RtlCopyUnicodeString(&DriverName, &Driver->Path);
+    DriverName = Utils::KUnicodeString(Driver->Path.get());
     return STATUS_UNSUCCESSFUL;
 }
 
