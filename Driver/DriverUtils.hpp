@@ -91,12 +91,20 @@ public:
         _sz(sz),
         _mem(nullptr)
     {
-        allocate(sz);
+        if ( sz )
+        {
+            allocate(sz);
+        }
+        dbg("KAlloc::KAlloc(%d) = %p", _sz, _mem);
     }
 
     ~KAlloc()
     {
-        free();
+        if ( _sz )
+        {
+            free();
+        }
+        dbg("KAlloc::~KAlloc(%p, %d)", _mem, _sz);
     }
 
     KAlloc(const KAlloc&) = delete;
@@ -146,9 +154,12 @@ protected:
     virtual void
     allocate(const usize sz)
     {
-        if ( sz == 0 || sz >= MAXUSHORT )
+        dbg("KAlloc::allocate(%d)", sz);
+
+        if ( sz >= MAXUSHORT )
         {
             ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
+            return;
         }
 
         auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
@@ -157,7 +168,6 @@ protected:
             ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
         }
 
-        dbg("KAlloc(sz=%d) = %p", _sz, _mem);
         _mem = reinterpret_cast<T>(p);
         ::RtlSecureZeroMemory((PVOID)_mem, _sz);
     }
@@ -165,9 +175,9 @@ protected:
     virtual void
     free()
     {
+        dbg("KAlloc::free(%p)", _mem);
         if ( _mem != nullptr )
         {
-            dbg("KFree(%p)", _mem);
             ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
             ::ExFreePoolWithTag(_mem, _tag);
             _mem = nullptr;
@@ -180,6 +190,38 @@ protected:
     usize _sz;
     u32 _tag;
     POOL_TYPE _type;
+};
+
+
+class KUnicodeString
+{
+public:
+    KUnicodeString(const wchar_t* src);
+    ~KUnicodeString();
+
+    PUNICODE_STRING
+    get();
+
+    ///
+    /// @brief Get the length of the string (i.e. number of characters)
+    ///
+    /// @return const usize
+    ///
+    const usize
+    length() const;
+
+    ///
+    /// @brief Get the size of the buffer (i.e. number of bytes)
+    ///
+    /// @return const usize
+    ///
+    const usize
+    size() const;
+
+private:
+    usize _len;
+    UNICODE_STRING _str;
+    KAlloc<wchar_t*> _buffer;
 };
 
 
@@ -202,6 +244,7 @@ public:
 private:
     KMUTEX _mutex = {0};
 };
+
 
 ///
 /// @brief Wrapper for FAST_MUTEXes

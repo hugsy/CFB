@@ -40,6 +40,43 @@ operator delete[](void* Memory, usize Size)
 
 namespace CFB::Driver::Utils
 {
+
+#pragma region KUnicodeString
+
+KUnicodeString::KUnicodeString(const wchar_t* src)
+{
+    dbg("KUnicodeString::KUnicodeString('%S')", src);
+    _len    = ::wcslen(src);
+    _buffer = KAlloc<wchar_t*>((_len + 1) * sizeof(wchar_t));
+    ::RtlCopyMemory(_buffer.get(), src, size());
+    ::RtlInitUnicodeString(&_str, _buffer.get());
+}
+
+const usize
+KUnicodeString::size() const
+{
+    return length() * sizeof(wchar_t);
+}
+
+const usize
+KUnicodeString::length() const
+{
+    return _len;
+}
+
+KUnicodeString::~KUnicodeString()
+{
+    dbg("KUnicodeString::~KUnicodeString(%p)", _str);
+}
+
+PUNICODE_STRING
+KUnicodeString::get()
+{
+    return &_str;
+}
+
+#pragma endregion
+
 #pragma region KMutex
 KMutex::KMutex()
 {

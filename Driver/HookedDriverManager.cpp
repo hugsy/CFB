@@ -4,6 +4,8 @@
 #include "Native.hpp"
 
 
+namespace Utils = CFB::Driver::Utils;
+
 namespace CFB::Driver
 {
 HookedDriverManager::HookedDriverManager()
@@ -21,9 +23,7 @@ HookedDriverManager::~HookedDriverManager()
 NTSTATUS
 HookedDriverManager::InsertDriver(const wchar_t* Path)
 {
-    UNICODE_STRING UnicodePath = {0};
-    ::RtlInitUnicodeString(&UnicodePath, Path);
-    return InsertDriver(&UnicodePath);
+    return InsertDriver(Utils::KUnicodeString(Path).get());
 }
 
 NTSTATUS
@@ -31,7 +31,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 {
     PDRIVER_OBJECT pDriver = nullptr;
 
-    dbg("HookedDriverManager::InsertDriver('%S', %d)", UnicodePath->Buffer, UnicodePath->Length);
+    dbg("HookedDriverManager::InsertDriver('%wZ', %p, %d)", UnicodePath, UnicodePath, UnicodePath->Length);
 
     //
     // Resolve the given `Path` parameter as name for Driver Object
@@ -95,8 +95,8 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
                 return STATUS_INSUFFICIENT_RESOURCES;
             }
 
-            dbg("HookedDriverManager::InsertDriver(): Driver '%S' (%p) is not hooked, hooking now...",
-                UnicodePath->Buffer,
+            dbg("HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
+                UnicodePath,
                 ScopedDriverObject.get());
 
             //
@@ -110,7 +110,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             Entries += NewHookedDriver;
 
-            dbg("Added '%S' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.Buffer, Entries.Size());
+            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path, Entries.Size());
         }
     }
 
@@ -120,9 +120,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 NTSTATUS
 HookedDriverManager::RemoveDriver(const wchar_t* Path)
 {
-    UNICODE_STRING UnicodePath = {0};
-    ::RtlInitUnicodeString(&UnicodePath, Path);
-    return RemoveDriver(&UnicodePath);
+    return RemoveDriver(Utils::KUnicodeString(Path).get());
 }
 
 NTSTATUS
@@ -130,12 +128,12 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 {
     Utils::ScopedLock lock(Mutex);
 
-    dbg("Trying to remove '%S' from the hooked driver list", UnicodePath->Buffer);
+    dbg("HookedDriverManager::RemoveDriver('%wZ', %d)", UnicodePath, UnicodePath->Length);
 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
     auto FromDriverPath       = [&UnicodePath, &PathMaxLength](const HookedDriver* h)
     {
-        dbg("Comparing '%S' vs '%S'", h->Path.Buffer, UnicodePath->Buffer);
+        dbg("Comparing '%wZ' vs '%wZ'", h->Path, UnicodePath);
         return ::RtlCompareUnicodeString(&h->Path, UnicodePath, true) == 0;
     };
 
@@ -161,7 +159,7 @@ HookedDriverManager::RemoveAllDrivers()
     Entries.ForEach(
         [](const HookedDriver* Entry)
         {
-            dbg("Removing driver '%s'", Entry->Path);
+            dbg("Removing driver '%wZ'", &Entry->Path);
             delete Entry;
             return true;
         });

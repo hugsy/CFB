@@ -23,7 +23,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     //
     ::RtlInitUnicodeString(&Path, UnicodePath->Buffer);
 
-    dbg("Creating HookedDriver('%S')", Path.Buffer);
+    dbg("Creating HookedDriver('%wZ')", &Path);
 
     //
     // Increment the refcount to the driver
@@ -49,7 +49,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
 
 HookedDriver::~HookedDriver()
 {
-    dbg("Destroying HookedDriver '%S'", Path.Buffer);
+    dbg("Destroying HookedDriver '%wZ'", &Path);
 
     Enabled = false;
 

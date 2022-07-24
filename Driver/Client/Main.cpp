@@ -21,6 +21,8 @@
 #include "Messages.hpp"
 // clang-format on
 
+#define PLURAL_IF(x) ((x) ? "s" : "")
+
 #pragma warning(push)
 #pragma warning(disable : 4244) // bad but only for tests
 std::string
@@ -88,7 +90,7 @@ get_size(HANDLE hFile)
 
     if ( bSuccess )
     {
-        ok("There's currently %d drivers hooked", nbBytesReturned);
+        ok("There's currently %d driver%s hooked", nbBytesReturned, PLURAL_IF(nbBytesReturned > 1));
     }
 
     return bSuccess;

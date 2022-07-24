@@ -82,7 +82,7 @@ struct HookedDriver
     static void*
     operator new(const usize sz)
     {
-        void* Memory = ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
         ::RtlSecureZeroMemory(Memory, sz);
         dbg("Allocating HookedDriver at %p", Memory);
         return Memory;
