@@ -155,13 +155,13 @@ HookedDriverManager::RemoveAllDrivers()
 {
     dbg("Removing all drivers");
     Utils::ScopedLock lock(Mutex);
-    Entries.ForEach(
-        [](const HookedDriver* Entry)
-        {
-            delete Entry;
-            return true;
-        });
-    Entries.Reset();
+    do
+    {
+        auto Entry = Entries.PopTail();
+        if ( Entry == nullptr )
+            break;
+        delete Entry;
+    } while ( true );
 
     return STATUS_SUCCESS;
 }

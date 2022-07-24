@@ -402,7 +402,9 @@ public:
         if ( Size() == 0 )
             return nullptr;
         auto LastEntry = ::RemoveTailList(&m_ListHead);
-        auto LastItem  = CONTAINING_RECORD(LastEntry, T, Next);
+        if ( LastEntry == &m_ListHead )
+            return nullptr;
+        auto LastItem = CONTAINING_RECORD(LastEntry, T, Next);
         m_TotalEntry--;
         return LastItem;
     }
@@ -443,15 +445,6 @@ public:
         return bSuccess;
     }
 
-    void
-    Reset()
-    {
-        ScopedLock lock(m_SpinLock);
-        while ( !::IsListEmpty(&m_ListHead) )
-        {
-            ::RemoveHeadList(&m_ListHead);
-        }
-    }
 
 private:
     KQueuedSpinLock m_SpinLock;
