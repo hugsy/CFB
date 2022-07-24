@@ -52,6 +52,10 @@ DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 ///
 /// @brief Callback routine for obtaining a handle to the device. Getting a handle requires the SeDebug privilege
 ///
+/// @param DeviceObject
+/// @param Irp
+///
+/// @return NTSTATUS
 ///
 NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
@@ -123,6 +127,10 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
 ///
 /// @brief Callback routine when closing a handle to the device
 ///
+/// @param DeviceObject
+/// @param Irp
+///
+/// @return NTSTATUS
 ///
 NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
@@ -140,6 +148,10 @@ _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device,
 ///
 /// @brief Handle a IOCTL dipatcher for DeviceIoControl() from the broker
 ///
+/// @param DeviceObject
+/// @param Irp
+///
+/// @return NTSTATUS
 ///
 NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
@@ -196,34 +208,24 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         Status = Globals->DriverManager.SetMonitoringState(Message.DriverName, false);
         break;
 
+    case IOCTL_SetEventPointer:
+        Status = Globals->IrpCollector.SetEvent(Message.IrpNotificationEventHandle);
+        break;
+
         /*
     case IOCTL_GetNamesOfDrivers:
         Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
         break;
 
-        case IOCTL_GetDriverInfo:
-            Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
-            break;
+    case IOCTL_GetDriverInfo:
+        Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
+        break;
 
-        case IOCTL_SetEventPointer:
-            Status = HandleIoSetEventPointer(Irp, CurrentStack);
-            break;
 
-        case IOCTL_StoreTestCase:
-            Status = HandleIoStoreTestCase(Irp, CurrentStack);
-            break;
-
-        case IOCTL_EnableDriver:
-            Status = HandleIoEnableDriverMonitoring(Irp, CurrentStack);
-            break;
-
-        case IOCTL_DisableDriver:
-            Status = HandleIoDisableDriverMonitoring(Irp, CurrentStack);
-            break;
         */
 
     default:
-        err("Received invalid ioctl code 0x%08x", IoctlCode);
+        err("Received invalid IOCTL code 0x%08x", IoctlCode);
         Status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
@@ -246,6 +248,11 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 /// If read buffer length is zero, it will return the expected size for the
 /// buffer.
 ///
+/// @param DeviceObject
+/// @param Irp
+///
+/// @return NTSTATUS
+///
 NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -261,9 +268,42 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
         return CompleteRequest(Irp, Status, 0);
     }
 
-    ULONG BufferSize = pStack->Parameters.Read.Length;
-    // PINTERCEPTED_IRP pInterceptedIrp = nullptr;
-    u32 ExpectedBufferSize = 0;
+    const u32 RequestedBufferSize = pStack->Parameters.Read.Length;
+    usize ExpectedBufferSize      = 0;
+
+    {
+        auto lock = Utils::ScopedLock(Globals->IrpCollector.Mutex);
+        Globals->IrpCollector.Data.ForEach(
+            [&ExpectedBufferSize](CFB::Driver::CapturedIrp* Irp)
+            {
+                ExpectedBufferSize += Irp->DataSize();
+                return true;
+            });
+    }
+
+    //
+    // If the buffer size is 0, return the expected size
+    //
+    if ( RequestedBufferSize == 0 )
+    {
+        return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
+    }
+
+    //
+    // Otherwise, check the arguments and write the IRPs to the client
+    //
+    if ( RequestedBufferSize != ExpectedBufferSize )
+    {
+        return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, ExpectedBufferSize);
+    }
+
+    NT_ASSERT(Irp->MdlAddress);
+
+    PVOID Buffer = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+    if ( Buffer == nullptr )
+    {
+        return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
+    }
 
     /*
     Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
@@ -276,10 +316,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
         return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
     }
 
-    if ( BufferSize != ExpectedBufferSize )
-    {
-        return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, ExpectedBufferSize);
-    }
+
 
     NT_ASSERT(Irp->MdlAddress);
 
@@ -327,7 +364,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     FreeInterceptedIrp(pInterceptedIrp);
     */
 
-    return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
+    return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
 
 

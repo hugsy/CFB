@@ -14,13 +14,6 @@
 #define __WFILE__ WIDEN(__FILE__)
 #define __WFUNCTION__ WIDEN(__FUNCTION__)
 
-#ifdef CFB_KERNEL_DRIVER
-#ifdef _DEBUG
-#define CFB_LOG_VERBOSE_LEVEL DPFLTR_TRACE_LEVEL
-#else
-#define CFB_LOG_VERBOSE_LEVEL DPFLTR_WARNING_LEVEL
-#endif
-#endif
 
 namespace CFB::Log
 {
@@ -32,8 +25,13 @@ log(const char* fmtstr, ...)
     char buffer[1024] = {0};
 
 #ifdef CFB_KERNEL_DRIVER
-    RtlStringCchVPrintfA(buffer, countof(buffer), fmtstr, args);
-    DbgPrintEx(DPFLTR_IHVDRIVER_ID, CFB_LOG_VERBOSE_LEVEL, buffer);
+    NTSTATUS Status = ::RtlStringCchVPrintfA(buffer, countof(buffer), fmtstr, args);
+    if ( NT_SUCCESS(Status) )
+#ifdef _DEBUG
+        ::DbgPrint(buffer);
+#else
+        ::DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_WARNING_LEVEL, buffer);
+#endif // _DEBUG
 #else
     ::vsprintf_s(buffer, countof(buffer), fmtstr, args);
     std::cout << buffer;

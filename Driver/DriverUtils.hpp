@@ -91,25 +91,12 @@ public:
         _sz(sz),
         _mem(nullptr)
     {
-        if ( sz == 0 || sz >= MAXUSHORT )
-        {
-            ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
-        }
-
-        auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
-        if ( !p )
-        {
-            ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
-        }
-
-        dbg("KAlloc(sz=%d) = %p", _sz, _mem);
-        _mem = reinterpret_cast<T>(p);
-        ::RtlSecureZeroMemory((PVOID)_mem, _sz);
+        allocate(sz);
     }
 
     ~KAlloc()
     {
-        __free();
+        free();
     }
 
     KAlloc(const KAlloc&) = delete;
@@ -152,12 +139,31 @@ public:
     friend bool
     operator==(KAlloc const& lhs, KAlloc const& rhs)
     {
-        return lhs._mem == rhs._mem && lhs._tag == rhs._tag;
+        return lhs._sz == rhs._sz && lhs._mem == rhs._mem && lhs._tag == rhs._tag;
     }
 
 protected:
     virtual void
-    __free()
+    allocate(const usize sz)
+    {
+        if ( sz == 0 || sz >= MAXUSHORT )
+        {
+            ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
+        }
+
+        auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
+        if ( !p )
+        {
+            ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+        }
+
+        dbg("KAlloc(sz=%d) = %p", _sz, _mem);
+        _mem = reinterpret_cast<T>(p);
+        ::RtlSecureZeroMemory((PVOID)_mem, _sz);
+    }
+
+    virtual void
+    free()
     {
         if ( _mem != nullptr )
         {

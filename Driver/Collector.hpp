@@ -55,37 +55,45 @@ struct DataCollector
     ///
     /// @brief Set the Event object
     ///
-    /// @param hEvent
-    /// @return true
-    /// @return false
+    /// @param hEvent An Event handle
     ///
-    bool
-    SetEvent(HANDLE hEvent)
+    /// @return NTSTATUS
+    ///
+    NTSTATUS
+    SetEvent(const HANDLE hEvent)
     {
+        NTSTATUS Status  = STATUS_UNSUCCESSFUL;
+        PKEVENT NewEvent = nullptr;
+
+        auto lock = Utils::ScopedLock(Mutex);
+
         //
         // Get a reference to the Event object
         //
-        PKEVENT pKernelNotifEvent = nullptr;
-        NTSTATUS Status =
-            ::ObReferenceObjectByHandle(hEvent, EVENT_ALL_ACCESS, *ExEventObjectType, UserMode, &Event, nullptr);
+        Status = ::ObReferenceObjectByHandle(
+            hEvent,
+            EVENT_ALL_ACCESS,
+            *ExEventObjectType,
+            UserMode,
+            (PVOID*)&NewEvent,
+            nullptr);
         if ( !NT_SUCCESS(Status) )
         {
-            return false;
+            return Status;
         }
 
-        if ( Event )
+        //
+        // If an event object was already assigned, replace it
+        //
+        if ( Event != nullptr )
         {
-            //
-            // Exchange the current value, if it was associated to an existing Event, free the reference
-            //
-            PKEVENT pOldEvent = InterlockedExchangePointer((PVOID*)&Event, pKernelNotifEvent);
-            if ( pOldEvent )
-            {
-                ObDereferenceObject(pOldEvent);
-            }
+            ObDereferenceObject(Event);
+            Event = nullptr;
         }
 
-        return true;
+        Event = NewEvent;
+
+        return Status;
     }
 
     ///

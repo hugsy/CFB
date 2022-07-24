@@ -54,7 +54,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 
 
     //
-    // Capture the IRP data if enabled
+    // Capture the IRP data if capturing mode is enabled for the current driver
     //
     CFB::Driver::CapturedIrp* CapturedIrp = nullptr;
     if ( Driver->Enabled )

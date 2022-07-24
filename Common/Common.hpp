@@ -26,6 +26,7 @@ using i32 = INT32;
 using i64 = INT64;
 
 using usize = SIZE_T;
+using uptr  = ULONG_PTR;
 
 // clang-format off
 #define CFB_DEVICE_NAME             L"IrpMonitor"

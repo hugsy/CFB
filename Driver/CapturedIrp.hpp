@@ -124,6 +124,24 @@ public:
 
     LIST_ENTRY Next;
 
+    usize const
+    DataSize()
+    {
+        return InputDataSize() + OutputDataSize();
+    }
+
+    usize const
+    InputDataSize() const
+    {
+        return InputBufferLength;
+    }
+
+    usize const
+    OutputDataSize() const
+    {
+        return OutputBufferLength;
+    }
+
 private:
     NTSTATUS
     GetDeviceName();
@@ -143,9 +161,9 @@ private:
     u32 Tid;
     u32 InputBufferLength;
     u32 OutputBufferLength;
-    wchar_t wsDriverName[CFB_DRIVER_MAX_PATH];
-    wchar_t wsDeviceName[CFB_DRIVER_MAX_PATH];
-    wchar_t wsProcessName[CFB_DRIVER_MAX_PATH];
+    // wchar_t wsDriverName[CFB_DRIVER_MAX_PATH];
+    // wchar_t wsDeviceName[CFB_DRIVER_MAX_PATH];
+    // wchar_t wsProcessName[CFB_DRIVER_MAX_PATH];
     NTSTATUS Status;
     Utils::KAlloc<u8*> InputBuffer;
     Utils::KAlloc<u8*> OutputBuffer;

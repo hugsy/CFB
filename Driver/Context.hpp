@@ -39,11 +39,13 @@ struct GlobalContext
     ULONG SessionId;
 
     ///
-    /// @brief
+    /// @brief Manages the hooked drivers
     ///
     CFB::Driver::HookedDriverManager DriverManager;
 
-
+    ///
+    /// @brief Where all the intercepted IRPs are stored
+    ///
     CFB::Driver::DataCollector<CFB::Driver::CapturedIrp> IrpCollector;
 
 
