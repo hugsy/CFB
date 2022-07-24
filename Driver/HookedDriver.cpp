@@ -44,7 +44,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     //
     // Swap the callbacks of the driver
     //
-    // SwapCallbacks();
+    SwapCallbacks();
 }
 
 HookedDriver::~HookedDriver()
@@ -56,7 +56,7 @@ HookedDriver::~HookedDriver()
     //
     // Restore the callbacks
     //
-    // RestoreCallbacks();
+    RestoreCallbacks();
 
     //
     // Decrements the refcount to the DriverObject
