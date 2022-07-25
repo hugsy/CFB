@@ -157,4 +157,65 @@ HookedDriver::RestoreCallbacks()
     //
     State = HookState::Hooked;
 }
+
+void
+HookedDriver::EnableCapturing()
+{
+    Utils::ScopedLock lock(Mutex);
+    if ( State == HookState::Hooked )
+    {
+        Enabled = true;
+    }
+}
+
+void
+HookedDriver::DisableCapturing()
+{
+    Utils::ScopedLock lock(Mutex);
+    Enabled = false;
+}
+
+
+usize const
+HookedDriver::IrpCount() const
+{
+    return InterceptedIrpsCount;
+}
+
+
+void
+HookedDriver::IncrementIrpCount()
+{
+    InterlockedIncrement64((PLONG64)&InterceptedIrpsCount);
+}
+
+
+void
+HookedDriver::DecrementIrpCount()
+{
+    InterlockedDecrement64((PLONG64)&InterceptedIrpsCount);
+}
+
+
+HookedDriver&
+HookedDriver::operator++()
+{
+    IncrementIrpCount();
+    return *this;
+}
+
+HookedDriver&
+HookedDriver::operator--()
+{
+    DecrementIrpCount();
+    return *this;
+}
+
+bool
+HookedDriver::HasCapturingEnabled() const
+{
+    return Enabled == true;
+}
+
+
 } // namespace CFB::Driver

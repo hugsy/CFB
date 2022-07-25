@@ -189,10 +189,7 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-    {
-        Utils::ScopedLock lock2(MatchedDriver->Mutex);
-        MatchedDriver->Enabled = bEnable;
-    }
+    MatchedDriver->EnableCapturing();
 
     return STATUS_SUCCESS;
 }

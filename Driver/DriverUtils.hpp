@@ -454,7 +454,7 @@ private:
 
 
 ///
-/// @brief
+/// @brief Basic implementation of smart pointer for the kernel
 ///
 /// @tparam T
 ///
@@ -470,12 +470,11 @@ public:
 
     ~SharedPointer()
     {
-        if ( !m_Count )
-        {
-            return;
-        }
-        (*count)--;
-        if ( *m_Count == 0 )
+        ScopedLock lock(m_Mutex);
+
+        DecrementCounter();
+
+        if ( count() == 0 )
         {
             delete m_Pointer;
             delete m_Count;
@@ -487,7 +486,7 @@ public:
         ScopedLock lock(m_Mutex);
         m_Pointer = other.m_Pointer;
         m_Count   = other.count;
-        (*m_Count)++;
+        IncrementCounter();
     }
 
     SharedPointer<T>&
@@ -496,19 +495,21 @@ public:
         ScopedLock lock(m_Mutex);
         m_Pointer = other.m_Pointer;
         m_Count   = other.m_Count;
-        (*m_Count)++;
+        IncrementCounter();
         return *this;
     }
 
-    size_t
+    usize
     count() const
     {
+        ScopedLock lock(m_Mutex);
         return (m_Count != nullptr) ? *m_Count : 0;
     }
 
     T*
     get()
     {
+        ScopedLock lock(m_Mutex);
         return m_Pointer;
     }
 
@@ -522,6 +523,19 @@ public:
     operator->()
     {
         return get();
+    }
+
+protected:
+    void
+    IncrementCounter()
+    {
+        InterlockedIncrement(&m_Count);
+    }
+
+    void
+    DecrementCounter()
+    {
+        InterlockedDecrement(&m_Count);
     }
 
 private:

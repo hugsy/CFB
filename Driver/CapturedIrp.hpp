@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.hpp"
+#include "DriverUtils.hpp"
 #include "HookedDriver.hpp"
 
 namespace Utils = CFB::Driver::Utils;
@@ -11,7 +12,7 @@ namespace CFB::Driver
 class CapturedIrp
 {
 public:
-    enum class Type : u8
+    enum class IrpType : u8
     {
         Irp          = 0x00,
         FastIo_Ioctl = 0x80,
@@ -26,63 +27,10 @@ public:
         InitQueueMessage = (1 << 2),
     };
 
-    CapturedIrp(_In_ HookedDriver* HookedDriver, _In_ const PDEVICE_OBJECT _DeviceObject, _In_ const PIRP Irp) :
-        Type(Type::Irp),
-        Pid(::HandleToULong(::PsGetCurrentProcessId())),
-        Tid(::HandleToULong(::PsGetCurrentThreadId())),
-        DeviceObject(_DeviceObject),
-        MajorFunction(0),
-        DriverName(L""),
-        DeviceName(L""),
-        ProcessName(L""),
-        Method(-1)
-    {
-        PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
-        //
-        // Basic info
-        //
-        KeQuerySystemTime(&TimeStamp);
+    CapturedIrp(const IrpType Type, const PDEVICE_OBJECT DeviceObject);
 
-        MajorFunction = Stack->MajorFunction;
-        GetDeviceName();
-        GetDriverName(HookedDriver);
-        GetProcessName();
-
-        switch ( MajorFunction )
-        {
-        case IRP_MJ_DEVICE_CONTROL:
-        case IRP_MJ_INTERNAL_DEVICE_CONTROL:
-            InputBufferLength  = Stack->Parameters.DeviceIoControl.InputBufferLength;
-            OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
-            IoctlCode          = Stack->Parameters.DeviceIoControl.IoControlCode;
-            InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
-            Method             = METHOD_FROM_CTL_CODE(IoctlCode);
-            break;
-
-        case IRP_MJ_WRITE:
-            InputBufferLength  = Stack->Parameters.Write.Length;
-            OutputBufferLength = 0;
-            InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
-            break;
-
-        case IRP_MJ_READ:
-            InputBufferLength  = 0;
-            OutputBufferLength = Stack->Parameters.Read.Length;
-            OutputBuffer       = Utils::KAlloc<u8*>(OutputBufferLength);
-            Method             = (DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
-                                 (DeviceObject->Flags & DO_DIRECT_IO)   ? METHOD_IN_DIRECT :
-                                                                          -1;
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    ~CapturedIrp()
-    {
-    }
+    ~CapturedIrp();
 
     static void*
     operator new(usize sz)
@@ -113,39 +61,30 @@ public:
     NTSTATUS
     CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus);
 
+    NTSTATUS
+    CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG InputBufferLength, _In_ ULONG IoControlCode);
+
+    NTSTATUS
+    CapturePostCallFastIoData(_In_ PVOID OutputBuffer, _In_ ULONG OutputBufferLength);
+
     LIST_ENTRY Next;
 
     usize const
-    DataSize()
-    {
-        return InputDataSize() + OutputDataSize();
-    }
+    DataSize();
 
     usize const
-    InputDataSize() const
-    {
-        return InputBufferLength;
-    }
+    InputDataSize() const;
 
     usize const
-    OutputDataSize() const
-    {
-        return OutputBufferLength;
-    }
+    OutputDataSize() const;
+
+    HookedDriver* const
+    AssociatedDriver() const;
 
 private:
-    NTSTATUS
-    GetDeviceName();
-
-    NTSTATUS
-    GetProcessName();
-
-    NTSTATUS
-    GetDriverName(HookedDriver* const Driver);
-
     LARGE_INTEGER TimeStamp;
     u8 Irql;
-    Type Type;
+    IrpType Type;
     u8 MajorFunction;
     u32 IoctlCode;
     u32 Pid;
@@ -159,6 +98,7 @@ private:
     Utils::KUnicodeString DriverName;
     Utils::KUnicodeString DeviceName;
     Utils::KUnicodeString ProcessName;
-    ULONG Method;
+    HookedDriver* Driver;
 };
+
 } // namespace CFB::Driver

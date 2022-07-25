@@ -10,8 +10,9 @@ namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver
 {
-struct HookedDriver
+class HookedDriver
 {
+public:
     enum class HookState
     {
         Unhooked,
@@ -22,23 +23,6 @@ struct HookedDriver
     /// @brief The next HookedDriver entry (if any)
     ///
     LIST_ENTRY Next;
-
-    ///
-    /// @brief If `true`, any IRP targetting the driver object underneath will be pushed to the queue of
-    /// intercepted IRPs
-    ///
-    bool Enabled;
-
-    ///
-    /// @brief The absolute path of to the driver underneath
-    ///
-    Utils::KUnicodeString Path;
-
-    ///
-    /// @brief A pointer to the driver object. The object refcount has been incremented by the constructor.
-    /// The destructor makes sure to release it.
-    ///
-    PDRIVER_OBJECT DriverObject;
 
     ///
     /// @brief The array where the original `IRP_MJ_*` callbacks are stored
@@ -61,19 +45,15 @@ struct HookedDriver
     PFAST_IO_DEVICE_CONTROL FastIoDeviceControl;
 
     ///
-    /// @brief The total number of intercepted IRPs
+    /// @brief The absolute path of to the driver underneath
     ///
-    u64 InterceptedIrpsCount;
+    Utils::KUnicodeString Path;
 
     ///
-    /// @brief Mutex to guard callback access
+    /// @brief A pointer to the driver object. The object refcount has been incremented by the constructor.
+    /// The destructor makes sure to release it.
     ///
-    Utils::KFastMutex Mutex;
-
-    ///
-    /// @brief
-    ///
-    HookState State;
+    PDRIVER_OBJECT DriverObject;
 
     HookedDriver(const PUNICODE_STRING UnicodePath);
 
@@ -95,11 +75,57 @@ struct HookedDriver
         return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
+    bool
+    HasCapturingEnabled() const;
+
+    void
+    EnableCapturing();
+
+    void
+    DisableCapturing();
+
+    usize const
+    IrpCount() const;
+
+    void
+    IncrementIrpCount();
+
+    void
+    DecrementIrpCount();
+
+    HookedDriver&
+    operator++();
+
+    HookedDriver&
+    operator--();
+
+
+private:
     void
     SwapCallbacks();
 
-
     void
     RestoreCallbacks();
+
+    ///
+    /// @brief If `true`, any IRP targetting the driver object underneath will be pushed to the queue of
+    /// intercepted IRPs
+    ///
+    bool Enabled;
+
+    ///
+    /// @brief The total number of intercepted IRPs
+    ///
+    u64 InterceptedIrpsCount;
+
+    ///
+    /// @brief Mutex to guard callback access
+    ///
+    Utils::KFastMutex Mutex;
+
+    ///
+    /// @brief
+    ///
+    HookState State;
 };
 } // namespace CFB::Driver
