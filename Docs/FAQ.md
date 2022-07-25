@@ -19,4 +19,4 @@ https://www.groovypost.com/howto/fix-visual-c-plus-plus-redistributable-windows-
 
 ## Where did you get those cool icons ?
 
-Over there : http://freeiconshop.com/ 
+Over there : http://freeiconshop.com/
