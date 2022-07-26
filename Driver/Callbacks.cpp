@@ -38,7 +38,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     HookedDriver* const Driver    = CapturedIrp->AssociatedDriver();
     const bool IsCapturingEnabled = Driver->HasCapturingEnabled();
 
-    // TODO: replace with SharedPointer(CapturedIrp)
+    // TODO: replace with SharedPointer<CapturedIrp>
 
     if ( IsCapturingEnabled )
     {
@@ -118,224 +118,14 @@ InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 }
 
 
-/**
-
-NTSTATUS
-HandleInterceptedFastIo(
-    _In_ PHOOKED_DRIVER Driver,
-    _In_ PDEVICE_OBJECT pDeviceObject,
-    _In_ UINT32 Type,
-    _In_ UINT32 IoctlCode,
-    _In_ PVOID Buffer,
-    _In_ ULONG BufferLength,
-    _In_ UINT32 Flags,
-    _Inout_ PINTERCEPTED_IRP* pIrpOut
-)
-{
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
-    PINTERCEPTED_IRP pIrp = NULL;
-    HOOKED_IRP_INFO temp = { 0, };
-
-    BOOLEAN IsInput = Flags & CFB_FASTIO_USE_INPUT_BUFFER;
-
-
-    //
-    // prepare the metadata
-    //
-    temp.Pid = HandleToULong(PsGetProcessId(PsGetCurrentProcess()));
-    temp.Tid = HandleToULong(PsGetCurrentThreadId());
-    temp.Type = Type;
-    temp.IoctlCode = IoctlCode;
-
-    wcsncpy_s(temp.DriverName, MAX_PATH*sizeof(WCHAR), Driver->Name, _TRUNCATE);
-
-    Status = GetDeviceNameFromDeviceObject(pDeviceObject, temp.DeviceName, MAX_PATH);
-    if (!NT_SUCCESS(Status))
-        CfbDbgPrintWarn(L"Cannot get device name, using empty string (Status=0x%#x)\n", Status);
-
-
-    //
-    // Copy the input buffer
-    //
-    if (IsInput)
-    {
-        if (BufferLength && Buffer)
-        {
-            temp.InputBuffer = ExAllocatePoolWithTag(
-                NonPagedPool,
-                BufferLength,
-                CFB_DEVICE_TAG
-            );
-            if (!temp.InputBuffer)
-                return STATUS_INSUFFICIENT_RESOURCES;
-
-            RtlSecureZeroMemory(temp.InputBuffer, BufferLength);
-
-            RtlCopyMemory(temp.InputBuffer, Buffer, BufferLength);
-
-            temp.InputBufferLen = BufferLength;
-        }
-        else
-        {
-            temp.InputBufferLen = 0;
-            temp.InputBuffer = NULL;
-        }
-    }
-    else
-    {
-        if (BufferLength && Buffer)
-        {
-            temp.OutputBuffer = ExAllocatePoolWithTag(
-                NonPagedPool,
-                BufferLength,
-                CFB_DEVICE_TAG
-            );
-            if (!temp.OutputBuffer)
-                return STATUS_INSUFFICIENT_RESOURCES;
-
-            RtlSecureZeroMemory(temp.OutputBuffer, BufferLength);
-
-            RtlCopyMemory(temp.OutputBuffer, Buffer, BufferLength);
-
-            temp.OutputBufferLen = BufferLength;
-        }
-        else
-        {
-            temp.OutputBufferLen = 0;
-            temp.OutputBuffer = NULL;
-        }
-    }
-
-
-
-    if (Flags & CFB_FASTIO_INIT_QUEUE_MESSAGE)
-    {
-        //
-        // Prepare the message to be queued
-        //
-        Status = PreparePipeMessage(&temp, &pIrp);
-
-        if (!NT_SUCCESS(Status) || pIrp == NULL)
-        {
-            CfbDbgPrintErr(L"PreparePipeMessage() failed, Status=%#X\n", Status);
-            if (IsInput==TRUE && temp.InputBuffer)
-            {
-                ExFreePoolWithTag(temp.InputBuffer, CFB_DEVICE_TAG);
-                temp.InputBuffer = NULL;
-            }
-            else if (IsInput==FALSE && temp.OutputBuffer)
-            {
-                ExFreePoolWithTag(temp.OutputBuffer, CFB_DEVICE_TAG);
-                temp.OutputBuffer = NULL;
-            }
-
-            return Status;
-        }
-    }
-
-    *pIrpOut = pIrp;
-    return Status;
-}
- */
-
-///
-/// @brief The `InterceptGenericFastIoRoutinePre()` routine wrapper intercepts FastIOs input data.
-///
-/// @param DeviceObject
-/// @param Type
-/// @param Buffer
-/// @param BufferLength
-/// @param IoControlCode
-/// @param Flags
-/// @param pIrpOut
-/// @return BOOLEAN
-///
-BOOLEAN
-InterceptGenericFastIoRoutine(
-    _In_ PDEVICE_OBJECT DeviceObject,
-    _In_ CFB::Driver::CapturedIrp::IrpType Type,
-    _In_ PVOID Buffer,
-    _In_ ULONG BufferLength,
-    _In_ ULONG IoControlCode,
-    _In_ UINT32 Flags,
-    _Inout_ PVOID* pIrpOut)
-{
-    NTSTATUS Status                      = STATUS_SUCCESS;
-    CFB::Driver::CapturedIrp* CapturedIo = nullptr;
-
-    auto ByDeviceAddress = [&DeviceObject](const HookedDriver* h)
-    {
-        for ( PDEVICE_OBJECT CurrentDevice = h->DriverObject->DeviceObject; CurrentDevice;
-              CurrentDevice                = CurrentDevice->NextDevice )
-        {
-            if ( CurrentDevice == DeviceObject )
-                return true;
-        }
-        return false;
-    };
-
-    HookedDriver* const Driver = Globals->DriverManager.Entries.Find(ByDeviceAddress);
-    if ( Driver == nullptr )
-    {
-        err("Failed to find driver for InterceptGenericFastIoRoutine(). "
-            "This could mean a corrupted state of '%s'."
-            "You should reboot to avoid further corruption...\n",
-            CFB_DEVICE_NAME);
-        return FALSE;
-    }
-
-    //
-    // If capture is enabled, create a FastIo object, capture the input buffer (if appropriate)
-    //
-    if ( Driver->HasCapturingEnabled() )
-    {
-        CapturedIo = new CFB::Driver::CapturedIrp(Type, DeviceObject);
-        if ( CapturedIo )
-        {
-            delete CapturedIo;
-        }
-    }
-
-
-    //
-    // Execute the original callback
-    //
-
-
-    //
-    // Capture the output buffer (if appropriate)
-    //
-    if ( Driver->HasCapturingEnabled() )
-    {
-        if ( CapturedIo )
-        {
-        }
-    }
-
-    return Status;
-}
-
-
 ///
 /// @brief The `InterceptGenericFastIoDeviceControl()` interception routine wrapper.
 ///
-/// ```c typedef BOOLEAN (*PFAST_IO_DEVICE_CONTROL)(
-///     IN struct _FILE_OBJECT* FileObject,
-///     IN BOOLEAN Wait,
-///     IN PVOID InputBuffer OPTIONAL,
-///     IN ULONG InputBufferLength,
-///     OUT PVOID OutputBuffer OPTIONAL,
-///     IN ULONG OutputBufferLength,
-///     IN ULONG IoControlCode,
-///     OUT PIO_STATUS_BLOCK IoStatus,
-///     IN struct _DEVICE_OBJECT* DeviceObject);
-/// ```
-///
 /// @param FileObject
 /// @param Wait
-/// @param OPTIONAL
+/// @param InputBuffer
 /// @param InputBufferLength
-/// @param OPTIONAL
+/// @param OutputBuffer
 /// @param OutputBufferLength
 /// @param IoControlCode
 /// @param IoStatus
@@ -344,33 +134,34 @@ InterceptGenericFastIoRoutine(
 ///
 BOOLEAN
 InterceptGenericFastIoDeviceControl(
-    IN PFILE_OBJECT FileObject,
-    IN BOOLEAN Wait,
-    IN PVOID InputBuffer OPTIONAL,
-    IN ULONG InputBufferLength,
-    OUT PVOID OutputBuffer OPTIONAL,
-    IN ULONG OutputBufferLength,
-    IN ULONG IoControlCode,
-    OUT PIO_STATUS_BLOCK IoStatus,
-    IN PDEVICE_OBJECT DeviceObject)
+    _In_ PFILE_OBJECT FileObject,
+    _In_ BOOLEAN Wait,
+    _In_opt_ PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_opt_ PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _In_ ULONG IoControlCode,
+    _Out_ PIO_STATUS_BLOCK IoStatus,
+    _In_ PDEVICE_OBJECT DeviceObject)
 {
-    /*
-    PINTERCEPTED_IRP pIrp = NULL;
+    //
+    // Prepare the object
+    //
+    auto CapturedFastIo = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
+    auto Driver         = CapturedFastIo->AssociatedDriver();
+    const bool bCaptureData = Driver->HasCapturingEnabled();
 
     //
-    // Capture the input
+    // If capturing enabled, capture the input data
     //
-    if ( !InterceptGenericFastIoRoutine(
-             DeviceObject,
-             CFB_INTERCEPTED_IRP_TYPE_FASTIO_IOCTL,
-             InputBuffer,
-             InputBufferLength,
-             IoControlCode,
-             CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
-             &pIrp) )
-        return FALSE;
+    if ( bCaptureData )
+    {
+        CapturedFastIo->CapturePreCallFastIoData(InputBuffer, InputBufferLength, IoControlCode);
+    }
 
-    PHOOKED_DRIVER Driver                               = GetHookedDriverFromDeviceObject(DeviceObject);
+    //
+    // Execute the original callback
+    //
     PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
     BOOLEAN bRes                                        = OriginalFastIoDeviceControl(
         FileObject,
@@ -384,102 +175,97 @@ InterceptGenericFastIoDeviceControl(
         DeviceObject);
 
     //
-    // Capture the output - pIrp was already initialized
+    // If capturing enabled, capture the output data
     //
-    if ( !InterceptGenericFastIoRoutine(
-             DeviceObject,
-             CFB::Driver::CapturedIrp::Type::FastIo_Ioctl,
-             OutputBuffer,
-             OutputBufferLength,
-             IoControlCode,
-             CFB_FASTIO_USE_OUTPUT_BUFFER,
-             &pIrp) )
-        return FALSE;
+    if ( bCaptureData )
+    {
+        CapturedFastIo->CapturePostCallFastIoData(OutputBuffer, OutputBufferLength);
+
+        //
+        // And push the IRP to the queue
+        //
+        Globals->IrpCollector.Push(CapturedFastIo);
+        Driver->IncrementIrpCount();
+    }
+    else
+    {
+        //
+        // Otherwise just delete the allocation
+        //
+        delete CapturedFastIo;
+    }
 
     return bRes;
-    */
-    return STATUS_SUCCESS;
 }
 
 
 ///
 /// @brief The `InterceptGenericFastIoRead()` interception routine wrapper.
 ///
-///
-/// ```c typedef BOOLEAN (*PFAST_IO_READ)(
-///     IN PFILE_OBJECT FileObject,
-///     IN PLARGE_INTEGER FileOffset,
-///     IN ULONG Length,
-///     IN BOOLEAN Wait,
-///     IN ULONG LockKey,
-///     OUT PVOID Buffer,
-///     OUT PIO_STATUS_BLOCK IoStatus,
-///     IN PDEVICE_OBJECT DeviceObject);
-/// ```
-///
 /// @param FileObject
 /// @param FileOffset
-/// @param Length
+/// @param BufferLength
 /// @param Wait
 /// @param LockKey
 /// @param Buffer
 /// @param IoStatus
 /// @param DeviceObject
+///
 /// @return BOOLEAN
 ///
 BOOLEAN
 InterceptGenericFastIoRead(
-    IN PFILE_OBJECT FileObject,
-    IN PLARGE_INTEGER FileOffset,
-    IN ULONG Length,
-    IN BOOLEAN Wait,
-    IN ULONG LockKey,
-    OUT PVOID Buffer,
-    OUT PIO_STATUS_BLOCK IoStatus,
-    IN PDEVICE_OBJECT DeviceObject)
+    _In_ PFILE_OBJECT FileObject,
+    _In_ PLARGE_INTEGER FileOffset,
+    _In_ ULONG BufferLength,
+    _In_ BOOLEAN Wait,
+    _In_ ULONG LockKey,
+    _Out_ PVOID Buffer,
+    _Out_ PIO_STATUS_BLOCK IoStatus,
+    _In_ PDEVICE_OBJECT DeviceObject)
 {
-    /*
-        PINTERCEPTED_IRP pIrp = NULL;
-        PHOOKED_DRIVER Driver = GetHookedDriverFromDeviceObject(DeviceObject);
-        if ( !Driver )
-            return FALSE;
+    //
+    // Prepare the object
+    //
+    auto CapturedFastRead = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
+    auto Driver           = CapturedFastRead->AssociatedDriver();
+    const bool bCaptureData = Driver->HasCapturingEnabled();
 
-        PFAST_IO_READ OriginalFastIoRead = Driver->FastIoRead;
-        BOOLEAN bRes = OriginalFastIoRead(FileObject, FileOffset, Length, Wait, LockKey, Buffer, IoStatus,
-       DeviceObject);
+    //
+    // Execute the original callback
+    //
+    PFAST_IO_READ const OriginalFastIoRead = Driver->FastIoRead;
+    BOOLEAN bRes =
+        OriginalFastIoRead(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
 
+    //
+    // If capturing enabled, capture the output data
+    //
+    if ( bCaptureData )
+    {
+        CapturedFastRead->CapturePostCallFastIoData(Buffer, BufferLength);
 
-        if ( !InterceptGenericFastIoRoutine(
-                 DeviceObject,
-                 CFB_INTERCEPTED_IRP_TYPE_FASTIO_READ,
-                 Buffer,
-                 Length,
-                 (ULONG)-1,
-                 CFB_FASTIO_USE_OUTPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
-                 &pIrp) )
-            return FALSE;
+        //
+        // And push the IRP to the queue
+        //
+        Globals->IrpCollector.Push(CapturedFastRead);
+        Driver->IncrementIrpCount();
+    }
+    else
+    {
+        //
+        // Otherwise just delete the allocation
+        //
+        delete CapturedFastRead;
+    }
 
-        return bRes;
-    */
-
-    return STATUS_SUCCESS;
+    return bRes;
 }
 
 
 ///
 /// @brief The InterceptGenericFastIoWrite() interception routine wrapper.
 ///
-/// ```c typedef BOOLEAN (*PFAST_IO_WRITE)(
-///     IN PFILE_OBJECT FileObject,
-///     IN PLARGE_INTEGER FileOffset,
-///     IN ULONG Length,
-///     IN BOOLEAN Wait,
-///     IN ULONG LockKey,
-///     OUT PVOID Buffer,
-///     OUT PIO_STATUS_BLOCK IoStatus,
-///     IN PDEVICE_OBJECT DeviceObject);
-/// ```
-///
 /// @param FileObject
 /// @param FileOffset
 /// @param Length
@@ -488,35 +274,61 @@ InterceptGenericFastIoRead(
 /// @param Buffer
 /// @param IoStatus
 /// @param DeviceObject
+///
 /// @return BOOLEAN
 ///
 BOOLEAN
 InterceptGenericFastIoWrite(
-    IN PFILE_OBJECT FileObject,
-    IN PLARGE_INTEGER FileOffset,
-    IN ULONG Length,
-    IN BOOLEAN Wait,
-    IN ULONG LockKey,
-    OUT PVOID Buffer,
-    OUT PIO_STATUS_BLOCK IoStatus,
-    IN PDEVICE_OBJECT DeviceObject)
+    _In_ PFILE_OBJECT FileObject,
+    _In_ PLARGE_INTEGER FileOffset,
+    _In_ ULONG BufferLength,
+    _In_ BOOLEAN Wait,
+    _In_ ULONG LockKey,
+    _Out_ PVOID Buffer,
+    _Out_ PIO_STATUS_BLOCK IoStatus,
+    _In_ PDEVICE_OBJECT DeviceObject)
 {
-    /*
-    PINTERCEPTED_IRP pIrp = NULL;
-    if ( !InterceptGenericFastIoRoutine(
-             DeviceObject,
-             CFB_INTERCEPTED_IRP_TYPE_FASTIO_WRITE,
-             Buffer,
-             Length,
-             (ULONG)-1,
-             CFB_FASTIO_USE_INPUT_BUFFER | CFB_FASTIO_INIT_QUEUE_MESSAGE,
-             &pIrp) )
-        return FALSE;
+    //
+    // Prepare the object
+    //
+    auto CapturedFastRead = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
+    auto Driver           = CapturedFastRead->AssociatedDriver();
+    const bool bCaptureData = Driver->HasCapturingEnabled();
 
-    PHOOKED_DRIVER Driver              = GetHookedDriverFromDeviceObject(DeviceObject);
-    PFAST_IO_WRITE OriginalFastIoWrite = Driver->FastIoWrite;
-    return OriginalFastIoWrite(FileObject, FileOffset, Length, Wait, LockKey, Buffer, IoStatus, DeviceObject);
-*/
-    return STATUS_SUCCESS;
+    //
+    // If capturing enabled, capture the input data
+    //
+    if ( bCaptureData )
+    {
+        CapturedFastRead->CapturePreCallFastIoData(Buffer, BufferLength, 0);
+    }
+
+    //
+    // Execute the original callback
+    //
+    PFAST_IO_READ const OriginalFastIoRead = Driver->FastIoRead;
+    BOOLEAN bRes =
+        OriginalFastIoRead(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
+
+    //
+    // If capturing enabled, capture the output data
+    //
+    if ( bCaptureData )
+    {
+        //
+        // And push the IRP to the queue
+        //
+        Globals->IrpCollector.Push(CapturedFastRead);
+        Driver->IncrementIrpCount();
+    }
+    else
+    {
+        //
+        // Otherwise just delete the allocation
+        //
+        delete CapturedFastRead;
+    }
+
+    return bRes;
 }
 } // namespace CFB::Driver::Callbacks

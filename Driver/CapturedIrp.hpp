@@ -62,10 +62,10 @@ public:
     CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus);
 
     NTSTATUS
-    CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG InputBufferLength, _In_ ULONG IoControlCode);
+    CapturePreCallFastIoData(_In_opt_ PVOID InputBuffer, _In_ ULONG InputBufferLength, _In_ ULONG IoControlCode);
 
     NTSTATUS
-    CapturePostCallFastIoData(_In_ PVOID OutputBuffer, _In_ ULONG OutputBufferLength);
+    CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer, _In_ ULONG OutputBufferLength);
 
     LIST_ENTRY Next;
 
