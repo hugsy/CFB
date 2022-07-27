@@ -26,7 +26,6 @@ NTSTATUS
 IrpNotImplementedHandler(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
-    PAGED_CODE();
 
     CompleteRequest(Irp, STATUS_NOT_IMPLEMENTED, 0);
     return STATUS_NOT_IMPLEMENTED;
@@ -61,7 +60,6 @@ NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(pObject);
-    PAGED_CODE();
 
     NTSTATUS Status                        = STATUS_UNSUCCESSFUL;
     PIO_STACK_LOCATION lpStack             = ::IoGetCurrentIrpStackLocation(Irp);
@@ -136,10 +134,9 @@ NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(Device);
-    PAGED_CODE();
 
-    auto scoped_lock = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
-    Globals->Owner   = nullptr;
+    auto lock      = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
+    Globals->Owner = nullptr;
     ok("Unlocked device...");
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }
@@ -157,7 +154,6 @@ NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
-    PAGED_CODE();
 
     //
     // This should never happen as we checked the process when getting the handle, but still
@@ -184,7 +180,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 
     CFB::Utils::Hexdump(&Message, InputBufferLen);
 
-    dbg("Attempting to process IOCTL %#x", IoctlCode);
+    dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
 
     switch ( IoctlCode )
     {
@@ -257,7 +253,6 @@ NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
     UNREFERENCED_PARAMETER(DeviceObject);
-    PAGED_CODE();
 
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
 
@@ -376,7 +371,6 @@ _Function_class_(DRIVER_DISPATCH) DriverCleanup(_In_ PDEVICE_OBJECT DeviceObject
 {
     UNREFERENCED_PARAMETER(DeviceObject);
     UNREFERENCED_PARAMETER(Irp);
-    PAGED_CODE();
 
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }

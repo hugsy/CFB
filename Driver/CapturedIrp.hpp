@@ -35,7 +35,7 @@ public:
     static void*
     operator new(usize sz)
     {
-        void* Memory = ::ExAllocatePoolWithTag(PagedPool, sz, CFB_DEVICE_TAG);
+        void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
         if ( Memory )
         {
             dbg("Allocating CapturedIrp at %p", Memory);

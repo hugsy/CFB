@@ -41,7 +41,6 @@ s2ws(std::string const& s)
 bool
 hook_driver(HANDLE hFile, std::string const& arg)
 {
-
     DWORD nbBytesReturned       = 0;
     IoMessage msg               = {0};
     std::wstring driver_name    = s2ws(arg);
@@ -62,13 +61,11 @@ hook_driver(HANDLE hFile, std::string const& arg)
 bool
 unhook_driver(HANDLE hFile, std::string const& arg)
 {
-
     DWORD nbBytesReturned       = 0;
-    IoMessage msg               = {0};
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = driver_name.length() * 2;
     const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
-
+    IoMessage msg               = {0};
     ::RtlCopyMemory(msg.DriverName, driver_name.data(), msglen);
 
     bool bSuccess = ::DeviceIoControl(hFile, IOCTL_UnhookDriver, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
@@ -97,9 +94,56 @@ get_size(HANDLE hFile)
 }
 
 bool
-toggle_monitoring(HANDLE hFile, std::vector<std::string> const& driver_names, bool state)
+toggle_monitoring(HANDLE hFile, std::string const& arg, bool enable)
 {
-    return true;
+    std::wstring driver_name    = s2ws(arg);
+    const usize driver_name_len = driver_name.length() * 2;
+    const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
+    IoMessage msg               = {0};
+    ::RtlCopyMemory(msg.DriverName, driver_name.data(), msglen);
+
+    DWORD nbBytesReturned = 0;
+    bool bSuccess         = ::DeviceIoControl(
+        hFile,
+        enable == true ? IOCTL_EnableMonitoring : IOCTL_DisableMonitoring,
+        &msg,
+        msglen,
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
+    info("toggle_monitoring(%s) returned %s", boolstr(enable), boolstr(bSuccess));
+
+    return bSuccess;
+}
+
+
+bool
+send_test_data(std::string const& device_name, u32 ioctl)
+{
+    wil::unique_handle hFile(::CreateFileA(
+        device_name.c_str(),
+        GENERIC_WRITE | GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        OPEN_EXISTING,
+        0,
+        nullptr));
+    if ( !hFile )
+    {
+        err("CreateFileA(%s) failed", device_name.c_str());
+        return false;
+    }
+
+    DWORD nbBytesReturned = 0;
+    const usize sz        = 0x20;
+    auto buffer_in        = std::make_unique<u8[]>(sz);
+    ::memset(buffer_in.get(), 'A', sz);
+
+    bool bSuccess = ::DeviceIoControl(hFile.get(), ioctl, buffer_in.get(), sz, nullptr, 0, &nbBytesReturned, nullptr);
+    info("send_test_data() returned %s", boolstr(bSuccess));
+
+    return bSuccess;
 }
 
 
@@ -108,19 +152,23 @@ main(int argc, const char** argv)
 {
     argparse::ArgumentParser program("DriverClient");
 
+    const std::vector<std::string> valid_actions =
+        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data"};
+
     program.add_argument("--action")
         .default_value(std::string("hook"))
         .action(
-            [](const std::string& value)
+            [&valid_actions](const std::string& value)
             {
-                static const std::vector<std::string> choices = {"hook", "hook-unhook", "unhook", "size"};
-                if ( std::find(choices.begin(), choices.end(), value) != choices.end() )
+                if ( std::find(valid_actions.begin(), valid_actions.end(), value) != valid_actions.end() )
                 {
                     return value;
                 }
                 return std::string {"hook"};
             });
-    program.add_argument("--driver").default_value(std::string("\\driver\\tcpip")).required();
+    program.add_argument("--driver").default_value(std::string("\\driver\\hevd")).required();
+    program.add_argument("--ioctl").scan<'i', int>().default_value(0);
+    program.add_argument("--enable").default_value(false).implicit_value(true);
 
     try
     {
@@ -135,6 +183,8 @@ main(int argc, const char** argv)
 
     auto action      = program.get<std::string>("--action");
     auto driver_name = program.get<std::string>("--driver");
+    auto ioctl       = program.get<int>("--ioctl");
+    auto enable      = program.get<bool>("--enable");
 
     info("Getting a handle to '%S'", CFB_DEVICE_PATH);
     wil::unique_handle hFile(
@@ -161,6 +211,14 @@ main(int argc, const char** argv)
     else if ( action == "size" )
     {
         get_size(hFile.get());
+    }
+    else if ( action == "set-capturing" )
+    {
+        toggle_monitoring(hFile.get(), driver_name, enable);
+    }
+    else if ( action == "test-data" )
+    {
+        send_test_data(driver_name, ioctl);
     }
 
     return 0;

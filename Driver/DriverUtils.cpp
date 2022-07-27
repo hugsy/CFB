@@ -135,13 +135,11 @@ KFastMutex::Unlock()
 #pragma region KSpinLock
 KSpinLock::KSpinLock()
 {
-    dbg("Creating KSpinLock");
     KeInitializeSpinLock(&_SpinLock);
 }
 
 KSpinLock::~KSpinLock()
 {
-    dbg("Cleaning up KSpinLock");
 }
 
 void
@@ -160,13 +158,11 @@ KSpinLock::Unlock()
 #pragma region KQueuedSpinLock
 KQueuedSpinLock::KQueuedSpinLock()
 {
-    dbg("Creating KQueuedSpinLock");
     ::KeInitializeSpinLock(&_SpinLock);
 }
 
 KQueuedSpinLock::~KQueuedSpinLock()
 {
-    dbg("Cleaning up KQueuedSpinLock");
 }
 
 void

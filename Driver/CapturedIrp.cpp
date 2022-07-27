@@ -108,6 +108,10 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
 
         UNICODE_STRING uStr;
         Status = ::RtlAnsiStringToUnicodeString(&uStr, &aStr, true);
+        if ( !NT_SUCCESS(Status) )
+        {
+            ::ExRaiseStatus(Status);
+        }
 
         ProcessName = Utils::KUnicodeString(&uStr);
     }

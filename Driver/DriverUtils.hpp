@@ -5,7 +5,7 @@
 
 
 void* __cdecl
-operator new(size_t Size, POOL_TYPE PoolType = PagedPool, ULONG PoolTag = CFB_DEVICE_TAG);
+operator new(size_t Size, POOL_TYPE PoolType = NonPagedPoolNx, ULONG PoolTag = CFB_DEVICE_TAG);
 
 void __cdecl
 operator delete(void* Memory, usize Size);
@@ -40,8 +40,63 @@ public:
         dbg("Scope unlocking: %p", &_lock);
     }
 
+    ScopedLock(const ScopedLock&) = delete;
+
+    ScopedLock(const ScopedLock&&) = delete;
+
+    ScopedLock&
+    operator=(const ScopedLock& other) = delete;
+
+    ScopedLock&
+    operator=(const ScopedLock&& other) = delete;
+
 private:
     T& _lock;
+};
+
+
+class ScopedIrql
+{
+public:
+    ScopedIrql(KIRQL level) : _NewIrql(level)
+    {
+        KeRaiseIrql(_NewIrql, &_OldIrql);
+        dbg("IRQL %s -> %s", str(_OldIrql), str(_NewIrql));
+    }
+
+    ~ScopedIrql()
+    {
+        ::KeLowerIrql(_OldIrql);
+        dbg("IRQL %d <- %d", str(_OldIrql), str(_NewIrql));
+    }
+
+    const char*
+    str(KIRQL Level) const
+    {
+        switch ( Level )
+        {
+        case PASSIVE_LEVEL:
+            return "PASSIVE_LEVEL";
+        case APC_LEVEL:
+            return "APC_LEVEL";
+        case DISPATCH_LEVEL:
+            return "DISPATCH_LEVEL";
+        case CMCI_LEVEL:
+            return "CMCI_LEVEL";
+        case CLOCK_LEVEL:
+            return "CLOCK_LEVEL";
+        case POWER_LEVEL:
+            return "POWER_LEVEL";
+        case HIGH_LEVEL:
+            return "HIGH_LEVEL";
+        }
+
+        return "INVALID_LEVEL";
+    }
+
+private:
+    KIRQL _OldIrql;
+    KIRQL _NewIrql;
 };
 
 
@@ -85,7 +140,7 @@ template<typename T>
 class KAlloc
 {
 public:
-    KAlloc(const usize sz = 0, const u32 tag = CFB_DEVICE_TAG, POOL_TYPE type = PagedPool) :
+    KAlloc(const usize sz = 0, const u32 tag = CFB_DEVICE_TAG, POOL_TYPE type = NonPagedPoolNx) :
         _type(type),
         _tag(tag),
         _sz(sz),
@@ -95,7 +150,6 @@ public:
         {
             allocate(sz);
         }
-        dbg("KAlloc::KAlloc(%d) = %p", _sz, _mem);
     }
 
     ~KAlloc()
@@ -104,7 +158,6 @@ public:
         {
             free();
         }
-        dbg("KAlloc::~KAlloc(%p, %d)", _mem, _sz);
     }
 
     KAlloc(const KAlloc&) = delete;
@@ -128,6 +181,7 @@ public:
         dbg("In KAlloc::operator=(const KAlloc&&)");
         if ( this != &other )
         {
+            free();
             _mem       = other._mem;
             _tag       = other._tag;
             _sz        = other._sz;
@@ -158,36 +212,46 @@ public:
     friend bool
     operator==(KAlloc const& lhs, KAlloc const& rhs)
     {
-        return lhs._sz == rhs._sz && lhs._mem == rhs._mem && lhs._tag == rhs._tag;
+        if ( lhs._sz != rhs._sz || lhs._tag != rhs._tag )
+            return false;
+
+        return ::RtlCompareMemory((PVOID)lhs._mem, (PVOID)rhs._mem, lhs._sz);
     }
 
 protected:
     virtual void
     allocate(const usize sz)
     {
-        dbg("KAlloc::allocate(%d)", sz);
-
         if ( sz >= MAXUSHORT )
         {
             ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
             return;
         }
 
-        auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
-        if ( !p )
+        if ( _sz > 0 )
         {
-            ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
-        }
+            auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
+            if ( !p )
+            {
+                ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+            }
 
-        _mem = reinterpret_cast<T>(p);
-        ::RtlSecureZeroMemory((PVOID)_mem, _sz);
+            _mem = reinterpret_cast<T>(p);
+            ::RtlSecureZeroMemory((PVOID)_mem, _sz);
+
+            dbg("KAlloc::allocate(%d) = %p", sz, _mem);
+        }
+        else
+        {
+            dbg("KAlloc::allocate(%d)", sz);
+        }
     }
 
     virtual void
     free()
     {
         dbg("KAlloc::free(%p)", _mem);
-        if ( _mem != nullptr )
+        if ( _mem != nullptr && _sz > 0 )
         {
             ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
             ::ExFreePoolWithTag(_mem, _tag);
@@ -207,20 +271,21 @@ protected:
 class KUnicodeString
 {
 public:
-    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = PagedPool);
+    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = NonPagedPoolNx);
 
-    KUnicodeString(const wchar_t* src, const POOL_TYPE type = PagedPool);
+    KUnicodeString(const wchar_t* src, const POOL_TYPE type = NonPagedPoolNx);
 
     ~KUnicodeString();
 
     KUnicodeString&
     operator=(KUnicodeString&& other) noexcept
     {
+        dbg("In KUnicodeString::operator=(const KUnicodeString&&)");
         if ( this != &other )
         {
             _len    = other._len;
             _buffer = other._buffer;
-            ::RtlCopyUnicodeString(&_str, other.get());
+            ::RtlCopyMemory(&_str, other.get(), sizeof(UNICODE_STRING));
         }
         return *this;
     }
@@ -229,6 +294,12 @@ public:
     operator==(KUnicodeString const& lhs, KUnicodeString const& rhs)
     {
         return lhs._len == rhs._len && lhs._buffer == rhs._buffer;
+    }
+
+    bool
+    operator==(PUNICODE_STRING const& uString)
+    {
+        return *this == KUnicodeString(uString->Buffer);
     }
 
     const PUNICODE_STRING
@@ -452,6 +523,121 @@ private:
     usize m_TotalEntry;
 };
 
+///
+/// @brief Basic implementation of unique pointer for the kernel
+///
+/// @tparam T
+///
+template<typename T>
+class UniquePointer
+{
+    T* data;
+
+public:
+    UniquePointer() : data(nullptr)
+    {
+    }
+
+    explicit UniquePointer(T* data) : data(data)
+    {
+    }
+
+    ~UniquePointer()
+    {
+        delete data;
+    }
+
+    UniquePointer(std::nullptr_t) : data(nullptr)
+    {
+    }
+
+    UniquePointer&
+    operator=(std::nullptr_t)
+    {
+        reset();
+        return *this;
+    }
+
+    UniquePointer(UniquePointer&& moving) noexcept : data(nullptr)
+    {
+        moving.swap(*this);
+    }
+
+    UniquePointer&
+    operator=(UniquePointer&& moving) noexcept
+    {
+        moving.swap(*this);
+        return *this;
+    }
+
+    template<typename U>
+    UniquePointer(UniquePointer<U>&& moving)
+    {
+        UniquePointer<T> tmp(moving.release());
+        tmp.swap(*this);
+    }
+    template<typename U>
+    UniquePointer&
+    operator=(UniquePointer<U>&& moving)
+    {
+        UniquePointer<T> tmp(moving.release());
+        tmp.swap(*this);
+        return *this;
+    }
+
+    UniquePointer(UniquePointer const&) = delete;
+    UniquePointer&
+    operator=(UniquePointer const&) = delete;
+
+    T*
+    operator->() const
+    {
+        return data;
+    }
+    T&
+    operator*() const
+    {
+        return *data;
+    }
+    T*
+    get() const
+    {
+        return data;
+    }
+    explicit operator bool() const
+    {
+        return data;
+    }
+
+    T*
+    release() noexcept
+    {
+        T* result = nullptr;
+        swap(result, data);
+        return result;
+    }
+
+    void
+    swap(UniquePointer& src) noexcept
+    {
+        InterlockedExchangePointer((PVOID*)data, (PVOID)src.data);
+    }
+
+    void
+    reset()
+    {
+        T* tmp = release();
+        delete tmp;
+    }
+};
+
+
+template<typename T>
+void
+swap(UniquePointer<T>& lhs, UniquePointer<T>& rhs)
+{
+    lhs.swap(rhs);
+}
 
 ///
 /// @brief Basic implementation of smart pointer for the kernel

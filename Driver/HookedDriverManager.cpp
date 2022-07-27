@@ -128,12 +128,10 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 {
     Utils::ScopedLock lock(Mutex);
 
-    dbg("HookedDriverManager::RemoveDriver('%wZ', %d)", UnicodePath, UnicodePath->Length);
-
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
     auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
     {
-        return ::RtlCompareUnicodeString(h->Path.get(), UnicodePath, true) == 0;
+        return h->Path == UnicodePath;
     };
 
     auto MatchedDriver = Entries.Find(FromDriverPath);
@@ -142,7 +140,7 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
         return STATUS_NOT_FOUND;
     }
 
-    dbg("Removing HookedDriver %p ...", MatchedDriver);
+    dbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
 
     Entries -= MatchedDriver;
     delete MatchedDriver;
@@ -154,7 +152,9 @@ NTSTATUS
 HookedDriverManager::RemoveAllDrivers()
 {
     dbg("Removing all drivers");
+
     Utils::ScopedLock lock(Mutex);
+
     do
     {
         auto Entry = Entries.PopTail();
@@ -169,7 +169,8 @@ HookedDriverManager::RemoveAllDrivers()
 NTSTATUS
 HookedDriverManager::SetMonitoringState(const wchar_t* Path, bool bEnable)
 {
-    return SetMonitoringState(Utils::KUnicodeString(Path).get(), bEnable);
+    UNICODE_STRING UnicodePath = RTL_CONSTANT_STRING(Path);
+    return SetMonitoringState(&UnicodePath, bEnable);
 }
 
 NTSTATUS
@@ -180,7 +181,7 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
     auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
     {
-        return ::RtlCompareUnicodeString(h->Path.get(), UnicodePath, true) == 0;
+        return h->Path == UnicodePath;
     };
 
     auto MatchedDriver = Entries.Find(FromDriverPath);
@@ -189,7 +190,12 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-    MatchedDriver->EnableCapturing();
+    dbg("HookedDriverManager::SetMonitoringState('%wZ', %d)", MatchedDriver->Path.get(), bEnable);
+
+    if ( bEnable )
+        MatchedDriver->EnableCapturing();
+    else
+        MatchedDriver->DisableCapturing();
 
     return STATUS_SUCCESS;
 }

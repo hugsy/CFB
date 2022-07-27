@@ -22,20 +22,26 @@ log(const char* fmtstr, ...)
 {
     va_list args;
     va_start(args, fmtstr);
-    char buffer[1024] = {0};
 
 #ifdef CFB_KERNEL_DRIVER
-    NTSTATUS Status = ::RtlStringCchVPrintfA(buffer, countof(buffer), fmtstr, args);
-    if ( NT_SUCCESS(Status) )
+    //
+    // Explicitly refusing to log anything if IRQ level too high, since most Rtl* encoding functions are for
+    // PASSIVE_LEVEL only
+    //
+    if ( ::KeGetCurrentIrql() >= DISPATCH_LEVEL )
+    {
+        return;
+    }
+
 #ifdef _DEBUG
-        ::DbgPrint(buffer);
+    ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, 0xFFFFFFFF, fmtstr, args);
 #else
-        ::DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_WARNING_LEVEL, buffer);
+    ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_WARNING_LEVEL, fmtstr, args);
 #endif // _DEBUG
 #else
-    ::vsprintf_s(buffer, countof(buffer), fmtstr, args);
-    std::cout << buffer;
+    ::vprintf(fmtstr, args);
 #endif // CFB_KERNEL_DRIVER
+
     va_end(args);
 }
 

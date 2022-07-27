@@ -21,7 +21,7 @@ struct HookedDriverManager
     ///
     /// @brief A mutex to protect access to the critical resources
     ///
-    Utils::KQueuedSpinLock Mutex;
+    Utils::KFastMutex Mutex;
 
     ///
     /// @brief Construct a new Hooked Driver Manager object
@@ -36,7 +36,7 @@ struct HookedDriverManager
     static void*
     operator new(usize sz)
     {
-        void* Memory = ::ExAllocatePoolWithTag(NonPagedPool, sz, CFB_DEVICE_TAG);
+        void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
         if ( Memory )
         {
             dbg("Allocating HookedDriverManager at %p", Memory);
