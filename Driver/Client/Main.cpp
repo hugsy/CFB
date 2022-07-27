@@ -77,6 +77,25 @@ unhook_driver(HANDLE hFile, std::string const& arg)
     return true;
 }
 
+
+HANDLE
+set_notif_handle(HANDLE hFile)
+{
+    DWORD nbBytesReturned = 0;
+    HANDLE hEvent         = ::CreateEvent(nullptr, true, false, nullptr);
+
+    IoMessage msg                  = {0};
+    msg.IrpNotificationEventHandle = hEvent;
+    const usize msglen             = std::min(sizeof(msg.IrpNotificationEventHandle), (usize)CFB_DRIVER_MAX_PATH);
+
+    bool bSuccess =
+        ::DeviceIoControl(hFile, IOCTL_SetEventPointer, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
+    info("SetEventPointer() returned %s", boolstr(bSuccess));
+
+    return hEvent;
+}
+
+
 bool
 get_size(HANDLE hFile)
 {
@@ -153,7 +172,7 @@ main(int argc, const char** argv)
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =
-        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data"};
+        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "set-event"};
 
     program.add_argument("--action")
         .default_value(std::string("hook"))
@@ -185,6 +204,8 @@ main(int argc, const char** argv)
     auto driver_name = program.get<std::string>("--driver");
     auto ioctl       = program.get<int>("--ioctl");
     auto enable      = program.get<bool>("--enable");
+
+    wil::unique_handle hEvent;
 
     info("Getting a handle to '%S'", CFB_DEVICE_PATH);
     wil::unique_handle hFile(
@@ -219,6 +240,10 @@ main(int argc, const char** argv)
     else if ( action == "test-data" )
     {
         send_test_data(driver_name, ioctl);
+    }
+    else if ( action == "set-event" )
+    {
+        hEvent = wil::unique_handle(set_notif_handle(hFile.get()));
     }
 
     return 0;
