@@ -7,8 +7,8 @@
 namespace CFB::Driver
 {
 
-CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT DeviceObject) :
-    m_Type(_Type),
+CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceObject) :
+    m_Type(Type),
     m_Pid(::HandleToULong(::PsGetCurrentProcessId())),
     m_Tid(::HandleToULong(::PsGetCurrentThreadId())),
     m_Driver(nullptr),

@@ -67,8 +67,6 @@ public:
     NTSTATUS
     CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer);
 
-    LIST_ENTRY Next;
-
     usize const
     DataSize();
 
@@ -80,6 +78,8 @@ public:
 
     HookedDriver* const
     AssociatedDriver() const;
+
+    LIST_ENTRY Next;
 
 private:
     LARGE_INTEGER m_TimeStamp;

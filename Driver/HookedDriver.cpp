@@ -163,13 +163,11 @@ HookedDriver::EnableCapturing()
 {
     Utils::ScopedLock lock(Mutex);
     bool bStatusChanged = false;
-
     if ( State == HookState::Hooked )
     {
         Enabled        = true;
         bStatusChanged = true;
     }
-    dbg("State %schanged, current value %s", (bStatusChanged ? "" : "un"), boolstr(HasCapturingEnabled()));
     return bStatusChanged;
 }
 
@@ -180,7 +178,6 @@ HookedDriver::DisableCapturing()
     bool bStatusChanged = false;
     Enabled             = false;
     bStatusChanged      = true;
-    dbg("State %schanged, current value %s", (bStatusChanged ? "" : "un"), boolstr(HasCapturingEnabled()));
     return bStatusChanged;
 }
 

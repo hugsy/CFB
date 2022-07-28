@@ -417,7 +417,8 @@ private:
 
 
 ///
-/// @brief
+/// @brief Linked list class: to be able to be linked, `T` class must have a LIST_ENTRY member
+/// named `Next`
 ///
 /// @tparam T
 ///
@@ -437,7 +438,7 @@ public:
     }
 
     void
-    Insert(T* NewEntry)
+    PushBack(T* NewEntry)
     {
         ScopedLock lock(m_Mutex);
         ::InsertTailList(&m_ListHead, &NewEntry->Next);
@@ -445,9 +446,17 @@ public:
     }
 
     void
+    PushFront(T* NewEntry)
+    {
+        ScopedLock lock(m_Mutex);
+        ::InsertHeadList(&m_ListHead, &NewEntry->Next);
+        m_TotalEntry++;
+    }
+
+    void
     operator+=(T* NewEntry)
     {
-        Insert(NewEntry);
+        PushBack(NewEntry);
     }
 
     bool
@@ -467,7 +476,21 @@ public:
     }
 
     T*
-    PopTail()
+    PopFront()
+    {
+        ScopedLock lock(m_Mutex);
+        if ( m_TotalEntry == 0 )
+            return nullptr;
+        auto LastEntry = ::RemoveHeadList(&m_ListHead);
+        if ( LastEntry == &m_ListHead )
+            return nullptr;
+        auto LastItem = CONTAINING_RECORD(LastEntry, T, Next);
+        m_TotalEntry--;
+        return LastItem;
+    }
+
+    T*
+    PopBack()
     {
         ScopedLock lock(m_Mutex);
         if ( Size() == 0 )
@@ -504,7 +527,6 @@ public:
     ForEach(L lambda)
     {
         ScopedLock lock(m_Mutex);
-
         bool bSuccess = true;
         if ( !::IsListEmpty(&m_ListHead) )
         {

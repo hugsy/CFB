@@ -261,8 +261,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     usize ExpectedBufferSize      = 0;
 
     {
-        auto lock = Utils::ScopedLock(Globals->IrpCollector.Mutex);
-        Globals->IrpCollector.Data.ForEach(
+        Globals->IrpCollector.Items().ForEach(
             [&ExpectedBufferSize](CFB::Driver::CapturedIrp* Irp)
             {
                 ExpectedBufferSize += Irp->DataSize();
@@ -295,26 +294,6 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     }
 
     /*
-    Status = PeekHeadEntryExpectedSize(&dwExpectedSize);
-    if (!NT_SUCCESS(Status))
-        return CompleteRequest(Irp, Status, 0);
-
-
-    if ( BufferSize == 0)
-    {
-        return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
-    }
-
-
-
-    NT_ASSERT(Irp->MdlAddress);
-
-    UINT32 BufferOffset = 0;
-    PVOID Buffer = MmGetSystemAddressForMdlSafe( Irp->MdlAddress, NormalPagePriority);
-    if ( !Buffer )
-    {
-        return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
-    }
 
     Status = PopFromQueue(&pInterceptedIrp);
     if ( !NT_SUCCESS(Status) )

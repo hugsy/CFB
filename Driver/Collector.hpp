@@ -8,32 +8,13 @@ namespace Utils = CFB::Driver::Utils;
 namespace CFB::Driver
 {
 template<typename T>
-struct DataCollector
+class DataCollector
 {
-    ///
-    /// @brief Set when new data is pushed
-    ///
-    PKEVENT Event;
-
-    ///
-    /// @brief Item count
-    ///
-    usize Count;
-
-    ///
-    /// @brief
-    ///
-    Utils::LinkedList<T> Data;
-
-    ///
-    /// @brief
-    ///
-    Utils::KFastMutex Mutex;
-
+public:
     ///
     /// @brief Construct a new Data Collector object
     ///
-    DataCollector() : Event(nullptr), Count(0), Data(), Mutex()
+    DataCollector() : m_Event(nullptr), m_Count(0), m_Data(), m_Mutex()
     {
     }
 
@@ -42,14 +23,25 @@ struct DataCollector
     ///
     ~DataCollector()
     {
-        if ( Event )
+        if ( m_Event )
         {
             //
             // Free the Event object
             //
-            ::KeResetEvent(Event);
-            ObDereferenceObject(Event);
+            ::KeResetEvent(m_Event);
+            ObDereferenceObject(m_Event);
         }
+    }
+
+    ///
+    /// @brief Get a reference to the linked list items stored in this container
+    ///
+    /// @return Utils::LinkedList<T>&
+    ///
+    Utils::LinkedList<T>&
+    Items()
+    {
+        return m_Data;
     }
 
     ///
@@ -65,7 +57,7 @@ struct DataCollector
         NTSTATUS Status  = STATUS_UNSUCCESSFUL;
         PKEVENT NewEvent = nullptr;
 
-        auto lock = Utils::ScopedLock(Mutex);
+        auto lock = Utils::ScopedLock(m_Mutex);
 
         //
         // Get a reference to the Event object
@@ -85,13 +77,13 @@ struct DataCollector
         //
         // If an event object was already assigned, replace it
         //
-        if ( Event != nullptr )
+        if ( m_Event != nullptr )
         {
-            ObDereferenceObject(Event);
-            Event = nullptr;
+            ObDereferenceObject(m_Event);
+            m_Event = nullptr;
         }
 
-        Event = NewEvent;
+        m_Event = NewEvent;
 
         return Status;
     }
@@ -105,20 +97,20 @@ struct DataCollector
     bool
     Push(T* Item)
     {
-        Utils::ScopedLock lock(Mutex);
+        Utils::ScopedLock lock(m_Mutex);
 
         //
-        // Insert the item in the queue
+        // Push the item to the back of the queue
         //
-        Data.Insert(Item);
-        Count++;
+        m_Data.PushBack(Item);
+        m_Count++;
 
         //
         // Set the event to notify the broker some data is ready
         //
-        if ( Event )
+        if ( m_Event )
         {
-            ::KeSetEvent(Event, 2, false);
+            ::KeSetEvent(m_Event, 2, false);
         }
 
         return false;
@@ -133,25 +125,25 @@ struct DataCollector
     T*
     Pop()
     {
-        Utils::ScopedLock lock(Mutex);
+        Utils::ScopedLock lock(m_Mutex);
 
         //
         // Stored data are treated as a FIFO queue
         //
-        T* Item = Data.PopTail();
+        T* Item = m_Data.PopFront();
         if ( Item == nullptr )
         {
             return nullptr;
         }
 
-        Count--;
+        m_Count--;
 
         //
         // Unset the event is no data is ready
         //
-        if ( Count == 0 && Event )
+        if ( m_Count == 0 && m_Event )
         {
-            ::KeClearEvent(Event);
+            ::KeClearEvent(m_Event);
         }
 
         return Item;
@@ -172,6 +164,27 @@ struct DataCollector
             }
         } while ( true );
     }
+
+private:
+    ///
+    /// @brief Set when new data is pushed
+    ///
+    PKEVENT m_Event;
+
+    ///
+    /// @brief Item count
+    ///
+    usize m_Count;
+
+    ///
+    /// @brief
+    ///
+    Utils::LinkedList<T> m_Data;
+
+    ///
+    /// @brief
+    ///
+    Utils::KFastMutex m_Mutex;
 };
 
 } // namespace CFB::Driver

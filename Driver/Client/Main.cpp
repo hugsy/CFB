@@ -92,6 +92,13 @@ set_notif_handle(HANDLE hFile)
         ::DeviceIoControl(hFile, IOCTL_SetEventPointer, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
     info("SetEventPointer() returned %s", boolstr(bSuccess));
 
+    if ( bSuccess )
+    {
+        info("Waiting for event...");
+        ::WaitForSingleObject(hFile, INFINITE);
+        ok("Event received");
+    }
+
     return hEvent;
 }
 

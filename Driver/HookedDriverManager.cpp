@@ -157,7 +157,7 @@ HookedDriverManager::RemoveAllDrivers()
 
     do
     {
-        auto Entry = Entries.PopTail();
+        auto Entry = Entries.PopBack();
         if ( Entry == nullptr )
             break;
         delete Entry;
@@ -190,9 +190,14 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s)", MatchedDriver->Path.get(), boolstr(bEnable));
 
     const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
+
+    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, current value %s",
+        MatchedDriver->Path.get(),
+        boolstr(bEnable),
+        (DriverStateChanged ? "" : "un"),
+        boolstr(MatchedDriver->HasCapturingEnabled()));
 
     return DriverStateChanged ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
