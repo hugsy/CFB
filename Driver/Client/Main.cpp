@@ -195,7 +195,8 @@ main(int argc, const char** argv)
 
     program.add_argument("--driver").default_value(std::string("\\driver\\hevd"));
     program.add_argument("--device").default_value(std::string("\\\\.\\HackSysExtremeVulnerableDriver"));
-    program.add_argument("--ioctl").scan<'i', int>().default_value(0);
+    program.add_argument("--ioctl").scan<'i', int>().default_value(
+        0x222003); // https://github.com/hacksysteam/HackSysExtremeVulnerableDriver/blob/master/Driver/HEVD/Windows/HackSysExtremeVulnerableDriver.h#L81
     program.add_argument("--enable").default_value(false).implicit_value(true);
 
     try

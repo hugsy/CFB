@@ -63,8 +63,11 @@ public:
     operator new(const usize sz)
     {
         void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
-        ::RtlSecureZeroMemory(Memory, sz);
-        dbg("Allocating HookedDriver at %p", Memory);
+        if ( Memory )
+        {
+            ::RtlSecureZeroMemory(Memory, sz);
+            dbg("Allocated HookedDriver at %p", Memory);
+        }
         return Memory;
     }
 
@@ -76,7 +79,7 @@ public:
     }
 
     bool
-    HasCapturingEnabled() const;
+    CanCapture();
 
     bool
     EnableCapturing();
@@ -101,9 +104,17 @@ public:
 
 
 private:
+    ///
+    /// @brief Swap the callbacks of the driver with the interception routines of IrpMonitor
+    /// The code of those routines is located in `Driver/Callbacks.cpp`. The function will
+    /// also set the object state as `Hooked`.
+    ///
     void
     SwapCallbacks();
 
+    ///
+    /// @brief Restore the original callbacks and set the object state as `Unhooked`.
+    ///
     void
     RestoreCallbacks();
 

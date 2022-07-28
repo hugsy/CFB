@@ -72,7 +72,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
         }
 
         {
-            Utils::ScopedLock lock(Mutex);
+            Utils::ScopedLock lock(m_Mutex);
 
             //
             // Check if the driver is already hooked
@@ -82,7 +82,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
                 return h->DriverObject == ScopedDriverObject.get();
             };
 
-            if ( Entries.Find(FromDriverAddress) != nullptr )
+            if ( m_Entries.Find(FromDriverAddress) != nullptr )
             {
                 return STATUS_ALREADY_REGISTERED;
             }
@@ -90,7 +90,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             // Check if there's space
             //
-            if ( Entries.Size() >= CFB_MAX_HOOKED_DRIVERS )
+            if ( m_Entries.Size() >= CFB_MAX_HOOKED_DRIVERS )
             {
                 return STATUS_INSUFFICIENT_RESOURCES;
             }
@@ -108,9 +108,11 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             // Last, insert the driver to the linked list
             //
-            Entries += NewHookedDriver;
+            m_Entries += NewHookedDriver;
 
-            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.get(), Entries.Size());
+            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d",
+                NewHookedDriver->Path.get(),
+                m_Entries.Size());
         }
     }
 
@@ -126,7 +128,7 @@ HookedDriverManager::RemoveDriver(const wchar_t* Path)
 NTSTATUS
 HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 {
-    Utils::ScopedLock lock(Mutex);
+    Utils::ScopedLock lock(m_Mutex);
 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
     auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
@@ -134,7 +136,7 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
         return h->Path == UnicodePath;
     };
 
-    auto MatchedDriver = Entries.Find(FromDriverPath);
+    auto MatchedDriver = m_Entries.Find(FromDriverPath);
     if ( MatchedDriver == nullptr )
     {
         return STATUS_NOT_FOUND;
@@ -142,7 +144,7 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 
     dbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
 
-    Entries -= MatchedDriver;
+    m_Entries -= MatchedDriver;
     delete MatchedDriver;
 
     return STATUS_SUCCESS;
@@ -153,11 +155,11 @@ HookedDriverManager::RemoveAllDrivers()
 {
     dbg("Removing all drivers");
 
-    Utils::ScopedLock lock(Mutex);
+    Utils::ScopedLock lock(m_Mutex);
 
     do
     {
-        auto Entry = Entries.PopBack();
+        auto Entry = m_Entries.PopBack();
         if ( Entry == nullptr )
             break;
         delete Entry;
@@ -176,7 +178,7 @@ HookedDriverManager::SetMonitoringState(const wchar_t* Path, bool bEnable)
 NTSTATUS
 HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool bEnable)
 {
-    Utils::ScopedLock lock(Mutex);
+    Utils::ScopedLock lock(m_Mutex);
 
     const usize PathMaxLength = min(UnicodePath->Length, CFB_DRIVER_MAX_PATH);
     auto FromDriverPath       = [&UnicodePath, &PathMaxLength](HookedDriver* h)
@@ -184,7 +186,7 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return h->Path == UnicodePath;
     };
 
-    auto MatchedDriver = Entries.Find(FromDriverPath);
+    auto MatchedDriver = m_Entries.Find(FromDriverPath);
     if ( MatchedDriver == nullptr )
     {
         return STATUS_NOT_FOUND;
@@ -193,13 +195,18 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
 
     const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
 
-    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, current value %s",
+    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
         MatchedDriver->Path.get(),
         boolstr(bEnable),
         (DriverStateChanged ? "" : "un"),
-        boolstr(MatchedDriver->HasCapturingEnabled()));
+        boolstr(MatchedDriver->CanCapture()));
 
     return DriverStateChanged ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
 
+Utils::LinkedList<HookedDriver>&
+HookedDriverManager::Items()
+{
+    return m_Entries;
+}
 } // namespace CFB::Driver

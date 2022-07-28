@@ -9,6 +9,7 @@ namespace CFB::Driver
 {
 HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     Enabled(false),
+    State(HookState::Unhooked),
     DriverObject(nullptr),
     Next(),
     OriginalRoutines(),
@@ -16,18 +17,10 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     FastIoWrite(nullptr),
     FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
-    State(HookState::Unhooked),
     Path(UnicodePath->Buffer, NonPagedPoolNx)
 {
     dbg("Creating HookedDriver('%wZ')", &Path);
 
-    //
-    // Initialize the members
-    //
-
-    //
-    // Increment the refcount to the driver
-    //
     NTSTATUS Status = ::ObReferenceObjectByName(
         Path.get(),
         OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
@@ -41,9 +34,6 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     NT_ASSERT(NT_SUCCESS(Status));
     NT_ASSERT(DriverObject != nullptr);
 
-    //
-    // Swap the callbacks of the driver
-    //
     SwapCallbacks();
 }
 
@@ -52,15 +42,7 @@ HookedDriver::~HookedDriver()
     dbg("Destroying HookedDriver '%wZ'", Path.get());
 
     DisableCapturing();
-
-    //
-    // Restore the callbacks
-    //
     RestoreCallbacks();
-
-    //
-    // Decrements the refcount to the DriverObject
-    //
     ObDereferenceObject(DriverObject);
 }
 
@@ -162,12 +144,8 @@ bool
 HookedDriver::EnableCapturing()
 {
     Utils::ScopedLock lock(Mutex);
-    bool bStatusChanged = false;
-    if ( State == HookState::Hooked )
-    {
-        Enabled        = true;
-        bStatusChanged = true;
-    }
+    bool bStatusChanged = !Enabled;
+    Enabled             = true;
     return bStatusChanged;
 }
 
@@ -175,16 +153,19 @@ bool
 HookedDriver::DisableCapturing()
 {
     Utils::ScopedLock lock(Mutex);
-    bool bStatusChanged = false;
+    bool bStatusChanged = Enabled;
     Enabled             = false;
-    bStatusChanged      = true;
     return bStatusChanged;
 }
 
 
 bool
-HookedDriver::HasCapturingEnabled() const
+HookedDriver::CanCapture()
 {
+    dbg("Driver('%wZ', State=%shooked, Enabled=%s)",
+        Path.get(),
+        (State == HookState::Unhooked) ? "un" : "",
+        boolstr(Enabled));
     return State == HookState::Hooked && Enabled == true;
 }
 

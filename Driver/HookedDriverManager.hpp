@@ -11,18 +11,9 @@ namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver
 {
-struct HookedDriverManager
+class HookedDriverManager
 {
-    ///
-    /// @brief A pointer to the head of hooked drivers
-    ///
-    Utils::LinkedList<HookedDriver> Entries;
-
-    ///
-    /// @brief A mutex to protect access to the critical resources
-    ///
-    Utils::KFastMutex Mutex;
-
+public:
     ///
     /// @brief Construct a new Hooked Driver Manager object
     ///
@@ -117,6 +108,21 @@ struct HookedDriverManager
     ///
     NTSTATUS
     SetMonitoringState(const PUNICODE_STRING UnicodePath, bool bEnable);
+
+
+    Utils::LinkedList<HookedDriver>&
+    Items();
+
+private:
+    ///
+    /// @brief A pointer to the head of hooked drivers
+    ///
+    Utils::LinkedList<HookedDriver> m_Entries;
+
+    ///
+    /// @brief A mutex to protect access to the critical resources
+    ///
+    Utils::KFastMutex m_Mutex;
 };
 
 } // namespace CFB::Driver

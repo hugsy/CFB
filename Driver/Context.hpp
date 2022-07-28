@@ -1,17 +1,25 @@
 #pragma once
 
-#include "CapturedIrp.hpp"
-#include "Collector.hpp"
+// clang-format off
 #include "Common.hpp"
 #include "DriverUtils.hpp"
-#include "HookedDriverManager.hpp"
 #include "Log.hpp"
 
+#include "CapturedIrpManager.hpp"
+#include "HookedDriverManager.hpp"
+// clang-format on
 
-namespace Utils = CFB::Driver::Utils;
+
+namespace Driver = CFB::Driver;
+namespace Utils  = CFB::Driver::Utils;
 
 struct GlobalContext
 {
+    ///
+    /// @brief Any critical read/write operation to the global context structure must acquire this lock.
+    ///
+    Utils::KQueuedSpinLock ContextLock;
+
     ///
     /// @brief A pointer to the device object
     ///
@@ -29,27 +37,22 @@ struct GlobalContext
     PEPROCESS Owner;
 
     ///
-    /// @brief
-    ///
-    Utils::KQueuedSpinLock OwnerSpinLock;
-
-    ///
-    /// @brief
+    /// @brief Incremental session ID number.
     ///
     ULONG SessionId;
 
     ///
     /// @brief Manages the hooked drivers
     ///
-    CFB::Driver::HookedDriverManager DriverManager;
+    Driver::HookedDriverManager DriverManager;
 
     ///
     /// @brief Where all the intercepted IRPs are stored
     ///
-    CFB::Driver::DataCollector<CFB::Driver::CapturedIrp> IrpCollector;
+    Driver::CapturedIrpManager IrpManager;
 
 
-    GlobalContext() : DriverObject(nullptr), DeviceObject(nullptr), Owner(nullptr), OwnerSpinLock(), SessionId(-1)
+    GlobalContext() : DriverObject(nullptr), DeviceObject(nullptr), Owner(nullptr), ContextLock(), SessionId(-1)
     {
         dbg("Creating GlobalContext");
     }
@@ -66,9 +69,12 @@ struct GlobalContext
     static void*
     operator new(usize sz)
     {
-        dbg("Allocating GlobalContext");
         void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
-        ::RtlSecureZeroMemory(Memory, sz);
+        if ( Memory )
+        {
+            dbg("Allocated GlobalContext at %p", Memory);
+            ::RtlSecureZeroMemory(Memory, sz);
+        }
         return Memory;
     }
 

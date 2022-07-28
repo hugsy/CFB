@@ -34,21 +34,21 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Capture the IRP data if capturing mode is enabled for the current driver
     //
-    auto CapturedIrp           = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
-    HookedDriver* const Driver = CapturedIrp->AssociatedDriver();
-    NTSTATUS Status            = STATUS_SUCCESS;
+    auto CapturedIrp  = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
+    auto const Driver = CapturedIrp->AssociatedDriver();
+    NTSTATUS Status   = STATUS_SUCCESS;
 
     dbg("Initialized CapturedIrp at %p", CapturedIrp);
 
     // TODO: replace with SharedPointer<CapturedIrp>
 
-    if ( Driver->HasCapturingEnabled() )
+    if ( Driver->CanCapture() )
     {
         dbg("Capturing pre data of IRP to '%wZ'", Driver->Path.get());
         Status = CapturedIrp->CapturePreCallData(Irp);
         if ( !NT_SUCCESS(Status) )
         {
-            warn("Failed to push new IRP %p to the queue (Status = 0x%08X)", CapturedIrp, Status);
+            warn("CapturedIrp->CapturePreCallData(%p) failed with Status = 0x%08X", CapturedIrp, Status);
             Driver->DisableCapturing();
         }
     }
@@ -62,27 +62,32 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Collect the output from the call
     //
-    dbg("Capturing post data of IRP to '%wZ'", Driver->Path.get());
-    if ( Driver->HasCapturingEnabled() )
+    if ( Driver->CanCapture() )
     {
+        dbg("Capturing post data of IRP to '%wZ'", Driver->Path.get());
         Status = CapturedIrp->CapturePostCallData(Irp, IoctlStatus);
-        if ( !NT_SUCCESS(Status) || false == Globals->IrpCollector.Push(CapturedIrp) )
+        if ( NT_SUCCESS(Status) )
         {
-            //
-            // Something failed, there might a problem with the queue. Disable interception to
-            // avoid more damage
-            //
+            if ( true == Globals->IrpManager.Push(CapturedIrp) )
+            {
+                //
+                // If everything went fine, return the result
+                //
+                Driver->IncrementIrpCount();
+                return IoctlStatus;
+            }
+
             warn("Failed to push new IRP %p to the queue (Status = 0x%08X)", CapturedIrp, Status);
-            Driver->DisableCapturing();
         }
         else
         {
-            //
-            // If everything went fine, return the result
-            //
-            Driver->IncrementIrpCount();
-            return IoctlStatus;
+            warn("CapturedIrp->CapturePostCallData(%p) failed with Status = 0x%08X", CapturedIrp, Status);
         }
+
+        //
+        // If here, there's been a problem, disable capturing
+        //
+        Driver->DisableCapturing();
     }
 
     delete CapturedIrp;
@@ -163,7 +168,7 @@ InterceptGenericFastIoDeviceControl(
     //
     auto CapturedFastIo = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
     const auto Driver   = CapturedFastIo->AssociatedDriver();
-    const bool bCaptureData = Driver->HasCapturingEnabled();
+    const bool bCaptureData = Driver->CanCapture();
 
     //
     // If capturing enabled, capture the input data
@@ -198,7 +203,7 @@ InterceptGenericFastIoDeviceControl(
         //
         // And push the IRP to the queue
         //
-        Globals->IrpCollector.Push(CapturedFastIo);
+        Globals->IrpManager.Push(CapturedFastIo);
         Driver->IncrementIrpCount();
     }
     else
@@ -243,7 +248,7 @@ InterceptGenericFastIoRead(
     //
     auto CapturedFastRead = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
     auto Driver           = CapturedFastRead->AssociatedDriver();
-    const bool bCaptureData = Driver->HasCapturingEnabled();
+    const bool bCaptureData = Driver->CanCapture();
 
     dbg("Initialized CapturedFastRead at %p", CapturedFastRead);
     //
@@ -263,7 +268,7 @@ InterceptGenericFastIoRead(
         //
         // And push the IRP to the queue
         //
-        Globals->IrpCollector.Push(CapturedFastRead);
+        Globals->IrpManager.Push(CapturedFastRead);
         Driver->IncrementIrpCount();
     }
     else
@@ -309,7 +314,7 @@ InterceptGenericFastIoWrite(
     auto CapturedFastWrite =
         new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
     auto Driver             = CapturedFastWrite->AssociatedDriver();
-    const bool bCaptureData = Driver->HasCapturingEnabled();
+    const bool bCaptureData = Driver->CanCapture();
 
     dbg("Initialized CapturedFastWrite at %p", CapturedFastWrite);
     //
@@ -335,7 +340,7 @@ InterceptGenericFastIoWrite(
         //
         // And push the IRP to the queue
         //
-        Globals->IrpCollector.Push(CapturedFastWrite);
+        Globals->IrpManager.Push(CapturedFastWrite);
         Driver->IncrementIrpCount();
     }
     else

@@ -14,7 +14,7 @@ set(
     ${DRIVER_HEADER_DIR}/HookedDriverManager.hpp
     ${DRIVER_HEADER_DIR}/HookedDriver.hpp
     ${DRIVER_HEADER_DIR}/Callbacks.hpp
-    ${DRIVER_HEADER_DIR}/Collector.hpp
+    ${DRIVER_HEADER_DIR}/CapturedIrpManager.hpp
     ${DRIVER_HEADER_DIR}/CapturedIrp.hpp
 )
 
@@ -26,6 +26,7 @@ set(
     ${DRIVER_SOURCE_DIR}/HookedDriverManager.cpp
     ${DRIVER_SOURCE_DIR}/HookedDriver.cpp
     ${DRIVER_SOURCE_DIR}/Callbacks.cpp
+    ${DRIVER_SOURCE_DIR}/CapturedIrpManager.cpp
     ${DRIVER_SOURCE_DIR}/CapturedIrp.cpp
 )
 

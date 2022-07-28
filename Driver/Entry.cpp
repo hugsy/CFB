@@ -40,8 +40,7 @@ DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
     UNICODE_STRING symLink = RTL_CONSTANT_STRING(DOS_DEVICE_PATH);
     ::IoDeleteSymbolicLink(&symLink);
     ::IoDeleteDevice(DriverObject->DeviceObject);
-
-    ok("Device '%S' unloaded", DEVICE_NAME);
+    ok("Device '%S' deleted", DEVICE_NAME);
 
     delete Globals;
     ok("Context cleaned up");
@@ -79,7 +78,7 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
     lpRequiredPrivileges->Privilege[0].Luid.HighPart = 0;
     lpRequiredPrivileges->Privilege[0].Attributes    = 0;
 
-    if ( SePrivilegeCheck(
+    if ( ::SePrivilegeCheck(
              lpRequiredPrivileges,
              &lpSecurityContext->AccessState->SubjectSecurityContext,
              Irp->RequestorMode) == false )
@@ -88,7 +87,7 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
     }
     else
     {
-        auto scoped_lock          = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
+        auto scoped_lock          = CFB::Driver::Utils::ScopedLock(Globals->ContextLock);
         PEPROCESS pCallingProcess = ::PsGetCurrentProcess();
 
         if ( Globals->Owner == nullptr )
@@ -135,7 +134,7 @@ _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device,
 {
     UNREFERENCED_PARAMETER(Device);
 
-    auto lock      = CFB::Driver::Utils::ScopedLock(Globals->OwnerSpinLock);
+    auto lock      = CFB::Driver::Utils::ScopedLock(Globals->ContextLock);
     Globals->Owner = nullptr;
     ok("Unlocked device...");
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
@@ -158,7 +157,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     //
     // This should never happen as we checked the process when getting the handle, but still
     //
-    if ( ::PsGetCurrentProcess() != Globals->Owner )
+    if ( PsGetCurrentProcess() != Globals->Owner )
     {
         return CompleteRequest(Irp, STATUS_ACCESS_DENIED, 0);
     }
@@ -193,7 +192,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
 
     case IOCTL_GetNumberOfDrivers:
-        dwDataWritten = Globals->DriverManager.Entries.Size();
+        dwDataWritten = Globals->DriverManager.Items().Size();
         break;
 
     case IOCTL_EnableMonitoring:
@@ -205,7 +204,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
 
     case IOCTL_SetEventPointer:
-        Status = Globals->IrpCollector.SetEvent(Message.IrpNotificationEventHandle);
+        Status = Globals->IrpManager.SetEvent(Message.IrpNotificationEventHandle);
         break;
 
         /*
@@ -226,8 +225,6 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         err("IOCTL %#x returned %#x", IoctlCode, Status);
         dwDataWritten = 0;
     }
-
-    // DbgBreakPoint();
 
     return CompleteRequest(Irp, Status, dwDataWritten);
 }
@@ -261,7 +258,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     usize ExpectedBufferSize      = 0;
 
     {
-        Globals->IrpCollector.Items().ForEach(
+        Globals->IrpManager.Items().ForEach(
             [&ExpectedBufferSize](CFB::Driver::CapturedIrp* Irp)
             {
                 ExpectedBufferSize += Irp->DataSize();

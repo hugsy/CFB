@@ -18,7 +18,8 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
     m_MajorFunction(0),
     m_IoctlCode(0),
     m_InputBuffer(0),
-    m_OutputBuffer(0)
+    m_OutputBuffer(0),
+    Next()
 {
     auto FilterByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
@@ -31,7 +32,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         return false;
     };
 
-    m_Driver = Globals->DriverManager.Entries.Find(FilterByDeviceAddress);
+    m_Driver = Globals->DriverManager.Items().Find(FilterByDeviceAddress);
     if ( m_Driver == nullptr )
     {
         //
@@ -128,10 +129,13 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     NTSTATUS Status          = STATUS_SUCCESS;
     ULONG Method             = -1;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
-    m_MajorFunction          = Stack->MajorFunction;
 
     ULONG InputBufferLength  = 0;
     ULONG OutputBufferLength = 0;
+
+    dbg("CapturedIrp::CapturePreCallData(%p)", Irp);
+
+    m_MajorFunction = Stack->MajorFunction;
 
     //
     // Determine & allocate the input/output buffer sizes from the IRP for "normal" IOCTLs
