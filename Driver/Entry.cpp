@@ -209,15 +209,9 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
 
         /*
-    case IOCTL_GetNamesOfDrivers:
-        Status = HandleIoGetNamesOfHookedDrivers(Irp, CurrentStack, &dwDataWritten);
-        break;
-
     case IOCTL_GetDriverInfo:
         Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
         break;
-
-
         */
 
     default:

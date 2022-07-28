@@ -34,15 +34,21 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Capture the IRP data if capturing mode is enabled for the current driver
     //
-    auto CapturedIrp              = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
-    HookedDriver* const Driver    = CapturedIrp->AssociatedDriver();
-    const bool IsCapturingEnabled = Driver->HasCapturingEnabled();
+    auto CapturedIrp           = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
+    HookedDriver* const Driver = CapturedIrp->AssociatedDriver();
+    NTSTATUS Status            = STATUS_SUCCESS;
 
     // TODO: replace with SharedPointer<CapturedIrp>
 
-    if ( IsCapturingEnabled )
+    if ( Driver->HasCapturingEnabled() )
     {
-        CapturedIrp->CapturePreCallData(Irp);
+        dbg("Capturing pre data of IRP to '%wZ'", Driver->Path.get());
+        Status = CapturedIrp->CapturePreCallData(Irp);
+        if ( !NT_SUCCESS(Status) )
+        {
+            warn("Failed to push new IRP %p to the queue (Status = 0x%08X)", CapturedIrp, Status);
+            Driver->DisableCapturing();
+        }
     }
 
     //
@@ -52,23 +58,29 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     NTSTATUS IoctlStatus                        = OriginalIoctlDeviceControl(DeviceObject, Irp);
 
     //
-    // Collect the result from the result
+    // Collect the output from the call
     //
-    if ( IsCapturingEnabled )
+    dbg("Capturing post data of IRP to '%wZ'", Driver->Path.get());
+    if ( Driver->HasCapturingEnabled() )
     {
-        if ( NT_SUCCESS(CapturedIrp->CapturePostCallData(Irp, IoctlStatus)) &&
-             true == Globals->IrpCollector.Push(CapturedIrp) )
+        Status = CapturedIrp->CapturePostCallData(Irp, IoctlStatus);
+        if ( !NT_SUCCESS(Status) || false == Globals->IrpCollector.Push(CapturedIrp) )
         {
+            //
+            // Something failed, there might a problem with the queue. Disable interception to
+            // avoid more damage
+            //
+            warn("Failed to push new IRP %p to the queue (Status = 0x%08X)", CapturedIrp, Status);
+            Driver->DisableCapturing();
+        }
+        else
+        {
+            //
+            // If everything went fine, return the result
+            //
             Driver->IncrementIrpCount();
             return IoctlStatus;
         }
-
-        //
-        // Pushing failed, there might a problem with the queue. Disable interception to
-        // avoid more damage
-        //
-        warn("Failed to push new IRP %p to the queue", CapturedIrp);
-        Driver->DisableCapturing();
     }
 
     delete CapturedIrp;
@@ -148,7 +160,7 @@ InterceptGenericFastIoDeviceControl(
     // Prepare the object
     //
     auto CapturedFastIo = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
-    auto Driver         = CapturedFastIo->AssociatedDriver();
+    const auto Driver   = CapturedFastIo->AssociatedDriver();
     const bool bCaptureData = Driver->HasCapturingEnabled();
 
     //
@@ -156,7 +168,7 @@ InterceptGenericFastIoDeviceControl(
     //
     if ( bCaptureData )
     {
-        CapturedFastIo->CapturePreCallFastIoData(InputBuffer, InputBufferLength, IoControlCode);
+        CapturedFastIo->CapturePreCallFastIoData(InputBuffer, IoControlCode);
     }
 
     //
@@ -179,7 +191,7 @@ InterceptGenericFastIoDeviceControl(
     //
     if ( bCaptureData )
     {
-        CapturedFastIo->CapturePostCallFastIoData(OutputBuffer, OutputBufferLength);
+        CapturedFastIo->CapturePostCallFastIoData(OutputBuffer);
 
         //
         // And push the IRP to the queue
@@ -243,7 +255,7 @@ InterceptGenericFastIoRead(
     //
     if ( bCaptureData )
     {
-        CapturedFastRead->CapturePostCallFastIoData(Buffer, BufferLength);
+        CapturedFastRead->CapturePostCallFastIoData(Buffer);
 
         //
         // And push the IRP to the queue
@@ -300,7 +312,7 @@ InterceptGenericFastIoWrite(
     //
     if ( bCaptureData )
     {
-        CapturedFastRead->CapturePreCallFastIoData(Buffer, BufferLength, 0);
+        CapturedFastRead->CapturePreCallFastIoData(Buffer, 0);
     }
 
     //

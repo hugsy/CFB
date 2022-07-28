@@ -190,14 +190,11 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-    dbg("HookedDriverManager::SetMonitoringState('%wZ', %d)", MatchedDriver->Path.get(), bEnable);
+    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s)", MatchedDriver->Path.get(), boolstr(bEnable));
 
-    if ( bEnable )
-        MatchedDriver->EnableCapturing();
-    else
-        MatchedDriver->DisableCapturing();
+    const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
 
-    return STATUS_SUCCESS;
+    return DriverStateChanged ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
 
 } // namespace CFB::Driver

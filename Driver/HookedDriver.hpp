@@ -78,10 +78,10 @@ public:
     bool
     HasCapturingEnabled() const;
 
-    void
+    bool
     EnableCapturing();
 
-    void
+    bool
     DisableCapturing();
 
     usize const

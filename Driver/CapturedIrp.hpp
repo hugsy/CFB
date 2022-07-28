@@ -62,10 +62,10 @@ public:
     CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus);
 
     NTSTATUS
-    CapturePreCallFastIoData(_In_opt_ PVOID InputBuffer, _In_ ULONG InputBufferLength, _In_ ULONG IoControlCode);
+    CapturePreCallFastIoData(_In_opt_ PVOID InputBuffer, _In_ ULONG IoControlCode);
 
     NTSTATUS
-    CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer, _In_ ULONG OutputBufferLength);
+    CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer);
 
     LIST_ENTRY Next;
 
@@ -82,23 +82,21 @@ public:
     AssociatedDriver() const;
 
 private:
-    LARGE_INTEGER TimeStamp;
-    u8 Irql;
-    IrpType Type;
-    u8 MajorFunction;
-    u32 IoctlCode;
-    u32 Pid;
-    u32 Tid;
-    u32 InputBufferLength;
-    u32 OutputBufferLength;
-    NTSTATUS Status;
-    Utils::KAlloc<u8*> InputBuffer;
-    Utils::KAlloc<u8*> OutputBuffer;
-    PDEVICE_OBJECT DeviceObject;
-    Utils::KUnicodeString DriverName;
-    Utils::KUnicodeString DeviceName;
-    Utils::KUnicodeString ProcessName;
-    HookedDriver* Driver;
+    LARGE_INTEGER m_TimeStamp;
+    u8 m_Irql;
+    IrpType m_Type;
+    u8 m_MajorFunction;
+    u32 m_IoctlCode;
+    u32 m_Pid;
+    u32 m_Tid;
+    NTSTATUS m_Status;
+    Utils::KAlloc<u8*> m_InputBuffer;
+    Utils::KAlloc<u8*> m_OutputBuffer;
+    PDEVICE_OBJECT m_DeviceObject;
+    Utils::KUnicodeString m_DriverName;
+    Utils::KUnicodeString m_DeviceName;
+    Utils::KUnicodeString m_ProcessName;
+    HookedDriver* m_Driver;
 };
 
 } // namespace CFB::Driver

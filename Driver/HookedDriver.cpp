@@ -51,7 +51,7 @@ HookedDriver::~HookedDriver()
 {
     dbg("Destroying HookedDriver '%wZ'", Path.get());
 
-    Enabled = false;
+    DisableCapturing();
 
     //
     // Restore the callbacks
@@ -155,24 +155,40 @@ HookedDriver::RestoreCallbacks()
     //
     // Switch back state flag
     //
-    State = HookState::Hooked;
+    State = HookState::Unhooked;
 }
 
-void
+bool
 HookedDriver::EnableCapturing()
 {
     Utils::ScopedLock lock(Mutex);
+    bool bStatusChanged = false;
+
     if ( State == HookState::Hooked )
     {
-        Enabled = true;
+        Enabled        = true;
+        bStatusChanged = true;
     }
+    dbg("State %schanged, current value %s", (bStatusChanged ? "" : "un"), boolstr(HasCapturingEnabled()));
+    return bStatusChanged;
 }
 
-void
+bool
 HookedDriver::DisableCapturing()
 {
     Utils::ScopedLock lock(Mutex);
-    Enabled = false;
+    bool bStatusChanged = false;
+    Enabled             = false;
+    bStatusChanged      = true;
+    dbg("State %schanged, current value %s", (bStatusChanged ? "" : "un"), boolstr(HasCapturingEnabled()));
+    return bStatusChanged;
+}
+
+
+bool
+HookedDriver::HasCapturingEnabled() const
+{
+    return State == HookState::Hooked && Enabled == true;
 }
 
 
@@ -204,17 +220,12 @@ HookedDriver::operator++()
     return *this;
 }
 
+
 HookedDriver&
 HookedDriver::operator--()
 {
     DecrementIrpCount();
     return *this;
-}
-
-bool
-HookedDriver::HasCapturingEnabled() const
-{
-    return Enabled == true;
 }
 
 

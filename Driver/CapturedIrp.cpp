@@ -2,24 +2,23 @@
 
 #include "Context.hpp"
 #include "Native.hpp"
+#include "Utils.hpp"
 
 namespace CFB::Driver
 {
 
 CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT DeviceObject) :
-    Type(_Type),
-    Pid(::HandleToULong(::PsGetCurrentProcessId())),
-    Tid(::HandleToULong(::PsGetCurrentThreadId())),
-    Driver(nullptr),
-    DriverName(L""),
-    DeviceName(L""),
-    ProcessName(L""),
-    MajorFunction(0),
-    InputBufferLength(0),
-    OutputBufferLength(0),
-    IoctlCode(0),
-    InputBuffer(0),
-    OutputBuffer(0)
+    m_Type(_Type),
+    m_Pid(::HandleToULong(::PsGetCurrentProcessId())),
+    m_Tid(::HandleToULong(::PsGetCurrentThreadId())),
+    m_Driver(nullptr),
+    m_DriverName(L""),
+    m_DeviceName(L""),
+    m_ProcessName(L""),
+    m_MajorFunction(0),
+    m_IoctlCode(0),
+    m_InputBuffer(0),
+    m_OutputBuffer(0)
 {
     auto FilterByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
@@ -32,8 +31,8 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
         return false;
     };
 
-    Driver = Globals->DriverManager.Entries.Find(FilterByDeviceAddress);
-    if ( Driver == nullptr )
+    m_Driver = Globals->DriverManager.Entries.Find(FilterByDeviceAddress);
+    if ( m_Driver == nullptr )
     {
         //
         // This is really bad: if here the interception routine got called by a non-hooked driver
@@ -44,7 +43,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
         ::ExRaiseStatus(STATUS_NOT_FOUND);
     }
 
-    KeQuerySystemTime(&TimeStamp);
+    KeQuerySystemTime(&m_TimeStamp);
 
     //
     // Set the Device name
@@ -72,14 +71,14 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
             ::ExRaiseStatus(Status);
         }
 
-        DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
+        m_DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
     }
 
     //
     // Set the driver name
     //
     {
-        DriverName = Utils::KUnicodeString(Driver->Path.get());
+        m_DriverName = Utils::KUnicodeString(m_Driver->Path.get());
     }
 
     //
@@ -87,7 +86,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
     //
     {
         PEPROCESS Process = nullptr;
-        NTSTATUS Status   = ::PsLookupProcessByProcessId(UlongToHandle(Pid), &Process);
+        NTSTATUS Status   = ::PsLookupProcessByProcessId(UlongToHandle(m_Pid), &Process);
         if ( !NT_SUCCESS(Status) )
         {
             ::ExRaiseStatus(Status);
@@ -113,7 +112,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType _Type, PDEVICE_OBJECT Device
             ::ExRaiseStatus(Status);
         }
 
-        ProcessName = Utils::KUnicodeString(&uStr);
+        m_ProcessName = Utils::KUnicodeString(&uStr);
     }
 }
 
@@ -127,42 +126,45 @@ NTSTATUS
 CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 {
     NTSTATUS Status          = STATUS_SUCCESS;
+    ULONG Method             = -1;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
-    ULONG Method             = 0;
-    MajorFunction            = Stack->MajorFunction;
+    m_MajorFunction          = Stack->MajorFunction;
+
+    ULONG InputBufferLength  = 0;
+    ULONG OutputBufferLength = 0;
 
     //
     // Determine & allocate the input/output buffer sizes from the IRP for "normal" IOCTLs
     //
-    switch ( MajorFunction )
+    switch ( m_MajorFunction )
     {
     case IRP_MJ_DEVICE_CONTROL:
     case IRP_MJ_INTERNAL_DEVICE_CONTROL:
         InputBufferLength  = Stack->Parameters.DeviceIoControl.InputBufferLength;
         OutputBufferLength = Stack->Parameters.DeviceIoControl.OutputBufferLength;
-        IoctlCode          = Stack->Parameters.DeviceIoControl.IoControlCode;
-        InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
-        OutputBuffer       = Utils::KAlloc<u8*>(OutputBufferLength);
-        Method             = METHOD_FROM_CTL_CODE(IoctlCode);
+        m_IoctlCode        = Stack->Parameters.DeviceIoControl.IoControlCode;
+        m_InputBuffer      = Utils::KAlloc<u8*>(InputBufferLength);
+        m_OutputBuffer     = Utils::KAlloc<u8*>(OutputBufferLength);
+        Method             = METHOD_FROM_CTL_CODE(m_IoctlCode);
         break;
 
     case IRP_MJ_WRITE:
         InputBufferLength  = Stack->Parameters.Write.Length;
         OutputBufferLength = 0;
-        InputBuffer        = Utils::KAlloc<u8*>(InputBufferLength);
+        m_InputBuffer      = Utils::KAlloc<u8*>(InputBufferLength);
         break;
 
     case IRP_MJ_READ:
         InputBufferLength  = 0;
         OutputBufferLength = Stack->Parameters.Read.Length;
-        OutputBuffer       = Utils::KAlloc<u8*>(OutputBufferLength);
-        Method             = (DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
-                             (DeviceObject->Flags & DO_DIRECT_IO)   ? METHOD_IN_DIRECT :
-                                                                      -1;
+        m_OutputBuffer     = Utils::KAlloc<u8*>(OutputBufferLength);
+        Method             = (m_DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
+                             (m_DeviceObject->Flags & DO_DIRECT_IO)   ? METHOD_IN_DIRECT :
+                                                                        -1;
         break;
 
     default:
-        return STATUS_INVALID_PARAMETER_1;
+        return STATUS_SUCCESS;
     }
 
     //
@@ -170,14 +172,14 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     //
     do
     {
-        if ( (MajorFunction == IRP_MJ_DEVICE_CONTROL || MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) &&
+        if ( (m_MajorFunction == IRP_MJ_DEVICE_CONTROL || m_MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) &&
              Method == METHOD_NEITHER )
         {
             if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16) )
                 RtlCopyMemory(
-                    InputBuffer.get(),
+                    m_InputBuffer.get(),
                     Stack->Parameters.DeviceIoControl.Type3InputBuffer,
-                    InputBuffer.size());
+                    m_InputBuffer.size());
             else
                 Status = STATUS_INVALID_PARAMETER;
             break;
@@ -186,7 +188,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         if ( Method == METHOD_BUFFERED )
         {
             if ( Irp->AssociatedIrp.SystemBuffer )
-                RtlCopyMemory(InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, InputBuffer.size());
+                ::RtlCopyMemory(m_InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, m_InputBuffer.size());
             else
                 Status = STATUS_INVALID_PARAMETER_1;
             break;
@@ -207,7 +209,10 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
                 break;
             }
 
-            RtlCopyMemory(InputBuffer.get(), pDataAddr, InputBuffer.size());
+            RtlCopyMemory(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
+
+            ok("Capturing input data:");
+            CFB::Utils::Hexdump(m_InputBuffer.get(), m_InputBuffer.size());
         }
 
     } while ( false );
@@ -217,17 +222,23 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 
 
 NTSTATUS
-CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS IoctlStatus)
+CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus)
 {
-    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
-    PVOID UserBuffer         = nullptr;
+    PVOID UserBuffer = nullptr;
+    m_Status         = ReturnedIoctlStatus;
 
-    Status = IoctlStatus;
+    //
+    // If there's nothing to capture, leave now
+    //
+    if ( m_OutputBuffer.size() == 0 )
+    {
+        return STATUS_SUCCESS;
+    }
 
     //
     // Check if the operation supports having output buffer
     //
-    switch ( Stack->MajorFunction )
+    switch ( m_MajorFunction )
     {
     case IRP_MJ_DEVICE_CONTROL:
     case IRP_MJ_INTERNAL_DEVICE_CONTROL:
@@ -248,7 +259,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS IoctlStatus)
     //
     // Check if there's actual data to be copied
     //
-    if ( OutputBufferLength == 0 || UserBuffer == nullptr )
+    if ( UserBuffer == nullptr )
     {
         return STATUS_SUCCESS;
     }
@@ -256,22 +267,30 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS IoctlStatus)
     //
     // If here, just copy the buffer
     //
-    RtlCopyMemory(OutputBuffer.get(), UserBuffer, OutputBufferLength);
+    RtlCopyMemory(m_OutputBuffer.get(), UserBuffer, m_OutputBuffer.size());
+
+    ok("Capturing output data:");
+    CFB::Utils::Hexdump(m_OutputBuffer.get(), m_OutputBuffer.size());
 
     return STATUS_SUCCESS;
 }
 
 
 NTSTATUS
-CapturedIrp::CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG InputBufferLength, _In_ ULONG IoControlCode)
+CapturedIrp::CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG IoControlCode)
 {
+    m_IoctlCode = IoControlCode;
+    ::RtlCopyMemory(m_InputBuffer.get(), InputBuffer, m_InputBuffer.size());
+
     return STATUS_SUCCESS;
 }
 
 
 NTSTATUS
-CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer, _In_ ULONG OutputBufferLength)
+CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer)
 {
+    ::RtlCopyMemory(m_OutputBuffer.get(), OutputBuffer, m_OutputBuffer.size());
+
     return STATUS_SUCCESS;
 }
 
@@ -286,19 +305,19 @@ CapturedIrp::DataSize()
 usize const
 CapturedIrp::InputDataSize() const
 {
-    return InputBufferLength;
+    return m_InputBuffer.size();
 }
 
 
 usize const
 CapturedIrp::OutputDataSize() const
 {
-    return OutputBufferLength;
+    return m_OutputBuffer.size();
 }
 
 HookedDriver* const
 CapturedIrp::AssociatedDriver() const
 {
-    return Driver;
+    return m_Driver;
 }
 } // namespace CFB::Driver

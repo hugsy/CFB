@@ -82,7 +82,7 @@ HANDLE
 set_notif_handle(HANDLE hFile)
 {
     DWORD nbBytesReturned = 0;
-    HANDLE hEvent         = ::CreateEvent(nullptr, true, false, nullptr);
+    HANDLE hEvent         = ::CreateEventA(nullptr, true, false, "CFB_IRP_EVENT");
 
     IoMessage msg                  = {0};
     msg.IrpNotificationEventHandle = hEvent;
@@ -185,7 +185,9 @@ main(int argc, const char** argv)
                 }
                 return std::string {"hook"};
             });
-    program.add_argument("--driver").default_value(std::string("\\driver\\hevd")).required();
+
+    program.add_argument("--driver").default_value(std::string("\\driver\\hevd"));
+    program.add_argument("--device").default_value(std::string("\\\\.\\HackSysExtremeVulnerableDriver"));
     program.add_argument("--ioctl").scan<'i', int>().default_value(0);
     program.add_argument("--enable").default_value(false).implicit_value(true);
 
@@ -202,6 +204,7 @@ main(int argc, const char** argv)
 
     auto action      = program.get<std::string>("--action");
     auto driver_name = program.get<std::string>("--driver");
+    auto device_name = program.get<std::string>("--device");
     auto ioctl       = program.get<int>("--ioctl");
     auto enable      = program.get<bool>("--enable");
 
@@ -237,9 +240,9 @@ main(int argc, const char** argv)
     {
         toggle_monitoring(hFile.get(), driver_name, enable);
     }
-    else if ( action == "test-data" )
+    else if ( action == "send-data" )
     {
-        send_test_data(driver_name, ioctl);
+        send_test_data(device_name, ioctl);
     }
     else if ( action == "set-event" )
     {

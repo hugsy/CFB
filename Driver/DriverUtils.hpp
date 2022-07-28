@@ -425,7 +425,7 @@ template<typename T>
 class LinkedList
 {
 public:
-    LinkedList() : m_TotalEntry(0), m_SpinLock()
+    LinkedList() : m_TotalEntry(0), m_Mutex()
     {
         ::InitializeListHead(&m_ListHead);
     };
@@ -439,7 +439,7 @@ public:
     void
     Insert(T* NewEntry)
     {
-        ScopedLock lock(m_SpinLock);
+        ScopedLock lock(m_Mutex);
         ::InsertTailList(&m_ListHead, &NewEntry->Next);
         m_TotalEntry++;
     }
@@ -453,7 +453,7 @@ public:
     bool
     Remove(T* Entry)
     {
-        ScopedLock lock(m_SpinLock);
+        ScopedLock lock(m_Mutex);
         bool bSuccess = ::RemoveEntryList(&Entry->Next);
         if ( bSuccess )
             m_TotalEntry--;
@@ -469,7 +469,7 @@ public:
     T*
     PopTail()
     {
-        ScopedLock lock(m_SpinLock);
+        ScopedLock lock(m_Mutex);
         if ( Size() == 0 )
             return nullptr;
         auto LastEntry = ::RemoveTailList(&m_ListHead);
@@ -484,7 +484,7 @@ public:
     T*
     Find(N condition)
     {
-        ScopedLock lock(m_SpinLock);
+        ScopedLock lock(m_Mutex);
         if ( !::IsListEmpty(&m_ListHead) )
         {
             for ( PLIST_ENTRY Entry = m_ListHead.Flink; Entry != &m_ListHead; Entry = Entry->Flink )
@@ -503,7 +503,8 @@ public:
     bool
     ForEach(L lambda)
     {
-        ScopedLock lock(m_SpinLock);
+        ScopedLock lock(m_Mutex);
+
         bool bSuccess = true;
         if ( !::IsListEmpty(&m_ListHead) )
         {
@@ -518,7 +519,7 @@ public:
 
 
 private:
-    KQueuedSpinLock m_SpinLock;
+    KFastMutex m_Mutex;
     LIST_ENTRY m_ListHead;
     usize m_TotalEntry;
 };
@@ -576,6 +577,7 @@ public:
         UniquePointer<T> tmp(moving.release());
         tmp.swap(*this);
     }
+
     template<typename U>
     UniquePointer&
     operator=(UniquePointer<U>&& moving)
@@ -586,6 +588,7 @@ public:
     }
 
     UniquePointer(UniquePointer const&) = delete;
+
     UniquePointer&
     operator=(UniquePointer const&) = delete;
 
@@ -594,16 +597,19 @@ public:
     {
         return data;
     }
+
     T&
     operator*() const
     {
         return *data;
     }
+
     T*
     get() const
     {
         return data;
     }
+
     explicit operator bool() const
     {
         return data;
