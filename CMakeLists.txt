@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 set(CMAKE_CXX_STANDARD 20)
 
-# set(CMAKE_CXX_STANDARD_REQUIRED True)
-# set(CMAKE_CXX_EXTENSIONS OFF)
-# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 project(
     CFB
     LANGUAGES CXX
@@ -40,11 +41,6 @@ set(WIL_BUILD_TESTS OFF)
 add_subdirectory(${CFB_DEPENDENCIES}/wil)
 
 #
-# Build the common library
-#
-add_subdirectory(${CFB_ROOT_DIR}/Common)
-
-#
 # Build Driver
 #
 add_subdirectory(${CFB_ROOT_DIR}/Driver)
@@ -52,7 +48,12 @@ add_subdirectory(${CFB_ROOT_DIR}/Driver)
 #
 # Build Broker
 #
-# add_subdirectory(Broker)
+add_subdirectory(${CFB_ROOT_DIR}/Broker)
+
+#
+# Build the common library
+#
+add_subdirectory(${CFB_ROOT_DIR}/Common)
 
 #
 # Build Driver

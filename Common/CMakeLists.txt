@@ -1,15 +1,18 @@
 message(STATUS "Configuring 'CommonLib'")
 
 set(COMMON_SOURCE_DIR ${CFB_ROOT_DIR}/Common)
+set(COMMON_HEADER_DIR ${COMMON_SOURCE_DIR})
 
 set(
     COMMON_HEADER_FILES
 
-    ${COMMON_SOURCE_DIR}/Common.hpp
-    ${COMMON_SOURCE_DIR}/Log.hpp
-    ${COMMON_SOURCE_DIR}/Messages.hpp
-    ${COMMON_SOURCE_DIR}/Utils.hpp
-    ${COMMON_SOURCE_DIR}/IoctlCodes.hpp
+    ${COMMON_HEADER_DIR}/CompileInfo.hpp
+
+    ${COMMON_HEADER_DIR}/Common.hpp
+    ${COMMON_HEADER_DIR}/Log.hpp
+    ${COMMON_HEADER_DIR}/Messages.hpp
+    ${COMMON_HEADER_DIR}/Utils.hpp
+    ${COMMON_HEADER_DIR}/IoctlCodes.hpp
 )
 
 set(
@@ -18,6 +21,15 @@ set(
     ${COMMON_SOURCE_DIR}/Common.cpp
     ${COMMON_SOURCE_DIR}/Log.cpp
     ${COMMON_SOURCE_DIR}/Utils.cpp
+)
+
+#
+# Create the compilation information file
+#
+configure_file(
+    ${COMMON_HEADER_DIR}/CompileInfo.hpp.in
+    ${COMMON_HEADER_DIR}/CompileInfo.hpp
+    NEWLINE_STYLE WIN32
 )
 
 #
