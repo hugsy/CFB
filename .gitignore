@@ -263,3 +263,4 @@ __pycache__/
 .vscode
 /Assets/img/logo/bear.png
 .gitignore
+Common/CompileInfo.hpp
