@@ -9,6 +9,9 @@ set(BROKER_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "BROKER_VERSION
 set(BROKER_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "BROKER_VERSION_MINOR")
 set(BROKER_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE INTERNAL "BROKER_VERSION_PATCH")
 
+set(BROKER_RC_FILE ${BROKER_SOURCE_DIR}/Broker.rc)
+set(BROKER_RES_FILE ${BROKER_SOURCE_DIR}/Broker.res)
+
 #
 # Source files
 #
@@ -22,6 +25,16 @@ set(
     ${BROKER_SOURCE_DIR}/Main.cpp
 )
 
+#
+# Create the broker rc file
+#
+set(CFB_BROKER_DRIVER_PATH ${CFB_DRIVER_OUTPUT_PATH})
+set(CFB_BROKER_ICON_PATH ${CFB_ROOT_DIR}/Assets/img/logo/logo.ico)
+configure_file(${BROKER_RC_FILE}.in ${BROKER_RC_FILE} NEWLINE_STYLE WIN32)
+
+#
+# Create the executable target
+#
 add_executable(${PROJECT_NAME} WIN32 ${SOURCE_FILES})
 add_dependencies(${PROJECT_NAME} IrpMonitor)
 
@@ -48,13 +61,15 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 # Linking directives
 #
 target_link_options(${PROJECT_NAME} PUBLIC /SUBSYSTEM:Console)
-target_link_libraries(${PROJECT_NAME} CommonLibUser)
+target_link_libraries(${PROJECT_NAME} CommonLibUser ${BROKER_RES_FILE})
 
 #
 # Custom command directives
 #
 add_custom_command(
-    TARGET ${PROJECT_NAME} POST_BUILD
+    TARGET ${PROJECT_NAME} PRE_BUILD
     COMMAND
-    echo "todo embed driver"
+    rc /nologo /fo ${BROKER_RES_FILE} /r ${BROKER_RC_FILE}
+    COMMENT
+    "Generating the .res file"
 )
