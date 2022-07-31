@@ -101,6 +101,11 @@ set_target_properties(${PROJECT_NAME}
 )
 
 #
+# Install directives
+#
+install(TARGETS ${PROJECT_NAME} DESTINATION Broker)
+
+#
 # Custom command directives
 #
 add_custom_command(

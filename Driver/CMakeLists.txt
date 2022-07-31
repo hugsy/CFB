@@ -73,3 +73,8 @@ add_custom_command(
 if(CFB_BUILD_TOOLS)
     add_subdirectory(Client)
 endif(CFB_BUILD_TOOLS)
+
+#
+# Install directives
+#
+install(TARGETS ${PROJECT_NAME} DESTINATION Driver)
