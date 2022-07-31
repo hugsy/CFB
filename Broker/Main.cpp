@@ -24,35 +24,35 @@ struct GlobalContext Globals;
 int
 main(int argc, const char** argv)
 {
-    argparse::ArgumentParser program("Broker");
+    // argparse::ArgumentParser program("Broker");
 
-    const std::vector<std::string> valid_modes = {"run", "service"};
-    program.add_argument("modes")
-        .remaining()
-        .default_value(valid_modes.front())
-        .action(
-            [&valid_modes](const std::string& value)
-            {
-                if ( std::find(valid_modes.cbegin(), valid_modes.cend(), value) != valid_modes.cend() )
-                {
-                    return value;
-                }
-                return valid_modes.front();
-            });
+    // const std::vector<std::string> valid_modes = {"run", "service"};
+    // program.add_argument("modes")
+    //     .remaining()
+    //     .default_value(valid_modes.front())
+    //     .action(
+    //         [&valid_modes](const std::string& value)
+    //         {
+    //             if ( std::find(valid_modes.cbegin(), valid_modes.cend(), value) != valid_modes.cend() )
+    //             {
+    //                 return value;
+    //             }
+    //             return valid_modes.front();
+    //         });
 
 
-    try
-    {
-        program.parse_args(argc, argv);
-    }
-    catch ( const std::runtime_error& err )
-    {
-        std::cerr << err.what() << std::endl;
-        std::cerr << program;
-        std::exit(1);
-    }
+    // try
+    // {
+    //     program.parse_args(argc, argv);
+    // }
+    // catch ( const std::runtime_error& err )
+    // {
+    //     std::cerr << err.what() << std::endl;
+    //     std::cerr << program;
+    //     std::exit(1);
+    // }
 
-    auto const& mode = program.get<std::string>("mode");
+    // auto const& mode = program.get<std::string>("mode");
 
 
     std::cin.get();

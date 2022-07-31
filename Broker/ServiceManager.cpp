@@ -162,9 +162,11 @@ ServiceManager::LoadDriver()
             return false;
         }
 
+        dbg("Handle to SCM -> %x", hSCManager.get());
         m_hSCManager = std::move(hSCManager);
     }
 
+    dbg("Handle to SCM -> %x", m_hSCManager.get());
 
     //
     // Get a handle to the service manager
@@ -172,8 +174,8 @@ ServiceManager::LoadDriver()
     {
         wil::unique_schandle hServiceCreate(::CreateServiceW(
             m_hSCManager.get(),
-            CFB_BROKER_SERVICE_NAME,
-            CFB_BROKER_SERVICE_DESCRIPTION,
+            CFB_BROKER_DRIVER_SERVICE_NAME,
+            CFB_BROKER_DRIVER_SERVICE_DESCRIPTION,
             SERVICE_START | DELETE | SERVICE_STOP,
             SERVICE_KERNEL_DRIVER,
             SERVICE_DEMAND_START,
@@ -200,28 +202,32 @@ ServiceManager::LoadDriver()
         // Try to open the service instead
         //
         wil::unique_schandle hServiceOpen(
-            ::OpenServiceW(m_hSCManager.get(), CFB_BROKER_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP));
+            ::OpenServiceW(m_hSCManager.get(), CFB_BROKER_DRIVER_SERVICE_NAME, SERVICE_START | DELETE | SERVICE_STOP));
         {
             if ( !hServiceOpen )
+            {
                 CFB::Log::perror("OpenService()");
-            return false;
+                return false;
+            }
         }
 
         m_hService = std::move(hServiceOpen);
     }
 
+    dbg("Handle to Service -> %x", m_hService.get());
+
     //
     // Start the service
     //
-    dbg("Starting service '%S'", CFB_BROKER_SERVICE_NAME);
+    dbg("Starting service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
 
-    if ( !::StartServiceW(m_hService.get(), 0, NULL) )
+    if ( !::StartServiceW(m_hService.get(), 0, nullptr) )
     {
         CFB::Log::perror("StartService()");
         return false;
     }
 
-    ok("Service '%S' started successfully.", CFB_BROKER_SERVICE_NAME);
+    ok("Service '%S' started successfully.", CFB_BROKER_DRIVER_SERVICE_NAME);
     return true;
 }
 
@@ -231,7 +237,7 @@ ServiceManager::UnloadDriver()
 {
     SERVICE_STATUS ServiceStatus = {0};
 
-    dbg("Stopping service '%S'\n", CFB_BROKER_SERVICE_NAME);
+    dbg("Stopping service '%S'\n", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::ControlService(m_hService.get(), SERVICE_CONTROL_STOP, &ServiceStatus) )
     {
@@ -239,7 +245,7 @@ ServiceManager::UnloadDriver()
         return false;
     }
 
-    dbg("Service '%S' stopped", CFB_BROKER_SERVICE_NAME);
+    dbg("Service '%S' stopped", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::DeleteService(m_hService.get()) )
     {
@@ -272,7 +278,7 @@ ServiceManager::Notify(ServiceState NewState)
 bool
 ServiceManager::StartBackgroundService()
 {
-    auto lpswServiceName = (LPWSTR)CFB_BROKER_SERVICE_NAME;
+    auto lpswServiceName = (LPWSTR)CFB_BROKER_WIN32_SERVICE_NAME;
 
     SERVICE_TABLE_ENTRYW ServiceTable[] = {
         {lpswServiceName, (LPSERVICE_MAIN_FUNCTIONW)ServiceMain},
@@ -337,8 +343,7 @@ ServiceManager::InitializeRoutine()
     // Register the controller, and get the service status handle
     //
     {
-        SERVICE_STATUS_HANDLE hServiceStatus =
-            ::RegisterServiceCtrlHandlerW(CFB_BROKER_SERVICE_NAME, ServiceCtrlHandler);
+        SERVICE_STATUS_HANDLE hServiceStatus = ::RegisterServiceCtrlHandlerW(L"", ServiceCtrlHandler);
         if ( !hServiceStatus )
         {
             CFB::Log::perror("RegisterServiceCtrlHandler()");
@@ -463,7 +468,7 @@ ServiceMain(DWORD argc, LPWSTR* argv)
         return;
     }
 
-    dbg("%S background service ready, starting thread...", CFB_BROKER_SERVICE_NAME);
+    dbg("%S background service ready, starting thread...", CFB_BROKER_WIN32_SERVICE_NAME);
 
     //
     // All set up, now just run the service forever in background

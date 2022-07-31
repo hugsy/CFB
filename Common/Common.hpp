@@ -38,8 +38,10 @@ using uptr  = ULONG_PTR;
 #define CFB_DRIVER_MAX_PATH               256
 #define CFB_DRIVER_BASENAME               CFB_DEVICE_NAME L".sys"
 
-#define CFB_BROKER_SERVICE_NAME           L"CFB_BROKER"
-#define CFB_BROKER_SERVICE_DESCRIPTION    L"Canadian Furious Beaver"
+#define CFB_BROKER_DRIVER_SERVICE_NAME             CFB_DEVICE_NAME
+#define CFB_BROKER_DRIVER_SERVICE_DESCRIPTION      L"IRP monitor driver for Canadian Furious Beaver broker"
+
+#define CFB_BROKER_WIN32_SERVICE_NAME     "CfbBrokerSvc"
 
 #ifndef countof
 #define countof(arr) ((sizeof(arr)) / (sizeof(arr[0])))
