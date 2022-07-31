@@ -41,7 +41,8 @@ using uptr  = ULONG_PTR;
 #define CFB_BROKER_DRIVER_SERVICE_NAME             CFB_DEVICE_NAME
 #define CFB_BROKER_DRIVER_SERVICE_DESCRIPTION      L"IRP monitor driver for Canadian Furious Beaver broker"
 
-#define CFB_BROKER_WIN32_SERVICE_NAME     "CfbBrokerSvc"
+#define CFB_BROKER_WIN32_SERVICE_NAME              L"CfbBrokerSvc"
+#define CFB_BROKER_WIN32_SERVICE_DESCRIPTION       L"Service for having the CFB broker in background"
 
 #ifndef countof
 #define countof(arr) ((sizeof(arr)) / (sizeof(arr[0])))

@@ -95,6 +95,11 @@ target_link_libraries(${PROJECT_NAME}
     CommonLibUser
 )
 
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES
+    LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'"
+)
+
 #
 # Custom command directives
 #

@@ -43,9 +43,9 @@ ServiceMain(DWORD argc, LPWSTR* argv);
 
 
 ServiceManager::ServiceManager() :
-    m_DriverTempPath(fs::temp_directory_path() / CFB_DRIVER_BASENAME),
-    m_StatusHandle(),
-    m_State(ServiceState::Uninitialized)
+    m_BrokerPath(),
+    m_BackgroundService(nullptr),
+    m_DriverTempPath(fs::temp_directory_path() / CFB_DRIVER_BASENAME)
 {
     if ( ExtractDriverFromResource() == false )
     {
@@ -57,10 +57,11 @@ ServiceManager::ServiceManager() :
         throw std::runtime_error("LoadDriver()");
     }
 
-    m_ServiceStateChangedEvent = ::CreateEventW(nullptr, true, false, nullptr);
-    if ( !m_ServiceStateChangedEvent )
     {
-        throw std::runtime_error("CreateEvent()");
+        std::wstring wsPath;
+        wsPath.resize(MAX_PATH);
+        ::GetModuleFileNameW(nullptr, wsPath.data(), MAX_PATH);
+        m_BrokerPath = wsPath;
     }
 }
 
@@ -76,6 +77,13 @@ ServiceManager::~ServiceManager()
     {
         err("DeleteDriverFromDisk() failed");
     }
+}
+
+
+std::shared_ptr<Win32Service>
+ServiceManager::BackgroundService()
+{
+    return m_BackgroundService;
 }
 
 
@@ -258,7 +266,192 @@ ServiceManager::UnloadDriver()
 
 
 bool
-ServiceManager::Notify(ServiceState NewState)
+ServiceManager::InstallBackgroundService()
+{
+    //
+    // [1] Create the Win32 service
+    //
+    {
+        const std::wstring BinaryPathName = L"\"" + m_BrokerPath.wstring() + L" service\"";
+
+        wil::unique_handle hService(::CreateServiceW(
+            m_hSCManager.get(),
+            CFB_BROKER_WIN32_SERVICE_NAME,
+            CFB_BROKER_WIN32_SERVICE_DESCRIPTION,
+            SERVICE_ALL_ACCESS,
+            SERVICE_WIN32_OWN_PROCESS,
+            SERVICE_DEMAND_START,
+            SERVICE_ERROR_NORMAL,
+            BinaryPathName.c_str(),
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr,
+            nullptr));
+        if ( !hService )
+        {
+            CFB::Log::perror("CreateServiceW()");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool
+ServiceManager::RunAsBackgroundService()
+{
+    //
+    // [1] Declare the win32 service mode to the global context
+    //
+    {
+        try
+        {
+            m_BackgroundService = std::make_shared<Win32Service>();
+        }
+        catch ( ... )
+        {
+            return false;
+        }
+    }
+
+    //
+    // [2] Start the service through the SCM
+    //
+    {
+        auto lpswServiceName = (LPWSTR)CFB_BROKER_WIN32_SERVICE_NAME;
+
+        SERVICE_TABLE_ENTRYW ServiceTable[] = {
+            {lpswServiceName, (LPSERVICE_MAIN_FUNCTIONW)ServiceMain},
+            {nullptr, nullptr}};
+
+        if ( !::StartServiceCtrlDispatcherW(ServiceTable) )
+        {
+            CFB::Log::perror("StartServiceCtrlDispatcherW()");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+///////////////////////////////////////////////////////////////
+///
+/// Methods related to the Win32 service
+///
+
+Win32Service::Win32Service() :
+    m_State(ServiceState::Uninitialized),
+    // m_ServiceStatus(),
+    m_StatusHandle(),
+    m_StatusCheckPoint(0)
+{
+    dbg("Initializing background service");
+
+    m_ServiceStateChangedEvent = ::CreateEventW(nullptr, true, false, nullptr);
+    if ( !m_ServiceStateChangedEvent )
+    {
+        CFB::Log::perror("CreateEvent()");
+        throw std::runtime_error("Win32Service() failed");
+    }
+
+    //
+    // Register the controller, and get the service status handle
+    //
+    {
+        SERVICE_STATUS_HANDLE hServiceStatus = ::RegisterServiceCtrlHandlerW(L"", ServiceCtrlHandler);
+        if ( !hServiceStatus )
+        {
+            CFB::Log::perror("RegisterServiceCtrlHandler()");
+            throw std::runtime_error("Win32Service() failed");
+        }
+
+        m_StatusHandle = hServiceStatus;
+    }
+
+    //
+    // Set the service in a start pending state
+    //
+    {
+        SERVICE_STATUS ServiceStatus            = {0};
+        ServiceStatus.dwServiceType             = SERVICE_WIN32_OWN_PROCESS;
+        ServiceStatus.dwControlsAccepted        = 0;
+        ServiceStatus.dwCurrentState            = SERVICE_START_PENDING;
+        ServiceStatus.dwWin32ExitCode           = 0;
+        ServiceStatus.dwServiceSpecificExitCode = 0;
+        ServiceStatus.dwCheckPoint              = 0;
+
+        if ( ReportServiceStatus(&ServiceStatus) == false )
+        {
+            throw std::runtime_error("Win32Service() failed");
+        }
+    }
+
+    //
+    // Mark the service as running
+    //
+    {
+        SERVICE_STATUS ServiceStatus     = {0};
+        ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+        ServiceStatus.dwCurrentState     = SERVICE_RUNNING;
+        ServiceStatus.dwWin32ExitCode    = 0;
+        ServiceStatus.dwCheckPoint       = 0;
+
+        if ( ReportServiceStatus(&ServiceStatus) == false )
+        {
+            throw std::runtime_error("Win32Service() failed");
+        }
+    }
+}
+
+
+Win32Service::~Win32Service()
+{
+    dbg("Terminating background service");
+}
+
+
+void
+Win32Service::RunForever()
+{
+    //
+    // Wait to be in a shutdown state
+    //
+    while ( true )
+    {
+        DWORD bRes = ::WaitForSingleObject(m_ServiceStateChangedEvent, INFINITE);
+        if ( bRes == WAIT_OBJECT_0 )
+        {
+            auto lock = std::scoped_lock(m_Mutex);
+            if ( m_State == ServiceState::ShuttingDown )
+            {
+                break;
+            }
+        }
+    }
+
+    //
+    // Finish by notifying the manager
+    //
+    {
+        SERVICE_STATUS ServiceStatus     = {0};
+        ServiceStatus.dwControlsAccepted = 0;
+        ServiceStatus.dwCurrentState     = SERVICE_STOPPED;
+        ServiceStatus.dwWin32ExitCode    = 0;
+        ServiceStatus.dwCheckPoint       = 3;
+
+        if ( ReportServiceStatus(&ServiceStatus) == false )
+        {
+            CFB::Log::perror("SetServiceStatus() failed");
+        }
+    }
+}
+
+
+bool
+Win32Service::Notify(ServiceState NewState)
 {
     {
         auto lock = std::scoped_lock(m_Mutex);
@@ -276,20 +469,26 @@ ServiceManager::Notify(ServiceState NewState)
 
 
 bool
-ServiceManager::StartBackgroundService()
+Win32Service::Stop()
 {
-    auto lpswServiceName = (LPWSTR)CFB_BROKER_WIN32_SERVICE_NAME;
+    SERVICE_STATUS ServiceStatus     = {0};
+    ServiceStatus.dwControlsAccepted = 0;
+    ServiceStatus.dwCurrentState     = SERVICE_STOP_PENDING;
+    ServiceStatus.dwWin32ExitCode    = 0;
+    ServiceStatus.dwCheckPoint       = 4;
 
-    SERVICE_TABLE_ENTRYW ServiceTable[] = {
-        {lpswServiceName, (LPSERVICE_MAIN_FUNCTIONW)ServiceMain},
-        {nullptr, nullptr}};
+    if ( ReportServiceStatus(&ServiceStatus) == false )
+    {
+        CFB::Log::perror("SetServiceStatus()");
+        return false;
+    }
 
-    return ::StartServiceCtrlDispatcherW(ServiceTable);
+    return true;
 }
 
 
 bool
-ServiceManager::UpdateStatus(LPSERVICE_STATUS lpServiceStatus)
+Win32Service::ReportServiceStatus(LPSERVICE_STATUS lpServiceStatus)
 {
     if ( !::SetServiceStatus(m_StatusHandle, lpServiceStatus) )
     {
@@ -328,7 +527,7 @@ ServiceManager::UpdateStatus(LPSERVICE_STATUS lpServiceStatus)
 
 
 bool
-ServiceManager::InitializeRoutine()
+Win32Service::InitializeRoutine()
 {
     //
     // Expect the state to be `Uninitialized`, otherwise just bail
@@ -339,144 +538,65 @@ ServiceManager::InitializeRoutine()
         return false;
     }
 
-    //
-    // Register the controller, and get the service status handle
-    //
-    {
-        SERVICE_STATUS_HANDLE hServiceStatus = ::RegisterServiceCtrlHandlerW(L"", ServiceCtrlHandler);
-        if ( !hServiceStatus )
-        {
-            CFB::Log::perror("RegisterServiceCtrlHandler()");
-            return false;
-        }
-
-        m_StatusHandle = hServiceStatus;
-    }
-
-    //
-    // Set the service in a start pending state
-    //
-    {
-        SERVICE_STATUS ServiceStatus            = {0};
-        ServiceStatus.dwServiceType             = SERVICE_WIN32_OWN_PROCESS;
-        ServiceStatus.dwControlsAccepted        = 0;
-        ServiceStatus.dwCurrentState            = SERVICE_START_PENDING;
-        ServiceStatus.dwWin32ExitCode           = 0;
-        ServiceStatus.dwServiceSpecificExitCode = 0;
-        ServiceStatus.dwCheckPoint              = 0;
-
-        if ( UpdateStatus(&ServiceStatus) == false )
-        {
-            return false;
-        }
-    }
-
-    //
-    // Mark the service as running
-    //
-    {
-        SERVICE_STATUS ServiceStatus     = {0};
-        ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-        ServiceStatus.dwCurrentState     = SERVICE_RUNNING;
-        ServiceStatus.dwWin32ExitCode    = 0;
-        ServiceStatus.dwCheckPoint       = 0;
-
-        if ( UpdateStatus(&ServiceStatus) == false )
-        {
-            return false;
-        }
-    }
 
     return true;
-}
-
-
-void
-ServiceManager::RunForever()
-{
-    //
-    // Wait to be in a shutdown state
-    //
-    while ( true )
-    {
-        DWORD bRes = ::WaitForSingleObject(m_ServiceStateChangedEvent, INFINITE);
-        if ( bRes == WAIT_OBJECT_0 )
-        {
-            auto lock = std::scoped_lock(m_Mutex);
-            if ( m_State == ServiceState::ShuttingDown )
-            {
-                break;
-            }
-        }
-    }
-
-    //
-    // Finish by notifying the manager
-    //
-    {
-        SERVICE_STATUS ServiceStatus     = {0};
-        ServiceStatus.dwControlsAccepted = 0;
-        ServiceStatus.dwCurrentState     = SERVICE_STOPPED;
-        ServiceStatus.dwWin32ExitCode    = 0;
-        ServiceStatus.dwCheckPoint       = 3;
-
-        if ( UpdateStatus(&ServiceStatus) == false )
-        {
-            CFB::Log::perror("SetServiceStatus() failed");
-        }
-    }
-}
-
-
-static VOID
-ServiceCtrlHandler(const DWORD dwCtrlCode)
-{
-    if ( dwCtrlCode != SERVICE_CONTROL_STOP )
-    {
-        warn("Unhandled control code: 0x%x", dwCtrlCode);
-        return;
-    }
-
-    SERVICE_STATUS ServiceStatus     = {0};
-    ServiceStatus.dwControlsAccepted = 0;
-    ServiceStatus.dwCurrentState     = SERVICE_STOP_PENDING;
-    ServiceStatus.dwWin32ExitCode    = 0;
-    ServiceStatus.dwCheckPoint       = 4;
-
-    if ( Globals.ServiceManager.UpdateStatus(&ServiceStatus) == false )
-    {
-        CFB::Log::perror("SetServiceStatus()");
-        return;
-    }
-
-    return;
 }
 
 
 static VOID
 ServiceMain(DWORD argc, LPWSTR* argv)
 {
-    CFB::Broker::ServiceManager& ServiceManager = Globals.ServiceManager;
-
-    //
-    // This routine is called by the Windows Service Manager, finish the initialization of the object with the
-    // information we got from it
-    //
-    if ( ServiceManager.InitializeRoutine() == false )
+    auto svc = Globals.ServiceManager.BackgroundService();
+    if ( !svc )
     {
-        err("Failed to start the service");
+        warn("Trying to execute the service handler when no service exists...");
         return;
     }
 
+    svc->RunForever();
+
     dbg("%S background service ready, starting thread...", CFB_BROKER_WIN32_SERVICE_NAME);
-
-    //
-    // All set up, now just run the service forever in background
-    //
-    ServiceManager.RunForever();
-
     return;
 }
 
+
+static VOID
+ServiceCtrlHandler(const DWORD dwCtrlCode)
+{
+    auto svc = Globals.ServiceManager.BackgroundService();
+    if ( !svc )
+    {
+        warn("Trying to execute the service handler when no service exists...");
+        return;
+    }
+
+    switch ( dwCtrlCode )
+    {
+    case SERVICE_CONTROL_STOP:
+        svc->Stop();
+        break;
+
+    case SERVICE_CONTROL_CONTINUE:
+        warn("Unhandled control code: SERVICE_CONTROL_CONTINUE");
+        break;
+
+    case SERVICE_CONTROL_INTERROGATE:
+        warn("Unhandled control code: SERVICE_CONTROL_INTERROGATE");
+        break;
+
+    case SERVICE_CONTROL_PAUSE:
+        warn("Unhandled control code: SERVICE_CONTROL_PAUSE");
+        break;
+
+    case SERVICE_CONTROL_SHUTDOWN:
+        warn("Unhandled control code: SERVICE_CONTROL_SHUTDOWN");
+        break;
+
+    default:
+        break;
+    }
+
+    return;
+}
 
 } // namespace CFB::Broker

@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <mutex>
+#include <optional>
 
 #include "Common.hpp"
 
@@ -12,7 +13,7 @@ namespace fs = std::filesystem;
 namespace CFB::Broker
 {
 
-class ServiceManager
+class Win32Service
 {
     enum class ServiceState
     {
@@ -22,6 +23,90 @@ class ServiceManager
         ShuttingDown,
         Shutdown
     };
+
+
+public:
+    ///
+    /// @brief Construct a new Win32Service object
+    ///
+    Win32Service();
+
+    ///
+    /// @brief Destroy the Win32Service object
+    ///
+    ~Win32Service();
+
+    ///
+    /// @brief Run forever until told to stop
+    ///
+    void
+    RunForever();
+
+    ///
+    /// @brief Stops the service, this method is invoked from the SCM
+    ///
+    /// @return true
+    /// @return false
+    ///
+    bool
+    Stop();
+
+private:
+    ///
+    /// @brief
+    ///
+    /// @param lpServiceStatus
+    /// @return true
+    /// @return false
+    ///
+    bool
+    ReportServiceStatus(LPSERVICE_STATUS lpServiceStatus);
+
+    ///
+    /// @brief Set the Status Handle object
+    ///
+    /// @param hServiceStatus
+    /// @return true
+    /// @return false
+    ///
+    bool
+    InitializeRoutine();
+
+    ///
+    /// @brief Notification dispatcher
+    ///
+    /// @return true
+    /// @return false
+    ///
+    bool Notify(ServiceState);
+
+    ///
+    /// @brief This mutex protects state changes
+    ///
+    std::mutex m_Mutex;
+
+    ///
+    /// @brief The manager current state
+    ///
+    ServiceState m_State;
+
+    ///
+    /// @brief Changed state notification event.
+    ///
+    HANDLE m_ServiceStateChangedEvent;
+
+    ///
+    /// @brief Handle to the service status
+    ///
+    SERVICE_STATUS_HANDLE m_StatusHandle;
+
+    // SERVICE_STATUS m_ServiceStatus;
+
+    usize m_StatusCheckPoint;
+};
+
+class ServiceManager
+{
 
 public:
     ///
@@ -39,28 +124,28 @@ public:
     ///
     /// @brief
     ///
-    /// @param lpServiceStatus
+    /// @return std::optional<Win32Service>&
+    ///
+    std::shared_ptr<Win32Service>
+    BackgroundService();
+
+    ///
+    /// @brief
+    ///
     /// @return true
     /// @return false
     ///
     bool
-    UpdateStatus(LPSERVICE_STATUS lpServiceStatus);
+    InstallBackgroundService();
 
     ///
-    /// @brief Set the Status Handle object
+    /// @brief
     ///
-    /// @param hServiceStatus
     /// @return true
     /// @return false
     ///
     bool
-    InitializeRoutine();
-
-    ///
-    /// @brief Run forever until told to stop
-    ///
-    void
-    RunForever();
+    RunAsBackgroundService();
 
 private:
     ///
@@ -100,31 +185,9 @@ private:
     UnloadDriver();
 
     ///
-    /// @brief Notification dispatcher
+    /// @brief The fs::path of this binary
     ///
-    /// @return true
-    /// @return false
-    ///
-    bool Notify(ServiceState);
-
-    ///
-    /// @brief Start the broker background service thread
-    ///
-    /// @return true
-    /// @return false
-    ///
-    bool
-    StartBackgroundService();
-
-    ///
-    /// @brief This mutex protects state changes
-    ///
-    std::mutex m_Mutex;
-
-    ///
-    /// @brief The manager current state
-    ///
-    ServiceState m_State;
+    fs::path m_BrokerPath;
 
     ///
     /// @brief The fs::path of the driver on disk
@@ -132,24 +195,19 @@ private:
     fs::path m_DriverTempPath;
 
     ///
-    /// @brief Changed state notification event.
-    ///
-    HANDLE m_ServiceStateChangedEvent;
-
-    ///
-    /// @brief Handle to the service status
-    ///
-    SERVICE_STATUS_HANDLE m_StatusHandle;
-
-    ///
-    /// Unique pointer to the service control manager
+    /// @brief Unique pointer to the service control manager
     ///
     wil::unique_schandle m_hSCManager;
 
     ///
-    /// Unique pointer to the service manager
+    /// @brief Unique pointer to the service manager
     ///
     wil::unique_schandle m_hService;
+
+    ///
+    /// @brief Background service (if set by globals)
+    ///
+    std::shared_ptr<Win32Service> m_BackgroundService;
 };
 
 
