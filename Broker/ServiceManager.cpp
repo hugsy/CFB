@@ -170,11 +170,8 @@ ServiceManager::LoadDriver()
             return false;
         }
 
-        dbg("Handle to SCM -> %x", hSCManager.get());
         m_hSCManager = std::move(hSCManager);
     }
-
-    dbg("Handle to SCM -> %x", m_hSCManager.get());
 
     //
     // Get a handle to the service manager
@@ -221,8 +218,6 @@ ServiceManager::LoadDriver()
 
         m_hService = std::move(hServiceOpen);
     }
-
-    dbg("Handle to Service -> %x", m_hService.get());
 
     //
     // Start the service
@@ -334,6 +329,17 @@ ServiceManager::RunAsBackgroundService()
     }
 
     return true;
+}
+
+void
+ServiceManager::RunStandalone()
+{
+    std::jthread thread(
+        [this]()
+        {
+            WaitForState(CFB::Broker::State::DriverManagerDone);
+        });
+    thread.detach();
 }
 
 

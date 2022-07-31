@@ -4,25 +4,16 @@
 #include <mutex>
 
 #include "ServiceManager.hpp"
-
-
-namespace CFB::Broker
-{
-enum class State : int
-{
-    Uninitialized = 1,
-    ServiceManagerReady,
-    DriverManagerReady,
-    ConnectorManagerReady,
-};
-} // namespace CFB::Broker
+#include "States.hpp"
 
 
 class GlobalContext
 {
 public:
+    ///
+    /// @brief Construct a new Global Context object
+    ///
     GlobalContext();
-
 
     ///
     /// @brief Set new state
@@ -32,12 +23,26 @@ public:
     ///
     bool NotifyNewState(CFB::Broker::State);
 
+    ///
+    /// @brief
+    ///
+    /// @return std::atomic_flag const&
+    ///
     std::atomic_flag const&
     StateChangeFlag() const;
 
+    ///
+    /// @brief
+    ///
+    /// @return CFB::Broker::State const
+    ///
     CFB::Broker::State const
     State() const;
 
+    ///
+    /// @brief
+    ///
+    ///
     CFB::Broker::ServiceManager ServiceManager;
 
 private:
@@ -51,6 +56,10 @@ private:
     ///
     CFB::Broker::State m_State;
 
+    ///
+    /// @brief
+    ///
+    ///
     std::atomic_flag m_AtomicStateChangeFlag;
 };
 

@@ -2,13 +2,12 @@
 
 #include "Context.hpp"
 
-
 namespace CFB::Broker
 {
 
 
 bool
-ManagerBase::WaitForState(State WantedState)
+ManagerBase::WaitForState(CFB::Broker::State WantedState)
 {
     while ( true ) // TODO: add better state notif (e.g. shutdown case)
     {
@@ -20,4 +19,5 @@ ManagerBase::WaitForState(State WantedState)
 
     return false;
 }
+
 } // namespace CFB::Broker

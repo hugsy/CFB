@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Context.hpp"
+#include "States.hpp"
 
 namespace CFB::Broker
 {
@@ -15,7 +15,7 @@ public:
     /// @return false
     ///
     bool
-    WaitForState(State NewState);
+    WaitForState(CFB::Broker::State WantedState);
 };
 
 

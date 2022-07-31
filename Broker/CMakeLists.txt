@@ -22,6 +22,7 @@ set(
     ${BROKER_HEADER_DIR}/Broker.hpp
     ${BROKER_HEADER_DIR}/Native.hpp
     ${BROKER_HEADER_DIR}/Context.hpp
+    ${BROKER_HEADER_DIR}/States.hpp
     ${BROKER_HEADER_DIR}/BrokerUtils.hpp
     ${BROKER_HEADER_DIR}/ManagerBase.hpp
 

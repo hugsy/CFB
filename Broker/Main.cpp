@@ -19,6 +19,8 @@
 #include "Log.hpp"
 // clang-format on
 
+using namespace ::std::literals;
+
 struct GlobalContext Globals;
 
 int
@@ -56,7 +58,13 @@ main(int argc, const char** argv)
 
     if ( mode == "run-standalone" )
     {
-        std::cin.get();
+        Globals.ServiceManager.RunStandalone();
+
+        info("Running...");
+        std::this_thread::sleep_for(10s);
+
+        info("Finishing...");
+        Globals.NotifyNewState(CFB::Broker::State::DriverManagerDone);
     }
 
     else if ( mode == "install-service" )

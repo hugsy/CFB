@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "Common.hpp"
+#include "ManagerBase.hpp"
 
 namespace fs = std::filesystem;
 
@@ -105,7 +106,7 @@ private:
     usize m_StatusCheckPoint;
 };
 
-class ServiceManager
+class ServiceManager : ManagerBase
 {
 
 public:
@@ -146,6 +147,9 @@ public:
     ///
     bool
     RunAsBackgroundService();
+
+    void
+    RunStandalone();
 
 private:
     ///
