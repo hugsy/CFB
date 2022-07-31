@@ -29,12 +29,19 @@ using usize = SIZE_T;
 using uptr  = ULONG_PTR;
 
 // clang-format off
-#define CFB_DEVICE_NAME             L"IrpMonitor"
-#define CFB_DEVICE_PATH             L"\\Device\\" CFB_DEVICE_NAME
-#define CFB_DOS_DEVICE_PATH         L"\\??\\" CFB_DEVICE_NAME
-#define CFB_USER_DEVICE_PATH        L"\\\\.\\" CFB_DEVICE_NAME
-#define CFB_DEVICE_TAG              ' BFC'
-#define CFB_DRIVER_MAX_PATH         256
+#define CFB_DEVICE_NAME                   L"IrpMonitor"
+#define CFB_DEVICE_PATH                   L"\\Device\\" CFB_DEVICE_NAME
+#define CFB_DOS_DEVICE_PATH               L"\\??\\" CFB_DEVICE_NAME
+#define CFB_USER_DEVICE_PATH              L"\\\\.\\" CFB_DEVICE_NAME
+#define CFB_DEVICE_TAG                    ' BFC'
+
+#define CFB_DRIVER_MAX_PATH               256
+#define CFB_DRIVER_BASENAME               CFB_DEVICE_NAME L".sys"
+
+#define CFB_BROKER_RC_DRIVER_ID           L"CFB_DRIVER"
+#define CFB_BROKER_RC_DRIVER_NAME         L"IDR_CFB_DRIVER1"
+#define CFB_BROKER_SERVICE_NAME           L"CFB_BROKER"
+#define CFB_BROKER_SERVICE_DESCRIPTION    L"Canadian Furious Beaver"
 
 #ifndef countof
 #define countof(arr) ((sizeof(arr)) / (sizeof(arr[0])))

@@ -46,6 +46,18 @@ log(const char* fmtstr, ...)
 }
 
 #ifndef CFB_KERNEL_DRIVER
+
+extern "C" void WINAPI
+SetLastError(_In_ DWORD dwErrCode);
+
+extern "C" ULONG WINAPI
+RtlNtStatusToDosError(_In_ NTSTATUS Status);
+
+
+//
+// User specific logging functions
+//
+
 void
 perror(const char* msg)
 {
@@ -66,13 +78,15 @@ perror(const char* msg)
     const usize max_len = ::wcslen((wchar_t*)sysMsg.c_str());
     err("%s, errcode=0x%08x: %s", msg, errcode, sysMsg.c_str());
 }
-#endif
 
 void
 ntperror(const char* msg, const NTSTATUS Status)
 {
-    err("%s, Status=0x%08x", msg, Status);
+    auto dwDosError = RtlNtStatusToDosError(Status);
+    auto hResult    = HRESULT_FROM_WIN32(dwDosError);
+    ::SetLastError(hResult);
+    CFB::Log::perror(msg);
     return;
 }
-
+#endif
 } // namespace CFB::Log

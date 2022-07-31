@@ -1,3 +1,7 @@
 [submodule "External/wil"]
 	path = External/wil
 	url = https://github.com/Microsoft/wil/
+
+[submodule "External/phnt"]
+	path = External/phnt
+	url = https://github.com/processhacker/phnt/

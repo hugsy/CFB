@@ -8,7 +8,7 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#define CPPHTTPLIB_VERSION "0.10.9"
+#define CPPHTTPLIB_VERSION "0.11.0"
 
 /*
  * Configuration
@@ -132,7 +132,7 @@
 #ifdef _WIN64
 using ssize_t = __int64;
 #else
-using ssize_t = int;
+using ssize_t = long;
 #endif
 #endif // _MSC_VER
 

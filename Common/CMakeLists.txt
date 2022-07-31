@@ -64,5 +64,7 @@ add_library(CommonLibUser
 target_include_directories(CommonLibUser INTERFACE ${COMMON_SOURCE_DIR})
 
 if(DEBUG)
-    target_compile_definitions(CommonLibDriver PRIVATE _DEBUG=1 DEBUG=1)
+    target_compile_definitions(CommonLibUser PRIVATE _DEBUG=1 DEBUG=1)
 endif(DEBUG)
+
+target_link_libraries(CommonLibUser PRIVATE kernel32.lib ntdll.lib)

@@ -17,12 +17,21 @@ set(BROKER_RES_FILE ${BROKER_SOURCE_DIR}/Broker.res)
 #
 set(
     HEADER_FILES
+
+    ${BROKER_HEADER_DIR}/Broker.hpp
+    ${BROKER_HEADER_DIR}/BrokerUtils.hpp
+    ${BROKER_HEADER_DIR}/Native.hpp
+    ${BROKER_HEADER_DIR}/ServiceManager.hpp
+    ${BROKER_HEADER_DIR}/ConnectorManager.hpp
 )
 
 set(
     SOURCE_FILES
 
     ${BROKER_SOURCE_DIR}/Main.cpp
+    ${BROKER_SOURCE_DIR}/BrokerUtils.cpp
+    ${BROKER_SOURCE_DIR}/ServiceManager.cpp
+    ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
 )
 
 #
@@ -44,9 +53,14 @@ target_include_directories(${PROJECT_NAME}
     CommonLibUser
     ${CFB_DEPENDENCIES}/wil/include
     ${CFB_DEPENDENCIES}/argparse
+    ${CFB_DEPENDENCIES}/phnt
+    ${CFB_DEPENDENCIES}/httplib
 )
 
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME})
+target_precompile_headers(${PROJECT_NAME}
+    PRIVATE
+    ${BROKER_HEADER_DIR}/pch.hpp
+)
 
 if(DEBUG)
     target_compile_definitions(${PROJECT_NAME} PRIVATE _DEBUG=1 DEBUG=1)
@@ -61,7 +75,16 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 # Linking directives
 #
 target_link_options(${PROJECT_NAME} PUBLIC /SUBSYSTEM:Console)
-target_link_libraries(${PROJECT_NAME} CommonLibUser ${BROKER_RES_FILE})
+target_link_libraries(${PROJECT_NAME}
+    ${BROKER_RES_FILE}
+    ws2_32.lib
+    Userenv.lib
+    Rpcrt4.lib
+    kernel32.lib
+    ntdll.lib
+    Advapi32.lib
+    CommonLibUser
+)
 
 #
 # Custom command directives

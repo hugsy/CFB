@@ -12,26 +12,34 @@
 #include <argparse.hpp>
 #include <wil/resource.h>
 
+#include "Broker.hpp"
 #include "Common.hpp"
+#include "BrokerUtils.hpp"
+#include "Context.hpp"
+#include "Log.hpp"
 // clang-format on
+
+struct GlobalContext Globals;
 
 int
 main(int argc, const char** argv)
 {
     argparse::ArgumentParser program("Broker");
 
-    const std::vector<std::string> valid_actions = {"run", "install", "uninstall"};
-    program.add_argument("--action")
-        .default_value(valid_actions.front())
+    const std::vector<std::string> valid_modes = {"run", "service"};
+    program.add_argument("modes")
+        .remaining()
+        .default_value(valid_modes.front())
         .action(
-            [&valid_actions](const std::string& value)
+            [&valid_modes](const std::string& value)
             {
-                if ( std::find(valid_actions.cbegin(), valid_actions.cend(), value) != valid_actions.cend() )
+                if ( std::find(valid_modes.cbegin(), valid_modes.cend(), value) != valid_modes.cend() )
                 {
                     return value;
                 }
-                return valid_actions.front();
+                return valid_modes.front();
             });
+
 
     try
     {
@@ -43,6 +51,31 @@ main(int argc, const char** argv)
         std::cerr << program;
         std::exit(1);
     }
+
+    auto const& mode = program.get<std::string>("mode");
+
+    if ( mode == "service" )
+    {
+        info("Registering background service");
+        if ( Globals.ServiceManager.InitializeRoutine() )
+        {
+            Globals.ServiceManager.RunForever();
+        }
+    }
+
+
+    /*
+    auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
+    if ( Success(res) )
+    {
+        for ( auto const& entry : Value(res) )
+        {
+            auto const& wname = entry.first;
+            std::wcout << L"\\driver\\" << wname << std::endl;
+        }
+    }
+    */
+
 
     return 0;
 }

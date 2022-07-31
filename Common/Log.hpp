@@ -4,17 +4,17 @@
 
 namespace CFB::Log
 {
-    void
-    log(const char *lpFormatString, ...);
+void
+log(const char* lpFormatString, ...);
 
 #ifndef CFB_KERNEL_DRIVER
-    void
-    perror(const char *msg);
-#endif
+void
+perror(const char* msg);
 
-    void
-    ntperror(const char *msg, const NTSTATUS Status);
-}; // namespace Log
+void
+ntperror(const char* msg, const NTSTATUS Status);
+#endif
+}; // namespace CFB::Log
 
 #ifdef _DEBUG
 #define dbg(fmt, ...) CFB::Log::log("[=] " fmt "\n", __VA_ARGS__)
