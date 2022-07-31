@@ -54,14 +54,8 @@ main(int argc, const char** argv)
 
     auto const& mode = program.get<std::string>("mode");
 
-    if ( mode == "service" )
-    {
-        info("Registering background service");
-        if ( Globals.ServiceManager.InitializeRoutine() )
-        {
-            Globals.ServiceManager.RunForever();
-        }
-    }
+
+    std::cin.get();
 
 
     /*

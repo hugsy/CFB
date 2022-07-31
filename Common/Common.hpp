@@ -38,8 +38,6 @@ using uptr  = ULONG_PTR;
 #define CFB_DRIVER_MAX_PATH               256
 #define CFB_DRIVER_BASENAME               CFB_DEVICE_NAME L".sys"
 
-#define CFB_BROKER_RC_DRIVER_ID           L"CFB_DRIVER"
-#define CFB_BROKER_RC_DRIVER_NAME         L"IDR_CFB_DRIVER1"
 #define CFB_BROKER_SERVICE_NAME           L"CFB_BROKER"
 #define CFB_BROKER_SERVICE_DESCRIPTION    L"Canadian Furious Beaver"
 

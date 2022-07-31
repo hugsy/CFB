@@ -18,20 +18,29 @@ set(BROKER_RES_FILE ${BROKER_SOURCE_DIR}/Broker.res)
 set(
     HEADER_FILES
 
+    ${BROKER_HEADER_DIR}/Resource.h
     ${BROKER_HEADER_DIR}/Broker.hpp
-    ${BROKER_HEADER_DIR}/BrokerUtils.hpp
     ${BROKER_HEADER_DIR}/Native.hpp
+    ${BROKER_HEADER_DIR}/Context.hpp
+    ${BROKER_HEADER_DIR}/BrokerUtils.hpp
+    ${BROKER_HEADER_DIR}/ManagerBase.hpp
+
     ${BROKER_HEADER_DIR}/ServiceManager.hpp
-    ${BROKER_HEADER_DIR}/ConnectorManager.hpp
+
+    # ${BROKER_HEADER_DIR}/ConnectorManager.hpp
 )
 
 set(
     SOURCE_FILES
 
     ${BROKER_SOURCE_DIR}/Main.cpp
+    ${BROKER_SOURCE_DIR}/Context.cpp
     ${BROKER_SOURCE_DIR}/BrokerUtils.cpp
+    ${BROKER_SOURCE_DIR}/ManagerBase.cpp
+
     ${BROKER_SOURCE_DIR}/ServiceManager.cpp
-    ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
+
+    # ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
 )
 
 #

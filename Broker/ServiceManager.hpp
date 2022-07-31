@@ -14,7 +14,7 @@ namespace CFB::Broker
 
 class ServiceManager
 {
-    enum class State
+    enum class ServiceState
     {
         Uninitialized,
         Initialized,
@@ -105,7 +105,7 @@ private:
     /// @return true
     /// @return false
     ///
-    bool Notify(State);
+    bool Notify(ServiceState);
 
     ///
     /// @brief Start the broker background service thread
@@ -124,7 +124,7 @@ private:
     ///
     /// @brief The manager current state
     ///
-    State m_State;
+    ServiceState m_State;
 
     ///
     /// @brief The fs::path of the driver on disk

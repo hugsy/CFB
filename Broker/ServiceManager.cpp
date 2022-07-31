@@ -2,6 +2,7 @@
 
 #include "Context.hpp"
 #include "Log.hpp"
+#include "Resource.h"
 
 
 ///
@@ -44,7 +45,7 @@ ServiceMain(DWORD argc, LPWSTR* argv);
 ServiceManager::ServiceManager() :
     m_DriverTempPath(fs::temp_directory_path() / CFB_DRIVER_BASENAME),
     m_StatusHandle(),
-    m_State(State::Uninitialized)
+    m_State(ServiceState::Uninitialized)
 {
     if ( ExtractDriverFromResource() == false )
     {
@@ -83,7 +84,7 @@ ServiceManager::ExtractDriverFromResource()
 {
     dbg("Extracting driver from resources...");
 
-    HRSRC DriverRsc = ::FindResourceW(nullptr, MAKEINTRESOURCEW(CFB_BROKER_RC_DRIVER_NAME), CFB_BROKER_RC_DRIVER_ID);
+    HRSRC DriverRsc = ::FindResourceW(nullptr, MAKEINTRESOURCEW(IDR_CFB_DRIVER), MAKEINTRESOURCEW(CFB_DRIVER_DATAFILE));
     if ( !DriverRsc )
     {
         CFB::Log::perror("FindResource()");
@@ -104,7 +105,7 @@ ServiceManager::ExtractDriverFromResource()
         return false;
     }
 
-    dbg("Dumping driver to '%s'", m_DriverTempPath.c_str());
+    dbg("Dumping driver to '%S'", m_DriverTempPath.c_str());
 
     wil::unique_handle hDriverFile(::CreateFileW(
         m_DriverTempPath.c_str(),
@@ -133,7 +134,7 @@ ServiceManager::ExtractDriverFromResource()
         return false;
     }
 
-    ok("Driver written in '%s'", m_DriverTempPath.c_str());
+    ok("Driver written in '%S'", m_DriverTempPath.c_str());
     return true;
 }
 
@@ -148,7 +149,7 @@ ServiceManager::DeleteDriverFromDisk()
 bool
 ServiceManager::LoadDriver()
 {
-    dbg("Loading driver '%s'", m_DriverTempPath.c_str());
+    dbg("Loading driver '%S'", m_DriverTempPath.c_str());
 
     //
     // Get a handle to the service control manager
@@ -220,7 +221,7 @@ ServiceManager::LoadDriver()
         return false;
     }
 
-    ok("Service '%S' started successfully.");
+    ok("Service '%S' started successfully.", CFB_BROKER_SERVICE_NAME);
     return true;
 }
 
@@ -251,7 +252,7 @@ ServiceManager::UnloadDriver()
 
 
 bool
-ServiceManager::Notify(State NewState)
+ServiceManager::Notify(ServiceState NewState)
 {
     {
         auto lock = std::scoped_lock(m_Mutex);
@@ -290,20 +291,20 @@ ServiceManager::UpdateStatus(LPSERVICE_STATUS lpServiceStatus)
         return false;
     }
 
-    State NewState;
+    ServiceState NewState;
 
     switch ( lpServiceStatus->dwCurrentState )
     {
     case SERVICE_START_PENDING:
-        NewState = State::Initialized;
+        NewState = ServiceState::Initialized;
         break;
 
     case SERVICE_RUNNING:
-        NewState = State::Running;
+        NewState = ServiceState::Running;
         break;
 
     case SERVICE_STOP_PENDING:
-        NewState = State::ShuttingDown;
+        NewState = ServiceState::ShuttingDown;
         break;
 
     default:
@@ -326,7 +327,7 @@ ServiceManager::InitializeRoutine()
     //
     // Expect the state to be `Uninitialized`, otherwise just bail
     //
-    if ( m_State != State::Uninitialized )
+    if ( m_State != ServiceState::Uninitialized )
     {
         warn("Invalid state");
         return false;
@@ -397,7 +398,7 @@ ServiceManager::RunForever()
         if ( bRes == WAIT_OBJECT_0 )
         {
             auto lock = std::scoped_lock(m_Mutex);
-            if ( m_State == State::ShuttingDown )
+            if ( m_State == ServiceState::ShuttingDown )
             {
                 break;
             }
