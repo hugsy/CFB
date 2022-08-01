@@ -148,8 +148,12 @@ public:
     bool
     RunAsBackgroundService();
 
+    ///
+    /// @brief
+    ///
+    ///
     void
-    RunStandalone();
+    Run();
 
 private:
     ///
@@ -187,11 +191,6 @@ private:
     ///
     bool
     UnloadDriver();
-
-    ///
-    /// @brief The fs::path of this binary
-    ///
-    fs::path m_BrokerPath;
 
     ///
     /// @brief The fs::path of the driver on disk

@@ -25,9 +25,10 @@ set(
     ${BROKER_HEADER_DIR}/States.hpp
     ${BROKER_HEADER_DIR}/BrokerUtils.hpp
     ${BROKER_HEADER_DIR}/ManagerBase.hpp
-
     ${BROKER_HEADER_DIR}/ServiceManager.hpp
+    ${BROKER_HEADER_DIR}/IrpManager.hpp
 
+    # ${BROKER_HEADER_DIR}/DriverManager.hpp
     # ${BROKER_HEADER_DIR}/ConnectorManager.hpp
 )
 
@@ -38,9 +39,10 @@ set(
     ${BROKER_SOURCE_DIR}/Context.cpp
     ${BROKER_SOURCE_DIR}/BrokerUtils.cpp
     ${BROKER_SOURCE_DIR}/ManagerBase.cpp
-
     ${BROKER_SOURCE_DIR}/ServiceManager.cpp
+    ${BROKER_SOURCE_DIR}/IrpManager.cpp
 
+    # ${BROKER_SOURCE_DIR}/DriverManager.cpp
     # ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
 )
 

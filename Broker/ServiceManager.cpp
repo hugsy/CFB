@@ -43,7 +43,6 @@ ServiceMain(DWORD argc, LPWSTR* argv);
 
 
 ServiceManager::ServiceManager() :
-    m_BrokerPath(),
     m_BackgroundService(nullptr),
     m_DriverTempPath(fs::temp_directory_path() / CFB_DRIVER_BASENAME)
 {
@@ -55,13 +54,6 @@ ServiceManager::ServiceManager() :
     if ( LoadDriver() == false )
     {
         throw std::runtime_error("LoadDriver()");
-    }
-
-    {
-        std::wstring wsPath;
-        wsPath.resize(MAX_PATH);
-        ::GetModuleFileNameW(nullptr, wsPath.data(), MAX_PATH);
-        m_BrokerPath = wsPath;
     }
 }
 
@@ -266,8 +258,10 @@ ServiceManager::InstallBackgroundService()
     //
     // [1] Create the Win32 service
     //
+    auto BrokerPath = Globals.Path();
+
     {
-        const std::wstring BinaryPathName = L"\"" + m_BrokerPath.wstring() + L" service\"";
+        const std::wstring BinaryPathName = L"\"" + BrokerPath.wstring() + L" service\"";
 
         wil::unique_handle hService(::CreateServiceW(
             m_hSCManager.get(),
@@ -331,15 +325,11 @@ ServiceManager::RunAsBackgroundService()
     return true;
 }
 
+
 void
-ServiceManager::RunStandalone()
+ServiceManager::Run()
 {
-    std::jthread thread(
-        [this]()
-        {
-            WaitForState(CFB::Broker::State::DriverManagerDone);
-        });
-    thread.detach();
+    WaitForState(CFB::Broker::State::DriverManagerDone);
 }
 
 
@@ -552,8 +542,13 @@ Win32Service::InitializeRoutine()
 static VOID
 ServiceMain(DWORD argc, LPWSTR* argv)
 {
-    auto svc = Globals.ServiceManager.BackgroundService();
-    if ( !svc )
+    if ( Globals.ServiceManager() == nullptr )
+    {
+        return;
+    }
+
+    auto svc = Globals.ServiceManager()->BackgroundService();
+    if ( svc == nullptr )
     {
         warn("Trying to execute the service handler when no service exists...");
         return;
@@ -569,8 +564,13 @@ ServiceMain(DWORD argc, LPWSTR* argv)
 static VOID
 ServiceCtrlHandler(const DWORD dwCtrlCode)
 {
-    auto svc = Globals.ServiceManager.BackgroundService();
-    if ( !svc )
+    if ( Globals.ServiceManager() == nullptr )
+    {
+        return;
+    }
+
+    auto svc = Globals.ServiceManager()->BackgroundService();
+    if ( svc == nullptr )
     {
         warn("Trying to execute the service handler when no service exists...");
         return;

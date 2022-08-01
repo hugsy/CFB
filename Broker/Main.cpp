@@ -58,7 +58,7 @@ main(int argc, const char** argv)
 
     if ( mode == "run-standalone" )
     {
-        Globals.ServiceManager.RunStandalone();
+        // Globals.ServiceManager.Run();
 
         info("Running...");
         std::this_thread::sleep_for(10s);
@@ -67,6 +67,7 @@ main(int argc, const char** argv)
         Globals.NotifyNewState(CFB::Broker::State::DriverManagerDone);
     }
 
+    /*
     else if ( mode == "install-service" )
     {
         Globals.ServiceManager.InstallBackgroundService();
@@ -76,7 +77,7 @@ main(int argc, const char** argv)
     {
         Globals.ServiceManager.RunAsBackgroundService();
     }
-
+    */
 
     /*
     auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");

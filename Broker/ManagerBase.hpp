@@ -16,6 +16,9 @@ public:
     ///
     bool
     WaitForState(CFB::Broker::State WantedState);
+
+    virtual void
+    Run() = 0;
 };
 
 
