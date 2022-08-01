@@ -3,6 +3,7 @@
 #include <chrono>
 #include <thread>
 
+#include "Context.hpp"
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
 
@@ -98,9 +99,11 @@ IrpManager::Run()
     //
     WaitForState(CFB::Broker::State::ConnectorManagerReady);
 
-
+    //
+    // The IRP Manager waits for either a termination event or a new IRP event
+    //
+    const HANDLE Handles[2] = {Globals.TerminationEvent(), m_hNewIrpEvent.get()};
     bool bDoLoop            = true;
-    const HANDLE Handles[1] = {m_hNewIrpEvent.get()}; // TODO: add a termination handle
     while ( bDoLoop )
     {
         DWORD dwWaitResult = ::WaitForMultipleObjects(_countof(Handles), Handles, false, INFINITE);
@@ -108,8 +111,13 @@ IrpManager::Run()
         {
         case WAIT_OBJECT_0 + 0:
         {
+            dbg("Received termination event");
+            bDoLoop = false;
+            break;
+        }
+        case WAIT_OBJECT_0 + 1:
+        {
             dbg("New IRP data Event");
-
             for ( auto const& Irp : GetNextIrps() )
             {
                 for ( auto const& ConnectorCb : m_Callbacks )
@@ -117,18 +125,18 @@ IrpManager::Run()
                     ConnectorCb(Irp);
                 }
             }
-
             break;
         }
         default:
         {
+            err("WaitForMultipleObjects() returned %x", dwWaitResult);
             bDoLoop = false;
             break;
         }
         }
     }
 
-    // WaitForState(CFB::Broker::State::ConnectorManagerDone);
+    WaitForState(CFB::Broker::State::ConnectorManagerDone);
 
     //
     // Finish the IRP manager thread
