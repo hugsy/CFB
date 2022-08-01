@@ -58,39 +58,22 @@ main(int argc, const char** argv)
 
     if ( mode == "run-standalone" )
     {
-        // Globals.ServiceManager.Run();
-
         info("Running...");
         std::this_thread::sleep_for(10s);
 
         info("Finishing...");
-        Globals.NotifyNewState(CFB::Broker::State::DriverManagerDone);
+        Globals.Stop();
     }
 
-    /*
     else if ( mode == "install-service" )
     {
-        Globals.ServiceManager.InstallBackgroundService();
+        Globals.ServiceManager()->InstallBackgroundService();
     }
 
     else if ( mode == "run-as-service" )
     {
-        Globals.ServiceManager.RunAsBackgroundService();
+        Globals.ServiceManager()->RunAsBackgroundService();
     }
-    */
-
-    /*
-    auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
-    if ( Success(res) )
-    {
-        for ( auto const& entry : Value(res) )
-        {
-            auto const& wname = entry.first;
-            std::wcout << L"\\driver\\" << wname << std::endl;
-        }
-    }
-    */
-
 
     return 0;
 }

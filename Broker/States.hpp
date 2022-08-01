@@ -2,15 +2,15 @@
 
 namespace CFB::Broker
 {
-enum class State : int
+enum class State : unsigned int
 {
     Uninitialized = 1,
     ServiceManagerReady,
-    DriverManagerReady,
+    IrpManagerReady,
     ConnectorManagerReady,
     Running,
     ConnectorManagerDone,
-    DriverManagerDone,
+    IrpManagerDone,
     ServiceManagerDone,
     Finished
 };
@@ -32,11 +32,11 @@ ToString(State x)
     {
         CaseToString(State::Uninitialized);
         CaseToString(State::ServiceManagerReady);
-        CaseToString(State::DriverManagerReady);
+        CaseToString(State::IrpManagerReady);
         CaseToString(State::ConnectorManagerReady);
         CaseToString(State::Running);
         CaseToString(State::ConnectorManagerDone);
-        CaseToString(State::DriverManagerDone);
+        CaseToString(State::IrpManagerDone);
         CaseToString(State::ServiceManagerDone);
         CaseToString(State::Finished);
     default:

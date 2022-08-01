@@ -17,6 +17,20 @@ public:
     bool
     WaitForState(CFB::Broker::State WantedState);
 
+    ///
+    /// @brief Simple wrapper of `Globals.NotifyNewState`
+    ///
+    /// @param NewState
+    /// @return true
+    /// @return false
+    ///
+    bool
+    NotifyNewState(CFB::Broker::State NewState);
+
+    ///
+    /// @brief
+    ///
+    ///
     virtual void
     Run() = 0;
 };

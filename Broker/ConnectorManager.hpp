@@ -2,30 +2,20 @@
 
 // clang-format off
 #include "Common.hpp"
-
-#include <mutex>
+#include "ManagerBase.hpp"
 // clang-format on
 
 
 namespace CFB::Broker
 {
-class ConnectorManager
+class ConnectorManager : ManagerBase
 {
 public:
     ConnectorManager();
 
     ~ConnectorManager();
 
-
-private:
-    ///
-    /// @brief This mutex protects state changes
-    ///
-    std::mutex m_Mutex;
-
-    ///
-    /// @brief Changed state notification event.
-    ///
-    HANDLE m_StateChangedEvent;
+    void
+    Run();
 };
 } // namespace CFB::Broker

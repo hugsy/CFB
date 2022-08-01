@@ -1,12 +1,18 @@
 #pragma once
 
+// clang-format off
 #include <atomic>
 #include <mutex>
 #include <stop_token>
 #include <thread>
 
-#include "ServiceManager.hpp"
 #include "States.hpp"
+
+#include "ServiceManager.hpp"
+#include "IrpManager.hpp"
+#include "ConnectorManager.hpp"
+#include "DriverManager.hpp"
+// clang-format on
 
 namespace fs = std::filesystem;
 
@@ -17,6 +23,9 @@ public:
     /// @brief Construct a new Global Context object
     ///
     GlobalContext();
+
+    bool
+    Stop();
 
     ///
     /// @brief Set new state
@@ -66,6 +75,9 @@ public:
     std::shared_ptr<CFB::Broker::ServiceManager>
     ServiceManager() const;
 
+    const HANDLE
+    TerminationEvent() const;
+
 private:
     ///
     /// @brief This mutex protects state changes
@@ -109,7 +121,43 @@ private:
     /// @brief The service manager self-extracts and creates the driver service
     ///
     std::jthread m_ServiceManagerThread;
+
+    ///
+    /// @brief
+    ///
+    std::jthread m_IrpManagerThread;
+
+    ///
+    /// @brief
+    ///
+    std::jthread m_ConnectorManagerThread;
+
+    ///
+    /// @brief
+    ///
+    std::jthread m_DriverManagerThread;
+
+    ///
+    /// @brief
+    ///
     std::shared_ptr<CFB::Broker::ServiceManager> m_ServiceManager;
+
+    ///
+    /// @brief
+    ///
+    std::shared_ptr<CFB::Broker::IrpManager> m_IrpManager;
+
+    ///
+    /// @brief
+    ///
+    std::shared_ptr<CFB::Broker::ConnectorManager> m_ConnectorManager;
+
+    ///
+    /// @brief
+    ///
+    std::shared_ptr<CFB::Broker::DriverManager> m_DriverManager;
+
+    wil::unique_handle m_hTerminationEvent;
 };
 
 

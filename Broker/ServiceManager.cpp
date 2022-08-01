@@ -329,7 +329,15 @@ ServiceManager::RunAsBackgroundService()
 void
 ServiceManager::Run()
 {
-    WaitForState(CFB::Broker::State::DriverManagerDone);
+    //
+    // Notify other thread the driver service is ready
+    //
+    NotifyNewState(CFB::Broker::State::ServiceManagerReady);
+
+    //
+    // Simply wait for the other managers to be done
+    //
+    WaitForState(CFB::Broker::State::IrpManagerDone);
 }
 
 
