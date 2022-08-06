@@ -37,7 +37,7 @@ IrpManager::IrpManager()
             throw std::runtime_error("IrpManager()");
         }
 
-        xdbg("Got handle to device %x", hDevice.get());
+        xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
         m_hDevice = std::move(hDevice);
     }
 

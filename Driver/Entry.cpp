@@ -379,8 +379,14 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
         DriverObject->MajorFunction[IRP_MJ_CLEANUP]        = DriverCleanup;
         DriverObject->DriverUnload                         = DriverUnloadRoutine;
 
-        Status =
-            ::IoCreateDevice(DriverObject, 0, &name, FILE_DEVICE_UNKNOWN, FILE_DEVICE_SECURE_OPEN, true, &DeviceObject);
+        Status = ::IoCreateDevice(
+            DriverObject,
+            0,
+            &name,
+            FILE_DEVICE_UNKNOWN,
+            FILE_DEVICE_SECURE_OPEN,
+            false, // ACL is managed by DriverCreateRoutine
+            &DeviceObject);
         if ( !NT_SUCCESS(Status) )
         {
             err("Error creating device object (0x%08X)", Status);

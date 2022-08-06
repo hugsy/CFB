@@ -65,8 +65,8 @@ main(int argc, const char** argv)
 
     if ( mode == "run-standalone" )
     {
-        info("Running...");
-        std::this_thread::sleep_for(10s);
+        info("Running in standalone...");
+        std::cin.get();
 
         info("Finishing...");
         Globals.Stop();
