@@ -12,7 +12,7 @@ using json = nlohmann::json;
 
 #define CFB_BROKER_TCP_LISTEN_HOST L"0.0.0.0"
 #define CFB_BROKER_TCP_LISTEN_PORT 1337
-#define CFB_BROKER_TCP_MAX_CONNECTIONS 1
+#define CFB_BROKER_TCP_MAX_CONNECTIONS 16
 #define CFB_BROKER_TCP_MAX_MESSAGE_SIZE 1024
 
 static usize TotalClientCounter = 0;
@@ -20,7 +20,7 @@ static usize TotalClientCounter = 0;
 namespace CFB::Broker
 {
 
-DriverManager::TcpListener::TcpListener() : m_ServerSocket(INVALID_SOCKET) //, m_ClientSocket(INVALID_SOCKET)
+DriverManager::TcpListener::TcpListener() : m_ServerSocket(INVALID_SOCKET)
 {
     WSADATA WsaData = {
         0,
@@ -39,30 +39,6 @@ DriverManager::TcpListener::TcpListener() : m_ServerSocket(INVALID_SOCKET) //, m
         if ( LOBYTE(WsaData.wVersion) != 2 || HIBYTE(WsaData.wVersion) != 2 )
         {
             err("DriverManager::TcpListener - version check");
-            throw std::runtime_error("TcpListener()");
-        }
-    }
-
-    //
-    // Create the socket
-    //
-    {
-        auto err = Initialize();
-        if ( Failed(err) )
-        {
-            err("DriverManager::TcpListener()::Initialize(): %s", CFB::Broker::Utils::ToString(Error(err)));
-            throw std::runtime_error("TcpListener()");
-        }
-    }
-
-    //
-    // Start listening
-    //
-    {
-        auto err = Listen();
-        if ( Failed(err) )
-        {
-            err("DriverManager::TcpListener()::Listen(): %s", CFB::Broker::Utils::ToString(Error(err)));
             throw std::runtime_error("TcpListener()");
         }
     }
@@ -97,24 +73,22 @@ DriverManager::TcpListener::Initialize()
 Result<bool>
 DriverManager::TcpListener::Listen()
 {
-    SOCKADDR_IN sa = {
-        0,
-    };
-
+    SOCKADDR_IN sa = {0};
     ::InetPtonW(AF_INET, CFB_BROKER_TCP_LISTEN_HOST, &sa.sin_addr.s_addr);
+
     sa.sin_family = AF_INET;
     sa.sin_port   = ::htons(CFB_BROKER_TCP_LISTEN_PORT);
 
     if ( ::bind(m_ServerSocket, (PSOCKADDR)&sa, sizeof(SOCKADDR_IN)) == SOCKET_ERROR )
     {
-        CFB::Log::perror("bind()");
+        CFB::Log::perror("TcpListener::Listen::bind()");
         Terminate();
         return Err(ErrorCode::SocketInitializationFailed);
     }
 
     if ( ::listen(m_ServerSocket, SOMAXCONN_HINT(CFB_BROKER_TCP_MAX_CONNECTIONS)) )
     {
-        CFB::Log::perror("listen()");
+        CFB::Log::perror("TcpListener::Listen::listen()");
         Terminate();
         return Err(ErrorCode::SocketInitializationFailed);
     }
@@ -393,7 +367,7 @@ DriverManager::TcpListener::RunForever()
     HANDLE hNetworkEvent = ::WSACreateEvent();
     if ( ::WSAEventSelect(m_ServerSocket, hNetworkEvent, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR )
     {
-        err("WSAEventSelect(TcpServer)");
+        CFB::Log::perror("DriverManager::TcpListener::RunForever::WSAEventSelect()");
         return ::WSAGetLastError();
     }
 
@@ -413,7 +387,7 @@ DriverManager::TcpListener::RunForever()
 
         if ( dwIndex < 0 || dwIndex >= Handles.size() )
         {
-            err("WSAWaitForMultipleEvents(TcpServer)");
+            CFB::Log::perror("DriverManager::TcpListener::RunForever::WSAWaitForMultipleEvents()");
             Globals.Stop();
             break;
         }
@@ -430,9 +404,7 @@ DriverManager::TcpListener::RunForever()
 
         case 1:
         {
-            WSANETWORKEVENTS Events = {
-                0,
-            };
+            WSANETWORKEVENTS Events = {0};
             ::WSAEnumNetworkEvents(m_ServerSocket, hNetworkEvent, &Events);
 
             if ( Events.lNetworkEvents & FD_CLOSE )

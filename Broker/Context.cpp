@@ -72,15 +72,41 @@ GlobalContext::State() const
     return m_State;
 }
 
+
+bool
+GlobalContext::WaitForState(CFB::Broker::State WantedState)
+{
+    // TODO: add a check for shutdown state
+    while ( true )
+    {
+        m_AtomicStateChangeFlag.wait(false);
+
+        if ( State() == WantedState )
+        {
+            dbg("Entered state '%s'", CFB::Broker::Utils::ToString(WantedState));
+            return true;
+        }
+
+        if ( State() > WantedState )
+        {
+            dbg("Skipping '%s'", CFB::Broker::Utils::ToString(WantedState));
+            return false;
+        }
+    }
+
+    return false;
+}
+
+
 bool
 GlobalContext::NotifyNewState(CFB::Broker::State NewState)
 {
     auto lock = std::scoped_lock(m_Mutex);
-    dbg("[Main] %s -> %s", CFB::Broker::Utils::ToString(m_State), CFB::Broker::Utils::ToString(NewState));
+    dbg("%s -> %s", CFB::Broker::Utils::ToString(m_State), CFB::Broker::Utils::ToString(NewState));
     if ( NewState < m_State )
     {
         warn(
-            "[Main] Suspicious state transition asked: Current: %s -> New: %s",
+            "Suspicious state transition asked: Current: %s -> New: %s",
             CFB::Broker::Utils::ToString(NewState),
             CFB::Broker::Utils::ToString(m_State));
     }

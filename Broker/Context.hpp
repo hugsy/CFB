@@ -38,6 +38,15 @@ public:
     ///
     /// @brief
     ///
+    /// @return true
+    /// @return false
+    ///
+    bool
+    WaitForState(CFB::Broker::State WantedState);
+
+    ///
+    /// @brief
+    ///
     /// @return std::atomic_flag const&
     ///
     std::atomic_flag const&
