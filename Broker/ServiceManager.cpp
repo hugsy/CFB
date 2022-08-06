@@ -341,16 +341,19 @@ ServiceManager::Run()
 }
 
 
+std::string const
+ServiceManager::Name()
+{
+    return "ServiceManager";
+}
+
+
 ///////////////////////////////////////////////////////////////
 ///
 /// Methods related to the Win32 service
 ///
 
-Win32Service::Win32Service() :
-    m_State(ServiceState::Uninitialized),
-    // m_ServiceStatus(),
-    m_StatusHandle(),
-    m_StatusCheckPoint(0)
+Win32Service::Win32Service() : m_State(ServiceState::Uninitialized), m_StatusHandle(), m_StatusCheckPoint(0)
 {
     dbg("Initializing background service");
 

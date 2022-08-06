@@ -1,6 +1,7 @@
 #include "BrokerUtils.hpp"
 
 #include <wil/resource.h>
+#include <wil/token_helpers.h>
 
 #include "Log.hpp"
 
@@ -149,7 +150,7 @@ EnumerateObjectDirectory(std::wstring const& Root)
         if ( !NT_SUCCESS(Status) )
         {
             err("NtOpenDirectoryObject()");
-            return Err(ErrorType::Code::InsufficientPrivilegeError);
+            return Err(ErrorCode::InsufficientPrivilegeError);
         }
 
         hDirectory = wil::unique_handle(h);
@@ -168,14 +169,14 @@ EnumerateObjectDirectory(std::wstring const& Root)
         if ( Status != STATUS_BUFFER_TOO_SMALL )
         {
             CFB::Log::ntperror("NtQueryDirectoryObject()", Status);
-            return Err(ErrorType::Code::InsufficientPrivilegeError);
+            return Err(ErrorCode::InsufficientPrivilegeError);
         }
 
         auto buffer = std::make_unique<u8[]>(rlen);
         if ( !buffer )
         {
             err("allocation failed");
-            return Err(ErrorType::Code::InsufficientPrivilegeError);
+            return Err(ErrorCode::InsufficientPrivilegeError);
         }
 
         auto pObjDirInfo = reinterpret_cast<POBJECT_DIRECTORY_INFORMATION>(buffer.get());
@@ -197,4 +198,99 @@ EnumerateObjectDirectory(std::wstring const& Root)
 
     return Ok(ObjectList);
 }
+
+
+Result<bool>
+AcquirePrivileges(std::vector<std::wstring_view> const& privilege_names)
+{
+    wil::unique_handle hToken;
+    if ( FAILED(wil::open_current_access_token_nothrow(&hToken, TOKEN_QUERY | TOKEN_ADJUST_PRIVILEGES)) )
+    {
+        return Err(ErrorCode::InsufficientPrivilegeError);
+    }
+
+    const usize NbPrivileges            = privilege_names.size();
+    const usize BufferSize              = sizeof(TOKEN_PRIVILEGES) + NbPrivileges * sizeof(LUID_AND_ATTRIBUTES);
+    auto NewPrivileges                  = std::make_unique<TOKEN_PRIVILEGES[]>(BufferSize);
+    usize i                             = 0;
+    NewPrivileges.get()->PrivilegeCount = NbPrivileges;
+
+    for ( auto const& privilege_name : privilege_names )
+    {
+        LUID Luid = {
+            0,
+        };
+
+        if ( !::LookupPrivilegeValueW(nullptr, privilege_name.data(), &Luid) )
+        {
+            return Err(ErrorCode::LookupError);
+        }
+
+        NewPrivileges.get()->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
+        NewPrivileges.get()->Privileges[i].Luid       = Luid;
+        i++;
+    }
+
+    if ( ::AdjustTokenPrivileges(
+             hToken.get(),
+             false,
+             NewPrivileges.get(),
+             BufferSize,
+             (PTOKEN_PRIVILEGES) nullptr,
+             (PDWORD) nullptr) != 0 )
+    {
+        return Ok(::GetLastError() != ERROR_NOT_ALL_ASSIGNED);
+    }
+
+    return Ok(true);
+}
+
+Result<bool>
+HasPrivilege(std::wstring_view const& privilege_name)
+{
+    dbg("Checking for '%S'...", privilege_name.data());
+
+    //
+    // Make sure the privilege name exists
+    //
+    LUID Luid = {0};
+    if ( !::LookupPrivilegeValueW(nullptr, privilege_name.data(), &Luid) )
+    {
+        CFB::Log::perror("LookupPrivilegeValue");
+        return Err(ErrorCode::LookupError);
+    }
+
+
+    //
+    // Get a query handle to the token
+    //
+    wil::unique_handle hToken;
+    if ( FAILED(wil::open_current_access_token_nothrow(&hToken, TOKEN_QUERY)) )
+    {
+        return Err(ErrorCode::InsufficientPrivilegeError);
+    }
+
+    //
+    // Query for the specific privilege
+    bool bHasPriv = false;
+    {
+        LUID_AND_ATTRIBUTES PrivAttr = {0};
+        PrivAttr.Luid                = Luid;
+        PrivAttr.Attributes          = SE_PRIVILEGE_ENABLED | SE_PRIVILEGE_ENABLED_BY_DEFAULT;
+
+        PRIVILEGE_SET PrivSet  = {0};
+        PrivSet.PrivilegeCount = 1;
+        PrivSet.Privilege[0]   = PrivAttr;
+
+        if ( !::PrivilegeCheck(hToken.get(), &PrivSet, reinterpret_cast<LPBOOL>(&bHasPriv)) )
+        {
+            CFB::Log::perror("PrivilegeCheck()");
+            return Err(ErrorCode::InsufficientPrivilegeError);
+        }
+    }
+
+    return Ok(bHasPriv);
+}
+
+
 } // namespace CFB::Broker::Utils

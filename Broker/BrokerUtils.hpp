@@ -51,4 +51,27 @@ Decode(std::string const& encoded_string);
 ///
 Result<std::vector<std::pair<std::wstring, std::wstring>>>
 EnumerateObjectDirectory(std::wstring const& Root = L"\\");
+
+
+///
+/// @brief Try to acquire a privilege from its name
+///
+/// @param lpszPrivilegeName
+/// @return Result<bool>
+///
+Result<bool>
+AcquirePrivileges(std::vector<std::wstring_view> const& privilege_names);
+
+
+///
+/// @brief
+///
+/// @param lpszPrivilegeName
+/// @param lpHasPriv
+/// @return Result<bool>
+///
+Result<bool>
+HasPrivilege(std::wstring_view const& privilege_name);
+
+
 } // namespace CFB::Broker::Utils

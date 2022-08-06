@@ -40,6 +40,12 @@ log(const char* fmtstr, ...)
 #endif // _DEBUG
 #else
     ::vprintf(fmtstr, args);
+    {
+        std::string out;
+        out.resize(1024);
+        ::vsnprintf(out.data(), 1024, fmtstr, args);
+        ::OutputDebugStringA(out.c_str());
+    }
 #endif // CFB_KERNEL_DRIVER
 
     va_end(args);
@@ -67,7 +73,7 @@ perror(const char* msg)
     const auto errcode = ::GetLastError();
 
     ::FormatMessageA(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK,
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK, // FORMAT_MESSAGE_FROM_HMODULE
         nullptr,
         errcode,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),

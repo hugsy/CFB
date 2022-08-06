@@ -23,6 +23,7 @@ using namespace ::std::literals;
 
 struct GlobalContext Globals;
 
+
 int
 main(int argc, const char** argv)
 {
@@ -42,7 +43,6 @@ main(int argc, const char** argv)
                 return valid_modes.front();
             });
 
-
     try
     {
         program.parse_args(argc, argv);
@@ -53,6 +53,13 @@ main(int argc, const char** argv)
         std::cerr << program;
         std::exit(1);
     }
+
+    if ( Failed(CFB::Broker::Utils::AcquirePrivileges({L"SeDebugPrivilege", L"SeLoadDriverPrivilege"})) )
+    {
+        err("Cannot required privileged, cannot continue");
+        std::exit(-2);
+    }
+
 
     auto const& mode = program.get<std::string>("mode");
 

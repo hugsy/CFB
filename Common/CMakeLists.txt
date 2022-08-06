@@ -61,7 +61,7 @@ add_library(CommonLibUser
     ${COMMON_HEADER_FILES}
 )
 
-target_include_directories(CommonLibUser INTERFACE ${COMMON_SOURCE_DIR})
+target_include_directories(CommonLibUser INTERFACE ${COMMON_SOURCE_DIR} PUBLIC ${CFB_DEPENDENCIES}/phnt)
 
 if(DEBUG)
     target_compile_definitions(CommonLibUser PRIVATE _DEBUG=1 DEBUG=1)

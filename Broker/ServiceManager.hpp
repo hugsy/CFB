@@ -122,6 +122,9 @@ public:
     ///
     ~ServiceManager();
 
+    std::string const
+    Name();
+
     ///
     /// @brief
     ///

@@ -33,11 +33,11 @@ IrpManager::IrpManager()
             nullptr));
         if ( !hDevice )
         {
-            CFB::Log::perror("CreateFileW()");
+            CFB::Log::perror("IrpManager::CreateFileW()");
             throw std::runtime_error("IrpManager()");
         }
 
-        dbg("Got handle to device %x", hDevice.get());
+        xdbg("Got handle to device %x", hDevice.get());
         m_hDevice = std::move(hDevice);
     }
 
@@ -48,11 +48,11 @@ IrpManager::IrpManager()
         wil::unique_handle hNewIrpEvent(::CreateEventW(nullptr, true, false, nullptr));
         if ( !hNewIrpEvent )
         {
-            CFB::Log::perror("CreateEventW()");
+            CFB::Log::perror("IrpManager::CreateEventW()");
             throw std::runtime_error("IrpManager()");
         }
 
-        dbg("Got handle to event %x", hNewIrpEvent.get());
+        xdbg("Got handle to event %x", hNewIrpEvent.get());
         m_hNewIrpEvent = std::move(hNewIrpEvent);
     }
 
@@ -78,12 +78,20 @@ IrpManager::IrpManager()
         }
     }
 
-    dbg("[TID=%x] Event shared with driver", std::this_thread::get_id());
+    xdbg("Event shared with driver");
 }
 
 IrpManager::~IrpManager()
 {
 }
+
+
+std::string const
+IrpManager::Name()
+{
+    return "IrpManager";
+}
+
 
 void
 IrpManager::Run()
@@ -111,13 +119,13 @@ IrpManager::Run()
         {
         case WAIT_OBJECT_0 + 0:
         {
-            dbg("Received termination event");
+            xdbg("Received termination event");
             bDoLoop = false;
             break;
         }
         case WAIT_OBJECT_0 + 1:
         {
-            dbg("New IRP data Event");
+            xdbg("New IRP data Event");
             for ( auto const& Irp : GetNextIrps() )
             {
                 for ( auto const& ConnectorCb : m_Callbacks )

@@ -28,6 +28,13 @@ ConnectorManager::~ConnectorManager()
 }
 
 
+std::string const
+ConnectorManager::Name()
+{
+    return "ConnectorManager";
+}
+
+
 void
 ConnectorManager::Run()
 {

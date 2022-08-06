@@ -14,21 +14,18 @@ ManagerBase::WaitForState(CFB::Broker::State WantedState)
     // TODO: add a check for shutdown state
     while ( true )
     {
-        dbg("[TID=%x] Waiting for state '%s' (current '%s')",
-            std::this_thread::get_id(),
-            Utils::ToString(WantedState),
-            CFB::Broker::Utils::ToString(Globals.State()));
+        xdbg("Waiting for state '%s' (current '%s')", Utils::ToString(WantedState), Utils::ToString(Globals.State()));
         Globals.StateChangeFlag().wait(false);
 
         if ( Globals.State() == WantedState )
         {
-            dbg("[TID=%x] Entered state '%s'", std::this_thread::get_id(), Utils::ToString(WantedState));
+            xdbg("Entered state '%s'", Utils::ToString(WantedState));
             return true;
         }
 
         if ( Globals.State() > WantedState )
         {
-            dbg("[TID=%x] Skipping '%s'", std::this_thread::get_id(), Utils::ToString(WantedState));
+            xdbg("Skipping '%s'", Utils::ToString(WantedState));
             return false;
         }
     }

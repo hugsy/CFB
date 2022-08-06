@@ -2,6 +2,13 @@
 
 #include "States.hpp"
 
+#ifdef _DEBUG
+#define xdbg(fmt, ...)                                                                                                 \
+    dbg("[%s - CID:%d/%d] " fmt, Name().c_str(), ::GetCurrentProcessId(), ::GetCurrentThreadId(), __VA_ARGS__)
+#else
+#define xdbg(fmt, ...)
+#endif // _DEBUG
+
 namespace CFB::Broker
 {
 class ManagerBase
@@ -33,6 +40,14 @@ public:
     ///
     virtual void
     Run() = 0;
+
+    ///
+    /// @brief
+    ///
+    /// @return std::string const&
+    ///
+    virtual std::string const
+    Name() = 0;
 };
 
 

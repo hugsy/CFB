@@ -2,14 +2,9 @@ name: CI Build Broker for MSVC
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
   schedule:
-    # regenerate regularly the driver because of the certificate expiry date
-    - cron:  '0 0 * * *'
+    - cron:  '0 0 0 1 *'
 
 env:
   ARCH: x64
@@ -29,7 +24,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
 
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
 
@@ -42,13 +37,13 @@ jobs:
     - name: Inject slug/short variables
       uses: rlespinasse/github-slug-action@v3.x
 
-    - name: Add msbuild to PATH
+    - name: Setup msbuild
       uses: microsoft/setup-msbuild@v1.1
       with:
         msbuild-architecture: ${{ matrix.platform }}
       if: matrix.os == 'windows-latest'
 
-    - name: Build CFB Solution
+    - name: Build CFB
       run: |
         mkdir ./build
         cd ./build

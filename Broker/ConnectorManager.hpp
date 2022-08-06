@@ -15,6 +15,9 @@ public:
 
     ~ConnectorManager();
 
+    std::string const
+    Name();
+
     void
     Run();
 };

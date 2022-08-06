@@ -19,6 +19,7 @@ set(
     HEADER_FILES
 
     ${BROKER_HEADER_DIR}/Resource.h
+    ${BROKER_HEADER_DIR}/Error.hpp
     ${BROKER_HEADER_DIR}/Broker.hpp
     ${BROKER_HEADER_DIR}/Native.hpp
     ${BROKER_HEADER_DIR}/Context.hpp
@@ -42,6 +43,7 @@ set(
     ${BROKER_SOURCE_DIR}/IrpManager.cpp
     ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
     ${BROKER_SOURCE_DIR}/DriverManager.cpp
+    ${BROKER_SOURCE_DIR}/DriverManagerListener.cpp
 )
 
 #
@@ -64,7 +66,7 @@ target_include_directories(${PROJECT_NAME}
     ${CFB_DEPENDENCIES}/wil/include
     ${CFB_DEPENDENCIES}/argparse
     ${CFB_DEPENDENCIES}/phnt
-    ${CFB_DEPENDENCIES}/httplib
+    ${CFB_DEPENDENCIES}/json
 )
 
 target_precompile_headers(${PROJECT_NAME}

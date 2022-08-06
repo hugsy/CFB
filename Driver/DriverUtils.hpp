@@ -55,6 +55,10 @@ private:
 };
 
 
+///
+/// @brief
+///
+///
 class ScopedIrql
 {
 public:

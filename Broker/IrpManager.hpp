@@ -30,6 +30,9 @@ public:
     ///
     ~IrpManager();
 
+    std::string const
+    Name();
+
     ///
     /// @brief
     ///

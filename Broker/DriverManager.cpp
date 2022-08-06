@@ -1,6 +1,11 @@
+
 #include "DriverManager.hpp"
 
+#include "Context.hpp"
+#include "Error.hpp"
 #include "Log.hpp"
+#include "States.hpp"
+
 
 namespace CFB::Broker
 {
@@ -25,11 +30,11 @@ DriverManager::DriverManager()
             nullptr));
         if ( !hDevice )
         {
-            CFB::Log::perror("CreateFileW()");
+            CFB::Log::perror("DriverManager::CreateFileW()");
             throw std::runtime_error("IrpManager()");
         }
 
-        dbg("Got handle to device %x", hDevice.get());
+        xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
         m_hDevice = std::move(hDevice);
     }
 }
@@ -38,10 +43,18 @@ DriverManager::~DriverManager()
 {
 }
 
+
+std::string const
+DriverManager::Name()
+{
+    return "DriverManager";
+}
+
+
 void
 DriverManager::Run()
 {
-    WaitForState(CFB::Broker::State::IrpManagerDone);
+    m_Listener.RunForever();
 }
 
 
