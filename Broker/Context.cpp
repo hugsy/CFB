@@ -21,7 +21,7 @@ GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_P
         wil::unique_handle hEvent(::CreateEventW(nullptr, true, false, nullptr));
         if ( !hEvent )
         {
-            CFB::Log::perror("CreateEventW()");
+            CFB::Log::perror("CreateEventW(TerminationEvent)");
             throw std::runtime_error("GlobalContext()");
         }
 
@@ -60,11 +60,6 @@ GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_P
         });
 }
 
-std::atomic_flag const&
-GlobalContext::StateChangeFlag() const
-{
-    return m_AtomicStateChangeFlag;
-}
 
 CFB::Broker::State const
 GlobalContext::State() const
@@ -74,34 +69,9 @@ GlobalContext::State() const
 
 
 bool
-GlobalContext::WaitForState(CFB::Broker::State WantedState)
+GlobalContext::SetState(CFB::Broker::State NewState)
 {
-    // TODO: add a check for shutdown state
-    while ( true )
-    {
-        m_AtomicStateChangeFlag.wait(false);
-
-        if ( State() == WantedState )
-        {
-            dbg("Entered state '%s'", CFB::Broker::Utils::ToString(WantedState));
-            return true;
-        }
-
-        if ( State() > WantedState )
-        {
-            dbg("Skipping '%s'", CFB::Broker::Utils::ToString(WantedState));
-            return false;
-        }
-    }
-
-    return false;
-}
-
-
-bool
-GlobalContext::NotifyNewState(CFB::Broker::State NewState)
-{
-    auto lock = std::scoped_lock(m_Mutex);
+    std::scoped_lock lock(m_StateMutex);
     dbg("%s -> %s", CFB::Broker::Utils::ToString(m_State), CFB::Broker::Utils::ToString(NewState));
     if ( NewState < m_State )
     {
@@ -110,9 +80,8 @@ GlobalContext::NotifyNewState(CFB::Broker::State NewState)
             CFB::Broker::Utils::ToString(NewState),
             CFB::Broker::Utils::ToString(m_State));
     }
+
     m_State = NewState;
-    m_AtomicStateChangeFlag.test_and_set();
-    m_AtomicStateChangeFlag.notify_all();
     return true;
 }
 

@@ -24,6 +24,12 @@ public:
     ///
     GlobalContext();
 
+    ///
+    /// @brief
+    ///
+    /// @return true
+    /// @return false
+    ///
     bool
     Stop();
 
@@ -33,7 +39,7 @@ public:
     /// @return true
     /// @return false
     ///
-    bool NotifyNewState(CFB::Broker::State);
+    bool SetState(CFB::Broker::State);
 
     ///
     /// @brief
@@ -43,14 +49,6 @@ public:
     ///
     bool
     WaitForState(CFB::Broker::State WantedState);
-
-    ///
-    /// @brief
-    ///
-    /// @return std::atomic_flag const&
-    ///
-    std::atomic_flag const&
-    StateChangeFlag() const;
 
     ///
     /// @brief
@@ -84,6 +82,11 @@ public:
     std::shared_ptr<CFB::Broker::ServiceManager>
     ServiceManager() const;
 
+    ///
+    /// @brief
+    ///
+    /// @return const HANDLE
+    ///
     const HANDLE
     TerminationEvent() const;
 
@@ -91,18 +94,12 @@ private:
     ///
     /// @brief This mutex protects state changes
     ///
-    std::mutex m_Mutex;
+    std::mutex m_StateMutex;
 
     ///
     /// @brief The manager current state
     ///
     CFB::Broker::State m_State;
-
-    ///
-    /// @brief
-    ///
-    ///
-    std::atomic_flag m_AtomicStateChangeFlag;
 
     ///
     /// @brief The current process ID
@@ -114,6 +111,11 @@ private:
     ///
     fs::path m_BrokerPath;
 
+    ///
+    /// @brief
+    ///
+    ///
+    wil::unique_handle m_hTerminationEvent;
 
     //////////////////////////////////////////////////////////////////////////////
     ///
@@ -165,8 +167,6 @@ private:
     /// @brief
     ///
     std::shared_ptr<CFB::Broker::DriverManager> m_DriverManager;
-
-    wil::unique_handle m_hTerminationEvent;
 };
 
 

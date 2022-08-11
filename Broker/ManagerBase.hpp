@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wil/resource.h>
+
 #include "States.hpp"
 
 #ifdef _DEBUG
@@ -14,6 +16,10 @@ namespace CFB::Broker
 class ManagerBase
 {
 public:
+    ManagerBase();
+
+    ~ManagerBase();
+
     ///
     /// @brief Synchronizes on the Global state semaphore to execute code only when in a specific state
     ///
@@ -48,6 +54,14 @@ public:
     ///
     virtual std::string const
     Name() = 0;
+
+
+private:
+    ///
+    /// @brief
+    ///
+    ///
+    wil::unique_handle m_hChangedStateEvent;
 };
 
 
