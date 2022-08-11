@@ -53,7 +53,9 @@ public:
     /// @brief A pointer to the driver object. The object refcount has been incremented by the constructor.
     /// The destructor makes sure to release it.
     ///
-    PDRIVER_OBJECT DriverObject;
+    PDRIVER_OBJECT OriginalDriverObject;
+
+    Utils::UniquePointer<DRIVER_OBJECT> HookedDriverObject;
 
     HookedDriver(const PUNICODE_STRING UnicodePath);
 

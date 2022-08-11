@@ -558,23 +558,22 @@ private:
 template<typename T>
 class UniquePointer
 {
-    T* data;
-
 public:
-    UniquePointer() : data(nullptr)
+    UniquePointer() : m_data(nullptr)
     {
     }
 
-    explicit UniquePointer(T* data) : data(data)
+    explicit UniquePointer(T* data) : m_data(data)
     {
+        ::RtlSecureZeroMemory(m_data, sizeof(T));
     }
 
     ~UniquePointer()
     {
-        delete data;
+        delete m_data;
     }
 
-    UniquePointer(std::nullptr_t) : data(nullptr)
+    UniquePointer(std::nullptr_t) : m_data(nullptr)
     {
     }
 
@@ -585,7 +584,7 @@ public:
         return *this;
     }
 
-    UniquePointer(UniquePointer&& moving) noexcept : data(nullptr)
+    UniquePointer(UniquePointer&& moving) noexcept : m_data(nullptr)
     {
         moving.swap(*this);
     }
@@ -621,38 +620,38 @@ public:
     T*
     operator->() const
     {
-        return data;
+        return m_data;
     }
 
     T&
     operator*() const
     {
-        return *data;
+        return *m_data;
     }
 
     T*
     get() const
     {
-        return data;
+        return m_data;
     }
 
     explicit operator bool() const
     {
-        return data;
+        return m_data;
     }
 
     T*
     release() noexcept
     {
         T* result = nullptr;
-        swap(result, data);
+        swap(result, m_data);
         return result;
     }
 
     void
     swap(UniquePointer& src) noexcept
     {
-        InterlockedExchangePointer((PVOID*)data, (PVOID)src.data);
+        InterlockedExchangePointer((PVOID*)m_data, (PVOID)src.m_data);
     }
 
     void
@@ -661,6 +660,9 @@ public:
         T* tmp = release();
         delete tmp;
     }
+
+private:
+    T* m_data;
 };
 
 

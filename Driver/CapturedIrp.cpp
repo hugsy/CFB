@@ -23,7 +23,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
 {
     auto FilterByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
-        for ( PDEVICE_OBJECT CurrentDevice = h->DriverObject->DeviceObject; CurrentDevice;
+        for ( PDEVICE_OBJECT CurrentDevice = h->OriginalDriverObject->DeviceObject; CurrentDevice;
               CurrentDevice                = CurrentDevice->NextDevice )
         {
             if ( CurrentDevice == DeviceObject )

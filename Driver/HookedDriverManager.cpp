@@ -79,7 +79,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             auto FromDriverAddress = [&ScopedDriverObject](const HookedDriver* h)
             {
-                return h->DriverObject == ScopedDriverObject.get();
+                return h->OriginalDriverObject == ScopedDriverObject.get();
             };
 
             if ( m_Entries.Find(FromDriverAddress) != nullptr )

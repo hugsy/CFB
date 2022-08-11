@@ -10,7 +10,7 @@ namespace CFB::Driver
 HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     Enabled(false),
     State(HookState::Unhooked),
-    DriverObject(nullptr),
+    OriginalDriverObject(nullptr),
     Next(),
     OriginalRoutines(),
     FastIoRead(nullptr),
@@ -21,6 +21,9 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
 {
     dbg("Creating HookedDriver('%wZ')", &Path);
 
+    //
+    // Find the driver from its path
+    //
     NTSTATUS Status = ::ObReferenceObjectByName(
         Path.get(),
         OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
@@ -29,10 +32,18 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
         *IoDriverObjectType,
         KernelMode,
         nullptr,
-        (PVOID*)&DriverObject);
+        (PVOID*)&OriginalDriverObject);
 
     NT_ASSERT(NT_SUCCESS(Status));
-    NT_ASSERT(DriverObject != nullptr);
+    NT_ASSERT(OriginalDriverObject != nullptr);
+
+    //
+    // Create a copy DRIVER_OBJECT
+    //
+    DRIVER_OBJECT* Hooked = new (NonPagedPoolNx) DRIVER_OBJECT;
+    NT_ASSERT(Hooked != nullptr);
+    HookedDriverObject = Utils::UniquePointer<DRIVER_OBJECT>(Hooked);
+    ::RtlCopyMemory(HookedDriverObject.get(), OriginalDriverObject, sizeof(DRIVER_OBJECT));
 
     SwapCallbacks();
 }
@@ -43,7 +54,8 @@ HookedDriver::~HookedDriver()
 
     DisableCapturing();
     RestoreCallbacks();
-    ObDereferenceObject(DriverObject);
+
+    ObDereferenceObject(OriginalDriverObject);
 }
 
 void
@@ -63,7 +75,8 @@ HookedDriver::SwapCallbacks()
     for ( u16 i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++ )
     {
         PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
-            (PVOID*)&DriverObject->MajorFunction[i],
+            // (PVOID*)&OriginalDriverObject->MajorFunction[i],
+            (PVOID*)&HookedDriverObject->MajorFunction[i],
             (PVOID)Callbacks::InterceptGenericRoutine);
 
         OriginalRoutines[i] = OldRoutine;
@@ -72,25 +85,37 @@ HookedDriver::SwapCallbacks()
     //
     // Hook FastIo too
     //
-    if ( DriverObject->FastIoDispatch )
+    if ( OriginalDriverObject->FastIoDispatch )
     {
         PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
-            (PVOID*)&DriverObject->FastIoDispatch->FastIoDeviceControl,
+            // (PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoDeviceControl,
+            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoDeviceControl,
             (PVOID)Callbacks::InterceptGenericFastIoDeviceControl);
 
         FastIoDeviceControl = OldFastIoDeviceControl;
 
         PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
-            (PVOID*)&DriverObject->FastIoDispatch->FastIoRead,
+            // (PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoRead,
+            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoRead,
             (PVOID)Callbacks::InterceptGenericFastIoRead);
 
         FastIoRead = OldFastIoRead;
 
         PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
-            (PVOID*)&DriverObject->FastIoDispatch->FastIoWrite,
+            // (PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoWrite,
+            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoWrite,
             (PVOID)Callbacks::InterceptGenericFastIoWrite);
 
         FastIoWrite = OldFastIoWrite;
+    }
+
+    //
+    // For each device object, replace the driver object pointer
+    //
+    for ( PDEVICE_OBJECT DeviceObject = OriginalDriverObject->DeviceObject; DeviceObject != nullptr;
+          DeviceObject                = DeviceObject->NextDevice )
+    {
+        DeviceObject->DriverObject = HookedDriverObject.get();
     }
 
     //
@@ -111,28 +136,39 @@ HookedDriver::RestoreCallbacks()
     }
 
     //
+    // For each device object, restore the original driver object pointer
+    //
+    for ( PDEVICE_OBJECT DeviceObject = OriginalDriverObject->DeviceObject; DeviceObject != nullptr;
+          DeviceObject                = DeviceObject->NextDevice )
+    {
+        DeviceObject->DriverObject = OriginalDriverObject;
+    }
+
+    /**
+    //
     // Restore the original callbacks
     //
 
     for ( u16 i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++ )
     {
-        InterlockedExchangePointer((PVOID*)&DriverObject->MajorFunction[i], (PVOID)OriginalRoutines[i]);
+        InterlockedExchangePointer((PVOID*)&OriginalDriverObject->MajorFunction[i], (PVOID)OriginalRoutines[i]);
     }
 
     //
     // Restore Fast IO Dispatch pointers
     //
 
-    if ( DriverObject->FastIoDispatch )
+    if ( OriginalDriverObject->FastIoDispatch )
     {
         InterlockedExchangePointer(
-            (PVOID*)DriverObject->FastIoDispatch->FastIoDeviceControl,
+            (PVOID*)OriginalDriverObject->FastIoDispatch->FastIoDeviceControl,
             (PVOID)FastIoDeviceControl);
 
-        InterlockedExchangePointer((PVOID*)&DriverObject->FastIoDispatch->FastIoRead, (PVOID)FastIoRead);
+        InterlockedExchangePointer((PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoRead, (PVOID)FastIoRead);
 
-        InterlockedExchangePointer((PVOID*)&DriverObject->FastIoDispatch->FastIoWrite, (PVOID)FastIoWrite);
+        InterlockedExchangePointer((PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoWrite, (PVOID)FastIoWrite);
     }
+    */
 
     //
     // Switch back state flag
