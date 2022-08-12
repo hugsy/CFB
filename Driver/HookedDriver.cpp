@@ -17,7 +17,8 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     FastIoWrite(nullptr),
     FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
-    Path(UnicodePath->Buffer, NonPagedPoolNx)
+    Path(UnicodePath->Buffer, NonPagedPoolNx),
+    HookedDriverObject(new (NonPagedPoolNx) DRIVER_OBJECT)
 {
     dbg("Creating HookedDriver('%wZ')", &Path);
 
@@ -40,11 +41,11 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     //
     // Create a copy DRIVER_OBJECT
     //
-    DRIVER_OBJECT* Hooked = new (NonPagedPoolNx) DRIVER_OBJECT;
-    NT_ASSERT(Hooked != nullptr);
-    HookedDriverObject = Utils::UniquePointer<DRIVER_OBJECT>(Hooked);
     ::RtlCopyMemory(HookedDriverObject.get(), OriginalDriverObject, sizeof(DRIVER_OBJECT));
 
+    //
+    // Swap the IRP major function callbacks of the HookedDriver, avoiding to trigger PatchGuard
+    //
     SwapCallbacks();
 }
 
@@ -92,25 +93,28 @@ HookedDriver::SwapCallbacks()
             (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoDeviceControl,
             (PVOID)Callbacks::InterceptGenericFastIoDeviceControl);
 
-        FastIoDeviceControl = OldFastIoDeviceControl;
+        // FastIoDeviceControl = OldFastIoDeviceControl;
 
         PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
             // (PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoRead,
             (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoRead,
             (PVOID)Callbacks::InterceptGenericFastIoRead);
 
-        FastIoRead = OldFastIoRead;
+        // FastIoRead = OldFastIoRead;
 
         PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
             // (PVOID*)&OriginalDriverObject->FastIoDispatch->FastIoWrite,
             (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoWrite,
             (PVOID)Callbacks::InterceptGenericFastIoWrite);
 
-        FastIoWrite = OldFastIoWrite;
+        // FastIoWrite = OldFastIoWrite;
     }
 
     //
-    // For each device object, replace the driver object pointer
+    // This is where the hooking takes places: for each device object of the original driver, we replace
+    // the driver object pointer member making it point to our hooked version. Doing so avoid triggering
+    // PatchGuard and is more stealth.
+    // TODO: test debug=off, testsigning=on
     //
     for ( PDEVICE_OBJECT DeviceObject = OriginalDriverObject->DeviceObject; DeviceObject != nullptr;
           DeviceObject                = DeviceObject->NextDevice )

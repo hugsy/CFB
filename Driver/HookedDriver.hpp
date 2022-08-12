@@ -25,26 +25,6 @@ public:
     LIST_ENTRY Next;
 
     ///
-    /// @brief The array where the original `IRP_MJ_*` callbacks are stored
-    ///
-    PDRIVER_DISPATCH OriginalRoutines[IRP_MJ_MAXIMUM_FUNCTION];
-
-    ///
-    /// @brief A pointer to where the original `FastIoRead` callback is stored
-    ///
-    PFAST_IO_READ FastIoRead;
-
-    ///
-    /// @brief A pointer to where the original `FastIoWrite` callback is stored
-    ///
-    PFAST_IO_WRITE FastIoWrite;
-
-    ///
-    /// @brief A pointer to where the original `FastIoDeviceControl` callback is stored
-    ///
-    PFAST_IO_DEVICE_CONTROL FastIoDeviceControl;
-
-    ///
     /// @brief The absolute path of to the driver underneath
     ///
     Utils::KUnicodeString Path;

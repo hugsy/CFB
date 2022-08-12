@@ -565,7 +565,6 @@ public:
 
     explicit UniquePointer(T* data) : m_data(data)
     {
-        ::RtlSecureZeroMemory(m_data, sizeof(T));
     }
 
     ~UniquePointer()
