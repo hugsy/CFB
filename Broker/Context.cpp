@@ -31,32 +31,48 @@ GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_P
     //
     // Initialiazes the managers
     //
+    m_ServiceManager   = std::make_shared<CFB::Broker::ServiceManager>();
+    m_IrpManager       = std::make_shared<CFB::Broker::IrpManager>();
+    m_ConnectorManager = std::make_shared<CFB::Broker::ConnectorManager>();
+    m_DriverManager    = std::make_shared<CFB::Broker::DriverManager>();
+
+    //
+    // Start the individual threads
+    //
     m_ServiceManagerThread = std::jthread(
         [this]()
         {
-            m_ServiceManager = std::make_shared<CFB::Broker::ServiceManager>();
-            m_ServiceManager->Run();
+            if ( Success(m_ServiceManager->Setup()) )
+            {
+                m_ServiceManager->Run();
+            }
         });
 
     m_IrpManagerThread = std::jthread(
         [this]()
         {
-            m_IrpManager = std::make_shared<CFB::Broker::IrpManager>();
-            m_IrpManager->Run();
+            if ( Success(m_IrpManager->Setup()) )
+            {
+                m_IrpManager->Run();
+            }
         });
 
     m_ConnectorManagerThread = std::jthread(
         [this]()
         {
-            m_ConnectorManager = std::make_shared<CFB::Broker::ConnectorManager>();
-            m_ConnectorManager->Run();
+            if ( Success(m_ConnectorManager->Setup()) )
+            {
+                m_ConnectorManager->Run();
+            }
         });
 
     m_DriverManagerThread = std::jthread(
         [this]()
         {
-            m_DriverManager = std::make_shared<CFB::Broker::DriverManager>();
-            m_DriverManager->Run();
+            if ( Success(m_DriverManager->Setup()) )
+            {
+                m_DriverManager->Run();
+            }
         });
 }
 
@@ -71,18 +87,38 @@ GlobalContext::State() const
 bool
 GlobalContext::SetState(CFB::Broker::State NewState)
 {
-    std::scoped_lock lock(m_StateMutex);
-    dbg("%s -> %s", CFB::Broker::Utils::ToString(m_State), CFB::Broker::Utils::ToString(NewState));
-    if ( NewState < m_State )
+    bool res = true;
+
     {
-        warn(
-            "Suspicious state transition asked: Current: %s -> New: %s",
-            CFB::Broker::Utils::ToString(NewState),
-            CFB::Broker::Utils::ToString(m_State));
+        std::scoped_lock lock(m_StateMutex);
+
+        //
+        // This shouldn't happen, so print a warning if it does for investigate
+        //
+        if ( NewState < m_State )
+        {
+            warn(
+                "Suspicious state transition asked: Current: %s -> New: %s",
+                CFB::Broker::Utils::ToString(NewState),
+                CFB::Broker::Utils::ToString(m_State));
+            res = false;
+        }
+
+        //
+        // Apply the global state change
+        //
+        m_State = NewState;
     }
 
-    m_State = NewState;
-    return true;
+    //
+    // Notify all managers
+    //
+    res &= m_ServiceManager->NotifyStateChange();
+    res &= m_ConnectorManager->NotifyStateChange();
+    res &= m_IrpManager->NotifyStateChange();
+    res &= m_DriverManager->NotifyStateChange();
+
+    return res;
 }
 
 u32 const

@@ -46,15 +46,6 @@ ServiceManager::ServiceManager() :
     m_BackgroundService(nullptr),
     m_DriverTempPath(fs::temp_directory_path() / CFB_DRIVER_BASENAME)
 {
-    if ( ExtractDriverFromResource() == false )
-    {
-        throw std::runtime_error("ExtractDriverFromResource()");
-    }
-
-    if ( LoadDriver() == false )
-    {
-        throw std::runtime_error("LoadDriver()");
-    }
 }
 
 
@@ -71,6 +62,46 @@ ServiceManager::~ServiceManager()
     }
 }
 
+Result<bool>
+ServiceManager::Setup()
+{
+    if ( ExtractDriverFromResource() == false )
+    {
+        err("ExtractDriverFromResource() failed");
+        return Err(ErrorCode::InitializationError);
+    }
+
+    if ( LoadDriver() == false )
+    {
+        err("LoadDriver() failed");
+        return Err(ErrorCode::InitializationError);
+    }
+
+    return Ok(true);
+}
+
+
+void
+ServiceManager::Run()
+{
+    //
+    // Notify other thread the driver service is ready
+    //
+    SetState(CFB::Broker::State::ServiceManagerReady);
+
+    //
+    // Simply wait for the other managers to be done
+    //
+    WaitForState(CFB::Broker::State::IrpManagerDone);
+}
+
+
+std::string const
+ServiceManager::Name()
+{
+    return "ServiceManager";
+}
+
 
 std::shared_ptr<Win32Service>
 ServiceManager::BackgroundService()
@@ -82,7 +113,7 @@ ServiceManager::BackgroundService()
 bool
 ServiceManager::ExtractDriverFromResource()
 {
-    dbg("Extracting driver from resources...");
+    xdbg("Extracting driver from resources...");
 
     HRSRC DriverRsc = ::FindResourceW(nullptr, MAKEINTRESOURCEW(IDR_CFB_DRIVER), MAKEINTRESOURCEW(CFB_DRIVER_DATAFILE));
     if ( !DriverRsc )
@@ -105,7 +136,7 @@ ServiceManager::ExtractDriverFromResource()
         return false;
     }
 
-    dbg("Dumping driver to '%S'", m_DriverTempPath.c_str());
+    xdbg("Dumping driver to '%S'", m_DriverTempPath.c_str());
 
     wil::unique_handle hDriverFile(::CreateFileW(
         m_DriverTempPath.c_str(),
@@ -134,7 +165,7 @@ ServiceManager::ExtractDriverFromResource()
         return false;
     }
 
-    ok("Driver written in '%S'", m_DriverTempPath.c_str());
+    xdbg("Driver written in '%S'", m_DriverTempPath.c_str());
     return true;
 }
 
@@ -149,7 +180,7 @@ ServiceManager::DeleteDriverFromDisk()
 bool
 ServiceManager::LoadDriver()
 {
-    dbg("Loading driver '%S'", m_DriverTempPath.c_str());
+    xdbg("Loading driver '%S'", m_DriverTempPath.c_str());
 
     //
     // Get a handle to the service control manager
@@ -214,7 +245,7 @@ ServiceManager::LoadDriver()
     //
     // Start the service
     //
-    dbg("Starting service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
+    xdbg("Starting service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::StartServiceW(m_hService.get(), 0, nullptr) )
     {
@@ -232,7 +263,7 @@ ServiceManager::UnloadDriver()
 {
     SERVICE_STATUS ServiceStatus = {0};
 
-    dbg("Stopping service '%S'\n", CFB_BROKER_DRIVER_SERVICE_NAME);
+    xdbg("Stopping service '%S'\n", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::ControlService(m_hService.get(), SERVICE_CONTROL_STOP, &ServiceStatus) )
     {
@@ -240,7 +271,7 @@ ServiceManager::UnloadDriver()
         return false;
     }
 
-    dbg("Service '%S' stopped", CFB_BROKER_DRIVER_SERVICE_NAME);
+    xdbg("Service '%S' stopped", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::DeleteService(m_hService.get()) )
     {
@@ -323,28 +354,6 @@ ServiceManager::RunAsBackgroundService()
     }
 
     return true;
-}
-
-
-void
-ServiceManager::Run()
-{
-    //
-    // Notify other thread the driver service is ready
-    //
-    NotifyNewState(CFB::Broker::State::ServiceManagerReady);
-
-    //
-    // Simply wait for the other managers to be done
-    //
-    WaitForState(CFB::Broker::State::IrpManagerDone);
-}
-
-
-std::string const
-ServiceManager::Name()
-{
-    return "ServiceManager";
 }
 
 

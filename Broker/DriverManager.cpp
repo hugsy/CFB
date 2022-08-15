@@ -11,6 +11,30 @@ namespace CFB::Broker
 {
 DriverManager::DriverManager()
 {
+}
+
+DriverManager::~DriverManager()
+{
+}
+
+
+std::string const
+DriverManager::Name()
+{
+    return "DriverManager";
+}
+
+
+void
+DriverManager::Run()
+{
+    m_Listener.RunForever();
+}
+
+
+Result<bool>
+DriverManager::Setup()
+{
     //
     // Wait for the service to be ready
     //
@@ -37,24 +61,10 @@ DriverManager::DriverManager()
         xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
         m_hDevice = std::move(hDevice);
     }
-}
 
-DriverManager::~DriverManager()
-{
-}
+    // SetState(CFB::Broker::State::DriverManagerReady);
 
-
-std::string const
-DriverManager::Name()
-{
-    return "DriverManager";
-}
-
-
-void
-DriverManager::Run()
-{
-    m_Listener.RunForever();
+    return Ok(true);
 }
 
 

@@ -14,6 +14,7 @@ enum class ErrorCode
     UnexpectedStateError,
     InvalidInput,
     InvalidParameter,
+    InitializationError,
     UnexpectedType,
     ArithmeticError,
     OverflowError,

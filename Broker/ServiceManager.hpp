@@ -106,7 +106,7 @@ private:
     usize m_StatusCheckPoint;
 };
 
-class ServiceManager : ManagerBase
+class ServiceManager : public ManagerBase
 {
 
 public:
@@ -122,6 +122,24 @@ public:
     ///
     ~ServiceManager();
 
+    ///
+    /// @brief
+    ///
+    void
+    Run();
+
+    ///
+    /// @brief
+    ///
+    ///
+    Result<bool>
+    Setup();
+
+    ///
+    /// @brief Get the Manager naem
+    ///
+    /// @return std::string const
+    ///
     std::string const
     Name();
 
@@ -151,12 +169,6 @@ public:
     bool
     RunAsBackgroundService();
 
-    ///
-    /// @brief
-    ///
-    ///
-    void
-    Run();
 
 private:
     ///

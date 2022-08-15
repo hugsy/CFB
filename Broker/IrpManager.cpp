@@ -15,6 +15,38 @@ namespace CFB::Broker
 IrpManager::IrpManager()
 {
     //
+    // Create the event shared with the driver to get new IRPs notifications
+    //
+    {
+        wil::unique_handle hEvent(::CreateEventW(nullptr, true, false, nullptr));
+        if ( !hEvent )
+        {
+            CFB::Log::perror("IrpManager::CreateEventW()");
+            throw std::runtime_error("IrpManager()");
+        }
+
+        xdbg("Got handle to event %x", hEvent.get());
+        m_hNewIrpEvent = std::move(hEvent);
+    }
+}
+
+
+IrpManager::~IrpManager()
+{
+}
+
+
+std::string const
+IrpManager::Name()
+{
+    return "IrpManager";
+}
+
+
+Result<bool>
+IrpManager::Setup()
+{
+    //
     // Wait for the service to be ready
     //
     WaitForState(CFB::Broker::State::ServiceManagerReady);
@@ -34,27 +66,11 @@ IrpManager::IrpManager()
         if ( !hDevice )
         {
             CFB::Log::perror("IrpManager::CreateFileW()");
-            throw std::runtime_error("IrpManager()");
+            return Err(ErrorCode::InitializationError);
         }
-
-        xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
         m_hDevice = std::move(hDevice);
     }
-
-    //
-    // Create an event
-    //
-    {
-        wil::unique_handle hNewIrpEvent(::CreateEventW(nullptr, true, false, nullptr));
-        if ( !hNewIrpEvent )
-        {
-            CFB::Log::perror("IrpManager::CreateEventW()");
-            throw std::runtime_error("IrpManager()");
-        }
-
-        xdbg("Got handle to event %x", hNewIrpEvent.get());
-        m_hNewIrpEvent = std::move(hNewIrpEvent);
-    }
+    xdbg("Got handle %x to device %S", m_hDevice.get(), CFB_USER_DEVICE_PATH);
 
     //
     // Share the notification event with the driver
@@ -74,32 +90,23 @@ IrpManager::IrpManager()
                  nullptr) == false )
         {
             CFB::Log::perror("DeviceIoControl()");
-            throw std::runtime_error("IrpManager()");
+            return Err(ErrorCode::InitializationError);
         }
     }
-
     xdbg("Event shared with driver");
-}
 
-IrpManager::~IrpManager()
-{
-}
+    //
+    // Notify other threads that the IRP Manager is ready
+    //
+    SetState(CFB::Broker::State::IrpManagerReady);
 
-
-std::string const
-IrpManager::Name()
-{
-    return "IrpManager";
+    return Ok(true);
 }
 
 
 void
 IrpManager::Run()
 {
-    //
-    // Notify other threads that the IRP Manager is ready
-    //
-    NotifyNewState(CFB::Broker::State::IrpManagerReady);
 
     //
     // Wait for the collector manager to be ready so we can
@@ -149,7 +156,7 @@ IrpManager::Run()
     //
     // Finish the IRP manager thread
     //
-    NotifyNewState(CFB::Broker::State::IrpManagerDone);
+    SetState(CFB::Broker::State::IrpManagerDone);
 }
 
 

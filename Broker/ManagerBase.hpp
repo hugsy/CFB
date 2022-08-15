@@ -2,6 +2,7 @@
 
 #include <wil/resource.h>
 
+#include "Error.hpp"
 #include "States.hpp"
 
 #ifdef _DEBUG
@@ -16,8 +17,16 @@ namespace CFB::Broker
 class ManagerBase
 {
 public:
+    ///
+    /// @brief Construct a new Manager Base object
+    ///
+    ///
     ManagerBase();
 
+    ///
+    /// @brief Destroy the Manager Base object
+    ///
+    ///
     ~ManagerBase();
 
     ///
@@ -38,7 +47,25 @@ public:
     /// @return false
     ///
     bool
-    NotifyNewState(CFB::Broker::State NewState);
+    SetState(CFB::Broker::State NewState);
+
+    ///
+    /// @brief
+    ///
+    /// @return true
+    /// @return false
+    ///
+    bool
+    NotifyStateChange();
+
+
+    ///
+    /// @brief
+    ///
+    ///
+    virtual Result<bool>
+    Setup() = 0;
+
 
     ///
     /// @brief
@@ -56,7 +83,7 @@ public:
     Name() = 0;
 
 
-private:
+protected:
     ///
     /// @brief
     ///

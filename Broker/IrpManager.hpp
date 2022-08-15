@@ -17,7 +17,7 @@
 namespace CFB::Broker
 {
 
-class IrpManager : ManagerBase
+class IrpManager : public ManagerBase
 {
 public:
     ///
@@ -30,6 +30,11 @@ public:
     ///
     ~IrpManager();
 
+    ///
+    /// @brief
+    ///
+    /// @return std::string const
+    ///
     std::string const
     Name();
 
@@ -38,6 +43,14 @@ public:
     ///
     void
     Run();
+
+    ///
+    /// @brief
+    ///
+    /// @return Result<bool>
+    ///
+    Result<bool>
+    Setup();
 
 private:
     ///

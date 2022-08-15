@@ -12,7 +12,7 @@
 namespace CFB::Broker
 {
 
-class DriverManager : ManagerBase
+class DriverManager : public ManagerBase
 {
 
     class Listener
@@ -135,8 +135,21 @@ public:
     ///
     ~DriverManager();
 
+    ///
+    /// @brief
+    ///
+    /// @return std::string const
+    ///
     std::string const
     Name();
+
+    ///
+    /// @brief
+    ///
+    /// @return Result<bool>
+    ///
+    Result<bool>
+    Setup();
 
     ///
     /// @brief

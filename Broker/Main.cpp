@@ -24,6 +24,25 @@ using namespace ::std::literals;
 struct GlobalContext Globals;
 
 
+static bool
+CtrlHandler(const DWORD dwCtrlType)
+{
+    switch ( dwCtrlType )
+    {
+    case CTRL_CLOSE_EVENT:
+    case CTRL_C_EVENT:
+        dbg("Received Ctrl-C event, stopping...");
+        Globals.Stop();
+        return true;
+
+    default:
+        break;
+    }
+
+    return false;
+}
+
+
 int
 main(int argc, const char** argv)
 {
@@ -66,10 +85,8 @@ main(int argc, const char** argv)
     if ( mode == "run-standalone" )
     {
         info("Running in standalone...");
-        std::cin.get();
-
-        info("Finishing...");
-        Globals.Stop();
+        ::SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, true);
+        ::WaitForSingleObject(Globals.TerminationEvent(), INFINITE);
     }
 
     else if ( mode == "install-service" )

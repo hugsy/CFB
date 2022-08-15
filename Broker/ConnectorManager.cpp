@@ -10,16 +10,6 @@ ConnectorManager::ConnectorManager()
     //
     // Collect all connectors
     //
-
-
-    //
-    // Wait for the service to be ready
-    //
-    WaitForState(CFB::Broker::State::IrpManagerReady);
-
-    //
-    // Register the callback for all the connectors found
-    //
 }
 
 
@@ -35,14 +25,30 @@ ConnectorManager::Name()
 }
 
 
-void
-ConnectorManager::Run()
+Result<bool>
+ConnectorManager::Setup()
 {
+    //
+    // Wait for the service to be ready
+    //
+    WaitForState(CFB::Broker::State::IrpManagerReady);
+
+    //
+    // Register the callback for all the connectors found
+    //
+
     //
     // Notify other threads that the Collector Manager is ready
     // This will also effectively start the collection by the IrpManager from the driver
     //
-    NotifyNewState(CFB::Broker::State::ConnectorManagerReady);
+    SetState(CFB::Broker::State::ConnectorManagerReady);
+
+    return Ok(true);
+}
+
+void
+ConnectorManager::Run()
+{
 
     //
     // Wait for termination event
@@ -52,7 +58,7 @@ ConnectorManager::Run()
     //
     // Propagate the notification to the other managers
     //
-    NotifyNewState(CFB::Broker::State::ConnectorManagerDone);
+    SetState(CFB::Broker::State::ConnectorManagerDone);
 }
 
 

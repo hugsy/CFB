@@ -56,7 +56,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Call the original routine
     //
-    PDRIVER_DISPATCH OriginalIoctlDeviceControl = Driver->OriginalRoutines[Stack->MajorFunction];
+    PDRIVER_DISPATCH OriginalIoctlDeviceControl = Driver->OriginalDriverObject->MajorFunction[Stack->MajorFunction];
     NTSTATUS IoctlStatus                        = OriginalIoctlDeviceControl(DeviceObject, Irp);
 
     //
@@ -181,8 +181,9 @@ InterceptGenericFastIoDeviceControl(
     //
     // Execute the original callback
     //
-    PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDeviceControl;
-    BOOLEAN bRes                                        = OriginalFastIoDeviceControl(
+    PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl =
+        Driver->OriginalDriverObject->FastIoDispatch->FastIoDeviceControl;
+    BOOLEAN bRes = OriginalFastIoDeviceControl(
         FileObject,
         Wait,
         InputBuffer,
@@ -254,7 +255,7 @@ InterceptGenericFastIoRead(
     //
     // Execute the original callback
     //
-    PFAST_IO_READ const OriginalFastIoRead = Driver->FastIoRead;
+    PFAST_IO_READ const OriginalFastIoRead = Driver->OriginalDriverObject->FastIoDispatch->FastIoRead;
     BOOLEAN bRes =
         OriginalFastIoRead(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
 
@@ -328,9 +329,9 @@ InterceptGenericFastIoWrite(
     //
     // Execute the original callback
     //
-    PFAST_IO_READ const OriginalFastIoRead = Driver->FastIoRead;
+    PFAST_IO_READ const OriginalFastIoWrite = Driver->OriginalDriverObject->FastIoDispatch->FastIoWrite;
     BOOLEAN bRes =
-        OriginalFastIoRead(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
+        OriginalFastIoWrite(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
 
     //
     // If capturing enabled, capture the output data

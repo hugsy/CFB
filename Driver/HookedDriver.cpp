@@ -12,10 +12,10 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     State(HookState::Unhooked),
     OriginalDriverObject(nullptr),
     Next(),
-    OriginalRoutines(),
-    FastIoRead(nullptr),
-    FastIoWrite(nullptr),
-    FastIoDeviceControl(nullptr),
+    // OriginalRoutines(),
+    // FastIoRead(nullptr),
+    // FastIoWrite(nullptr),
+    // FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
     Path(UnicodePath->Buffer, NonPagedPoolNx),
     HookedDriverObject(new (NonPagedPoolNx) DRIVER_OBJECT)
@@ -80,7 +80,7 @@ HookedDriver::SwapCallbacks()
             (PVOID*)&HookedDriverObject->MajorFunction[i],
             (PVOID)Callbacks::InterceptGenericRoutine);
 
-        OriginalRoutines[i] = OldRoutine;
+        // OriginalRoutines[i] = OldRoutine;
     }
 
     //
