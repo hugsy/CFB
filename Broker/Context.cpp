@@ -77,6 +77,12 @@ GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_P
 }
 
 
+GlobalContext::~GlobalContext()
+{
+    info("Destroying global context.");
+}
+
+
 CFB::Broker::State const
 GlobalContext::State() const
 {
@@ -152,5 +158,14 @@ GlobalContext::TerminationEvent() const
 bool
 GlobalContext::Stop()
 {
-    return ::SetEvent(m_hTerminationEvent.get());
+    bool res = true;
+
+    res &= m_ServiceManager->NotifyTermination();
+    res &= m_ConnectorManager->NotifyTermination();
+    res &= m_IrpManager->NotifyTermination();
+    res &= m_DriverManager->NotifyTermination();
+
+    res &= (::SetEvent(m_hTerminationEvent.get()) == TRUE);
+
+    return res;
 }

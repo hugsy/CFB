@@ -58,6 +58,14 @@ public:
     bool
     NotifyStateChange();
 
+    ///
+    /// @brief
+    ///
+    /// @return true
+    /// @return false
+    ///
+    bool
+    NotifyTermination();
 
     ///
     /// @brief
@@ -89,6 +97,18 @@ protected:
     ///
     ///
     wil::unique_handle m_hChangedStateEvent;
+
+    ///
+    /// @brief
+    ///
+    ///
+    wil::unique_handle m_hTerminationEvent;
+
+    ///
+    /// @brief
+    ///
+    ///
+    bool m_bIsShuttingDown;
 };
 
 

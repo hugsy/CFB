@@ -263,7 +263,7 @@ ServiceManager::UnloadDriver()
 {
     SERVICE_STATUS ServiceStatus = {0};
 
-    xdbg("Stopping service '%S'\n", CFB_BROKER_DRIVER_SERVICE_NAME);
+    xdbg("Stopping service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::ControlService(m_hService.get(), SERVICE_CONTROL_STOP, &ServiceStatus) )
     {

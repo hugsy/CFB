@@ -25,6 +25,12 @@ public:
     GlobalContext();
 
     ///
+    /// @brief Destroy the Global Context object
+    ///
+    ///
+    ~GlobalContext();
+
+    ///
     /// @brief
     ///
     /// @return true
