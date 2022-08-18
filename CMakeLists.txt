@@ -32,15 +32,6 @@ set(CFB_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(CFB_DEPENDENCIES ${CFB_ROOT_DIR}/External)
 
 #
-# Build WIL (External)
-#
-# set(CPPWINRT_VERSION "2.0.220608.4")
-set(WIL_BUILD_PACKAGING OFF)
-set(WIL_BUILD_TESTS OFF)
-
-add_subdirectory(${CFB_DEPENDENCIES}/wil)
-
-#
 # Build Driver
 #
 add_subdirectory(${CFB_ROOT_DIR}/Driver)

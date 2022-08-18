@@ -106,7 +106,7 @@ set_target_properties(${PROJECT_NAME}
 #
 # Install directives
 #
-install(TARGETS ${PROJECT_NAME} DESTINATION Broker)
+install(TARGETS ${PROJECT_NAME} DESTINATION Tools)
 
 #
 # Custom command directives

@@ -20,3 +20,5 @@ endif(DEBUG)
 target_include_directories(DriverClient PUBLIC CommonLibUser ${CFB_DEPENDENCIES}/wil/include ${CFB_DEPENDENCIES}/argparse)
 target_link_options(DriverClient PUBLIC /SUBSYSTEM:Console)
 target_link_libraries(DriverClient CommonLibUser)
+
+install(TARGETS DriverClient DESTINATION Tools)
