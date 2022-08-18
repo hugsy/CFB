@@ -123,6 +123,13 @@ private:
     ///
     wil::unique_handle m_hTerminationEvent;
 
+    ///
+    /// @brief
+    ///
+    ///
+    bool m_bIsShuttingDown;
+
+
     //////////////////////////////////////////////////////////////////////////////
     ///
     /// Manager declaration below: each manager is its own jthread

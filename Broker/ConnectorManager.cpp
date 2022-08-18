@@ -49,11 +49,10 @@ ConnectorManager::Setup()
 void
 ConnectorManager::Run()
 {
-
     //
     // Wait for termination event
     //
-    ::WaitForSingleObject(Globals.TerminationEvent(), INFINITE);
+    ::WaitForSingleObject(m_hTerminationEvent.get(), INFINITE);
 
     //
     // Propagate the notification to the other managers

@@ -55,7 +55,7 @@ DriverManager::Setup()
         if ( !hDevice )
         {
             CFB::Log::perror("DriverManager::CreateFileW()");
-            throw std::runtime_error("IrpManager()");
+            return Err(ErrorCode::InitializationError);
         }
 
         xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);

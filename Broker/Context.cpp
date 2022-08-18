@@ -2,7 +2,10 @@
 
 #include "Log.hpp"
 
-GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_Pid(::GetCurrentProcessId())
+GlobalContext::GlobalContext() :
+    m_State(CFB::Broker::State::Uninitialized),
+    m_Pid(::GetCurrentProcessId()),
+    m_bIsShuttingDown(false)
 {
     //
     // Get the broker executable absolute path
@@ -80,6 +83,11 @@ GlobalContext::GlobalContext() : m_State(CFB::Broker::State::Uninitialized), m_P
 GlobalContext::~GlobalContext()
 {
     info("Destroying global context.");
+
+    m_ServiceManagerThread.join();
+    m_IrpManagerThread.join();
+    m_ConnectorManagerThread.join();
+    m_DriverManagerThread.join();
 }
 
 
@@ -160,12 +168,16 @@ GlobalContext::Stop()
 {
     bool res = true;
 
-    res &= m_ServiceManager->NotifyTermination();
-    res &= m_ConnectorManager->NotifyTermination();
-    res &= m_IrpManager->NotifyTermination();
-    res &= m_DriverManager->NotifyTermination();
+    if ( !m_bIsShuttingDown )
+    {
+        m_bIsShuttingDown = true;
 
-    res &= (::SetEvent(m_hTerminationEvent.get()) == TRUE);
+        res &= m_ServiceManager->NotifyTermination();
+        res &= m_ConnectorManager->NotifyTermination();
+        res &= m_IrpManager->NotifyTermination();
+        res &= m_DriverManager->NotifyTermination();
+        res &= (::SetEvent(m_hTerminationEvent.get()) == TRUE);
+    }
 
     return res;
 }

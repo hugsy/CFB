@@ -22,9 +22,7 @@ namespace CFB::Broker
 
 DriverManager::TcpListener::TcpListener() : m_ServerSocket(INVALID_SOCKET)
 {
-    WSADATA WsaData = {
-        0,
-    };
+    WSADATA WsaData = {0};
 
     //
     // Start up the socket subsystem
@@ -54,9 +52,7 @@ DriverManager::TcpListener::~TcpListener()
 Result<bool>
 DriverManager::TcpListener::Initialize()
 {
-    WSAPROTOCOL_INFO info = {
-        0,
-    };
+    WSAPROTOCOL_INFO info = {0};
     info.dwServiceFlags1 |= XP1_IFS_HANDLES;
 
     m_ServerSocket = ::WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT);
@@ -217,7 +213,8 @@ DriverManager::TcpListener::ReceiveSynchronous(const SOCKET ClientSocket)
         recv_result = ::WSARecv(ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, &Overlapped, NULL);
         if ( ::WSAGetLastError() != WSA_IO_PENDING )
         {
-            throw std::runtime_error("ReceiveSynchronous::WSARecv()");
+            CFB::Log::perror("ReceiveSynchronous::WSARecv(Pending)");
+            return Err(ErrorCode::NetworkError);
         }
 
         //
@@ -256,6 +253,9 @@ TcpClientRoutine(LPVOID lpParameter)
     std::vector<HANDLE> handles;
     handles.push_back(Globals.TerminationEvent());
 
+    //
+    // Create the socket notification event for read, write and disconnection
+    //
     wil::unique_handle hEvent(::WSACreateEvent());
     if ( !hEvent )
     {
@@ -331,7 +331,11 @@ TcpClientRoutine(LPVOID lpParameter)
             //
 
             //
-            // TODO: read the request from socket and handle it
+            // TODO:
+            // 1. read the request from socket and handle it
+            // 2. push it to the driver manager
+            // 3. wait for response
+            // 4. send back
             //
 
             // ReceiveSynchronous(ClientSocket)
@@ -394,12 +398,10 @@ DriverManager::TcpListener::RunForever()
 
         ::WSAResetEvent(Handles.at(dwIndex));
 
-        dbg("TcpServer: event triggered %d", dwIndex);
-
         switch ( dwIndex )
         {
         case 0:
-            dbg("received termination event");
+            dbg("[TcpListener] received termination event");
             break;
 
         case 1:
@@ -462,7 +464,7 @@ DriverManager::TcpListener::RunForever()
             //
             // if here, we've received the event of EOL from the client thread, so we clean up and continue looping
             //
-            dbg("default event_handle[%d], closing tcp client thread...", dwIndex);
+            dbg("[TcpListener] default event_handle[%d], closing tcp client thread...", dwIndex);
             const HANDLE hTarget    = Handles.at(dwIndex);
             auto FindClientByHandle = [&hTarget](auto const& e)
             {
@@ -474,7 +476,6 @@ DriverManager::TcpListener::RunForever()
         }
     }
 
-    dbg("terminating thread");
     return retcode;
 }
 
