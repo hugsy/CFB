@@ -1,10 +1,8 @@
 name: CI Build Broker for MSVC
 
-on:
-  push:
-  pull_request:
-  schedule:
-    - cron:  '0 0 0 1 *'
+on: [push, pull_request]
+#  schedule:
+#    - cron:  '0 0 1 1 *'
 
 env:
   ARCH: x64
@@ -16,10 +14,12 @@ jobs:
     name: "CFB-Broker ${{ matrix.os }}/${{ matrix.platform }}/${{ matrix.configuration }}"
 
     strategy:
-      os: ['windows-latest']
-      platform: ['x64']
-      configuration: ['Debug']
       fail-fast: false
+      matrix:
+        os: ['windows-latest']
+        platform: ['x64']
+        configuration: ['Debug']
+
 
     runs-on: ${{ matrix.os }}
     steps:
