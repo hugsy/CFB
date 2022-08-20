@@ -1,62 +1,52 @@
-name: "Discord Notification"
-on: [push, pull_request, issues]
+name: "Discord CI Notification"
+
+on:
+  # execute the workflow only if build was successful
+  workflow_run:
+    workflows:
+      - "Build Broker and Driver"
+    types:
+      - completed
+
 env:
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
 jobs:
-  notify:
+  on-success:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
-
-      - name: Triggering Push Discord Notification
-        if: github.event_name == 'push' && github.repository_owner == 'hugsy'
+      - name: CI Build Success Notification
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} pushed to `${{ github.ref }}`
+          title: "[${{ github.repository }}] ${{ github.actor }} pushed to `${{ github.ref }}`"
           description: |
-            **Commit delta**: `${{ github.event.before }}` → `${{ github.event.after }}`
-            ---
-            **Changes**: ${{ github.event.compare }}
-            ---
             **Commits**:
               ● ${{ join(github.event.commits.*.message, '
               ● ') }}
-
+            ---
+            **Link**: ${{ github.event.compare }}
           color: 0x0000ff
           username: ${{ github.actor }} on CFB
           avatar_url: https://i.imgur.com/O4RKNqj.png
 
-      - name: Triggering Pull Request Discord Notification
-        if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
+  on-failure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    steps:
+      - name: CI Build Failure Notification
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
         uses: sarisia/actions-status-discord@v1
         with:
           nodetail: true
-          title: ${{ github.actor }} created a new Pull Request (`#${{ github.event.pull_request.number }}`)
+          title: "[${{ github.repository }}] ${{ github.actor }} pushed to `${{ github.ref }}`"
           description: |
-            **${{ github.event.pull_request.title }}**
-
-            ${{ github.event.pull_request.body }}
-
+            **Commits**:
+              ● ${{ join(github.event.commits.*.message, '
+              ● ') }}
             ---
-            Link: ${{ github.event.pull_request.html_url }}
+            **Link**: ${{ github.event.compare }}
           color: 0xff0000
-          username: ${{ github.actor }} on CFB
-          avatar_url: https://i.imgur.com/O4RKNqj.png
-          
-      - name: Triggering Issue Discord Notification
-        if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
-        uses: sarisia/actions-status-discord@v1
-        with:
-          nodetail: true
-          title: ${{ github.actor }} created a new Issue (`#${{ github.event.issue.number }}`)
-          description: |
-            **${{ github.event.issue.title }}**
-
-            ${{ github.event.issue.body }}
-
-            ---
-            Link: ${{ github.event.issue.html_url }}
-          color: 0x00ff00
           username: ${{ github.actor }} on CFB
           avatar_url: https://i.imgur.com/O4RKNqj.png

@@ -1,8 +1,6 @@
-name: CI Build Broker for MSVC
+name: Build Broker and Driver
 
 on: [push, pull_request]
-#  schedule:
-#    - cron:  '0 0 1 1 *'
 
 env:
   ARCH: x64
