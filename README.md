@@ -1,6 +1,6 @@
 
 <p align="center">
-  <img src="/Assets/img/logo/Logo_v1.svg" width="50%" alt="logo" />
+  <img src="https://user-images.githubusercontent.com/590234/185767386-46d86e9e-be54-480e-9d18-308b6e028fce.png" width="300px" alt="logo" />
 </p>
 
 <p align="center">
@@ -106,6 +106,5 @@ Because I had no idea for the name of this tool, so it was graciously generated 
 ## Kudos
 
  * `processhacker` for their [`phnt` header files](https://github.com/processhacker/phnt)
- * `yhirose` for their [`cpp-httplib` library](https://github.com/yhirose/cpp-httplib)
  * `p-ranav` for their [`argparse` library](https://github.com/p-ranav/argparse)
  * `nlohmann` for their [`json` library](https://github.com/nlohmann/json)
