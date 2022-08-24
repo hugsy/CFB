@@ -5,6 +5,7 @@
 #include "Broker.hpp"
 #include "Error.hpp"
 #include "ManagerBase.hpp"
+#include "Messages.hpp"
 
 #include <wil/resource.h>
 
@@ -158,6 +159,10 @@ public:
     ///
     Result<json>
     ExecuteCommand(json const& Request);
+
+    Result<CFB::Comms::DriverResponse>
+    SendIoctlRequest(CFB::Comms::DriverRequest const& msg);
+
 
 private:
     ///

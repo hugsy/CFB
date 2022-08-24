@@ -6,10 +6,12 @@
 #include "BrokerUtils.hpp"
 #include "Context.hpp"
 #include "Error.hpp"
+#include "IoctlCodes.hpp"
 #include "Log.hpp"
-#include "Messages.hpp"
 #include "States.hpp"
 
+
+static std::wstring_convert<std::codecvt_utf8<wchar_t>> g_converter;
 
 namespace CFB::Broker
 {
@@ -71,20 +73,118 @@ DriverManager::Setup()
     return Ok(true);
 }
 
+
+Result<CFB::Comms::DriverResponse>
+DriverManager::SendIoctlRequest(CFB::Comms::DriverRequest const& msg)
+{
+    DWORD nbBytesReturned;
+    CFB::Comms::DriverResponse Response;
+
+    bool bSuccess = ::DeviceIoControl(
+        m_hDevice.get(),
+        IOCTL_ControlDriver,
+        (LPVOID)&msg,
+        sizeof(CFB::Comms::DriverRequest),
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
+    info("DriverManager::SendIoctlRequest() returned %s", boolstr(bSuccess));
+
+    return Ok(Response);
+}
+
+
 Result<json>
 DriverManager::ExecuteCommand(json const& Request)
 {
     std::lock_guard lock(m_ManagerLock);
     json Response;
 
+    if ( Globals.State() <= CFB::Broker::State::ServiceManagerReady )
+    {
+        return Err(ErrorCode::DeviceNotInitialized);
+    }
+
     switch ( Request["id"].get<CFB::Comms::RequestId>() )
     {
+    case CFB::Comms::RequestId::HookDriver:
+    {
+        CFB::Comms::DriverRequest msg;
+        msg.Id                    = CFB::Comms::RequestId::HookDriver;
+        std::string driver_name   = Request["driver_name"].get<std::string>();
+        std::wstring wdriver_name = g_converter.from_bytes(driver_name);
+        ::RtlCopyMemory(msg.Data.DriverName, wdriver_name.data(), wdriver_name.size() * 2);
+        Response["success"] = Success(SendIoctlRequest(msg));
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::UnhookDriver:
+    {
+        CFB::Comms::DriverRequest msg;
+        msg.Id                    = CFB::Comms::RequestId::UnhookDriver;
+        std::string driver_name   = Request["driver_name"].get<std::string>();
+        std::wstring wdriver_name = g_converter.from_bytes(driver_name);
+        ::RtlCopyMemory(msg.Data.DriverName, wdriver_name.data(), wdriver_name.size() * 2);
+        Response["success"] = Success(SendIoctlRequest(msg));
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::GetNumberOfDrivers:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::GetNamesOfDrivers:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::GetDriverInfo:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::EnableMonitoring:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::DisableMonitoring:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::StoreTestCase:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::EnableDriver:
+    {
+        break;
+    }
+
+
+    case CFB::Comms::RequestId::DisableDriver:
+    {
+        break;
+    }
+
     case CFB::Comms::RequestId::EnumerateDriverObject:
     {
         auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
         if ( Success(res) )
         {
-            Response["errcode"] = 0;
+            Response["success"] = true;
             std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
             for ( auto const& entry : Value(res) )
             {
@@ -94,7 +194,7 @@ DriverManager::ExecuteCommand(json const& Request)
         }
         else
         {
-            Response["errcode"] = 1;
+            Response["success"] = false;
         }
         break;
     }
@@ -104,21 +204,20 @@ DriverManager::ExecuteCommand(json const& Request)
         auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Device");
         if ( Success(res) )
         {
-            Response["errcode"] = 0;
-            std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+            Response["success"] = true;
+
             for ( auto const& entry : Value(res) )
             {
                 std::wstring res = L"\\Device\\" + entry.first;
-                Response["body"].push_back(cvt.to_bytes(res));
+                Response["body"].push_back(g_converter.to_bytes(res));
             }
         }
         else
         {
-            Response["errcode"] = 1;
+            Response["success"] = false;
         }
         break;
     }
-
 
     default:
         return Err(ErrorCode::InvalidRequestId);

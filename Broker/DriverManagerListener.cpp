@@ -385,7 +385,6 @@ DriverManager::TcpListener::RunForever()
         return ::WSAGetLastError();
     }
 
-
     is_running = true;
 
     while ( is_running )

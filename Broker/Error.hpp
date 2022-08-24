@@ -30,7 +30,7 @@ enum class ErrorCode
     InsufficientPrivilegeError,
     SocketInitializationFailed,
     LookupError,
-
+    DeviceNotInitialized,
     InvalidRequestId,
 };
 
