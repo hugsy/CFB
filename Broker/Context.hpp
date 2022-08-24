@@ -89,6 +89,14 @@ public:
     ServiceManager() const;
 
     ///
+    /// @brief Get a shared pointer to the driver manager
+    ///
+    /// @return std::shared_ptr<CFB::Broker::DriverManager>
+    ///
+    std::shared_ptr<CFB::Broker::DriverManager>
+    DriverManager() const;
+
+    ///
     /// @brief
     ///
     /// @return const HANDLE

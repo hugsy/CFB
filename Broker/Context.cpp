@@ -156,6 +156,13 @@ GlobalContext::ServiceManager() const
 }
 
 
+std::shared_ptr<CFB::Broker::DriverManager>
+GlobalContext::DriverManager() const
+{
+    return m_DriverManager;
+}
+
+
 const HANDLE
 GlobalContext::TerminationEvent() const
 {

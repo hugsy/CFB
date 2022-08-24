@@ -159,6 +159,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     //
     if ( PsGetCurrentProcess() != Globals->Owner )
     {
+        warn("Refusing access from EPROCESS %p (expected %p)", PsGetCurrentProcess(), Globals->Owner);
         return CompleteRequest(Irp, STATUS_ACCESS_DENIED, 0);
     }
 
@@ -166,45 +167,51 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
     NT_ASSERT(CurrentStack);
 
-    const ULONG IoctlCode       = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
-    PVOID InputBuffer           = Irp->AssociatedIrp.SystemBuffer;
-    const ULONG InputBufferLen  = min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, sizeof(IoMessage));
+    const ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+    PVOID InputBuffer     = Irp->AssociatedIrp.SystemBuffer;
+    const ULONG InputBufferLen =
+        min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, sizeof(CFB::Comms::DriverRequest));
     PVOID OutputBuffer          = Irp->AssociatedIrp.SystemBuffer;
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
     ULONG dwDataWritten         = 0;
+    CFB::Comms::DriverRequest Request;
+    ::RtlCopyMemory(&Request, InputBuffer, InputBufferLen);
 
-    IoMessage Message;
-    ::RtlSecureZeroMemory(&Message, sizeof(Message));
-    ::RtlCopyMemory(&Message, InputBuffer, InputBufferLen);
-
-    CFB::Utils::Hexdump(&Message, InputBufferLen);
+#ifdef _DEBUG
+    CFB::Utils::Hexdump(&Request, InputBufferLen);
+#endif // _DEBUG
 
     dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
 
-    switch ( IoctlCode )
+    if ( IoctlCode != IOCTL_ControlDriver )
     {
-    case IOCTL_HookDriver:
-        Status = Globals->DriverManager.InsertDriver(Message.DriverName);
+        return CompleteRequest(Irp, STATUS_INVALID_DEVICE_REQUEST, 0);
+    }
+
+    switch ( Request.Id )
+    {
+    case CFB::Comms::RequestId::HookDriver:
+        Status = Globals->DriverManager.InsertDriver(Request.Data.DriverName);
         break;
 
-    case IOCTL_UnhookDriver:
-        Status = Globals->DriverManager.RemoveDriver(Message.DriverName);
+    case CFB::Comms::RequestId::UnhookDriver:
+        Status = Globals->DriverManager.RemoveDriver(Request.Data.DriverName);
         break;
 
-    case IOCTL_GetNumberOfDrivers:
+    case CFB::Comms::RequestId::GetNumberOfDrivers:
         dwDataWritten = Globals->DriverManager.Items().Size();
         break;
 
-    case IOCTL_EnableMonitoring:
-        Status = Globals->DriverManager.SetMonitoringState(Message.DriverName, true);
+    case CFB::Comms::RequestId::EnableMonitoring:
+        Status = Globals->DriverManager.SetMonitoringState(Request.Data.DriverName, true);
         break;
 
-    case IOCTL_DisableMonitoring:
-        Status = Globals->DriverManager.SetMonitoringState(Message.DriverName, false);
+    case CFB::Comms::RequestId::DisableMonitoring:
+        Status = Globals->DriverManager.SetMonitoringState(Request.Data.DriverName, false);
         break;
 
-    case IOCTL_SetEventPointer:
-        Status = Globals->IrpManager.SetEvent(Message.IrpNotificationEventHandle);
+    case CFB::Comms::RequestId::SetEventPointer:
+        Status = Globals->IrpManager.SetEvent(Request.Data.IrpNotificationEventHandle);
         break;
 
         /*

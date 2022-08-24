@@ -5,9 +5,7 @@
 #include "DriverManager.hpp"
 #include "Context.hpp"
 #include "Log.hpp"
-
-#include "json.hpp"
-using json = nlohmann::json;
+#include "BrokerUtils.hpp"
 // clang-format on
 
 #define CFB_BROKER_TCP_LISTEN_HOST L"0.0.0.0"
@@ -120,12 +118,12 @@ ConditionAcceptFunc(
     GROUP FAR* g,
     DWORD_PTR dwCallbackData)
 {
-    dbg("TODO");
+
     return CF_ACCEPT;
 }
 
 
-std::unique_ptr<DriverManager::TcpListener::TcpClient>
+std::shared_ptr<DriverManager::TcpClient>
 DriverManager::TcpListener::Accept()
 {
     SOCKET ClientSocket        = INVALID_SOCKET;
@@ -140,12 +138,10 @@ DriverManager::TcpListener::Accept()
         return nullptr;
     }
 
-    char Ipv4AddressClient[16] = {
-        0,
-    };
+    char Ipv4AddressClient[16] = {0};
     ::InetNtopA(AF_INET, &SockInfoClient.sin_addr.s_addr, Ipv4AddressClient, _countof(Ipv4AddressClient));
 
-    auto Client = std::make_unique<TcpClient>(
+    auto Client = std::make_shared<TcpClient>(
         TotalClientCounter++,
         ClientSocket,
         Ipv4AddressClient,
@@ -153,25 +149,26 @@ DriverManager::TcpListener::Accept()
         -1,
         INVALID_HANDLE_VALUE);
 
-    ok("New TCP client %s:%d (handle=%d)", Client->m_IpAddress, Client->m_Port, Client->m_Socket);
+    ok("New TCP client %s:%d (handle=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
     return Client;
 }
 
 
 Result<u32>
-DriverManager::TcpListener::SendSynchronous(const SOCKET ClientSocket, std::vector<u8> const& data)
+DriverManager::TcpClient::SendSynchronous(json const& js)
 {
-    if ( ClientSocket == INVALID_SOCKET )
+    if ( m_Socket == INVALID_SOCKET )
     {
         return Err(ErrorCode::UnexpectedStateError);
     }
 
+    std::string data    = js.dump();
     DWORD dwNbSentBytes = 0, dwFlags = 0;
     WSABUF DataBuf = {0};
     DataBuf.len    = (DWORD)data.size();
     DataBuf.buf    = (char*)data.data();
 
-    if ( ::WSASend(ClientSocket, &DataBuf, 1, &dwNbSentBytes, dwFlags, nullptr, nullptr) == SOCKET_ERROR )
+    if ( ::WSASend(m_Socket, &DataBuf, 1, &dwNbSentBytes, dwFlags, nullptr, nullptr) == SOCKET_ERROR )
     {
         CFB::Log::perror("WSASend");
         return Err(ErrorCode::NetworkError);
@@ -181,10 +178,10 @@ DriverManager::TcpListener::SendSynchronous(const SOCKET ClientSocket, std::vect
 }
 
 
-Result<std::vector<u8>>
-DriverManager::TcpListener::ReceiveSynchronous(const SOCKET ClientSocket)
+Result<json>
+DriverManager::TcpClient::ReceiveSynchronous()
 {
-    if ( ClientSocket == INVALID_SOCKET )
+    if ( m_Socket == INVALID_SOCKET )
     {
         return Err(ErrorCode::UnexpectedStateError);
     }
@@ -196,7 +193,7 @@ DriverManager::TcpListener::ReceiveSynchronous(const SOCKET ClientSocket)
     DataBuf.len    = CFB_BROKER_TCP_MAX_MESSAGE_SIZE;
     DataBuf.buf    = (char*)ReceivedDataBuffer.get();
 
-    int recv_result = ::WSARecv(ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, NULL, NULL);
+    int recv_result = ::WSARecv(m_Socket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, NULL, NULL);
     if ( recv_result == SOCKET_ERROR )
     {
         //
@@ -210,7 +207,7 @@ DriverManager::TcpListener::ReceiveSynchronous(const SOCKET ClientSocket)
 
         WSAOVERLAPPED Overlapped = {0};
 
-        recv_result = ::WSARecv(ClientSocket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, &Overlapped, NULL);
+        recv_result = ::WSARecv(m_Socket, &DataBuf, 1, &dwNbRecvBytes, &dwFlags, &Overlapped, NULL);
         if ( ::WSAGetLastError() != WSA_IO_PENDING )
         {
             CFB::Log::perror("ReceiveSynchronous::WSARecv(Pending)");
@@ -230,25 +227,20 @@ DriverManager::TcpListener::ReceiveSynchronous(const SOCKET ClientSocket)
                 break;
             }
             ::WSAResetEvent(Overlapped.hEvent);
-            ::WSAGetOverlappedResult(ClientSocket, &Overlapped, &dwNbRecvBytes, false, &dwFlags);
+            ::WSAGetOverlappedResult(m_Socket, &Overlapped, &dwNbRecvBytes, false, &dwFlags);
             ZeroMemory(&Overlapped, sizeof(WSAOVERLAPPED));
             break;
         }
     }
 
-    std::vector<u8> res;
-    res.resize(dwNbRecvBytes);
-    ::RtlCopyMemory(res.data(), ReceivedDataBuffer.get(), dwNbRecvBytes);
-    return res;
+    return json::parse(ReceivedDataBuffer.get());
 }
 
 
 u32
-TcpClientRoutine(LPVOID lpParameter)
+TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> Client)
 {
-    DWORD dwRetCode         = ERROR_SUCCESS;
-    PULONG_PTR lpParameters = (PULONG_PTR)lpParameter;
-    SOCKET ClientSocket     = (SOCKET)lpParameters[0];
+    DWORD dwRetCode = ERROR_SUCCESS;
 
     std::vector<HANDLE> handles;
     handles.push_back(Globals.TerminationEvent());
@@ -264,7 +256,7 @@ TcpClientRoutine(LPVOID lpParameter)
         return SOCKET_ERROR;
     }
 
-    if ( ::WSAEventSelect(ClientSocket, hEvent.get(), FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR )
+    if ( ::WSAEventSelect(Client->m_Socket, hEvent.get(), FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR )
     {
         CFB::Log::perror("WSAEventSelect()");
         return SOCKET_ERROR;
@@ -302,10 +294,8 @@ TcpClientRoutine(LPVOID lpParameter)
         //
         // handle the data sent / recv
         //
-        WSANETWORKEVENTS Events = {
-            0,
-        };
-        if ( ::WSAEnumNetworkEvents(ClientSocket, hEvent.get(), &Events) == SOCKET_ERROR )
+        WSANETWORKEVENTS Events = {0};
+        if ( ::WSAEnumNetworkEvents(Client->m_Socket, hEvent.get(), &Events) == SOCKET_ERROR )
         {
             err("WSAEnumNetworkEvents() failed with 0x%x", ::WSAGetLastError());
             continue;
@@ -313,9 +303,9 @@ TcpClientRoutine(LPVOID lpParameter)
 
         if ( Events.lNetworkEvents & FD_CLOSE )
         {
-            dbg("gracefully disconnecting handle=0x%x", ClientSocket);
+            dbg("gracefully disconnecting handle=0x%x", Client->m_Socket);
             dwRetCode = ERROR_SUCCESS;
-            ok("TCP client handle=%d disconnected", ClientSocket);
+            ok("TCP client handle=%d disconnected", Client->m_Socket);
             break;
         }
 
@@ -327,18 +317,39 @@ TcpClientRoutine(LPVOID lpParameter)
             }
 
             //
-            // if here, process the requests (there may be multiple task per read)
+            // 1. if here, process the requests
             //
+            json Request;
+            {
+                auto res = Client->ReceiveSynchronous();
+                if ( Failed(res) )
+                {
+                    warn("ReceiveSynchronous() failed with %x", Error(res).code);
+                    continue;
+                }
+
+                Request = Value(res);
+            }
 
             //
-            // TODO:
-            // 1. read the request from socket and handle it
-            // 2. push it to the driver manager
-            // 3. wait for response
-            // 4. send back
+            // 2. let to the driver manager execute the command
             //
+            json Response;
+            auto res = Globals.DriverManager()->ExecuteCommand(Request);
+            if ( Failed(res) )
+            {
+                Response["error_code"] = Error(res).code;
+            }
+            else
+            {
+                Response["error_code"] = 0;
+                Response["body"]       = Value(res);
+            }
 
-            // ReceiveSynchronous(ClientSocket)
+            //
+            // 3. send the response back
+            //
+            Client->SendSynchronous(Response);
         }
         catch ( ... )
         {
@@ -365,79 +376,87 @@ DriverManager::TcpListener::RunForever()
         return ERROR_INVALID_PARAMETER;
     }
 
-    dbg("TCP socket ready");
-
-    DWORD retcode        = ERROR_SUCCESS;
-    HANDLE hNetworkEvent = ::WSACreateEvent();
-    if ( ::WSAEventSelect(m_ServerSocket, hNetworkEvent, FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR )
+    DWORD retcode   = ERROR_SUCCESS;
+    bool is_running = false;
+    wil::unique_handle hNetworkEvent(::WSACreateEvent());
+    if ( ::WSAEventSelect(m_ServerSocket, hNetworkEvent.get(), FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR )
     {
         CFB::Log::perror("DriverManager::TcpListener::RunForever::WSAEventSelect()");
         return ::WSAGetLastError();
     }
 
-    while ( true )
+
+    is_running = true;
+
+    while ( is_running )
     {
+        //
+        // Collect all events/handles to wait on
+        //
+        std::vector<HANDLE> Handles {Globals.TerminationEvent(), hNetworkEvent.get()};
+
+        for ( auto const& cli : m_Clients )
+        {
+            Handles.push_back(cli->m_hThread);
+        }
+
         //
         // Wait for an event either of termination, from the network or any client thread
         //
-        std::vector<HANDLE> Handles {Globals.TerminationEvent(), hNetworkEvent};
-        for ( auto const& Client : m_Clients )
-        {
-            Handles.push_back(Client->m_hThread);
-        }
+        DWORD ret = ::WSAWaitForMultipleEvents((DWORD)Handles.size(), Handles.data(), false, WSA_INFINITE, false);
 
-        DWORD dwIndex = ::WSAWaitForMultipleEvents((DWORD)Handles.size(), Handles.data(), false, INFINITE, false) -
-                        WSA_WAIT_EVENT_0;
-
-        if ( dwIndex < 0 || dwIndex >= Handles.size() )
+        if ( ret == WSA_WAIT_FAILED || ret == WSA_WAIT_TIMEOUT )
         {
             CFB::Log::perror("DriverManager::TcpListener::RunForever::WSAWaitForMultipleEvents()");
             Globals.Stop();
             break;
         }
 
+        DWORD dwIndex = ret - WSA_WAIT_EVENT_0;
+
         ::WSAResetEvent(Handles.at(dwIndex));
 
         switch ( dwIndex )
         {
         case 0:
-            dbg("[TcpListener] received termination event");
+            dbg("[TcpListener] Global stop requested...");
+            is_running = false;
             break;
 
         case 1:
         {
             WSANETWORKEVENTS Events = {0};
-            ::WSAEnumNetworkEvents(m_ServerSocket, hNetworkEvent, &Events);
+            ::WSAEnumNetworkEvents(m_ServerSocket, hNetworkEvent.get(), &Events);
 
             if ( Events.lNetworkEvents & FD_CLOSE )
             {
                 //
                 // if it's a TCP_CLOSE, find the client from the handle, and terminate it
                 //
-                HANDLE hTarget          = Handles.at(dwIndex);
-                auto FindClientByHandle = [&hTarget](auto const& e)
+                const HANDLE hTarget    = Handles.at(dwIndex);
+                auto FindClientByHandle = [&hTarget](std::shared_ptr<TcpClient> const& cli) -> bool
                 {
-                    return e->m_hThread == hTarget;
+                    return cli->m_hThread == hTarget;
                 };
 
                 auto erased = std::erase_if(m_Clients, FindClientByHandle);
                 if ( erased != 1 )
                 {
-                    throw std::runtime_error("Unexpected size for found client");
+                    err("[TCP_CLOSE] Unexpected size for found client");
                 }
+                break;
             }
-            else
+
+            if ( Events.lNetworkEvents & FD_ACCEPT )
             {
                 //
                 // it's a TCP_SYN, so accept the connection and spawn the thread handling the requests
                 //
-                std::unique_ptr<TcpClient> Client = Accept();
+                std::shared_ptr<TcpClient> Client = Accept();
                 if ( Client == nullptr )
                 {
                     continue;
                 }
-
-                PULONG_PTR args[1] = {(PULONG_PTR)Client->m_Socket};
 
                 //
                 // start a thread to handle the new connection
@@ -446,7 +465,7 @@ DriverManager::TcpListener::RunForever()
                     nullptr,
                     0,
                     (LPTHREAD_START_ROUTINE)TcpClientRoutine,
-                    args,
+                    &Client,
                     0,
                     reinterpret_cast<LPDWORD>(&Client->m_ThreadId));
                 if ( !Client->m_hThread )
@@ -455,8 +474,12 @@ DriverManager::TcpListener::RunForever()
                     continue;
                 }
 
-                m_Clients.push_back(std::move(Client));
+                m_Clients.push_back(Client);
+                break;
             }
+
+            err("DriverManager::TcpListener::RunForever::WSAEnumNetworkEvents(): unknown network event value %.08x",
+                Events.lNetworkEvents);
             break;
         }
 
@@ -465,14 +488,23 @@ DriverManager::TcpListener::RunForever()
             // if here, we've received the event of EOL from the client thread, so we clean up and continue looping
             //
             dbg("[TcpListener] default event_handle[%d], closing tcp client thread...", dwIndex);
-            const HANDLE hTarget    = Handles.at(dwIndex);
-            auto FindClientByHandle = [&hTarget](auto const& e)
-            {
-                return e->m_hThread == hTarget;
-            };
+            const HANDLE hTarget = Handles.at(dwIndex);
 
-            auto erased = std::erase_if(m_Clients, FindClientByHandle);
-            break;
+            //
+            // Delete the entry in the client list
+            //
+            {
+                auto FindClientByHandle = [&hTarget](auto const& e) -> bool
+                {
+                    return e->m_hThread == hTarget;
+                };
+
+                auto erased = std::erase_if(m_Clients, FindClientByHandle);
+                if ( erased != 1 )
+                {
+                    warn("Unexpected size for found client, erased_nb = %d", erased);
+                }
+            }
         }
     }
 
@@ -480,7 +512,7 @@ DriverManager::TcpListener::RunForever()
 }
 
 
-DriverManager::TcpListener::TcpClient::~TcpClient()
+DriverManager::TcpClient::~TcpClient()
 {
     dbg("Terminating TcpClient(%d, TID=%d)", m_Id, m_ThreadId);
     ::closesocket(m_Socket);

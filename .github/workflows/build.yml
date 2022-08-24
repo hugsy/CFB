@@ -1,4 +1,4 @@
-name: Build Broker and Driver
+name: "Build Broker and Driver"
 
 on: [push, pull_request]
 

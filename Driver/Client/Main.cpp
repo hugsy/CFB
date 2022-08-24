@@ -42,14 +42,16 @@ bool
 hook_driver(HANDLE hFile, std::string const& arg)
 {
     DWORD nbBytesReturned       = 0;
-    IoMessage msg               = {0};
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = driver_name.length() * 2;
     const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
 
-    ::RtlCopyMemory(msg.DriverName, driver_name.data(), msglen);
+    CFB::Comms::DriverRequest msg;
+    msg.Id = CFB::Comms::RequestId::HookDriver;
+    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
 
-    bool bSuccess = ::DeviceIoControl(hFile, IOCTL_HookDriver, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess =
+        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
     info("HookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -65,10 +67,13 @@ unhook_driver(HANDLE hFile, std::string const& arg)
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = driver_name.length() * 2;
     const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
-    IoMessage msg               = {0};
-    ::RtlCopyMemory(msg.DriverName, driver_name.data(), msglen);
 
-    bool bSuccess = ::DeviceIoControl(hFile, IOCTL_UnhookDriver, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
+    CFB::Comms::DriverRequest msg;
+    msg.Id = CFB::Comms::RequestId::UnhookDriver;
+    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
+
+    bool bSuccess =
+        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
     info("UnhookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -84,12 +89,13 @@ set_notif_handle(HANDLE hFile)
     DWORD nbBytesReturned = 0;
     HANDLE hEvent         = ::CreateEventA(nullptr, true, false, "CFB_IRP_EVENT");
 
-    IoMessage msg                  = {0};
-    msg.IrpNotificationEventHandle = hEvent;
-    const usize msglen             = std::min(sizeof(msg.IrpNotificationEventHandle), (usize)CFB_DRIVER_MAX_PATH);
+    CFB::Comms::DriverRequest msg;
+    msg.Id                              = CFB::Comms::RequestId::SetEventPointer;
+    msg.Data.IrpNotificationEventHandle = hEvent;
+    const usize msglen = std::min(sizeof(msg.Data.IrpNotificationEventHandle), (usize)CFB_DRIVER_MAX_PATH);
 
     bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_SetEventPointer, &msg, msglen, nullptr, 0, &nbBytesReturned, nullptr);
+        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
     info("SetEventPointer() returned %s", boolstr(bSuccess));
 
     if ( bSuccess )
@@ -107,8 +113,7 @@ bool
 get_size(HANDLE hFile)
 {
     DWORD nbBytesReturned = 0;
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_GetNumberOfDrivers, nullptr, 0, nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess = ::DeviceIoControl(hFile, IOCTL_ControlDriver, nullptr, 0, nullptr, 0, &nbBytesReturned, nullptr);
     info("GetNumberOfDrivers() returned %s", boolstr(bSuccess));
 
     if ( bSuccess )
@@ -125,19 +130,14 @@ toggle_monitoring(HANDLE hFile, std::string const& arg, bool enable)
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = driver_name.length() * 2;
     const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
-    IoMessage msg               = {0};
-    ::RtlCopyMemory(msg.DriverName, driver_name.data(), msglen);
+
+    CFB::Comms::DriverRequest msg;
+    msg.Id = (enable == true) ? CFB::Comms::RequestId::EnableMonitoring : CFB::Comms::RequestId::DisableMonitoring;
+    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
 
     DWORD nbBytesReturned = 0;
-    bool bSuccess         = ::DeviceIoControl(
-        hFile,
-        enable == true ? IOCTL_EnableMonitoring : IOCTL_DisableMonitoring,
-        &msg,
-        msglen,
-        nullptr,
-        0,
-        &nbBytesReturned,
-        nullptr);
+    bool bSuccess =
+        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
     info("toggle_monitoring(%s) returned %s", boolstr(enable), boolstr(bSuccess));
 
     return bSuccess;

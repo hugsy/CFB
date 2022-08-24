@@ -6,6 +6,8 @@
 #include "Context.hpp"
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
+#include "Messages.hpp"
+
 
 using namespace std::literals::chrono_literals;
 
@@ -77,13 +79,16 @@ IrpManager::Setup()
     //
     {
         DWORD dwNbBytesReturned;
-        HANDLE hEvent = m_hNewIrpEvent.get();
+
+        CFB::Comms::DriverRequest req;
+        req.Id                              = CFB::Comms::RequestId::SetEventPointer;
+        req.Data.IrpNotificationEventHandle = m_hNewIrpEvent.get();
 
         if ( ::DeviceIoControl(
                  m_hDevice.get(),
-                 IOCTL_SetEventPointer,
-                 &hEvent,
-                 sizeof(HANDLE),
+                 IOCTL_ControlDriver,
+                 &req,
+                 sizeof(req),
                  nullptr,
                  0,
                  &dwNbBytesReturned,

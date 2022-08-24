@@ -1,9 +1,13 @@
-
 #include "DriverManager.hpp"
 
+#include <codecvt>
+#include <locale>
+
+#include "BrokerUtils.hpp"
 #include "Context.hpp"
 #include "Error.hpp"
 #include "Log.hpp"
+#include "Messages.hpp"
 #include "States.hpp"
 
 
@@ -67,23 +71,61 @@ DriverManager::Setup()
     return Ok(true);
 }
 
-
-Result<u32>
-DriverManager::SendIoctl()
+Result<json>
+DriverManager::ExecuteCommand(json const& Request)
 {
-    return Ok(0);
-}
+    std::lock_guard lock(m_ManagerLock);
+    json Response;
 
-/*
-auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
-if ( Success(res) )
-{
-    for ( auto const& entry : Value(res) )
+    switch ( Request["id"].get<CFB::Comms::RequestId>() )
     {
-        auto const& wname = entry.first;
-        std::wcout << L"\\driver\\" << wname << std::endl;
+    case CFB::Comms::RequestId::EnumerateDriverObject:
+    {
+        auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
+        if ( Success(res) )
+        {
+            Response["errcode"] = 0;
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+            for ( auto const& entry : Value(res) )
+            {
+                std::wstring res = L"\\driver\\" + entry.first;
+                Response["body"].push_back(cvt.to_bytes(res));
+            }
+        }
+        else
+        {
+            Response["errcode"] = 1;
+        }
+        break;
     }
+
+    case CFB::Comms::RequestId::EnumerateDeviceObject:
+    {
+        auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Device");
+        if ( Success(res) )
+        {
+            Response["errcode"] = 0;
+            std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
+            for ( auto const& entry : Value(res) )
+            {
+                std::wstring res = L"\\Device\\" + entry.first;
+                Response["body"].push_back(cvt.to_bytes(res));
+            }
+        }
+        else
+        {
+            Response["errcode"] = 1;
+        }
+        break;
+    }
+
+
+    default:
+        return Err(ErrorCode::InvalidRequestId);
+    }
+
+    return Ok(Response);
 }
-*/
+
 
 } // namespace CFB::Broker
