@@ -279,6 +279,8 @@ public:
 
     KUnicodeString(const wchar_t* src, const POOL_TYPE type = NonPagedPoolNx);
 
+    KUnicodeString(const wchar_t* src, const u16 srclen, const POOL_TYPE type = NonPagedPoolNx);
+
     ~KUnicodeString();
 
     KUnicodeString&
@@ -287,9 +289,9 @@ public:
         dbg("In KUnicodeString::operator=(const KUnicodeString&&)");
         if ( this != &other )
         {
-            _len    = other._len;
-            _buffer = other._buffer;
-            ::RtlCopyMemory(&_str, other.get(), sizeof(UNICODE_STRING));
+            m_len    = other.m_len;
+            m_buffer = other.m_buffer;
+            ::RtlCopyMemory(&m_str, other.get(), sizeof(UNICODE_STRING));
         }
         return *this;
     }
@@ -297,7 +299,7 @@ public:
     friend bool
     operator==(KUnicodeString const& lhs, KUnicodeString const& rhs)
     {
-        return lhs._len == rhs._len && lhs._buffer == rhs._buffer;
+        return lhs.m_len == rhs.m_len && lhs.m_buffer == rhs.m_buffer;
     }
 
     bool
@@ -326,9 +328,9 @@ public:
     size() const;
 
 protected:
-    usize _len;
-    UNICODE_STRING _str;
-    KAlloc<wchar_t*> _buffer;
+    usize m_len;
+    UNICODE_STRING m_str;
+    KAlloc<wchar_t*> m_buffer;
 };
 
 

@@ -1,5 +1,9 @@
 #include "DriverUtils.hpp"
 
+#ifndef USHRT_MAX
+#define USHRT_MAX ((1 << (sizeof(u16) * 8)) - 1)
+#endif // USHRT_MAX
+
 
 ///
 /// @brief Basic allocator/deallocator for the kernel
@@ -43,18 +47,24 @@ namespace CFB::Driver::Utils
 
 #pragma region KUnicodeString
 
-KUnicodeString::KUnicodeString(const wchar_t* src, const POOL_TYPE type)
+KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srclen, const POOL_TYPE type)
 {
     dbg("KUnicodeString::KUnicodeString('%S')", src);
-    _len    = ::wcslen(src);
-    _buffer = KAlloc<wchar_t*>((_len + 1) * sizeof(wchar_t), CFB_DEVICE_TAG, type);
-    ::RtlCopyMemory(_buffer.get(), src, size());
-    ::RtlInitUnicodeString(&_str, _buffer.get());
+    m_len    = min(srclen, USHRT_MAX - 2) + 1;
+    m_buffer = KAlloc<wchar_t*>(size(), CFB_DEVICE_TAG, type);
+    ::RtlCopyMemory(m_buffer.get(), src, size());
+    ::RtlInitUnicodeString(&m_str, m_buffer.get());
+}
+
+KUnicodeString::KUnicodeString(const wchar_t* src, const POOL_TYPE type)
+{
+    const u16 sz = min(::wcslen(src), USHRT_MAX - 2) + 1;
+    KUnicodeString::KUnicodeString(src, sz, type);
 }
 
 KUnicodeString::KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type)
 {
-    KUnicodeString::KUnicodeString(src->Buffer, type);
+    KUnicodeString::KUnicodeString(src->Buffer, src->Length, type);
 }
 
 const usize
@@ -66,18 +76,18 @@ KUnicodeString::size() const
 const usize
 KUnicodeString::length() const
 {
-    return _len;
+    return m_len;
 }
 
 KUnicodeString::~KUnicodeString()
 {
-    dbg("KUnicodeString::~KUnicodeString(%p)", _str);
+    dbg("KUnicodeString::~KUnicodeString(%p)", m_str);
 }
 
 const PUNICODE_STRING
 KUnicodeString::get()
 {
-    return &_str;
+    return &m_str;
 }
 
 #pragma endregion

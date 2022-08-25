@@ -56,11 +56,12 @@ public:
     /// @brief
     ///
     /// @param Path
+    /// @param PathLength
+    ///
     /// @return NTSTATUS
     ///
     NTSTATUS
     InsertDriver(const wchar_t* Path);
-
     ///
     /// @brief
     ///

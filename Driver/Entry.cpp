@@ -199,6 +199,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     case IOCTL_GetNumberOfDrivers:
     {
         dwDataWritten = Globals->DriverManager.Items().Size();
+        Status        = STATUS_SUCCESS;
         break;
     }
 
