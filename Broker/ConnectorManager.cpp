@@ -36,6 +36,7 @@ ConnectorManager::Setup()
     //
     // Register the callback for all the connectors found
     //
+    // TODO
 
     //
     // Notify other threads that the Collector Manager is ready

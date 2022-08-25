@@ -147,7 +147,7 @@ DriverManager::TcpListener::Accept()
         Ipv4AddressClient,
         ::ntohs(SockInfoClient.sin_port),
         -1,
-        INVALID_HANDLE_VALUE);
+        nullptr);
 
     ok("New TCP client %s:%d (handle=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
     return Client;
@@ -233,17 +233,21 @@ DriverManager::TcpClient::ReceiveSynchronous()
         }
     }
 
-    return json::parse(ReceivedDataBuffer.get());
+    std::string s(ReceivedDataBuffer.get(), ReceivedDataBuffer.get() + dwNbRecvBytes);
+    s.resize(dwNbRecvBytes);
+    return json::parse(s);
 }
 
 
 u32
-TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> Client)
+TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
 {
     DWORD dwRetCode = ERROR_SUCCESS;
 
     std::vector<HANDLE> handles;
     handles.push_back(Globals.TerminationEvent());
+
+    std::shared_ptr<DriverManager::TcpClient> Client = pClient;
 
     //
     // Create the socket notification event for read, write and disconnection
@@ -316,10 +320,10 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> Client)
                 continue;
             }
 
+            json Request, Response;
             //
             // 1. if here, process the requests
             //
-            json Request;
             {
                 auto res = Client->ReceiveSynchronous();
                 if ( Failed(res) )
@@ -334,16 +338,17 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> Client)
             //
             // 2. let to the driver manager execute the command
             //
-            json Response;
-            auto res = Globals.DriverManager()->ExecuteCommand(Request);
-            if ( Failed(res) )
             {
-                Response["error_code"] = Error(res).code;
-            }
-            else
-            {
-                Response["error_code"] = 0;
-                Response["body"]       = Value(res);
+                auto res = Globals.DriverManager()->ExecuteCommand(Request);
+                if ( Failed(res) )
+                {
+                    Response["error_code"] = Error(res).code;
+                }
+                else
+                {
+                    Response["error_code"] = 0;
+                    Response["body"]       = Value(res);
+                }
             }
 
             //
@@ -396,7 +401,7 @@ DriverManager::TcpListener::RunForever()
 
         for ( auto const& cli : m_Clients )
         {
-            Handles.push_back(cli->m_hThread);
+            Handles.push_back(cli->m_hThread.get());
         }
 
         //
@@ -435,7 +440,7 @@ DriverManager::TcpListener::RunForever()
                 const HANDLE hTarget    = Handles.at(dwIndex);
                 auto FindClientByHandle = [&hTarget](std::shared_ptr<TcpClient> const& cli) -> bool
                 {
-                    return cli->m_hThread == hTarget;
+                    return cli->m_hThread.get() == hTarget;
                 };
 
                 auto erased = std::erase_if(m_Clients, FindClientByHandle);
@@ -460,19 +465,26 @@ DriverManager::TcpListener::RunForever()
                 //
                 // start a thread to handle the new connection
                 //
-                Client->m_hThread = ::CreateThread(
-                    nullptr,
-                    0,
-                    (LPTHREAD_START_ROUTINE)TcpClientRoutine,
-                    &Client,
-                    0,
-                    reinterpret_cast<LPDWORD>(&Client->m_ThreadId));
-                if ( !Client->m_hThread )
                 {
-                    CFB::Log::perror("CreateThread(TcpClientRoutine)");
-                    continue;
+                    DWORD dwThreadId;
+                    wil::unique_handle hThread(::CreateThread(
+                        nullptr,
+                        0,
+                        (LPTHREAD_START_ROUTINE)TcpClientRoutine,
+                        &Client,
+                        THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
+                        reinterpret_cast<LPDWORD>(&dwThreadId)));
+                    if ( !hThread )
+                    {
+                        CFB::Log::perror("CreateThread(TcpClientRoutine)");
+                        continue;
+                    }
+
+                    Client->m_hThread  = std::move(hThread);
+                    Client->m_ThreadId = dwThreadId;
                 }
 
+                ::ResumeThread(Client->m_hThread.get());
                 m_Clients.push_back(Client);
                 break;
             }
@@ -486,19 +498,19 @@ DriverManager::TcpListener::RunForever()
             //
             // if here, we've received the event of EOL from the client thread, so we clean up and continue looping
             //
-            dbg("[TcpListener] default event_handle[%d], closing tcp client thread...", dwIndex);
             const HANDLE hTarget = Handles.at(dwIndex);
+            dbg("[TcpListener] handling event_index=%d, thread_handle=%p", dwIndex, hTarget);
 
             //
             // Delete the entry in the client list
             //
             {
-                auto FindClientByHandle = [&hTarget](auto const& e) -> bool
+                auto FindClientByHandle = [&hTarget](std::shared_ptr<TcpClient> const& cli) -> bool
                 {
-                    return e->m_hThread == hTarget;
+                    return (cli->m_hThread.get() == hTarget);
                 };
 
-                auto erased = std::erase_if(m_Clients, FindClientByHandle);
+                auto const erased = std::erase_if(m_Clients, FindClientByHandle);
                 if ( erased != 1 )
                 {
                     warn("Unexpected size for found client, erased_nb = %d", erased);
@@ -513,9 +525,8 @@ DriverManager::TcpListener::RunForever()
 
 DriverManager::TcpClient::~TcpClient()
 {
-    dbg("Terminating TcpClient(%d, TID=%d)", m_Id, m_ThreadId);
+    dbg("Terminating TcpClient(Id=%d, TID=%d)", m_Id, m_ThreadId);
     ::closesocket(m_Socket);
-    ::CloseHandle(m_hThread);
 }
 
 

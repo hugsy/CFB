@@ -45,7 +45,7 @@ public:
         const std::string m_IpAddress;
         const u16 m_Port;
         u32 m_ThreadId;
-        HANDLE m_hThread;
+        wil::unique_handle m_hThread;
     };
 
 
@@ -159,10 +159,6 @@ public:
     ///
     Result<json>
     ExecuteCommand(json const& Request);
-
-    Result<CFB::Comms::DriverResponse>
-    SendIoctlRequest(CFB::Comms::DriverRequest const& msg);
-
 
 private:
     ///

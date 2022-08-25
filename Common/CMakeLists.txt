@@ -10,7 +10,6 @@ set(
 
     ${COMMON_HEADER_DIR}/Common.hpp
     ${COMMON_HEADER_DIR}/Log.hpp
-    ${COMMON_HEADER_DIR}/Messages.hpp
     ${COMMON_HEADER_DIR}/Utils.hpp
     ${COMMON_HEADER_DIR}/IoctlCodes.hpp
 )
@@ -61,7 +60,13 @@ add_library(CommonLibUser
     ${COMMON_HEADER_FILES}
 )
 
-target_include_directories(CommonLibUser INTERFACE ${COMMON_SOURCE_DIR} PUBLIC ${CFB_DEPENDENCIES}/phnt)
+target_include_directories(CommonLibUser
+    INTERFACE
+    ${COMMON_SOURCE_DIR}
+    PUBLIC
+    ${CFB_DEPENDENCIES}/json
+    ${CFB_DEPENDENCIES}/phnt
+)
 
 if(DEBUG)
     target_compile_definitions(CommonLibUser PRIVATE _DEBUG=1 DEBUG=1)

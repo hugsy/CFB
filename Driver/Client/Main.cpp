@@ -6,8 +6,10 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <stdexcept>
+#include <codecvt>
 #include <iostream>
+#include <locale>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -18,40 +20,38 @@
 #include "Common.hpp"
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
-#include "Messages.hpp"
+
 // clang-format on
 
 #define PLURAL_IF(x) ((x) ? "s" : "")
 
 #pragma warning(push)
 #pragma warning(disable : 4244) // bad but only for tests
+
+static std::wstring_convert<std::codecvt_utf8<wchar_t>> g_converter;
+
 std::string
 ws2s(std::wstring const& ws)
 {
-    return std::string(ws.begin(), ws.end());
+    return g_converter.to_bytes(ws);
 }
 
 std::wstring
 s2ws(std::string const& s)
 {
-    return std::wstring(s.begin(), s.end());
+    return g_converter.from_bytes(s);
 }
 #pragma warning(pop)
 
 bool
 hook_driver(HANDLE hFile, std::string const& arg)
 {
-    DWORD nbBytesReturned       = 0;
+    DWORD nb                    = 0;
     std::wstring driver_name    = s2ws(arg);
-    const usize driver_name_len = driver_name.length() * 2;
-    const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
-
-    CFB::Comms::DriverRequest msg;
-    msg.Id = CFB::Comms::RequestId::HookDriver;
-    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
+    const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
     bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
+        ::DeviceIoControl(hFile, IOCTL_HookDriver, driver_name.data(), driver_name_len, nullptr, 0, &nb, nullptr);
     info("HookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -63,17 +63,12 @@ hook_driver(HANDLE hFile, std::string const& arg)
 bool
 unhook_driver(HANDLE hFile, std::string const& arg)
 {
-    DWORD nbBytesReturned       = 0;
+    DWORD nb                    = 0;
     std::wstring driver_name    = s2ws(arg);
-    const usize driver_name_len = driver_name.length() * 2;
-    const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
-
-    CFB::Comms::DriverRequest msg;
-    msg.Id = CFB::Comms::RequestId::UnhookDriver;
-    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
+    const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
     bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
+        ::DeviceIoControl(hFile, IOCTL_UnhookDriver, driver_name.data(), driver_name_len, nullptr, 0, &nb, nullptr);
     info("UnhookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -89,13 +84,8 @@ set_notif_handle(HANDLE hFile)
     DWORD nbBytesReturned = 0;
     HANDLE hEvent         = ::CreateEventA(nullptr, true, false, "CFB_IRP_EVENT");
 
-    CFB::Comms::DriverRequest msg;
-    msg.Id                              = CFB::Comms::RequestId::SetEventPointer;
-    msg.Data.IrpNotificationEventHandle = hEvent;
-    const usize msglen = std::min(sizeof(msg.Data.IrpNotificationEventHandle), (usize)CFB_DRIVER_MAX_PATH);
-
     bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
+        ::DeviceIoControl(hFile, IOCTL_SetEventPointer, &hEvent, sizeof(HANDLE), nullptr, 0, &nbBytesReturned, nullptr);
     info("SetEventPointer() returned %s", boolstr(bSuccess));
 
     if ( bSuccess )
@@ -113,7 +103,8 @@ bool
 get_size(HANDLE hFile)
 {
     DWORD nbBytesReturned = 0;
-    bool bSuccess = ::DeviceIoControl(hFile, IOCTL_ControlDriver, nullptr, 0, nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess =
+        ::DeviceIoControl(hFile, IOCTL_GetNumberOfDrivers, nullptr, 0, nullptr, 0, &nbBytesReturned, nullptr);
     info("GetNumberOfDrivers() returned %s", boolstr(bSuccess));
 
     if ( bSuccess )
@@ -131,13 +122,16 @@ toggle_monitoring(HANDLE hFile, std::string const& arg, bool enable)
     const usize driver_name_len = driver_name.length() * 2;
     const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
 
-    CFB::Comms::DriverRequest msg;
-    msg.Id = (enable == true) ? CFB::Comms::RequestId::EnableMonitoring : CFB::Comms::RequestId::DisableMonitoring;
-    ::RtlCopyMemory(msg.Data.DriverName, driver_name.data(), msglen);
-
     DWORD nbBytesReturned = 0;
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_ControlDriver, &msg, sizeof(msg), nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess         = ::DeviceIoControl(
+        hFile,
+        IOCTL_ControlDriver,
+        driver_name.data(),
+        msglen,
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
     info("toggle_monitoring(%s) returned %s", boolstr(enable), boolstr(bSuccess));
 
     return bSuccess;

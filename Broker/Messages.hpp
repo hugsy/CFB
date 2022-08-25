@@ -1,6 +1,12 @@
 #pragma once
 
+// clang-format off
 #include "Common.hpp"
+
+#include "json.hpp"
+using json = nlohmann::json;
+// clang-format on
+
 
 namespace CFB::Comms
 {
@@ -30,13 +36,20 @@ enum class RequestId : uptr
 
 struct DriverRequest
 {
+    ///
+    /// @brief Mandatory request type id
+    ///
+    ///
     RequestId Id = RequestId::InvalidId;
 
-    union
-    {
-        wchar_t DriverName[CFB_DRIVER_MAX_PATH];
-        HANDLE IrpNotificationEventHandle;
-    } Data = {0};
+    ///
+    /// @brief Driver name as a wstring, used for
+    /// - HookDriver
+    /// - UnhookDriver
+    /// - EnableDriver
+    /// - DisableDriver
+    ///
+    std::wstring DriverName;
 };
 
 
@@ -53,5 +66,27 @@ struct DriverResponse
         u8 Data[1];
     } Body;
 };
+
+//
+// JSON Converters
+//
+
+///
+/// @brief DriverRequest -> JSON
+///
+/// @param dst
+/// @param src
+///
+void
+to_json(json& dst, const DriverRequest& src);
+
+///
+/// @brief JOSN -> DriverRequest
+///
+/// @param src
+/// @param dst
+///
+void
+from_json(const json& src, DriverRequest& dst);
 
 } // namespace CFB::Comms

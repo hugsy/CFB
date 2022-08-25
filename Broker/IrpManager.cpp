@@ -79,16 +79,13 @@ IrpManager::Setup()
     //
     {
         DWORD dwNbBytesReturned;
-
-        CFB::Comms::DriverRequest req;
-        req.Id                              = CFB::Comms::RequestId::SetEventPointer;
-        req.Data.IrpNotificationEventHandle = m_hNewIrpEvent.get();
+        const HANDLE hTarget = m_hNewIrpEvent.get();
 
         if ( ::DeviceIoControl(
                  m_hDevice.get(),
-                 IOCTL_ControlDriver,
-                 &req,
-                 sizeof(req),
+                 IOCTL_SetEventPointer,
+                 (LPVOID)&hTarget,
+                 sizeof(hTarget),
                  nullptr,
                  0,
                  &dwNbBytesReturned,
@@ -118,6 +115,8 @@ IrpManager::Run()
     // start collecting IRPs
     //
     WaitForState(CFB::Broker::State::ConnectorManagerReady);
+
+    xdbg("Waiting for intercepted IRP...");
 
     //
     // The IRP Manager waits for either a termination event or a new IRP event

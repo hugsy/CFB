@@ -74,60 +74,39 @@ DriverManager::Setup()
 }
 
 
-Result<CFB::Comms::DriverResponse>
-DriverManager::SendIoctlRequest(CFB::Comms::DriverRequest const& msg)
-{
-    DWORD nbBytesReturned;
-    CFB::Comms::DriverResponse Response;
-
-    bool bSuccess = ::DeviceIoControl(
-        m_hDevice.get(),
-        IOCTL_ControlDriver,
-        (LPVOID)&msg,
-        sizeof(CFB::Comms::DriverRequest),
-        nullptr,
-        0,
-        &nbBytesReturned,
-        nullptr);
-    info("DriverManager::SendIoctlRequest() returned %s", boolstr(bSuccess));
-
-    return Ok(Response);
-}
-
-
 Result<json>
 DriverManager::ExecuteCommand(json const& Request)
 {
     std::lock_guard lock(m_ManagerLock);
     json Response;
+    bool bSuccess = false;
+    DWORD nb      = 0;
 
     if ( Globals.State() <= CFB::Broker::State::ServiceManagerReady )
     {
         return Err(ErrorCode::DeviceNotInitialized);
     }
 
-    switch ( Request["id"].get<CFB::Comms::RequestId>() )
+
+    switch ( Request.at("id").get<CFB::Comms::RequestId>() )
     {
     case CFB::Comms::RequestId::HookDriver:
     {
-        CFB::Comms::DriverRequest msg;
-        msg.Id                    = CFB::Comms::RequestId::HookDriver;
-        std::string driver_name   = Request["driver_name"].get<std::string>();
-        std::wstring wdriver_name = g_converter.from_bytes(driver_name);
-        ::RtlCopyMemory(msg.Data.DriverName, wdriver_name.data(), wdriver_name.size() * 2);
-        Response["success"] = Success(SendIoctlRequest(msg));
+        auto msg         = Request.get<CFB::Comms::DriverRequest>();
+        auto data_in     = (LPVOID)msg.DriverName.data();
+        auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
+        Response["success"] =
+            ::DeviceIoControl(m_hDevice.get(), IOCTL_HookDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr);
         break;
     }
 
-
     case CFB::Comms::RequestId::UnhookDriver:
     {
-        CFB::Comms::DriverRequest msg;
-        msg.Id                    = CFB::Comms::RequestId::UnhookDriver;
-        std::string driver_name   = Request["driver_name"].get<std::string>();
-        std::wstring wdriver_name = g_converter.from_bytes(driver_name);
-        ::RtlCopyMemory(msg.Data.DriverName, wdriver_name.data(), wdriver_name.size() * 2);
-        Response["success"] = Success(SendIoctlRequest(msg));
+        auto msg         = Request.get<CFB::Comms::DriverRequest>();
+        auto data_in     = (LPVOID)msg.DriverName.data();
+        auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
+        Response["success"] =
+            ::DeviceIoControl(m_hDevice.get(), IOCTL_UnhookDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr);
         break;
     }
 
@@ -173,7 +152,6 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-
     case CFB::Comms::RequestId::DisableDriver:
     {
         break;
@@ -185,11 +163,10 @@ DriverManager::ExecuteCommand(json const& Request)
         if ( Success(res) )
         {
             Response["success"] = true;
-            std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
             for ( auto const& entry : Value(res) )
             {
                 std::wstring res = L"\\driver\\" + entry.first;
-                Response["body"].push_back(cvt.to_bytes(res));
+                Response["body"].push_back(g_converter.to_bytes(res));
             }
         }
         else

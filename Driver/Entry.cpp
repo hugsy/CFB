@@ -1,7 +1,6 @@
 #include "Common.hpp"
 #include "Context.hpp"
 #include "IoctlCodes.hpp"
-#include "Messages.hpp"
 #include "Utils.hpp"
 
 #define DEVICE_NAME CFB_DEVICE_NAME
@@ -167,58 +166,66 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
     NT_ASSERT(CurrentStack);
 
-    const ULONG IoctlCode = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
-    PVOID InputBuffer     = Irp->AssociatedIrp.SystemBuffer;
-    const ULONG InputBufferLen =
-        min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, sizeof(CFB::Comms::DriverRequest));
+    const ULONG IoctlCode       = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+    PVOID InputBuffer           = Irp->AssociatedIrp.SystemBuffer;
+    const ULONG InputBufferLen  = min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, CFB_DRIVER_MAX_PATH);
     PVOID OutputBuffer          = Irp->AssociatedIrp.SystemBuffer;
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
     ULONG dwDataWritten         = 0;
-    CFB::Comms::DriverRequest Request;
-    ::RtlCopyMemory(&Request, InputBuffer, InputBufferLen);
 
 #ifdef _DEBUG
-    CFB::Utils::Hexdump(&Request, InputBufferLen);
+    CFB::Utils::Hexdump(InputBuffer, InputBufferLen);
 #endif // _DEBUG
 
     dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
 
-    if ( IoctlCode != IOCTL_ControlDriver )
+
+    switch ( IoctlCode )
     {
-        return CompleteRequest(Irp, STATUS_INVALID_DEVICE_REQUEST, 0);
+    case IOCTL_HookDriver:
+    {
+        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
+        Status                    = Globals->DriverManager.InsertDriver(DriverName);
+        break;
     }
 
-    switch ( Request.Id )
+    case IOCTL_UnhookDriver:
     {
-    case CFB::Comms::RequestId::HookDriver:
-        Status = Globals->DriverManager.InsertDriver(Request.Data.DriverName);
+        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
+        Status                    = Globals->DriverManager.RemoveDriver(DriverName);
         break;
+    }
 
-    case CFB::Comms::RequestId::UnhookDriver:
-        Status = Globals->DriverManager.RemoveDriver(Request.Data.DriverName);
-        break;
-
-    case CFB::Comms::RequestId::GetNumberOfDrivers:
+    case IOCTL_GetNumberOfDrivers:
+    {
         dwDataWritten = Globals->DriverManager.Items().Size();
         break;
+    }
 
-    case CFB::Comms::RequestId::EnableMonitoring:
-        Status = Globals->DriverManager.SetMonitoringState(Request.Data.DriverName, true);
+    case IOCTL_EnableMonitoring:
+    {
+        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
+        Status                    = Globals->DriverManager.SetMonitoringState(DriverName, true);
         break;
+    }
 
-    case CFB::Comms::RequestId::DisableMonitoring:
-        Status = Globals->DriverManager.SetMonitoringState(Request.Data.DriverName, false);
+    case IOCTL_DisableMonitoring:
+    {
+        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
+        Status                    = Globals->DriverManager.SetMonitoringState(DriverName, false);
         break;
+    }
 
-    case CFB::Comms::RequestId::SetEventPointer:
-        Status = Globals->IrpManager.SetEvent(Request.Data.IrpNotificationEventHandle);
+    case IOCTL_SetEventPointer:
+    {
+        const HANDLE hEvent = *((PHANDLE)InputBuffer);
+        Status              = Globals->IrpManager.SetEvent(hEvent);
         break;
+    }
 
-        /*
     case IOCTL_GetDriverInfo:
-        Status = HandleIoGetDriverInfo( Irp, CurrentStack, &dwDataWritten);
-        break;
-        */
+    case IOCTL_EnableDriver:
+    case IOCTL_DisableDriver:
 
     default:
         err("Received invalid IOCTL code 0x%08x", IoctlCode);
