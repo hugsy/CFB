@@ -33,6 +33,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 
     dbg("HookedDriverManager::InsertDriver('%wZ', %p, %d)", UnicodePath, UnicodePath, UnicodePath->Length);
 
+
     //
     // Resolve the given `Path` parameter as name for Driver Object
     //
@@ -40,7 +41,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
         NTSTATUS Status = ::ObReferenceObjectByName(
             UnicodePath,
             OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-            NULL,
+            nullptr,
             0,
             *IoDriverObjectType,
             KernelMode,

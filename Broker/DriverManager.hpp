@@ -22,7 +22,53 @@ public:
     class TcpClient
     {
     public:
+        TcpClient() : m_Id {0}, m_Socket {0}, m_IpAddress {}, m_Port {0}, m_ThreadId {0}, m_hThread {nullptr}
+        {
+        }
+
+        /*
+        TcpClient(const usize id, const SOCKET socket, std::string const& host_ip, const u16 host_port) :
+            m_Id {id},
+            m_Socket {socket},
+            m_IpAddress {host_ip},
+            m_Port {host_port},
+            m_ThreadId {0},
+            m_hThread {nullptr}
+        {
+        }
+
+        ///
+        /// @brief Move-Construct a new TcpClient object
+        ///
+        /// @param src
+        ///
+        TcpClient(TcpClient&& other) :
+            m_Id {other.m_Id},
+            m_Socket {other.m_Socket},
+            m_Port {other.m_Port},
+            m_ThreadId {other.m_ThreadId}
+        {
+            m_IpAddress = std::move(other.m_IpAddress);
+            m_hThread   = std::move(other.m_hThread);
+        }
+        */
+
+
         ~TcpClient();
+        /*
+                TcpClient&
+                operator=(TcpClient&& other)
+                {
+                    m_Id        = other.m_Id;
+                    m_Socket    = other.m_Socket;
+                    m_IpAddress = other.m_IpAddress;
+                    m_Port      = other.m_Port;
+                    m_ThreadId  = other.m_ThreadId;
+                    m_IpAddress = std::move(other.m_IpAddress);
+                    m_hThread   = std::move(other.m_hThread);
+                    return *this;
+                }
+        */
 
         ///
         /// @brief Synchronous send
@@ -40,12 +86,12 @@ public:
         Result<json>
         ReceiveSynchronous();
 
-        const usize m_Id;
-        const SOCKET m_Socket;
-        const std::string m_IpAddress;
-        const u16 m_Port;
-        u32 m_ThreadId;
-        wil::unique_handle m_hThread;
+        usize m_Id      = 0;
+        SOCKET m_Socket = 0;
+        std::string m_IpAddress;
+        u16 m_Port                   = 0;
+        u32 m_ThreadId               = 0;
+        wil::unique_handle m_hThread = nullptr;
     };
 
 
@@ -83,7 +129,7 @@ public:
         ///
         /// @return SOCKET
         ///
-        std::shared_ptr<TcpClient>
+        Result<std::shared_ptr<TcpClient>>
         Accept();
 
         ///
@@ -152,8 +198,8 @@ public:
     Run();
 
     ///
-    /// @brief Takes a request Task, and creates and send a valid DeviceIoControl() to the IrpDumper driver. The
-    /// function also builds a response Task from the response of the DeviceIoControl().
+    /// @brief Execute command directly on the broker. This can be used to have the broker build commands directly
+    /// to the driver.
     ///
     /// @return Result<json>
     ///

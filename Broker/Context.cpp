@@ -175,16 +175,13 @@ GlobalContext::Stop()
 {
     bool res = true;
 
-    if ( !m_bIsShuttingDown )
-    {
-        m_bIsShuttingDown = true;
+    m_bIsShuttingDown = true;
 
-        res &= m_ServiceManager->NotifyTermination();
-        res &= m_ConnectorManager->NotifyTermination();
-        res &= m_IrpManager->NotifyTermination();
-        res &= m_DriverManager->NotifyTermination();
-        res &= (::SetEvent(m_hTerminationEvent.get()) == TRUE);
-    }
+    res &= m_ServiceManager->NotifyTermination();
+    res &= m_ConnectorManager->NotifyTermination();
+    res &= m_IrpManager->NotifyTermination();
+    res &= m_DriverManager->NotifyTermination();
+    res &= (::SetEvent(m_hTerminationEvent.get()) == TRUE);
 
     return res;
 }

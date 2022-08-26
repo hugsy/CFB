@@ -2,6 +2,8 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include <sstream>
+
 #include "DriverManager.hpp"
 #include "Context.hpp"
 #include "Log.hpp"
@@ -123,7 +125,7 @@ ConditionAcceptFunc(
 }
 
 
-std::shared_ptr<DriverManager::TcpClient>
+Result<std::shared_ptr<DriverManager::TcpClient>>
 DriverManager::TcpListener::Accept()
 {
     SOCKET ClientSocket        = INVALID_SOCKET;
@@ -135,22 +137,20 @@ DriverManager::TcpListener::Accept()
     if ( ClientSocket == INVALID_SOCKET )
     {
         err("WSAAccept() failed with WSAGetLastError=%#x", ::WSAGetLastError());
-        return nullptr;
+        return Err(ErrorCode::SocketInitializationFailed);
     }
 
     char Ipv4AddressClient[16] = {0};
     ::InetNtopA(AF_INET, &SockInfoClient.sin_addr.s_addr, Ipv4AddressClient, _countof(Ipv4AddressClient));
 
-    auto Client = std::make_shared<TcpClient>(
-        TotalClientCounter++,
-        ClientSocket,
-        Ipv4AddressClient,
-        ::ntohs(SockInfoClient.sin_port),
-        -1,
-        nullptr);
+    auto Client         = std::make_shared<TcpClient>();
+    Client->m_Id        = ++TotalClientCounter;
+    Client->m_Socket    = ClientSocket;
+    Client->m_IpAddress = Ipv4AddressClient;
+    Client->m_Port      = ::ntohs(SockInfoClient.sin_port);
 
-    ok("New TCP client %s:%d (handle=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
-    return Client;
+    ok("New TCP client %s:%d (hSocket=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
+    return Ok(Client);
 }
 
 
@@ -240,14 +240,12 @@ DriverManager::TcpClient::ReceiveSynchronous()
 
 
 u32
-TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
+TcpClientRoutine(DriverManager::TcpClient& Client)
 {
     DWORD dwRetCode = ERROR_SUCCESS;
 
     std::vector<HANDLE> handles;
     handles.push_back(Globals.TerminationEvent());
-
-    std::shared_ptr<DriverManager::TcpClient> Client = pClient;
 
     //
     // Create the socket notification event for read, write and disconnection
@@ -260,7 +258,7 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
         return SOCKET_ERROR;
     }
 
-    if ( ::WSAEventSelect(Client->m_Socket, hEvent.get(), FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR )
+    if ( ::WSAEventSelect(Client.m_Socket, hEvent.get(), FD_READ | FD_WRITE | FD_CLOSE) == SOCKET_ERROR )
     {
         CFB::Log::perror("WSAEventSelect()");
         return SOCKET_ERROR;
@@ -299,7 +297,7 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
         // handle the data sent / recv
         //
         WSANETWORKEVENTS Events = {0};
-        if ( ::WSAEnumNetworkEvents(Client->m_Socket, hEvent.get(), &Events) == SOCKET_ERROR )
+        if ( ::WSAEnumNetworkEvents(Client.m_Socket, hEvent.get(), &Events) == SOCKET_ERROR )
         {
             err("WSAEnumNetworkEvents() failed with 0x%x", ::WSAGetLastError());
             continue;
@@ -307,25 +305,28 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
 
         if ( Events.lNetworkEvents & FD_CLOSE )
         {
-            dbg("gracefully disconnecting handle=0x%x", Client->m_Socket);
             dwRetCode = ERROR_SUCCESS;
-            ok("TCP client handle=%d disconnected", Client->m_Socket);
             break;
         }
 
-        try
-        {
-            if ( (Events.lNetworkEvents & FD_READ) != FD_READ )
-            {
-                continue;
-            }
 
-            json Request, Response;
-            //
-            // 1. if here, process the requests
-            //
+        if ( (Events.lNetworkEvents & FD_READ) != FD_READ )
+        {
+            continue;
+        }
+
+        json Request, Response;
+
+        Response["error_code"] = 0;
+
+        //
+        // 1. if here, process the requests
+        //
+        {
+            try
             {
-                auto res = Client->ReceiveSynchronous();
+                auto res = Client.ReceiveSynchronous();
+
                 if ( Failed(res) )
                 {
                     warn("ReceiveSynchronous() failed with %x", Error(res).code);
@@ -334,32 +335,37 @@ TcpClientRoutine(std::shared_ptr<DriverManager::TcpClient> pClient)
 
                 Request = Value(res);
             }
-
-            //
-            // 2. let to the driver manager execute the command
-            //
+            catch ( std::exception const& e )
             {
-                auto res = Globals.DriverManager()->ExecuteCommand(Request);
-                if ( Failed(res) )
-                {
-                    Response["error_code"] = Error(res).code;
-                }
-                else
-                {
-                    Response["error_code"] = 0;
-                    Response["body"]       = Value(res);
-                }
+                err("EXCEPTION while reading request (bad JSON ?), dropping request: %s", e.what());
+                Response["error_code"] = ErrorCode::InvalidInput;
             }
-
-            //
-            // 3. send the response back
-            //
-            Client->SendSynchronous(Response);
         }
-        catch ( ... )
+
+        //
+        // 2. let to the driver manager execute the command
+        //
+        if ( Response["error_code"] == 0 )
         {
-            err("exception caught");
-            dwRetCode = ERROR_INVALID_DATA;
+            auto res = Globals.DriverManager()->ExecuteCommand(Request);
+            if ( Failed(res) )
+            {
+                Response["error_code"] = Error(res).code;
+            }
+            else
+            {
+                Response["error_code"] = 0;
+                Response["body"]       = Value(res);
+            }
+        }
+
+        //
+        // 3. send the response back
+        //
+        if ( Failed(Client.SendSynchronous(Response)) )
+        {
+            err("Failed to send response, leaving...");
+            dwRetCode = ::GetLastError();
             break;
         }
     }
@@ -384,7 +390,7 @@ DriverManager::TcpListener::RunForever()
     DWORD retcode   = ERROR_SUCCESS;
     bool is_running = false;
     wil::unique_handle hNetworkEvent(::WSACreateEvent());
-    if ( ::WSAEventSelect(m_ServerSocket, hNetworkEvent.get(), FD_ACCEPT | FD_CLOSE) == SOCKET_ERROR )
+    if ( ::WSAEventSelect(m_ServerSocket, hNetworkEvent.get(), FD_ACCEPT) == SOCKET_ERROR )
     {
         CFB::Log::perror("DriverManager::TcpListener::RunForever::WSAEventSelect()");
         return ::WSAGetLastError();
@@ -404,6 +410,11 @@ DriverManager::TcpListener::RunForever()
             Handles.push_back(cli->m_hThread.get());
         }
 
+        std::stringstream ss;
+        for ( auto const& h : Handles )
+            ss << h << ", ";
+        dbg("Waiting for events on %s", ss.str().c_str());
+
         //
         // Wait for an event either of termination, from the network or any client thread
         //
@@ -418,8 +429,6 @@ DriverManager::TcpListener::RunForever()
 
         DWORD dwIndex = ret - WSA_WAIT_EVENT_0;
 
-        ::WSAResetEvent(Handles.at(dwIndex));
-
         switch ( dwIndex )
         {
         case 0:
@@ -429,6 +438,8 @@ DriverManager::TcpListener::RunForever()
 
         case 1:
         {
+            ::WSAResetEvent(hNetworkEvent.get());
+
             WSANETWORKEVENTS Events = {0};
             ::WSAEnumNetworkEvents(m_ServerSocket, hNetworkEvent.get(), &Events);
 
@@ -438,7 +449,7 @@ DriverManager::TcpListener::RunForever()
                 // if it's a TCP_CLOSE, find the client from the handle, and terminate it
                 //
                 const HANDLE hTarget    = Handles.at(dwIndex);
-                auto FindClientByHandle = [&hTarget](std::shared_ptr<TcpClient> const& cli) -> bool
+                auto FindClientByHandle = [&hTarget](auto const& cli) -> bool
                 {
                     return cli->m_hThread.get() == hTarget;
                 };
@@ -456,10 +467,15 @@ DriverManager::TcpListener::RunForever()
                 //
                 // it's a TCP_SYN, so accept the connection and spawn the thread handling the requests
                 //
-                std::shared_ptr<TcpClient> Client = Accept();
-                if ( Client == nullptr )
+                std::shared_ptr<TcpClient> Client;
                 {
-                    continue;
+                    auto res = Accept();
+                    if ( Failed(res) )
+                    {
+                        break;
+                    }
+
+                    Client = Value(res);
                 }
 
                 //
@@ -471,18 +487,24 @@ DriverManager::TcpListener::RunForever()
                         nullptr,
                         0,
                         (LPTHREAD_START_ROUTINE)TcpClientRoutine,
-                        &Client,
+                        Client.get(),
                         THREAD_CREATE_FLAGS_CREATE_SUSPENDED,
                         reinterpret_cast<LPDWORD>(&dwThreadId)));
                     if ( !hThread )
                     {
                         CFB::Log::perror("CreateThread(TcpClientRoutine)");
-                        continue;
+                        break;
                     }
 
                     Client->m_hThread  = std::move(hThread);
                     Client->m_ThreadId = dwThreadId;
                 }
+
+
+                ok("Adding TcpClient(\"%s:%d\", hThread=%#x) to client pool",
+                   Client->m_IpAddress.c_str(),
+                   Client->m_Port,
+                   Client->m_hThread);
 
                 ::ResumeThread(Client->m_hThread.get());
                 m_Clients.push_back(Client);
@@ -498,16 +520,16 @@ DriverManager::TcpListener::RunForever()
             //
             // if here, we've received the event of EOL from the client thread, so we clean up and continue looping
             //
-            const HANDLE hTarget = Handles.at(dwIndex);
-            dbg("[TcpListener] handling event_index=%d, thread_handle=%p", dwIndex, hTarget);
+            const HANDLE hThread = Handles.at(dwIndex);
+            dbg("[TcpListener] handling event_index=%d, thread_handle=%p", dwIndex, hThread);
 
             //
             // Delete the entry in the client list
             //
             {
-                auto FindClientByHandle = [&hTarget](std::shared_ptr<TcpClient> const& cli) -> bool
+                auto FindClientByHandle = [&hThread](auto const& cli) -> bool
                 {
-                    return (cli->m_hThread.get() == hTarget);
+                    return (cli->m_hThread.get() == hThread);
                 };
 
                 auto const erased = std::erase_if(m_Clients, FindClientByHandle);

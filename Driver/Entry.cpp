@@ -179,20 +179,19 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 
     dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
 
-
     switch ( IoctlCode )
     {
     case IOCTL_HookDriver:
     {
-        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
-        Status                    = Globals->DriverManager.InsertDriver(DriverName);
+        auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
+        Status          = Globals->DriverManager.InsertDriver(DriverName.get());
         break;
     }
 
     case IOCTL_UnhookDriver:
     {
-        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
-        Status                    = Globals->DriverManager.RemoveDriver(DriverName);
+        auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
+        Status          = Globals->DriverManager.RemoveDriver(DriverName.get());
         break;
     }
 

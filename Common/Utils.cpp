@@ -2,88 +2,71 @@
 
 namespace CFB::Utils
 {
-    void Hexdump(PVOID data, SIZE_T size) // TODO: ugly, improve
+void
+Hexdump(PVOID data, SIZE_T size) // TODO: ugly, improve
+{
+    CHAR ascii[17] = {
+        0,
+    };
+    auto ptr = reinterpret_cast<u8*>(data);
+
+    for ( size_t i = 0; i < size; ++i )
     {
-        CHAR ascii[17] = {
-            0,
-        };
-        auto ptr = reinterpret_cast<u8*>(data);
+        u8 c = ptr[i];
 
-        for (size_t i = 0; i < size; ++i)
+        if ( !ascii[0] )
+            XPRINTF("%04Ix   ", i);
+
+        XPRINTF("%02X ", c);
+
+        ascii[i % 16] = (0x20 <= c && c < 0x7f) ? (u8)c : '.';
+
+        if ( (i + 1) % 8 == 0 || i + 1 == size )
         {
-            u8 c = ptr[i];
-
-            if (!ascii[0])
-                XPRINTF("%04Ix   ", i);
-
-            XPRINTF("%02X ", c);
-
-            ascii[i % 16] = (0x20 <= c && c < 0x7f) ? (u8)c : '.';
-
-            if ((i + 1) % 8 == 0 || i + 1 == size)
+            XPRINTF(" ");
+            if ( (i + 1) % 16 == 0 )
             {
-                XPRINTF(" ");
-                if ((i + 1) % 16 == 0)
+                XPRINTF("|  %s \n", ascii);
+                ::RtlSecureZeroMemory(ascii, sizeof(ascii));
+            }
+            else if ( i + 1 == size )
+            {
+                ascii[(i + 1) % 16] = '\0';
+                if ( (i + 1) % 16 <= 8 )
                 {
-                    XPRINTF("|  %s \n", ascii);
-                    ::RtlSecureZeroMemory(ascii, sizeof(ascii));
+                    XPRINTF(" ");
                 }
-                else if (i + 1 == size)
+                for ( auto j = (i + 1) % 16; j < 16; ++j )
                 {
-                    ascii[(i + 1) % 16] = '\0';
-                    if ((i + 1) % 16 <= 8)
-                    {
-                        XPRINTF(" ");
-                    }
-                    for (auto j = (i + 1) % 16; j < 16; ++j)
-                    {
-                        XPRINTF("   ");
-                    }
+                    XPRINTF("   ");
+                }
 
-                    XPRINTF("|  %s \n", ascii);
-                }
+                XPRINTF("|  %s \n", ascii);
             }
         }
-
-        return;
     }
 
-    // static void GenerateRandomString(char *str, const usize len)
-    // {
-    //     static const char charset[] =
-    //         "0123456789"
-    //         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    //         "abcdefghijklmnopqrstuvwxyz";
+    return;
+}
 
-    //     for (int i = 0; i < len - 1; ++i)
-    //     {
-    //         str[i] = charset[rand() % (sizeof(charset) - 1)];
-    //     }
+namespace Memory
+{
+bool
+IsAligned(uptr const Value, usize const Base)
+{
+    return (Value & (Base - 1)) == 0;
+}
 
-    //     str[len - 1] = 0;
-    // }
+uptr
+AlignValue(uptr const Value, usize const Base)
+{
+    if ( IsAligned(Value, Base) )
+    {
+        return Value;
+    }
 
-    // std::string CreateRandomString(const usize len)
-    // {
-    //     std::string out;
-    //     out.reserve(len+1);
-    //     GenerateRandomString(out.c_str(), len);
-    //     return out;
-    // }
-
-
-    // wchar_t *CreateRandomWideString(const size_t len)
-    // {
-    //     char *m = LocalAlloc(LHND, 2 * (len + 1));
-    //     if (!m)
-    //         return NULL;
-
-    //     GenerateRandomString(m, len);
-
-    //     for (int i = 0; i < 2 * len; i += 2)
-    //         m[i] = 0;
-
-    //     return (wchar_t *)m;
-    // }
+    return (Value & ~(Base - 1)) + Base;
+}
+} // namespace Memory
 
 } // namespace CFB::Utils

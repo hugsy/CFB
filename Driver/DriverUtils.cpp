@@ -45,20 +45,47 @@ operator delete[](void* Memory, usize Size)
 namespace CFB::Driver::Utils
 {
 
+#pragma region Logging helper functions
+const char*
+ToString(KIRQL const Level)
+{
+    switch ( Level )
+    {
+    case PASSIVE_LEVEL:
+        return "PASSIVE_LEVEL";
+    case APC_LEVEL:
+        return "APC_LEVEL";
+    case DISPATCH_LEVEL:
+        return "DISPATCH_LEVEL";
+    case CMCI_LEVEL:
+        return "CMCI_LEVEL";
+    case CLOCK_LEVEL:
+        return "CLOCK_LEVEL";
+    case POWER_LEVEL:
+        return "POWER_LEVEL";
+    case HIGH_LEVEL:
+        return "HIGH_LEVEL";
+    }
+    return "INVALID_LEVEL";
+}
+#pragma endregion
+
 #pragma region KUnicodeString
 
-KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srclen, const POOL_TYPE type)
+KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type)
 {
-    dbg("KUnicodeString::KUnicodeString('%S')", src);
-    m_len    = min(srclen, USHRT_MAX - 2) + 1;
-    m_buffer = KAlloc<wchar_t*>(size(), CFB_DEVICE_TAG, type);
-    ::RtlCopyMemory(m_buffer.get(), src, size());
+    m_len          = min((srcsz >> 1), USHRT_MAX - 2) + 1;
+    const usize sz = size();
+    m_buffer       = KAlloc<wchar_t*>(sz, CFB_DEVICE_TAG, type);
+    ::RtlCopyMemory(m_buffer.get(), src, sz - sizeof(wchar_t));
     ::RtlInitUnicodeString(&m_str, m_buffer.get());
+    dbg("KUnicodeString::KUnicodeString('%wZ', %d, %d)", &m_str, size(), length());
 }
 
 KUnicodeString::KUnicodeString(const wchar_t* src, const POOL_TYPE type)
 {
-    const u16 sz = min(::wcslen(src), USHRT_MAX - 2) + 1;
+    const usize len = ::wcslen(src);
+    const u16 sz    = min((len << 1), USHRT_MAX - 2);
     KUnicodeString::KUnicodeString(src, sz, type);
 }
 
@@ -67,12 +94,22 @@ KUnicodeString::KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type)
     KUnicodeString::KUnicodeString(src->Buffer, src->Length, type);
 }
 
+///
+/// @brief The total size allocated by the buffer holding the string
+///
+/// @return const usize
+///
 const usize
 KUnicodeString::size() const
 {
     return length() * sizeof(wchar_t);
 }
 
+///
+/// @brief The length of the string
+///
+/// @return const usize
+///
 const usize
 KUnicodeString::length() const
 {
@@ -95,13 +132,13 @@ KUnicodeString::get()
 #pragma region KMutex
 KMutex::KMutex()
 {
-    dbg("Creating KMutex");
+    // dbg("Creating KMutex");
     ::KeInitializeMutex(&_mutex, 0);
 }
 
 KMutex::~KMutex()
 {
-    dbg("Destroying KMutex");
+    // dbg("Destroying KMutex");
 }
 
 void

@@ -2,6 +2,7 @@
 
 #include "Common.hpp"
 #include "Log.hpp"
+#include "Utils.hpp"
 
 
 void* __cdecl
@@ -20,6 +21,15 @@ namespace CFB::Driver::Utils
 {
 
 ///
+/// @brief `ToString` method for IRQL
+///
+/// @param Level
+/// @return const char*
+///
+const char*
+ToString(KIRQL const Level);
+
+///
 /// @brief Typed class for locking/unlocking a specific type to a scope
 ///
 /// @tparam T
@@ -31,13 +41,11 @@ public:
     ScopedLock(T& lock) : _lock(lock)
     {
         _lock.Lock();
-        dbg("Scope lock: %p", &_lock);
     }
 
     ~ScopedLock()
     {
         _lock.Unlock();
-        dbg("Scope unlocking: %p", &_lock);
     }
 
     ScopedLock(const ScopedLock&) = delete;
@@ -62,45 +70,21 @@ private:
 class ScopedIrql
 {
 public:
-    ScopedIrql(KIRQL level) : _NewIrql(level)
+    ScopedIrql(KIRQL level) : m_NewIrql(level)
     {
-        KeRaiseIrql(_NewIrql, &_OldIrql);
-        dbg("IRQL %s -> %s", str(_OldIrql), str(_NewIrql));
+        KeRaiseIrql(m_NewIrql, &m_OldIrql);
+        dbg("IRQL %s -> %s", ToString(m_OldIrql), ToString(m_NewIrql));
     }
 
     ~ScopedIrql()
     {
-        ::KeLowerIrql(_OldIrql);
-        dbg("IRQL %d <- %d", str(_OldIrql), str(_NewIrql));
-    }
-
-    const char*
-    str(KIRQL Level) const
-    {
-        switch ( Level )
-        {
-        case PASSIVE_LEVEL:
-            return "PASSIVE_LEVEL";
-        case APC_LEVEL:
-            return "APC_LEVEL";
-        case DISPATCH_LEVEL:
-            return "DISPATCH_LEVEL";
-        case CMCI_LEVEL:
-            return "CMCI_LEVEL";
-        case CLOCK_LEVEL:
-            return "CLOCK_LEVEL";
-        case POWER_LEVEL:
-            return "POWER_LEVEL";
-        case HIGH_LEVEL:
-            return "HIGH_LEVEL";
-        }
-
-        return "INVALID_LEVEL";
+        ::KeLowerIrql(m_OldIrql);
+        dbg("IRQL %d <- %d", ToString(m_OldIrql), ToString(m_NewIrql));
     }
 
 private:
-    KIRQL _OldIrql;
-    KIRQL _NewIrql;
+    KIRQL m_OldIrql;
+    KIRQL m_NewIrql;
 };
 
 
@@ -152,7 +136,10 @@ public:
     {
         if ( sz )
         {
-            allocate(sz);
+            //
+            // Make sure memory is always allocated on a 16 byte alignmnent
+            //
+            allocate(CFB::Utils::Memory::AlignValue(sz, 0x10));
         }
     }
 
@@ -169,7 +156,7 @@ public:
     KAlloc&
     operator=(const KAlloc& other) noexcept
     {
-        dbg("In KAlloc::operator=(const KAlloc&)");
+        // dbg("In KAlloc::operator=(const KAlloc&)");
         if ( this != &other )
         {
             _mem = other._mem;
@@ -182,7 +169,7 @@ public:
     KAlloc&
     operator=(KAlloc&& other) noexcept
     {
-        dbg("In KAlloc::operator=(const KAlloc&&)");
+        // dbg("In KAlloc::operator=(const KAlloc&&)");
         if ( this != &other )
         {
             free();
@@ -194,6 +181,12 @@ public:
             other._sz  = 0;
         }
         return *this;
+    }
+
+    T
+    operator[](usize idx)
+    {
+        return _mem[idx];
     }
 
     const T
@@ -232,16 +225,16 @@ protected:
             return;
         }
 
-        if ( _sz > 0 )
+        if ( sz > 0 )
         {
-            auto p = ::ExAllocatePoolWithTag(_type, _sz, _tag);
+            auto p = ::ExAllocatePoolWithTag(_type, sz, _tag);
             if ( !p )
             {
                 ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
             }
 
             _mem = reinterpret_cast<T>(p);
-            ::RtlSecureZeroMemory((PVOID)_mem, _sz);
+            ::RtlSecureZeroMemory((PVOID)_mem, sz);
 
             dbg("KAlloc::allocate(%d) = %p", sz, _mem);
         }
@@ -279,7 +272,14 @@ public:
 
     KUnicodeString(const wchar_t* src, const POOL_TYPE type = NonPagedPoolNx);
 
-    KUnicodeString(const wchar_t* src, const u16 srclen, const POOL_TYPE type = NonPagedPoolNx);
+    ///
+    /// @brief Construct a new KUnicodeString object
+    ///
+    /// @param src pointer to the beginning of the string
+    /// @param srcsz the SIZE of the buffer allocated for the string (usually, strlen * sizeof(WCHAR) )
+    /// @param type the pool type to store the buffer in
+    ///
+    KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx);
 
     ~KUnicodeString();
 
@@ -303,9 +303,9 @@ public:
     }
 
     bool
-    operator==(PUNICODE_STRING const& uString)
+    operator==(PUNICODE_STRING const& other)
     {
-        return *this == KUnicodeString(uString->Buffer);
+        return *this == KUnicodeString(other->Buffer, other->Length);
     }
 
     const PUNICODE_STRING
@@ -340,13 +340,25 @@ protected:
 class KMutex
 {
 public:
+    ///
+    /// @brief
+    ///
     KMutex();
 
+    ///
+    /// @brief
+    ///
     ~KMutex();
 
+    ///
+    /// @brief
+    ///
     void
     Lock();
 
+    ///
+    /// @brief
+    ///
     void
     Unlock();
 
@@ -363,13 +375,25 @@ class KFastMutex
 {
 
 public:
+    ///
+    /// @brief
+    ///
     KFastMutex();
 
+    ///
+    /// @brief
+    ///
     ~KFastMutex();
 
+    ///
+    /// @brief
+    ///
     void
     Lock();
 
+    ///
+    /// @brief
+    ///
     void
     Unlock();
 
@@ -384,13 +408,25 @@ private:
 class KSpinLock
 {
 public:
+    ///
+    /// @brief
+    ///
     KSpinLock();
 
+    ///
+    /// @brief
+    ///
     ~KSpinLock();
 
+    ///
+    /// @brief
+    ///
     void
     Lock();
 
+    ///
+    /// @brief
+    ///
     void
     Unlock();
 
@@ -764,5 +800,6 @@ private:
     usize* m_Count;
     KFastMutex m_Mutex;
 };
+
 
 } // namespace CFB::Driver::Utils
