@@ -123,11 +123,23 @@ DriverManager::ExecuteCommand(json const& Request)
 
     case CFB::Comms::RequestId::EnableDriver:
     {
+        auto msg         = Request.get<CFB::Comms::DriverRequest>();
+        auto data_in     = (LPVOID)msg.DriverName.c_str();
+        auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
+        Response["success"] =
+            (TRUE ==
+             ::DeviceIoControl(m_hDevice.get(), IOCTL_EnableDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
         break;
     }
 
     case CFB::Comms::RequestId::DisableDriver:
     {
+        auto msg         = Request.get<CFB::Comms::DriverRequest>();
+        auto data_in     = (LPVOID)msg.DriverName.c_str();
+        auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
+        Response["success"] =
+            (TRUE ==
+             ::DeviceIoControl(m_hDevice.get(), IOCTL_DisableDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
         break;
     }
 
