@@ -55,16 +55,6 @@ public:
     ///
     /// @brief
     ///
-    /// @param Path
-    ///
-    /// @return NTSTATUS
-    ///
-    NTSTATUS
-    InsertDriver(const wchar_t* Path);
-
-    ///
-    /// @brief
-    ///
     /// @param UnicodePath
     /// @return NTSTATUS
     ///
@@ -74,30 +64,10 @@ public:
     ///
     /// @brief
     ///
-    /// @param Path
-    /// @return NTSTATUS
-    ///
-    NTSTATUS
-    RemoveDriver(const wchar_t* Path);
-
-    ///
-    /// @brief
-    ///
     /// @return NTSTATUS
     ///
     NTSTATUS
     RemoveAllDrivers();
-
-    ///
-    /// @brief  Set the monitoring state for the driver given in argument. If `true`, monitoring will become active,
-    /// effectively capturing all the IRPs to the driver. Setting to `false` disables the monitoring.
-    ///
-    /// @param Path Path to the driver (as a wide string)
-    /// @param bEnable `true` to enable, `false` to disable
-    /// @return NTSTATUS the error code returned from the function.
-    ///
-    NTSTATUS
-    SetMonitoringState(const wchar_t* Path, bool bEnable);
 
     ///
     /// @brief Set the monitoring state for the driver given in argument. If `true`, monitoring will become active,

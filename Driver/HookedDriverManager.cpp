@@ -21,12 +21,6 @@ HookedDriverManager::~HookedDriverManager()
 }
 
 NTSTATUS
-HookedDriverManager::InsertDriver(const wchar_t* Path)
-{
-    return InsertDriver(Utils::KUnicodeString(Path).get());
-}
-
-NTSTATUS
 HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 {
     PDRIVER_OBJECT pDriver = nullptr;
@@ -121,12 +115,6 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 }
 
 NTSTATUS
-HookedDriverManager::RemoveDriver(const wchar_t* Path)
-{
-    return RemoveDriver(Utils::KUnicodeString(Path).get());
-}
-
-NTSTATUS
 HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 {
     Utils::ScopedLock lock(m_Mutex);
@@ -167,13 +155,6 @@ HookedDriverManager::RemoveAllDrivers()
     } while ( true );
 
     return STATUS_SUCCESS;
-}
-
-NTSTATUS
-HookedDriverManager::SetMonitoringState(const wchar_t* Path, bool bEnable)
-{
-    UNICODE_STRING UnicodePath = RTL_CONSTANT_STRING(Path);
-    return SetMonitoringState(&UnicodePath, bEnable);
 }
 
 NTSTATUS

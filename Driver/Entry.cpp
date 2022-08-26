@@ -203,16 +203,10 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     }
 
     case IOCTL_EnableMonitoring:
-    {
-        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
-        Status                    = Globals->DriverManager.SetMonitoringState(DriverName, true);
-        break;
-    }
-
     case IOCTL_DisableMonitoring:
     {
-        const wchar_t* DriverName = reinterpret_cast<wchar_t*>(InputBuffer);
-        Status                    = Globals->DriverManager.SetMonitoringState(DriverName, false);
+        auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
+        Status = Globals->DriverManager.SetMonitoringState(DriverName.get(), (IoctlCode == IOCTL_EnableMonitoring));
         break;
     }
 
