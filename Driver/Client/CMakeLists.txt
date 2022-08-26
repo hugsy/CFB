@@ -6,10 +6,8 @@ set(
     ${DRIVER_CLIENT_SOURCE_DIR}/Main.cpp
 )
 
-add_executable(DriverClient
-    WIN32
-    ${SOURCE_FILES}
-)
+add_executable(DriverClient WIN32)
+target_sources(DriverClient PUBLIC ${SOURCE_FILES})
 
 add_dependencies(DriverClient ${PROJECT_NAME})
 
@@ -21,4 +19,4 @@ target_include_directories(DriverClient PUBLIC CommonLibUser ${CFB_DEPENDENCIES}
 target_link_options(DriverClient PUBLIC /SUBSYSTEM:Console)
 target_link_libraries(DriverClient CommonLibUser)
 
-install(TARGETS DriverClient DESTINATION Tools)
+install(TARGETS DriverClient DESTINATION Driver)
