@@ -6,6 +6,7 @@ env:
   ARCH: x64
   CONFIGURATION: Release
   BUILD_DIR: build
+  CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON"
 
 jobs:
   build_broker:
@@ -16,8 +17,7 @@ jobs:
       matrix:
         os: ['windows-latest']
         platform: ['x64']
-        configuration: ['Debug']
-
+        configuration: ['Debug', 'RelWithDebInfo']
 
     runs-on: ${{ matrix.os }}
     steps:
