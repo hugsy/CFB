@@ -220,6 +220,7 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     case IOCTL_GetDriverInfo:
     case IOCTL_EnableDriver:
     case IOCTL_DisableDriver:
+        warn("TODO");
 
     default:
         err("Received invalid IOCTL code 0x%08x", IoctlCode);

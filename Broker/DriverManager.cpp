@@ -112,34 +112,12 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-    case CFB::Comms::RequestId::EnableMonitoring:
-    {
-        break;
-    }
-
-    case CFB::Comms::RequestId::DisableMonitoring:
-    {
-        break;
-    }
-
     case CFB::Comms::RequestId::GetNumberOfDrivers:
     {
-        break;
-    }
-
-    case CFB::Comms::RequestId::GetNamesOfDrivers:
-    {
-        break;
-    }
-
-
-    case CFB::Comms::RequestId::GetDriverInfo:
-    {
-        break;
-    }
-
-    case CFB::Comms::RequestId::StoreTestCase:
-    {
+        Response["success"] =
+            (TRUE ==
+             ::DeviceIoControl(m_hDevice.get(), IOCTL_GetNumberOfDrivers, nullptr, 0, nullptr, 0, &nb, nullptr));
+        Response["value"] = nb;
         break;
     }
 
@@ -149,6 +127,16 @@ DriverManager::ExecuteCommand(json const& Request)
     }
 
     case CFB::Comms::RequestId::DisableDriver:
+    {
+        break;
+    }
+
+    case CFB::Comms::RequestId::GetDriverInfo:
+    {
+        break;
+    }
+
+    case CFB::Comms::RequestId::StoreTestCase:
     {
         break;
     }
