@@ -1,11 +1,9 @@
-name: "Build Broker and Driver"
+name: "Build Artifact"
 
 on: [push, pull_request]
 
 env:
-  ARCH: x64
-  CONFIGURATION: Release
-  BUILD_DIR: build
+  BUILD_DIR: ./build
   CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON"
 
 jobs:
@@ -43,8 +41,8 @@ jobs:
 
     - name: Build CFB
       run: |
-        mkdir ./build
-        cd ./build
+        mkdir ${{ env.BUILD_DIR }}
+        cd ${{ env.BUILD_DIR }}
         cmake .. ${{ env.CMAKE_FLAGS }}
         cmake --build . --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
         cd ..
@@ -52,12 +50,12 @@ jobs:
     - name: Prepare artifact
       run: |
         mkdir artifact
-        cd build
+        cd ${{ env.BUILD_DIR }}
         cmake --install . --config ${{ matrix.configuration }} --prefix ../artifact --verbose
         cd ..
 
     - name: Publish artifact
       uses: actions/upload-artifact@v2
       with:
-        name: cfb_broker_${{ env.ARCH }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: cfb_broker_${{ matrix.platform }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: artifact/
