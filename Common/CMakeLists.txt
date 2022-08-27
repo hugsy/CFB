@@ -46,10 +46,6 @@ wdk_add_library(CommonLibDriver
 target_include_directories(CommonLibDriver INTERFACE ${COMMON_SOURCE_DIR})
 target_compile_definitions(CommonLibDriver PRIVATE CFB_KERNEL_DRIVER=1)
 
-if(DEBUG)
-    target_compile_definitions(CommonLibDriver PRIVATE _DEBUG=1 DEBUG=1)
-endif(DEBUG)
-
 #
 # Build CommonLib for user
 #
@@ -67,9 +63,5 @@ target_include_directories(CommonLibUser
     ${CFB_DEPENDENCIES}/json
     ${CFB_DEPENDENCIES}/phnt
 )
-
-if(DEBUG)
-    target_compile_definitions(CommonLibUser PRIVATE _DEBUG=1 DEBUG=1)
-endif(DEBUG)
 
 target_link_libraries(CommonLibUser PRIVATE kernel32.lib ntdll.lib)

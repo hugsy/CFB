@@ -51,9 +51,9 @@ set(
 #
 # Create the broker rc file
 #
-set(CFB_BROKER_DRIVER_PATH ${CFB_DRIVER_OUTPUT_PATH})
-set(CFB_BROKER_ICON_PATH ${CFB_ROOT_DIR}/Assets/img/logo/logo.ico)
-configure_file(${BROKER_RC_FILE}.in ${BROKER_RC_FILE} NEWLINE_STYLE WIN32)
+cmake_path(SET CFB_BROKER_DRIVER_PATH "$ENV{TEMP}/IrpMonitor.sys")
+cmake_path(SET CFB_BROKER_ICON_PATH "${CFB_ROOT_DIR}/Assets/img/logo/logo.ico")
+configure_file(${BROKER_RC_FILE}.in ${BROKER_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTES)
 
 #
 # Create the executable target
@@ -75,10 +75,6 @@ target_precompile_headers(${PROJECT_NAME}
     PRIVATE
     ${BROKER_HEADER_DIR}/pch.hpp
 )
-
-if(DEBUG)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE _DEBUG=1 DEBUG=1)
-endif(DEBUG)
 
 #
 # Compilation directives
@@ -102,7 +98,7 @@ target_link_libraries(${PROJECT_NAME}
 
 set_target_properties(${PROJECT_NAME}
     PROPERTIES
-    LINK_FLAGS "/level='requireAdministrator' /uiAccess='false'"
+    LINK_FLAGS " /level='requireAdministrator' /uiAccess='false' "
 )
 
 #
@@ -118,5 +114,5 @@ add_custom_command(
     COMMAND
     rc /nologo /fo ${BROKER_RES_FILE} /r ${BROKER_RC_FILE}
     COMMENT
-    "Generating the .res file"
+    " Generating the .res file "
 )

@@ -9,9 +9,6 @@ set(DRIVER_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "DRIVER_VERSION
 set(DRIVER_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "DRIVER_VERSION_MINOR")
 set(DRIVER_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE INTERNAL "DRIVER_VERSION_PATCH")
 
-# TODO: fix the hardcoded build type
-set(CFB_DRIVER_OUTPUT_PATH ${PROJECT_BINARY_DIR}/Debug/${PROJECT_NAME}.sys CACHE INTERNAL "CFB_DRIVER_OUTPUT_PATH")
-
 set(
     DRIVER_HEADER_FILES
 
@@ -51,10 +48,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE CFB_KERNEL_DRIVER=1)
 target_link_options(${PROJECT_NAME} PUBLIC /integritycheck)
 target_link_libraries(${PROJECT_NAME} CommonLibDriver)
 
-if(DEBUG)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE DEBUG=1)
-endif(DEBUG)
-
 set(CFB_CERT_CN "BlahCat Corp")
 set(CFB_CERT_STORE "PrivateCertStore")
 
@@ -66,8 +59,10 @@ add_custom_command(
     signtool.exe sign /v /a /fd SHA256 /s ${CFB_CERT_STORE} /n "${CFB_CERT_CN}" $<TARGET_FILE:${PROJECT_NAME}>
     COMMAND
     certmgr.exe -del -c -n "${CFB_CERT_CN}" -s -r currentUser ${CFB_CERT_STORE}
+    COMMAND
+    "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_FILE:${PROJECT_NAME}> "$ENV{TEMP}"
     COMMENT
-    "Test-signing driver"
+    "Sign driver, copy to tempdir"
 )
 
 if(CFB_BUILD_TOOLS)

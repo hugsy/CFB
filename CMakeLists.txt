@@ -22,7 +22,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-option(DEBUG "Enable Debug" ON)
 option(CFB_BUILD_TOOLS "Build Tools" OFF)
 
 message(STATUS "Locating Windows Driver Kit")
