@@ -5,8 +5,8 @@ on:
   issues:
   workflow_run:
     workflows: [Build Broker and Driver]
-    types:
-      - completed
+    types: [completed]
+    branches: ["*"]
 
 env:
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
