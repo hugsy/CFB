@@ -4,7 +4,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hugsy/CFB/actions"><img alt="Build Actions" src="https://github.com/hugsy/CFB/workflows/CI%20Build%20Broker%20for%20MSVC/badge.svg"></a>
+  <a href="https://github.com/hugsy/CFB/actions/workflows/build.yml"><img alt="Build main" src="https://github.com/hugsy/CFB/actions/workflows/build.yml/badge.svg?branch=main"/></a>
+  <a href="https://github.com/hugsy/CFB/actions/workflows/build.yml"><img alt="Build dev" src="https://github.com/hugsy/CFB/actions/workflows/build.yml/badge.svg?branch=dev"/></a>
   <a href="https://discord.gg/ey49tNQg"><img alt="Discord" src="https://img.shields.io/badge/Discord-CFB-purple"></a>
 </p>
 
