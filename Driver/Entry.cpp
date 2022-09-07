@@ -3,9 +3,6 @@
 #include "IoctlCodes.hpp"
 #include "Utils.hpp"
 
-#define DEVICE_NAME CFB_DEVICE_NAME
-#define DEVICE_PATH CFB_DEVICE_PATH
-#define DOS_DEVICE_PATH CFB_DOS_DEVICE_PATH
 
 struct GlobalContext* Globals = nullptr;
 
@@ -35,13 +32,14 @@ EXTERN_C
 void
 DriverUnloadRoutine(_In_ PDRIVER_OBJECT DriverObject)
 {
-    dbg("Unloading '%S'...", DEVICE_NAME);
-    UNICODE_STRING symLink = RTL_CONSTANT_STRING(DOS_DEVICE_PATH);
-    ::IoDeleteSymbolicLink(&symLink);
+    dbg("Unloading '%S'...", CFB_DEVICE_NAME);
+    UNICODE_STRING SymLink = RTL_CONSTANT_STRING(CFB_DOS_DEVICE_PATH);
+    ::IoDeleteSymbolicLink(&SymLink);
     ::IoDeleteDevice(DriverObject->DeviceObject);
-    ok("Device '%S' deleted", DEVICE_NAME);
+    ok("Device '%S' deleted", CFB_DEVICE_NAME);
 
     delete Globals;
+
     ok("Context cleaned up");
     return;
 }
@@ -364,77 +362,79 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
 
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
+    NTSTATUS Status             = STATUS_UNSUCCESSFUL;
+    PDEVICE_OBJECT DeviceObject = nullptr;
+    UNICODE_STRING Name         = RTL_CONSTANT_STRING(CFB_DEVICE_PATH);
+    UNICODE_STRING SymLink      = RTL_CONSTANT_STRING(CFB_DOS_DEVICE_PATH);
 
-    do
-    {
-        info("Initializing global context...");
-        Globals = new GlobalContext();
-
-        info("Loading device '%S'...", DEVICE_NAME);
-        PDEVICE_OBJECT DeviceObject = nullptr;
-        UNICODE_STRING name         = RTL_CONSTANT_STRING(DEVICE_PATH);
-        UNICODE_STRING symLink      = RTL_CONSTANT_STRING(DOS_DEVICE_PATH);
-
-        for ( auto i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++ )
+    //
+    // Make sure we clean everything correctly on function exit
+    //
+    auto CleanupOnFailure = CFB::Driver::Utils::ScopedWrapper(
+        Status,
+        [&Status]()
         {
-            DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
-        }
-
-        DriverObject->MajorFunction[IRP_MJ_CREATE]         = DriverCreateRoutine;
-        DriverObject->MajorFunction[IRP_MJ_CLOSE]          = DriverCloseRoutine;
-        DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
-        DriverObject->MajorFunction[IRP_MJ_READ]           = DriverReadRoutine;
-        DriverObject->MajorFunction[IRP_MJ_CLEANUP]        = DriverCleanup;
-        DriverObject->DriverUnload                         = DriverUnloadRoutine;
-
-        Status = ::IoCreateDevice(
-            DriverObject,
-            0,
-            &name,
-            FILE_DEVICE_UNKNOWN,
-            FILE_DEVICE_SECURE_OPEN,
-            false, // ACL is managed by DriverCreateRoutine
-            &DeviceObject);
-        if ( !NT_SUCCESS(Status) )
-        {
-            err("Error creating device object (0x%08X)", Status);
-            break;
-        }
-
-        ok("Device '%S' successfully created", DEVICE_NAME);
-
-        Status = ::IoCreateSymbolicLink(&symLink, &name);
-        if ( !NT_SUCCESS(Status) )
-        {
-            err("IoCreateSymbolicLink() failed: 0x%08X", Status);
-            break;
-        }
-
-        ok("Symlink for '%S' created", DEVICE_NAME);
-
-        DeviceObject->Flags |= DO_DIRECT_IO;
-        DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
-
-        Globals->DeviceObject = DeviceObject;
-        Globals->DriverObject = DriverObject;
-
-        ok("Device initialization  for '%S' done", DEVICE_NAME);
-
-    } while ( false );
-
-    if ( !NT_SUCCESS(Status) )
-    {
-        if ( Globals )
-        {
-            if ( Globals->DeviceObject )
+            if ( !NT_SUCCESS(Status) )
             {
-                ::IoDeleteDevice(Globals->DeviceObject);
-            }
+                warn("Failed to initialize driver, cleaning up...");
+                if ( Globals )
+                {
+                    if ( Globals->DeviceObject )
+                    {
+                        ::IoDeleteDevice(Globals->DeviceObject);
+                    }
 
-            delete Globals;
-        }
+                    delete Globals;
+                }
+            }
+        });
+
+    info("Initializing global context and device...");
+    Globals = new GlobalContext();
+
+    for ( auto i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++ )
+    {
+        DriverObject->MajorFunction[i] = IrpNotImplementedHandler;
     }
 
+    DriverObject->MajorFunction[IRP_MJ_CREATE]         = DriverCreateRoutine;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE]          = DriverCloseRoutine;
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = DriverDeviceControlRoutine;
+    DriverObject->MajorFunction[IRP_MJ_READ]           = DriverReadRoutine;
+    DriverObject->MajorFunction[IRP_MJ_CLEANUP]        = DriverCleanup;
+    DriverObject->DriverUnload                         = DriverUnloadRoutine;
+
+    Status = ::IoCreateDevice(
+        DriverObject,
+        0,
+        &Name,
+        FILE_DEVICE_UNKNOWN,
+        FILE_DEVICE_SECURE_OPEN,
+        false, // ACL is managed by DriverCreateRoutine
+        &DeviceObject);
+    if ( !NT_SUCCESS(Status) )
+    {
+        err("Error creating device object (0x%08X)", Status);
+        return Status;
+    }
+
+    ok("Device '%S' successfully created", CFB_DEVICE_NAME);
+
+    Status = ::IoCreateSymbolicLink(&SymLink, &Name);
+    if ( !NT_SUCCESS(Status) )
+    {
+        err("IoCreateSymbolicLink() failed: 0x%08X", Status);
+        return Status;
+    }
+
+    ok("Symlink for '%S' created", CFB_DEVICE_NAME);
+
+    DeviceObject->Flags |= DO_DIRECT_IO;
+    DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
+
+    Globals->DeviceObject = DeviceObject;
+    Globals->DriverObject = DriverObject;
+
+    ok("Device initialization  for '%S' done", CFB_DEVICE_NAME);
     return Status;
 }

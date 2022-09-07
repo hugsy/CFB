@@ -82,8 +82,13 @@ struct GlobalContext
     operator delete(void* m)
     {
         dbg("Deallocating GlobalContext");
-        return ::ExFreePoolWithTag(m, CFB_DEVICE_TAG);
+        ::ExFreePoolWithTag(m, CFB_DEVICE_TAG);
+        m = nullptr;
+        return;
     }
 };
 
+///
+/// @brief Reference to the global driver context.
+///
 extern struct GlobalContext* Globals;
