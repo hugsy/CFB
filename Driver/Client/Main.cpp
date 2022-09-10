@@ -20,7 +20,7 @@
 #include "Common.hpp"
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
-
+#include "Utils.hpp"
 // clang-format on
 
 #define PLURAL_IF(x) ((x) ? "s" : "")
@@ -139,7 +139,7 @@ toggle_monitoring(HANDLE hFile, std::string const& arg, bool enable)
 
 
 bool
-send_test_data(std::string const& device_name, u32 ioctl)
+send_test_data(std::string const& device_name, const u32 ioctl)
 {
     wil::unique_handle hFile(::CreateFileA(
         device_name.c_str(),
@@ -166,6 +166,48 @@ send_test_data(std::string const& device_name, u32 ioctl)
     return bSuccess;
 }
 
+std::optional<u32>
+read_data(HANDLE hFile)
+{
+    //
+    // Try read into empty buffer to probe the size
+    //
+    DWORD expectedDataLength = 0;
+    {
+        u8* data  = nullptr;
+        bool bRes = ::ReadFile(hFile, data, 0, &expectedDataLength, nullptr);
+        info("read_data(nullptr) = %s", boolstr(bRes));
+        if ( bRes )
+        {
+            ok("expectedDataLength = %d", expectedDataLength);
+        }
+        else
+        {
+            err("stopping");
+            return std::nullopt;
+        }
+    }
+
+    //
+    // Get read content
+    //
+    {
+        const DWORD dataLength = expectedDataLength;
+        auto data              = std::make_unique<u8[]>(dataLength);
+        bool bRes              = ::ReadFile(hFile, data.get(), dataLength, &expectedDataLength, nullptr);
+        info("read_data(data, %d) = %s", dataLength, boolstr(bRes));
+        if ( bRes )
+        {
+            CFB::Utils::Hexdump(data.get(), dataLength);
+        }
+        else
+        {
+            err("stopping");
+            return std::nullopt;
+        }
+    }
+}
+
 
 int
 main(int argc, const char** argv)
@@ -173,7 +215,7 @@ main(int argc, const char** argv)
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =
-        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "set-event"};
+        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "set-event", "read-data"};
 
     program.add_argument("--action")
         .default_value(std::string("hook"))
@@ -189,8 +231,7 @@ main(int argc, const char** argv)
 
     program.add_argument("--driver").default_value(std::string("\\driver\\hevd"));
     program.add_argument("--device").default_value(std::string("\\\\.\\HackSysExtremeVulnerableDriver"));
-    program.add_argument("--ioctl").scan<'i', int>().default_value(
-        0x222003); // https://github.com/hacksysteam/HackSysExtremeVulnerableDriver/blob/master/Driver/HEVD/Windows/HackSysExtremeVulnerableDriver.h#L81
+    program.add_argument("--ioctl").scan<'i', int>().default_value(0x222003);
     program.add_argument("--enable").default_value(false).implicit_value(true);
 
     try
@@ -250,6 +291,10 @@ main(int argc, const char** argv)
     {
         hEvent = wil::unique_handle(set_notif_handle(hFile.get()));
     }
+    else if ( action == "read-data" )
+    {
+    }
+
 
     return 0;
 }

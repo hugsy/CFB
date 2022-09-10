@@ -301,8 +301,10 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     // Critical region for the IRP copy
     //
     {
-        auto scope_lock    = Utils::ScopedLock<Utils::KCriticalRegion>(Globals->IrpManager.CriticalRegion());
-        uptr BufferPointer = reinterpret_cast<uptr>(Buffer);
+        auto scope_lock              = Utils::ScopedLock<Utils::KCriticalRegion>(Globals->IrpManager.CriticalRegion());
+        const uptr BufferPointerBase = reinterpret_cast<uptr>(Buffer);
+        const uptr BufferPointerHigh = BufferPointerBase + ExpectedBufferSize;
+        uptr BufferPointer           = BufferPointerBase;
 
         for ( usize i = 0; i < DumpableIrpNumber; i++ )
         {
@@ -321,8 +323,14 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             //
             {
                 const CFB::Comms::CapturedIrpHeader Header = CurrentIrp->ExportHeader();
-                RtlCopyMemory((PVOID)BufferPointer, &Header, sizeof(CFB::Comms::CapturedIrpHeader));
-                BufferPointer += sizeof(CFB::Comms::CapturedIrpHeader);
+                usize const DataSize                       = sizeof(CFB::Comms::CapturedIrpHeader);
+                if ( BufferPointer + DataSize > BufferPointerHigh )
+                {
+                    return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
+                }
+
+                RtlCopyMemory((PVOID)BufferPointer, &Header, DataSize);
+                BufferPointer += DataSize;
             }
 
             //
@@ -330,11 +338,12 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             //
             {
                 usize const DataSize = CurrentIrp->InputDataSize();
-                if ( DataSize > 0 )
+                if ( BufferPointer + DataSize > BufferPointerHigh )
                 {
-                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
-                    BufferPointer += DataSize;
+                    return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
                 }
+                RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
+                BufferPointer += DataSize;
             }
 
             //
@@ -342,11 +351,12 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             //
             {
                 usize const DataSize = CurrentIrp->OutputDataSize();
-                if ( DataSize > 0 )
+                if ( BufferPointer + DataSize > BufferPointerHigh )
                 {
-                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
-                    BufferPointer += DataSize;
+                    return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
                 }
+                RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
+                BufferPointer += DataSize;
             }
         }
     }
