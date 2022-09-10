@@ -252,23 +252,23 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
 {
     UNREFERENCED_PARAMETER(DeviceObject);
 
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
-
     PIO_STACK_LOCATION pStack = ::IoGetCurrentIrpStackLocation(Irp);
     if ( pStack == nullptr )
     {
         err("IoGetCurrentIrpStackLocation() failed (IRP %p)", Irp);
-        return CompleteRequest(Irp, Status, 0);
+        return CompleteRequest(Irp, STATUS_INVALID_PARAMETER_1, 0);
     }
 
     const u32 RequestedBufferSize = pStack->Parameters.Read.Length;
     usize ExpectedBufferSize      = 0;
+    usize DumpableIrpNumber       = 0;
 
     {
         Globals->IrpManager.Items().ForEach(
-            [&ExpectedBufferSize](CFB::Driver::CapturedIrp* Irp)
+            [&ExpectedBufferSize, &DumpableIrpNumber](CFB::Driver::CapturedIrp* Irp)
             {
                 ExpectedBufferSize += Irp->DataSize();
+                DumpableIrpNumber++;
                 return true;
             });
     }
@@ -284,9 +284,9 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     //
     // Otherwise, check the arguments and write the IRPs to the client
     //
-    if ( RequestedBufferSize != ExpectedBufferSize )
+    if ( RequestedBufferSize < ExpectedBufferSize )
     {
-        return CompleteRequest(Irp, STATUS_INFO_LENGTH_MISMATCH, ExpectedBufferSize);
+        return CompleteRequest(Irp, STATUS_BUFFER_TOO_SMALL, ExpectedBufferSize);
     }
 
     NT_ASSERT(Irp->MdlAddress);
@@ -297,44 +297,59 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
         return CompleteRequest(Irp, STATUS_INSUFFICIENT_RESOURCES, 0);
     }
 
-    /*
-
-    Status = PopFromQueue(&pInterceptedIrp);
-    if ( !NT_SUCCESS(Status) )
+    //
+    // Critical region for the IRP copy
+    //
     {
-        return CompleteRequest(Irp, Status, 0);
+        auto scope_lock    = Utils::ScopedLock<Utils::KCriticalRegion>(Globals->IrpManager.CriticalRegion());
+        uptr BufferPointer = reinterpret_cast<uptr>(Buffer);
+
+        for ( usize i = 0; i < DumpableIrpNumber; i++ )
+        {
+            //
+            // Pop front the captured IRP
+            //
+            auto CurrentIrp = Globals->IrpManager.Pop();
+            if ( !CurrentIrp )
+            {
+                warn("Failed to pop expected IRP");
+                return CompleteRequest(Irp, STATUS_BAD_DATA, 0);
+            }
+
+            //
+            // Copy the header (always)
+            //
+            {
+                const CFB::Comms::CapturedIrpHeader Header = CurrentIrp->ExportHeader();
+                RtlCopyMemory((PVOID)BufferPointer, &Header, sizeof(CFB::Comms::CapturedIrpHeader));
+                BufferPointer += sizeof(CFB::Comms::CapturedIrpHeader);
+            }
+
+            //
+            // Copy the IRP input buffer (if any)
+            //
+            {
+                usize const DataSize = CurrentIrp->InputDataSize();
+                if ( DataSize > 0 )
+                {
+                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
+                    BufferPointer += DataSize;
+                }
+            }
+
+            //
+            // Copy the IRP output buffer (if any)
+            //
+            {
+                usize const DataSize = CurrentIrp->OutputDataSize();
+                if ( DataSize > 0 )
+                {
+                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
+                    BufferPointer += DataSize;
+                }
+            }
+        }
     }
-
-    //
-    // Copy the header (always)
-    //
-    PINTERCEPTED_IRP_HEADER pInterceptedIrpHeader = pInterceptedIrp->Header;
-    ::RtlCopyMemory( Buffer, pInterceptedIrpHeader, sizeof(INTERCEPTED_IRP_HEADER) );
-    BufferOffset += sizeof(INTERCEPTED_IRP_HEADER);
-
-
-    //
-    // Copy the IRP input buffer (if any)
-    //
-    if(pInterceptedIrpHeader->InputBufferLength && pInterceptedIrp->InputBuffer)
-    {
-        ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
-        ::RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->InputBuffer, pInterceptedIrpHeader->InputBufferLength);
-        BufferOffset += pInterceptedIrpHeader->InputBufferLength;
-    }
-
-    //
-    // Copy the IRP output buffer (if any)
-    //
-    if (pInterceptedIrpHeader->OutputBufferLength && pInterceptedIrp->OutputBuffer)
-    {
-        ULONG_PTR RawBuffer = ((ULONG_PTR)Buffer) + BufferOffset;
-        ::RtlCopyMemory((PVOID)RawBuffer, pInterceptedIrp->OutputBuffer, pInterceptedIrpHeader->OutputBufferLength);
-        BufferOffset += pInterceptedIrpHeader->OutputBufferLength;
-    }
-
-    FreeInterceptedIrp(pInterceptedIrp);
-    */
 
     return CompleteRequest(Irp, STATUS_SUCCESS, 0);
 }

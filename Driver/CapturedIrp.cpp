@@ -16,6 +16,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
     m_DeviceName(L""),
     m_ProcessName(L""),
     m_MajorFunction(0),
+    m_MinorFunction(0),
     m_IoctlCode(0),
     m_InputBuffer(0),
     m_OutputBuffer(0),
@@ -136,6 +137,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     dbg("CapturedIrp::CapturePreCallData(%p)", Irp);
 
     m_MajorFunction = Stack->MajorFunction;
+    m_MinorFunction = Stack->MinorFunction;
 
     //
     // Determine & allocate the input/output buffer sizes from the IRP for "normal" IOCTLs
@@ -302,7 +304,7 @@ CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer)
 usize const
 CapturedIrp::DataSize()
 {
-    return InputDataSize() + OutputDataSize();
+    return sizeof(Comms::CapturedIrpHeader) + InputDataSize() + OutputDataSize();
 }
 
 
@@ -310,6 +312,18 @@ usize const
 CapturedIrp::InputDataSize() const
 {
     return m_InputBuffer.size();
+}
+
+u8*
+CapturedIrp::InputBuffer() const
+{
+    return m_InputBuffer.get();
+}
+
+u8*
+CapturedIrp::OutputBuffer() const
+{
+    return m_OutputBuffer.get();
 }
 
 
@@ -323,5 +337,27 @@ HookedDriver* const
 CapturedIrp::AssociatedDriver() const
 {
     return m_Driver;
+}
+
+Comms::CapturedIrpHeader
+CapturedIrp::ExportHeader() const
+{
+    Comms::CapturedIrpHeader out;
+    out.TimeStamp          = m_TimeStamp;
+    out.Irql               = m_Irql;
+    out.Type               = (u8)m_Type;
+    out.MajorFunction      = m_MajorFunction;
+    out.MinorFunction      = m_MinorFunction;
+    out.IoctlCode          = m_IoctlCode;
+    out.Pid                = m_Pid;
+    out.Tid                = m_Tid;
+    out.Status             = m_Status;
+    out.InputBufferLength  = InputDataSize();
+    out.OutputBufferLength = OutputDataSize();
+
+    RtlCopyMemory(out.DriverName, *m_DriverName, CFB_DRIVER_MAX_PATH);
+    RtlCopyMemory(out.DeviceName, *m_DeviceName, CFB_DRIVER_MAX_PATH);
+
+    return out;
 }
 } // namespace CFB::Driver

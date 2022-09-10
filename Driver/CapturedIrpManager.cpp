@@ -9,6 +9,8 @@ CapturedIrpManager::CapturedIrpManager() : m_Event(nullptr), m_Count(0), m_Entri
 
 CapturedIrpManager::~CapturedIrpManager()
 {
+    Clear();
+
     if ( m_Event )
     {
         //
@@ -121,6 +123,13 @@ CapturedIrpManager::Clear()
             break;
         }
     } while ( true );
+}
+
+
+Utils::KCriticalRegion&
+CapturedIrpManager::CriticalRegion()
+{
+    return m_CriticalRegion;
 }
 
 

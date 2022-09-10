@@ -9,6 +9,7 @@ set(
     ${COMMON_HEADER_DIR}/CompileInfo.hpp
 
     ${COMMON_HEADER_DIR}/Common.hpp
+    ${COMMON_HEADER_DIR}/Comms.hpp
     ${COMMON_HEADER_DIR}/Log.hpp
     ${COMMON_HEADER_DIR}/Utils.hpp
     ${COMMON_HEADER_DIR}/IoctlCodes.hpp
@@ -17,7 +18,6 @@ set(
 set(
     COMMON_SOURCE_FILES
 
-    ${COMMON_SOURCE_DIR}/Common.cpp
     ${COMMON_SOURCE_DIR}/Log.cpp
     ${COMMON_SOURCE_DIR}/Utils.cpp
 )

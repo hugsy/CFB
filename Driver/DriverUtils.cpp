@@ -132,13 +132,11 @@ KUnicodeString::get()
 #pragma region KMutex
 KMutex::KMutex()
 {
-    // dbg("Creating KMutex");
     ::KeInitializeMutex(&_mutex, 0);
 }
 
 KMutex::~KMutex()
 {
-    // dbg("Destroying KMutex");
 }
 
 void
@@ -176,6 +174,36 @@ KFastMutex::Unlock()
 {
     ::ExReleaseFastMutex(&_mutex);
 }
+
+#pragma endregion
+
+#pragma region KCriticalRegion
+
+
+KCriticalRegion::KCriticalRegion()
+{
+    ::ExInitializeResourceLite(&_mutex);
+}
+
+
+KCriticalRegion::~KCriticalRegion()
+{
+    ::ExDeleteResourceLite(&_mutex);
+}
+
+void
+KCriticalRegion::Lock()
+{
+    (void)::ExEnterCriticalRegionAndAcquireResourceExclusive(&_mutex);
+}
+
+
+void
+KCriticalRegion::Unlock()
+{
+    ::ExReleaseResourceAndLeaveCriticalRegion(&_mutex);
+}
+
 
 #pragma endregion
 

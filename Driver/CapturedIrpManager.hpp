@@ -63,6 +63,14 @@ public:
     void
     Clear();
 
+    ///
+    /// @brief
+    ///
+    /// @return Utils::KCriticalRegion const&
+    ///
+    Utils::KCriticalRegion&
+    CriticalRegion();
+
 private:
     ///
     /// @brief Set when new data is pushed
@@ -83,6 +91,11 @@ private:
     /// @brief
     ///
     Utils::KFastMutex m_Mutex;
+
+    ///
+    /// @brief
+    ///
+    Utils::KCriticalRegion m_CriticalRegion;
 };
 
 } // namespace CFB::Driver

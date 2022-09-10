@@ -308,6 +308,12 @@ public:
         return *this == KUnicodeString(other->Buffer, other->Length);
     }
 
+    const wchar_t*
+    operator*() const
+    {
+        return m_buffer.get();
+    }
+
     const PUNICODE_STRING
     get();
 
@@ -399,6 +405,41 @@ public:
 
 private:
     FAST_MUTEX _mutex = {0};
+};
+
+
+///
+/// @brief Wrapper for kernel critical region
+///
+///
+class KCriticalRegion
+{
+
+public:
+    ///
+    /// @brief Construct a new KCriticalRegion object
+    ///
+    KCriticalRegion();
+
+    ///
+    /// @brief Destroy the KCriticalRegion object
+    ///
+    ~KCriticalRegion();
+
+    ///
+    /// @brief
+    ///
+    void
+    Lock();
+
+    ///
+    /// @brief
+    ///
+    void
+    Unlock();
+
+private:
+    ERESOURCE _mutex = {0};
 };
 
 

@@ -1,9 +1,14 @@
 #pragma once
 
+// clang-format off
 #include "Common.hpp"
+#include "Comms.hpp"
+
 #include "DriverUtils.hpp"
 #include "HookedDriver.hpp"
+// clang-format on
 
+namespace Comms = CFB::Comms;
 namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver
@@ -81,11 +86,21 @@ public:
 
     LIST_ENTRY Next;
 
+    Comms::CapturedIrpHeader
+    ExportHeader() const;
+
+    u8*
+    InputBuffer() const;
+
+    u8*
+    OutputBuffer() const;
+
 private:
     LARGE_INTEGER m_TimeStamp;
     u8 m_Irql;
     IrpType m_Type;
     u8 m_MajorFunction;
+    u8 m_MinorFunction;
     u32 m_IoctlCode;
     u32 m_Pid;
     u32 m_Tid;
