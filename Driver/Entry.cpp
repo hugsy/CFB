@@ -312,9 +312,9 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             // Pop front the captured IRP
             //
             auto CurrentIrp = Globals->IrpManager.Pop();
-            if ( !CurrentIrp )
+            if ( CurrentIrp == nullptr )
             {
-                warn("Failed to pop expected IRP");
+                err("Expected to find CapturedIrp %d/%d, but none was popped.", i, DumpableIrpNumber);
                 return CompleteRequest(Irp, STATUS_BAD_DATA, 0);
             }
 

@@ -1,6 +1,3 @@
-# Canadan Furious Beaver
-
-
 
 <p align="center">
   <img src="https://user-images.githubusercontent.com/590234/185767386-46d86e9e-be54-480e-9d18-308b6e028fce.png" width="300px" alt="logo" />
