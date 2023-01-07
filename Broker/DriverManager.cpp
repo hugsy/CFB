@@ -96,8 +96,15 @@ DriverManager::ExecuteCommand(json const& Request)
         auto data_in     = (LPVOID)msg.DriverName.c_str();
         auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
         Response["success"] =
-            (TRUE ==
-             ::DeviceIoControl(m_hDevice.get(), IOCTL_HookDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
+            (TRUE == ::DeviceIoControl(
+                         m_hDevice.get(),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::HookDriver),
+                         data_in,
+                         data_in_len,
+                         nullptr,
+                         0,
+                         &nb,
+                         nullptr));
         break;
     }
 
@@ -107,16 +114,30 @@ DriverManager::ExecuteCommand(json const& Request)
         auto data_in     = (LPVOID)msg.DriverName.c_str();
         auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
         Response["success"] =
-            (TRUE ==
-             ::DeviceIoControl(m_hDevice.get(), IOCTL_UnhookDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
+            (TRUE == ::DeviceIoControl(
+                         m_hDevice.get(),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::UnhookDriver),
+                         data_in,
+                         data_in_len,
+                         nullptr,
+                         0,
+                         &nb,
+                         nullptr));
         break;
     }
 
     case CFB::Comms::RequestId::GetNumberOfDrivers:
     {
         Response["success"] =
-            (TRUE ==
-             ::DeviceIoControl(m_hDevice.get(), IOCTL_GetNumberOfDrivers, nullptr, 0, nullptr, 0, &nb, nullptr));
+            (TRUE == ::DeviceIoControl(
+                         m_hDevice.get(),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::GetNumberOfDrivers),
+                         nullptr,
+                         0,
+                         nullptr,
+                         0,
+                         &nb,
+                         nullptr));
         Response["value"] = nb;
         break;
     }
@@ -127,8 +148,15 @@ DriverManager::ExecuteCommand(json const& Request)
         auto data_in     = (LPVOID)msg.DriverName.c_str();
         auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
         Response["success"] =
-            (TRUE ==
-             ::DeviceIoControl(m_hDevice.get(), IOCTL_EnableDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
+            (TRUE == ::DeviceIoControl(
+                         m_hDevice.get(),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::EnableDriver),
+                         data_in,
+                         data_in_len,
+                         nullptr,
+                         0,
+                         &nb,
+                         nullptr));
         break;
     }
 
@@ -138,8 +166,15 @@ DriverManager::ExecuteCommand(json const& Request)
         auto data_in     = (LPVOID)msg.DriverName.c_str();
         auto data_in_len = msg.DriverName.size() * sizeof(wchar_t);
         Response["success"] =
-            (TRUE ==
-             ::DeviceIoControl(m_hDevice.get(), IOCTL_DisableDriver, data_in, data_in_len, nullptr, 0, &nb, nullptr));
+            (TRUE == ::DeviceIoControl(
+                         m_hDevice.get(),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::DisableDriver),
+                         data_in,
+                         data_in_len,
+                         nullptr,
+                         0,
+                         &nb,
+                         nullptr));
         break;
     }
 

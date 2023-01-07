@@ -5,7 +5,7 @@
 #ifdef CFB_KERNEL_DRIVER
 #define XPRINTF(...)                                                                                                   \
     {                                                                                                                  \
-        KdPrint((__VA_ARGS__));                                                                                        \
+        ::DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_INFO_LEVEL, __VA_ARGS__);                                             \
     }
 
 #else
@@ -44,6 +44,13 @@ namespace Memory
 bool
 IsAligned(uptr const Value, usize const Base);
 
+///
+///@brief Align a value to a base
+///
+///@param Value
+///@param Base
+///@return uptr
+///
 uptr
 AlignValue(uptr const Value, usize const Base);
 } // namespace Memory

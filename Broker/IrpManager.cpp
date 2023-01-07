@@ -83,7 +83,7 @@ IrpManager::Setup()
 
         if ( ::DeviceIoControl(
                  m_hDevice.get(),
-                 IOCTL_SetEventPointer,
+                 static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(CFB::Comms::Ioctl::SetEventPointer),
                  (LPVOID)&hTarget,
                  sizeof(hTarget),
                  nullptr,

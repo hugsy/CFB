@@ -105,6 +105,7 @@ set_target_properties(${PROJECT_NAME}
 # Install directives
 #
 install(TARGETS ${PROJECT_NAME} DESTINATION Tools)
+install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION Tools OPTIONAL)
 
 #
 # Custom command directives

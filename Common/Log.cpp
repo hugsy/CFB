@@ -18,7 +18,12 @@
 namespace CFB::Log
 {
 void
-log(const char* fmtstr, ...)
+log(
+#ifdef CFB_KERNEL_DRIVER
+    ULONG level,
+#endif // CFB_KERNEL_DRIVER
+    const char* fmtstr,
+    ...)
 {
     va_list args;
     va_start(args, fmtstr);
@@ -33,19 +38,19 @@ log(const char* fmtstr, ...)
         return;
     }
 
-#ifdef _DEBUG
-    ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, 0xFFFFFFFF, fmtstr, args);
+    //
+    // Use `nt!Kd_IHVDRIVER_Mask` to control the level
+    //
+    ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, level, fmtstr, args);
+
 #else
-    ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_WARNING_LEVEL, fmtstr, args);
-#endif // _DEBUG
-#else
+    std::string out;
+    out.resize(1024);
+
     ::vprintf(fmtstr, args);
-    {
-        std::string out;
-        out.resize(1024);
-        ::vsnprintf(out.data(), 1024, fmtstr, args);
-        ::OutputDebugStringA(out.c_str());
-    }
+    ::vsnprintf(out.data(), out.size(), fmtstr, args);
+    ::OutputDebugStringA(out.c_str());
+
 #endif // CFB_KERNEL_DRIVER
 
     va_end(args);

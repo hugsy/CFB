@@ -164,8 +164,9 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     PIO_STACK_LOCATION CurrentStack = IoGetCurrentIrpStackLocation(Irp);
     NT_ASSERT(CurrentStack);
 
-    const ULONG IoctlCode       = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
-    PVOID InputBuffer           = Irp->AssociatedIrp.SystemBuffer;
+    const ULONG dwIoctlCode           = CurrentStack->Parameters.DeviceIoControl.IoControlCode;
+    const CFB::Comms::Ioctl IoctlCode = CFB::Comms::Ioctl(dwIoctlCode);
+    PVOID InputBuffer                 = Irp->AssociatedIrp.SystemBuffer;
     const ULONG InputBufferLen  = min(CurrentStack->Parameters.DeviceIoControl.InputBufferLength, CFB_DRIVER_MAX_PATH);
     PVOID OutputBuffer          = Irp->AssociatedIrp.SystemBuffer;
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
@@ -179,45 +180,47 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
 
     switch ( IoctlCode )
     {
-    case IOCTL_HookDriver:
+    case CFB::Comms::Ioctl::HookDriver:
     {
         auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
         Status          = Globals->DriverManager.InsertDriver(DriverName.get());
         break;
     }
 
-    case IOCTL_UnhookDriver:
+    case CFB::Comms::Ioctl::UnhookDriver:
     {
         auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
         Status          = Globals->DriverManager.RemoveDriver(DriverName.get());
         break;
     }
 
-    case IOCTL_GetNumberOfDrivers:
+    case CFB::Comms::Ioctl::GetNumberOfDrivers:
     {
         dwDataWritten = Globals->DriverManager.Items().Size();
         Status        = STATUS_SUCCESS;
         break;
     }
 
-    case IOCTL_EnableMonitoring:
-    case IOCTL_DisableMonitoring:
+    case CFB::Comms::Ioctl::EnableMonitoring:
+    case CFB::Comms::Ioctl::DisableMonitoring:
     {
         auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
-        Status = Globals->DriverManager.SetMonitoringState(DriverName.get(), (IoctlCode == IOCTL_EnableMonitoring));
+        Status          = Globals->DriverManager.SetMonitoringState(
+            DriverName.get(),
+            (IoctlCode == CFB::Comms::Ioctl::EnableMonitoring));
         break;
     }
 
-    case IOCTL_SetEventPointer:
+    case CFB::Comms::Ioctl::SetEventPointer:
     {
         const HANDLE hEvent = *((PHANDLE)InputBuffer);
         Status              = Globals->IrpManager.SetEvent(hEvent);
         break;
     }
 
-    case IOCTL_GetDriverInfo:
-    case IOCTL_EnableDriver:
-    case IOCTL_DisableDriver:
+    case CFB::Comms::Ioctl::GetDriverInfo:
+    case CFB::Comms::Ioctl::EnableDriver:
+    case CFB::Comms::Ioctl::DisableDriver:
         warn("TODO");
 
     default:

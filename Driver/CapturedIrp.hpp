@@ -14,6 +14,9 @@ namespace Utils = CFB::Driver::Utils;
 namespace CFB::Driver
 {
 
+///
+///@brief `CapturedIrp` contains all the information stored from the IRP hijacking
+///
 class CapturedIrp
 {
 public:
@@ -33,10 +36,26 @@ public:
     };
 
 
+    ///
+    ///@brief Construct a new Captured Irp object
+    ///
+    ///@param Type
+    ///@param DeviceObject
+    ///
     CapturedIrp(const IrpType Type, const PDEVICE_OBJECT DeviceObject);
 
+    ///
+    ///@brief Destroy the Captured Irp object
+    ///
+    ///
     ~CapturedIrp();
 
+    ///
+    ///@brief CapturedIrp memory allocator
+    ///
+    ///@param sz
+    ///@return void*
+    ///
     static void*
     operator new(usize sz)
     {
@@ -53,6 +72,11 @@ public:
         return Memory;
     }
 
+    ///
+    ///@brief CapturedIrp memory destructor
+    ///
+    ///@param Memory
+    ///
     static void
     operator delete(void* Memory)
     {
@@ -60,42 +84,117 @@ public:
         return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
+    ///
+    ///@brief Capture the meta-data and content of the IRP *before* passing it down to the legit driver
+    ///
+    ///@param Irp
+    ///@return NTSTATUS
+    ///
     NTSTATUS
     CapturePreCallData(_In_ PIRP Irp);
 
+    ///
+    ///@brief Capture the meta-data and content of the IRP *after* passing it down to the legit driver
+    ///
+    ///@param Irp
+    ///@param ReturnedIoctlStatus
+    ///@return NTSTATUS
+    ///
     NTSTATUS
     CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus);
 
+    ///
+    ///@brief Capture the meta-data and content of the Fast IRP *before* passing it down to the legit driver
+    ///
+    ///@param InputBuffer
+    ///@param IoControlCode
+    ///@return NTSTATUS
+    ///
     NTSTATUS
     CapturePreCallFastIoData(_In_opt_ PVOID InputBuffer, _In_ ULONG IoControlCode);
 
+    ///
+    ///@brief Capture the meta-data and content of the Fast IRP *after* passing it down to the legit driver
+    ///
+    ///@param OutputBuffer
+    ///@return NTSTATUS
+    ///
     NTSTATUS
     CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer);
 
+    ///
+    ///@brief Total size of of captured data (i.e. sizeof(in) + sizeof(out))
+    ///
+    ///@return usize const
+    ///
     usize const
     DataSize();
 
+    ///
+    ///@brief Size of of captured input data
+    ///
+    ///@return usize const
+    ///
     usize const
     InputDataSize() const;
 
+    ///
+    ///@brief Size of of captured output data
+    ///
+    ///@return usize const
+    ///
     usize const
     OutputDataSize() const;
 
+    ///
+    ///@brief Return a raw pointer to the hooked driver
+    ///
+    ///@return HookedDriver* const
+    ///
     HookedDriver* const
     AssociatedDriver() const;
 
+    ///
+    ///@brief Entry to the next catpured IRP
+    ///
+    ///
     LIST_ENTRY Next;
 
+    ///
+    ///@brief Generate an exportable CapturedIrp header object
+    ///
+    ///@return Comms::CapturedIrpHeader
+    ///
     Comms::CapturedIrpHeader
     ExportHeader() const;
 
+    ///
+    ///@brief Raw pointer to the captured input buffer
+    ///
+    ///@return u8*
+    ///
     u8*
     InputBuffer() const;
 
+    ///
+    ///@brief Raw pointer to the captured output buffer
+    ///
+    ///@return u8*
+    ///
     u8*
     OutputBuffer() const;
 
+    ///
+    ///@brief Indicates whether the CapturedIrp was successfully initialized
+    ///
+    ///@return true
+    ///@return false
+    ///
+    bool
+    IsValid() const;
+
 private:
+    bool m_Valid;
     LARGE_INTEGER m_TimeStamp;
     u8 m_Irql;
     IrpType m_Type;

@@ -18,7 +18,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     // FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
     Path(UnicodePath->Buffer, UnicodePath->Length, NonPagedPoolNx),
-    HookedDriverObject(new (NonPagedPoolNx) DRIVER_OBJECT)
+    HookedDriverObject(new(NonPagedPoolNx) DRIVER_OBJECT)
 {
     dbg("Creating HookedDriver('%wZ')", &Path);
 

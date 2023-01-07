@@ -43,15 +43,24 @@ s2ws(std::string const& s)
 }
 #pragma warning(pop)
 
+namespace Driver
+{
 bool
-hook_driver(HANDLE hFile, std::string const& arg)
+Hook(HANDLE hFile, std::string const& arg)
 {
     DWORD nb                    = 0;
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_HookDriver, driver_name.data(), driver_name_len, nullptr, 0, &nb, nullptr);
+    bool bSuccess = ::DeviceIoControl(
+        hFile,
+        static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(CFB::Comms::Ioctl::HookDriver),
+        driver_name.data(),
+        driver_name_len,
+        nullptr,
+        0,
+        &nb,
+        nullptr);
     info("HookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -61,14 +70,21 @@ hook_driver(HANDLE hFile, std::string const& arg)
 }
 
 bool
-unhook_driver(HANDLE hFile, std::string const& arg)
+Unhook(HANDLE hFile, std::string const& arg)
 {
     DWORD nb                    = 0;
     std::wstring driver_name    = s2ws(arg);
     const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_UnhookDriver, driver_name.data(), driver_name_len, nullptr, 0, &nb, nullptr);
+    bool bSuccess = ::DeviceIoControl(
+        hFile,
+        static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(CFB::Comms::Ioctl::UnhookDriver),
+        driver_name.data(),
+        driver_name_len,
+        nullptr,
+        0,
+        &nb,
+        nullptr);
     info("UnhookDriver() returned %s", boolstr(bSuccess));
 
     if ( !bSuccess )
@@ -79,32 +95,39 @@ unhook_driver(HANDLE hFile, std::string const& arg)
 
 
 HANDLE
-set_notif_handle(HANDLE hFile)
+SetNotificationEvent(HANDLE hFile)
 {
     DWORD nbBytesReturned = 0;
     HANDLE hEvent         = ::CreateEventA(nullptr, true, false, "CFB_IRP_EVENT");
 
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_SetEventPointer, &hEvent, sizeof(HANDLE), nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess = ::DeviceIoControl(
+        hFile,
+        static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(CFB::Comms::Ioctl::SetEventPointer),
+        &hEvent,
+        sizeof(HANDLE),
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
     info("SetEventPointer() returned %s", boolstr(bSuccess));
-
-    if ( bSuccess )
-    {
-        info("Waiting for event...");
-        ::WaitForSingleObject(hFile, INFINITE);
-        ok("Event received");
-    }
 
     return hEvent;
 }
 
 
 bool
-get_size(HANDLE hFile)
+GetNumberOfDrivers(HANDLE hFile)
 {
     DWORD nbBytesReturned = 0;
-    bool bSuccess =
-        ::DeviceIoControl(hFile, IOCTL_GetNumberOfDrivers, nullptr, 0, nullptr, 0, &nbBytesReturned, nullptr);
+    bool bSuccess         = ::DeviceIoControl(
+        hFile,
+        static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(CFB::Comms::Ioctl::GetNumberOfDrivers),
+        nullptr,
+        0,
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
     info("GetNumberOfDrivers() returned %s", boolstr(bSuccess));
 
     if ( bSuccess )
@@ -116,30 +139,31 @@ get_size(HANDLE hFile)
 }
 
 bool
-toggle_monitoring(HANDLE hFile, std::string const& arg, bool enable)
+ToggleMonitoring(HANDLE hFile, std::string const& arg, bool enable)
 {
-    std::wstring driver_name    = s2ws(arg);
-    const usize driver_name_len = driver_name.length() * 2;
-    const usize msglen          = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
+    std::wstring driver_name     = s2ws(arg);
+    const usize driver_name_len  = driver_name.length() * 2;
+    const usize msglen           = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
+    const CFB::Comms::Ioctl code = enable ? CFB::Comms::Ioctl::EnableMonitoring : CFB::Comms::Ioctl::DisableMonitoring;
 
     DWORD nbBytesReturned = 0;
     bool bSuccess         = ::DeviceIoControl(
         hFile,
-        IOCTL_ControlDriver,
+        static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(code),
         driver_name.data(),
         msglen,
         nullptr,
         0,
         &nbBytesReturned,
         nullptr);
-    info("toggle_monitoring(%s) returned %s", boolstr(enable), boolstr(bSuccess));
+    info("ToggleMonitoring('%S', enable=%s) returned %s", driver_name.c_str(), boolstr(enable), boolstr(bSuccess));
 
     return bSuccess;
 }
 
 
 bool
-send_test_data(std::string const& device_name, const u32 ioctl)
+SendData(std::string const& device_name, const u32 ioctl)
 {
     wil::unique_handle hFile(::CreateFileA(
         device_name.c_str(),
@@ -161,13 +185,13 @@ send_test_data(std::string const& device_name, const u32 ioctl)
     ::memset(buffer_in.get(), 'A', sz);
 
     bool bSuccess = ::DeviceIoControl(hFile.get(), ioctl, buffer_in.get(), sz, nullptr, 0, &nbBytesReturned, nullptr);
-    info("send_test_data() returned %s", boolstr(bSuccess));
+    info("SendData('%s', %dB) returned %s", device_name.c_str(), sz, boolstr(bSuccess));
 
     return bSuccess;
 }
 
 std::optional<u32>
-read_data(HANDLE hFile)
+ReceiveData(HANDLE hFile)
 {
     //
     // Try read into empty buffer to probe the size
@@ -176,16 +200,21 @@ read_data(HANDLE hFile)
     {
         u8* data  = nullptr;
         bool bRes = ::ReadFile(hFile, data, 0, &expectedDataLength, nullptr);
-        info("read_data(nullptr) = %s", boolstr(bRes));
+        info("ReceiveData(nullptr) = %s", boolstr(bRes));
         if ( bRes )
         {
-            ok("expectedDataLength = %d", expectedDataLength);
+            ok("  -> expectedDataLength = %d", expectedDataLength);
         }
         else
         {
             err("stopping");
             return std::nullopt;
         }
+    }
+
+    if ( expectedDataLength == 0 )
+    {
+        return 0;
     }
 
     //
@@ -195,10 +224,11 @@ read_data(HANDLE hFile)
         const DWORD dataLength = expectedDataLength;
         auto data              = std::make_unique<u8[]>(dataLength);
         bool bRes              = ::ReadFile(hFile, data.get(), dataLength, &expectedDataLength, nullptr);
-        info("read_data(data, %d) = %s", dataLength, boolstr(bRes));
+        info("ReceiveData(data, %d) = %s", dataLength, boolstr(bRes));
         if ( bRes )
         {
             CFB::Utils::Hexdump(data.get(), dataLength);
+            return dataLength;
         }
         else
         {
@@ -208,6 +238,8 @@ read_data(HANDLE hFile)
     }
 }
 
+} // namespace Driver
+
 
 int
 main(int argc, const char** argv)
@@ -215,7 +247,7 @@ main(int argc, const char** argv)
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =
-        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "set-event", "read-data"};
+        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "read-data", "session"};
 
     program.add_argument("--action")
         .default_value(std::string("hook"))
@@ -226,12 +258,12 @@ main(int argc, const char** argv)
                 {
                     return value;
                 }
-                return std::string {"hook"};
+                throw std::runtime_error("invalid action");
             });
 
     program.add_argument("--driver").default_value(std::string("\\driver\\hevd"));
     program.add_argument("--device").default_value(std::string("\\\\.\\HackSysExtremeVulnerableDriver"));
-    program.add_argument("--ioctl").scan<'i', int>().default_value(0x222003);
+    program.add_argument("--ioctl").scan<'i', int>().default_value(0x222003); // BUFFER_OVERFLOW_STACK
     program.add_argument("--enable").default_value(false).implicit_value(true);
 
     try
@@ -264,37 +296,75 @@ main(int argc, const char** argv)
 
     if ( action == "hook" )
     {
-        hook_driver(hFile.get(), driver_name);
+        Driver::Hook(hFile.get(), driver_name);
     }
     else if ( action == "unhook" )
     {
-        unhook_driver(hFile.get(), driver_name);
+        Driver::Unhook(hFile.get(), driver_name);
     }
     else if ( action == "hook-unhook" )
     {
-        hook_driver(hFile.get(), driver_name);
-        unhook_driver(hFile.get(), driver_name);
+        Driver::Hook(hFile.get(), driver_name);
+        Driver::Unhook(hFile.get(), driver_name);
     }
     else if ( action == "size" )
     {
-        get_size(hFile.get());
+        Driver::GetNumberOfDrivers(hFile.get());
     }
     else if ( action == "set-capturing" )
     {
-        toggle_monitoring(hFile.get(), driver_name, enable);
+        Driver::ToggleMonitoring(hFile.get(), driver_name, enable);
     }
     else if ( action == "send-data" )
     {
-        send_test_data(device_name, ioctl);
-    }
-    else if ( action == "set-event" )
-    {
-        hEvent = wil::unique_handle(set_notif_handle(hFile.get()));
+        Driver::SendData(device_name, ioctl);
     }
     else if ( action == "read-data" )
     {
+        Driver::ReceiveData(hFile.get());
     }
+    else if ( action == "session" )
+    {
+        Driver::Hook(hFile.get(), driver_name);
 
+        Driver::GetNumberOfDrivers(hFile.get());
+
+        hEvent = wil::unique_handle(Driver::SetNotificationEvent(hFile.get()));
+
+        Driver::ToggleMonitoring(hFile.get(), driver_name, true);
+
+        for ( int i = 0; i < 2; i++ )
+        {
+            Driver::SendData(device_name, ioctl);
+
+            u32 Status = ::WaitForSingleObject(hEvent.get(), 1 * 1000);
+            switch ( Status )
+            {
+            case WAIT_OBJECT_0:
+                ok("New data event received");
+                break;
+
+            case WAIT_TIMEOUT:
+                warn("WaitForSingleObject() timed out");
+                continue;
+
+            default:
+                err("WaitForSingleObject() returned %#x", Status);
+                i = 10000000;
+                continue;
+            }
+
+            Driver::ReceiveData(hFile.get());
+        }
+
+        Driver::ToggleMonitoring(hFile.get(), driver_name, false);
+
+        Driver::Unhook(hFile.get(), driver_name);
+    }
+    else
+    {
+        err("Unknown action %S", action.c_str());
+    }
 
     return 0;
 }

@@ -19,4 +19,5 @@ target_include_directories(DriverClient PUBLIC CommonLibUser ${CFB_DEPENDENCIES}
 target_link_options(DriverClient PUBLIC /SUBSYSTEM:Console)
 target_link_libraries(DriverClient CommonLibUser)
 
-install(TARGETS DriverClient DESTINATION Driver)
+install(TARGETS DriverClient DESTINATION Tools)
+install(FILES $<TARGET_PDB_FILE:DriverClient> DESTINATION Tools OPTIONAL)

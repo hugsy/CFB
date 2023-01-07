@@ -8,6 +8,7 @@ namespace CFB::Driver
 {
 
 CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceObject) :
+    m_Valid(false),
     m_Type(Type),
     m_Pid(::HandleToULong(::PsGetCurrentProcessId())),
     m_Tid(::HandleToULong(::PsGetCurrentThreadId())),
@@ -42,7 +43,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         //
         err("Failed to find a HookedDriver object associated to the received IRP.\n"
             "This could indicates a corruption of the hooked driver list, you should probably reboot...\n");
-        ::ExRaiseStatus(STATUS_NOT_FOUND);
+        return;
     }
 
     KeQuerySystemTime(&m_TimeStamp);
@@ -60,7 +61,8 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         NTSTATUS Status = ::ObQueryNameString(DeviceObject, nullptr, 0, &ReturnLength);
         if ( Status != STATUS_INFO_LENGTH_MISMATCH )
         {
-            ::ExRaiseStatus(Status);
+            err("CapturedIrp() failed with %#08x", Status);
+            return;
         }
 
         //
@@ -70,7 +72,8 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         Status         = ::ObQueryNameString(DeviceObject, DeviceNameInfo.get(), DeviceNameInfo.size(), &ReturnLength);
         if ( !NT_SUCCESS(Status) )
         {
-            ::ExRaiseStatus(Status);
+            err("CapturedIrp() failed with %#08x", Status);
+            return;
         }
 
         m_DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
@@ -91,31 +94,36 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         NTSTATUS Status   = ::PsLookupProcessByProcessId(UlongToHandle(m_Pid), &Process);
         if ( !NT_SUCCESS(Status) )
         {
-            ::ExRaiseStatus(Status);
+            return;
         }
 
         PSTR lpProcessName = ::PsGetProcessImageFileName(Process);
         if ( !lpProcessName )
         {
-            ::ExRaiseStatus(STATUS_OBJECT_NAME_NOT_FOUND);
+            return;
         }
 
         CANSI_STRING aStr;
         Status = ::RtlInitAnsiStringEx(&aStr, lpProcessName);
         if ( !NT_SUCCESS(Status) )
         {
-            ::ExRaiseStatus(Status);
+            return;
         }
 
         UNICODE_STRING uStr;
         Status = ::RtlAnsiStringToUnicodeString(&uStr, &aStr, true);
         if ( !NT_SUCCESS(Status) )
         {
-            ::ExRaiseStatus(Status);
+            return;
         }
 
         m_ProcessName = Utils::KUnicodeString(&uStr);
     }
+
+    //
+    // Mark the object as valid
+    //
+    m_Valid = true;
 }
 
 CapturedIrp::~CapturedIrp()
@@ -127,6 +135,12 @@ CapturedIrp::~CapturedIrp()
 NTSTATUS
 CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 {
+    if ( !m_Valid )
+    {
+        warn("CapturedIRP was insufficiently initialized");
+        return STATUS_ACCESS_DENIED;
+    }
+
     NTSTATUS Status          = STATUS_SUCCESS;
     ULONG Method             = -1;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
@@ -230,6 +244,12 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 NTSTATUS
 CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatus)
 {
+    if ( !m_Valid )
+    {
+        warn("CapturedIRP was insufficiently initialized");
+        return STATUS_ACCESS_DENIED;
+    }
+
     PVOID UserBuffer = nullptr;
     m_Status         = ReturnedIoctlStatus;
 
@@ -275,8 +295,10 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     //
     RtlCopyMemory(m_OutputBuffer.get(), UserBuffer, m_OutputBuffer.size());
 
+#ifdef _DEBUG
     ok("Capturing output data:");
     CFB::Utils::Hexdump(m_OutputBuffer.get(), m_OutputBuffer.size());
+#endif // _DEBUG
 
     return STATUS_SUCCESS;
 }
@@ -285,6 +307,12 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
 NTSTATUS
 CapturedIrp::CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG IoControlCode)
 {
+    if ( !m_Valid )
+    {
+        warn("CapturedIRP was insufficiently initialized");
+        return STATUS_ACCESS_DENIED;
+    }
+
     m_IoctlCode = IoControlCode;
     ::RtlCopyMemory(m_InputBuffer.get(), InputBuffer, m_InputBuffer.size());
 
@@ -295,6 +323,12 @@ CapturedIrp::CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG IoContr
 NTSTATUS
 CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer)
 {
+    if ( !m_Valid )
+    {
+        warn("CapturedIRP was insufficiently initialized");
+        return STATUS_ACCESS_DENIED;
+    }
+
     ::RtlCopyMemory(m_OutputBuffer.get(), OutputBuffer, m_OutputBuffer.size());
 
     return STATUS_SUCCESS;
@@ -360,4 +394,11 @@ CapturedIrp::ExportHeader() const
 
     return out;
 }
+
+bool
+CapturedIrp::IsValid() const
+{
+    return m_Valid;
+}
+
 } // namespace CFB::Driver

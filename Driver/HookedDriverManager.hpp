@@ -24,6 +24,12 @@ public:
     ///
     ~HookedDriverManager();
 
+    ///
+    ///@brief HookedDriverManager memory allocator
+    ///
+    ///@param sz
+    ///@return void*
+    ///
     static void*
     operator new(usize sz)
     {
@@ -36,6 +42,11 @@ public:
         return Memory;
     }
 
+    ///
+    ///@brief HookedDriverManager memory destructor
+    ///
+    ///@param Memory
+    ///
     static void
     operator delete(void* Memory)
     {

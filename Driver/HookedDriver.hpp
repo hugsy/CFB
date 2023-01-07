@@ -35,12 +35,29 @@ public:
     ///
     PDRIVER_OBJECT OriginalDriverObject;
 
+    ///
+    ///@brief Unique smart pointer to the native `DRIVER_OBJECT` associated to the current hooked driver object.
+    ///
     Utils::UniquePointer<DRIVER_OBJECT> HookedDriverObject;
 
+    ///
+    ///@brief Construct a new Hooked Driver object
+    ///
+    ///@param UnicodePath the unicode name of the driver
+    ///
     HookedDriver(const PUNICODE_STRING UnicodePath);
 
+    ///
+    ///@brief Destroy the Hooked Driver object
+    ///
     ~HookedDriver();
 
+    ///
+    ///@brief HookedDriver memory allocator
+    ///
+    ///@param sz
+    ///@return void*
+    ///
     static void*
     operator new(const usize sz)
     {
@@ -53,6 +70,11 @@ public:
         return Memory;
     }
 
+    ///
+    ///@brief HookedDriver memory destructor
+    ///
+    ///@param Memory
+    ///
     static void
     operator delete(void* Memory)
     {
@@ -60,27 +82,66 @@ public:
         return ::ExFreePoolWithTag(Memory, CFB_DEVICE_TAG);
     }
 
+    ///
+    ///@brief Is the current driver capturing IRP?
+    ///
+    ///@return true
+    ///@return false
+    ///
     bool
     CanCapture();
 
+    ///
+    ///@brief Enable the IRP capture mode for the driver
+    ///
+    ///@return true
+    ///@return false
+    ///
     bool
     EnableCapturing();
 
+    ///
+    ///@brief Disable the IRP capture mode for the driver
+    ///
+    ///@return true
+    ///@return false
+    ///
     bool
     DisableCapturing();
 
+    ///
+    ///@brief Get the number of IRP currently in the stack
+    ///
+    ///@return usize const
+    ///
     usize const
     IrpCount() const;
 
+    ///
+    ///@brief Increment the stacked IRP count
+    ///
     void
     IncrementIrpCount();
 
-    void
-    DecrementIrpCount();
-
+    ///
+    ///@brief Alias to `IncrementIrpCount()`
+    ///
+    ///@return HookedDriver&
+    ///
     HookedDriver&
     operator++();
 
+    ///
+    ///@brief Decrement the stacked IRP count
+    ///
+    void
+    DecrementIrpCount();
+
+    ///
+    ///@brief Alias to `DecrementIrpCount()`
+    ///
+    ///@return HookedDriver&
+    ///
     HookedDriver&
     operator--();
 

@@ -4,6 +4,11 @@
 #include "Native.hpp"
 
 
+#define xinfo(fmt, ...)                                                                                                \
+    {                                                                                                                  \
+        info("[HookedDriverManager] " fmt, __VA_ARGS__);                                                               \
+    }
+
 namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver
@@ -26,7 +31,6 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
     PDRIVER_OBJECT pDriver = nullptr;
 
     dbg("HookedDriverManager::InsertDriver('%wZ', %p, %d)", UnicodePath, UnicodePath, UnicodePath->Length);
-
 
     //
     // Resolve the given `Path` parameter as name for Driver Object
@@ -108,8 +112,11 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d",
                 NewHookedDriver->Path.get(),
                 m_Entries.Size());
+
+            xinfo("Driver '%wZ' is hooked", NewHookedDriver->Path.get());
         }
     }
+
 
     return STATUS_SUCCESS;
 }
@@ -134,6 +141,8 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
     dbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
 
     m_Entries -= MatchedDriver;
+
+    xinfo("Driver '%wZ' is unhooked", MatchedDriver->Path.get());
     delete MatchedDriver;
 
     return STATUS_SUCCESS;
@@ -174,7 +183,6 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-
     const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
 
     dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
@@ -182,6 +190,11 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         boolstr(bEnable),
         (DriverStateChanged ? "" : "un"),
         boolstr(MatchedDriver->CanCapture()));
+
+    xinfo(
+        "Capture of IRPs to driver '%wZ' are %scaptured",
+        MatchedDriver->Path.get(),
+        MatchedDriver->CanCapture() ? "" : "not ");
 
     return DriverStateChanged ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }

@@ -68,7 +68,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
         Status = CapturedIrp->CapturePostCallData(Irp, IoctlStatus);
         if ( NT_SUCCESS(Status) )
         {
-            if ( true == Globals->IrpManager.Push(CapturedIrp) )
+            if ( Globals->IrpManager.Push(CapturedIrp) )
             {
                 //
                 // If everything went fine, return the result

@@ -9,7 +9,7 @@ project(
     CFB
     LANGUAGES CXX
     VERSION 0.2.0
-    DESCRIPTION "Canadian Furious Beaver - IRP hooker, interceptor and replayer"
+    DESCRIPTION "Canadian Furious Beaver - IRP interceptor and replayer"
     HOMEPAGE_URL https://github.com/hugsy/cfb
 )
 
