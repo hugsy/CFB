@@ -1,8 +1,9 @@
+#pragma once
+
 #include "Common.hpp"
 
 namespace CFB::Comms
 {
-
 struct CapturedIrpHeader
 {
     LARGE_INTEGER TimeStamp;

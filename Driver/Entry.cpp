@@ -65,15 +65,17 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
     //
     // Ensure the calling process has SeDebugPrivilege
     //
-    PPRIVILEGE_SET lpRequiredPrivileges                                                            = nullptr;
-    UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + sizeof(LUID_AND_ATTRIBUTES)] = {0};
+    UCHAR ucPrivilegesBuffer[FIELD_OFFSET(PRIVILEGE_SET, Privilege) + 2 * sizeof(LUID_AND_ATTRIBUTES)] = {0};
 
-    lpRequiredPrivileges                             = (PPRIVILEGE_SET)ucPrivilegesBuffer;
+    PPRIVILEGE_SET lpRequiredPrivileges              = reinterpret_cast<PPRIVILEGE_SET>(ucPrivilegesBuffer);
     lpRequiredPrivileges->PrivilegeCount             = 1;
     lpRequiredPrivileges->Control                    = PRIVILEGE_SET_ALL_NECESSARY;
     lpRequiredPrivileges->Privilege[0].Luid.LowPart  = SE_DEBUG_PRIVILEGE;
     lpRequiredPrivileges->Privilege[0].Luid.HighPart = 0;
     lpRequiredPrivileges->Privilege[0].Attributes    = 0;
+    lpRequiredPrivileges->Privilege[1].Luid.LowPart  = SE_LOAD_DRIVER_PRIVILEGE;
+    lpRequiredPrivileges->Privilege[1].Luid.HighPart = 0;
+    lpRequiredPrivileges->Privilege[1].Attributes    = 0;
 
     if ( ::SePrivilegeCheck(
              lpRequiredPrivileges,
@@ -84,7 +86,7 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
     }
     else
     {
-        auto scoped_lock          = CFB::Driver::Utils::ScopedLock(Globals->ContextLock);
+        auto ScopedSpinLock       = CFB::Driver::Utils::ScopedLock(Globals->ContextLock);
         PEPROCESS pCallingProcess = ::PsGetCurrentProcess();
 
         if ( Globals->Owner == nullptr )

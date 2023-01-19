@@ -783,7 +783,7 @@ public:
     {
         ScopedLock lock(m_Mutex);
         m_Pointer = other.m_Pointer;
-        m_Count   = other.count;
+        m_Count   = other.count();
         IncrementCounter();
     }
 

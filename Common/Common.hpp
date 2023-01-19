@@ -8,6 +8,14 @@
 #include <windows.h>
 #endif // CFB_KERNEL_DRIVER
 
+#define __STR(x) #x
+#define STR(x) __STR(x)
+#define __WIDE(x) L#x
+#define WIDECHAR(x) __WIDE(x)
+#define __WIDE2(x) L##x
+#define WIDECHAR2(x) __WIDE2(x)
+#define CONCAT(x, y) (x##y)
+
 //
 // Types
 //
