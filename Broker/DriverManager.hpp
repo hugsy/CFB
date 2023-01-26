@@ -26,49 +26,7 @@ public:
         {
         }
 
-        /*
-        TcpClient(const usize id, const SOCKET socket, std::string const& host_ip, const u16 host_port) :
-            m_Id {id},
-            m_Socket {socket},
-            m_IpAddress {host_ip},
-            m_Port {host_port},
-            m_ThreadId {0},
-            m_hThread {nullptr}
-        {
-        }
-
-        ///
-        /// @brief Move-Construct a new TcpClient object
-        ///
-        /// @param src
-        ///
-        TcpClient(TcpClient&& other) :
-            m_Id {other.m_Id},
-            m_Socket {other.m_Socket},
-            m_Port {other.m_Port},
-            m_ThreadId {other.m_ThreadId}
-        {
-            m_IpAddress = std::move(other.m_IpAddress);
-            m_hThread   = std::move(other.m_hThread);
-        }
-        */
-
-
         ~TcpClient();
-        /*
-                TcpClient&
-                operator=(TcpClient&& other)
-                {
-                    m_Id        = other.m_Id;
-                    m_Socket    = other.m_Socket;
-                    m_IpAddress = other.m_IpAddress;
-                    m_Port      = other.m_Port;
-                    m_ThreadId  = other.m_ThreadId;
-                    m_IpAddress = std::move(other.m_IpAddress);
-                    m_hThread   = std::move(other.m_hThread);
-                    return *this;
-                }
-        */
 
         ///
         /// @brief Synchronous send
@@ -85,6 +43,9 @@ public:
         ///
         Result<json>
         ReceiveSynchronous();
+
+        std::string
+        Name();
 
         usize m_Id      = 0;
         SOCKET m_Socket = 0;
@@ -158,6 +119,10 @@ public:
         Result<u32>
         RunForever();
 
+        std::string
+        Name();
+
+
     private:
         SOCKET m_ServerSocket;
 
@@ -222,6 +187,8 @@ private:
     ///
     ///
     std::mutex m_ManagerLock;
+
+    usize m_RequestNumber;
 };
 
 } // namespace CFB::Broker

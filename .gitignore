@@ -266,3 +266,5 @@ __pycache__/
 Common/CompileInfo.hpp
 Broker/Broker.rc
 Broker/Broker.res
+GUI/GUI.rc
+GUI/GUI.res

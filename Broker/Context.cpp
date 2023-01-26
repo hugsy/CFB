@@ -2,6 +2,7 @@
 
 #include "Log.hpp"
 
+
 GlobalContext::GlobalContext() :
     m_State(CFB::Broker::State::Uninitialized),
     m_Pid(::GetCurrentProcessId()),
@@ -106,6 +107,18 @@ GlobalContext::SetState(CFB::Broker::State NewState)
     {
         std::scoped_lock lock(m_StateMutex);
 
+        if ( NewState == CFB::Broker::State::AllManagerReady )
+        {
+            NewState = CFB::Broker::State::Running;
+            ok("All managers are ready!");
+        }
+
+        if ( NewState == CFB::Broker::State::AllManagerDone )
+        {
+            NewState = CFB::Broker::State::Finished;
+            ok("All managers have finished!");
+        }
+
         //
         // This shouldn't happen, so print a warning if it does for investigate
         //
@@ -160,6 +173,13 @@ std::shared_ptr<CFB::Broker::DriverManager>
 GlobalContext::DriverManager() const
 {
     return m_DriverManager;
+}
+
+
+std::shared_ptr<CFB::Broker::IrpManager>
+GlobalContext::IrpManager() const
+{
+    return m_IrpManager;
 }
 
 

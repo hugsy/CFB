@@ -109,14 +109,13 @@ IrpManager::Setup()
 void
 IrpManager::Run()
 {
-
     //
     // Wait for the collector manager to be ready so we can
     // start collecting IRPs
     //
-    WaitForState(CFB::Broker::State::ConnectorManagerReady);
+    WaitForState(CFB::Broker::State::Running);
 
-    xdbg("Waiting for intercepted IRP...");
+    xinfo("Waiting for intercepted IRP...");
 
     //
     // The IRP Manager waits for either a termination event or a new IRP event
@@ -136,13 +135,19 @@ IrpManager::Run()
         }
         case WAIT_OBJECT_0 + 1:
         {
-            xdbg("New IRP data Event");
+            xdbg("Received new IRP data event");
+
             for ( auto const& Irp : GetNextIrps() )
             {
-                for ( auto const& ConnectorCb : m_Callbacks )
+                //
+                // For each new IRP, pass it on to the ConnectorManager
+                //
+                if ( !m_CallbackDispatcher )
                 {
-                    ConnectorCb(Irp);
+                    break;
                 }
+
+                m_CallbackDispatcher(Irp);
             }
             break;
         }
@@ -155,8 +160,6 @@ IrpManager::Run()
         }
     }
 
-    WaitForState(CFB::Broker::State::ConnectorManagerDone);
-
     //
     // Finish the IRP manager thread
     //
@@ -164,12 +167,113 @@ IrpManager::Run()
 }
 
 
-std::vector<int>
+std::vector<CFB::Comms::CapturedIrp>
 IrpManager::GetNextIrps()
 {
-    std::vector<int> Irps {};
+    std::vector<CFB::Comms::CapturedIrp> Irps {};
+    std::unique_ptr<u8[]> RawData;
+    DWORD dataLength = 1;
 
-    // TODO: read ReadFile() the new IRPs from the device, store them in the vector
+    //
+    // Poll data matching length requirement
+    //
+    while ( true )
+    {
+        DWORD nbDataRead = 0;
+        RawData          = std::make_unique<u8[]>(dataLength);
+        bool bRes        = ::ReadFile(m_hDevice.get(), RawData.get(), dataLength, &nbDataRead, nullptr);
+        if ( bRes )
+        {
+            dataLength = nbDataRead;
+            break;
+        }
+
+        if ( ::GetLastError() == ERROR_INSUFFICIENT_BUFFER )
+        {
+            dataLength *= 2;
+            continue;
+        }
+
+        CFB::Log::perror("ReadFile() failed");
+        ::ResetEvent(m_hNewIrpEvent.get());
+        return {};
+    }
+
+    xinfo("%d B data fetched", dataLength);
+
+    if ( dataLength < sizeof(CFB::Comms::CapturedIrpHeader) )
+    {
+        warn("Event was set but not enough data was fetched");
+        ::ResetEvent(m_hNewIrpEvent.get());
+        return {};
+    }
+
+#ifdef _DEBUG
+    CFB::Utils::Hexdump(RawData.get(), dataLength);
+#endif // _DEBUG
+
+    //
+    // Parse it
+    //
+    {
+        usize offset = 0;
+
+        while ( offset < dataLength )
+        {
+            auto const Header = reinterpret_cast<CFB::Comms::CapturedIrpHeader*>(RawData.get() + offset);
+            xdbg("Parsing from offset %d", offset);
+
+            if ( offset + sizeof(CFB::Comms::CapturedIrpHeader) >= dataLength )
+            {
+                warn("Out-of-bound Header access: offset=%llu , dataLength=%llu ", offset, dataLength);
+                break;
+            }
+
+            CFB::Comms::CapturedIrp Irp {};
+            Irp.Header.TimeStamp          = Header->TimeStamp;
+            Irp.Header.Irql               = Header->Irql;
+            Irp.Header.Type               = Header->Type;
+            Irp.Header.MajorFunction      = Header->MajorFunction;
+            Irp.Header.MinorFunction      = Header->MinorFunction;
+            Irp.Header.IoctlCode          = Header->IoctlCode;
+            Irp.Header.Pid                = Header->Pid;
+            Irp.Header.Tid                = Header->Tid;
+            Irp.Header.Status             = Header->Status;
+            Irp.Header.InputBufferLength  = Header->InputBufferLength;
+            Irp.Header.OutputBufferLength = Header->OutputBufferLength;
+            ::memcpy(Irp.Header.DriverName, Header->DriverName, sizeof(Header->DriverName));
+            ::memcpy(Irp.Header.DeviceName, Header->DeviceName, sizeof(Header->DeviceName));
+            ::memcpy(Irp.Header.ProcessName, Header->ProcessName, sizeof(Header->ProcessName));
+            offset += sizeof(CFB::Comms::CapturedIrpHeader);
+
+            if ( offset + Irp.Header.InputBufferLength <= dataLength )
+            {
+                auto const InputBuffer = RawData.get() + offset;
+                Irp.InputBuffer.resize(Irp.Header.InputBufferLength);
+                ::memcpy(Irp.InputBuffer.data(), InputBuffer, Irp.Header.InputBufferLength);
+                offset += Irp.Header.InputBufferLength;
+            }
+
+            if ( offset + Irp.Header.OutputBufferLength <= dataLength )
+            {
+                auto const OutputBuffer = RawData.get() + offset;
+                Irp.OutputBuffer.resize(Irp.Header.OutputBufferLength);
+                ::memcpy(Irp.OutputBuffer.data(), OutputBuffer, Irp.Header.OutputBufferLength);
+                offset += Irp.Header.OutputBufferLength;
+            }
+
+            xdbg(
+                "New IRP (DeviceName='%S', Type=%s, InputBufferLength=%u, OutputBufferLength=%u) pushed to queue",
+                Irp.Header.DeviceName,
+                CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction).c_str(),
+                Irp.Header.InputBufferLength,
+                Irp.Header.OutputBufferLength);
+
+            Irps.push_back(std::move(Irp));
+        }
+    }
+
+    xdbg("%d IRPs pulled from driver", Irps.size());
 
     //
     // Reset the event
@@ -180,4 +284,12 @@ IrpManager::GetNextIrps()
 }
 
 
+bool
+IrpManager::SetCallback(std::function<bool(CFB::Comms::CapturedIrp const&)> cb)
+{
+    std::scoped_lock(m_CallbackLock);
+    m_CallbackDispatcher = cb;
+    xdbg("Callback %p added", cb);
+    return true;
+}
 } // namespace CFB::Broker

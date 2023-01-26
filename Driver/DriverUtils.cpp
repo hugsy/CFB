@@ -1,14 +1,11 @@
 #include "DriverUtils.hpp"
 
-#ifndef USHRT_MAX
-#define USHRT_MAX ((1 << (sizeof(u16) * 8)) - 1)
-#endif // USHRT_MAX
-
 
 ///
 /// @brief Basic allocator/deallocator for the kernel
 ///
-
+/// TODO: I don't use them, so remove in favor of per class allocation method?
+///
 void* __cdecl
 operator new(usize Size, POOL_TYPE PoolType, ULONG PoolTag)
 {
@@ -68,65 +65,6 @@ ToString(KIRQL const Level)
     }
     return "INVALID_LEVEL";
 }
-#pragma endregion
-
-#pragma region KUnicodeString
-
-KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type)
-{
-    m_len          = min((srcsz >> 1), USHRT_MAX - 2) + 1;
-    const usize sz = size();
-    m_buffer       = KAlloc<wchar_t*>(sz, CFB_DEVICE_TAG, type);
-    ::RtlCopyMemory(m_buffer.get(), src, sz - sizeof(wchar_t));
-    ::RtlInitUnicodeString(&m_str, m_buffer.get());
-    dbg("KUnicodeString::KUnicodeString('%wZ', %d, %d)", &m_str, size(), length());
-}
-
-KUnicodeString::KUnicodeString(const wchar_t* src, const POOL_TYPE type)
-{
-    const usize len = ::wcslen(src);
-    const u16 sz    = min((len << 1), USHRT_MAX - 2);
-    KUnicodeString::KUnicodeString(src, sz, type);
-}
-
-KUnicodeString::KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type)
-{
-    KUnicodeString::KUnicodeString(src->Buffer, src->Length, type);
-}
-
-///
-/// @brief The total size allocated by the buffer holding the string
-///
-/// @return const usize
-///
-const usize
-KUnicodeString::size() const
-{
-    return length() * sizeof(wchar_t);
-}
-
-///
-/// @brief The length of the string
-///
-/// @return const usize
-///
-const usize
-KUnicodeString::length() const
-{
-    return m_len;
-}
-
-KUnicodeString::~KUnicodeString()
-{
-    dbg("KUnicodeString::~KUnicodeString(%p)", m_str);
-}
-
-const PUNICODE_STRING
-KUnicodeString::get()
-{
-    return &m_str;
-}
-
 #pragma endregion
 
 #pragma region KMutex

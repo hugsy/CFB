@@ -25,8 +25,6 @@ enum class RequestId : uptr
     EnableMonitoring   = 0x07,
     DisableMonitoring  = 0x08,
     StoreTestCase      = 0x09,
-    EnableDriver       = 0x0a,
-    DisableDriver      = 0x0b,
 
     // Command IDs for Broker
     EnumerateDriverObject = 0x11,
@@ -39,15 +37,14 @@ struct DriverRequest
     ///
     /// @brief Mandatory request type id
     ///
-    ///
     RequestId Id = RequestId::InvalidId;
 
     ///
     /// @brief Driver name as a wstring, used for
     /// - HookDriver
     /// - UnhookDriver
-    /// - EnableDriver
-    /// - DisableDriver
+    /// - EnableMonitoring
+    /// - DisableMonitoring
     ///
     std::wstring DriverName;
 };
@@ -67,6 +64,10 @@ struct DriverResponse
     } Body;
 };
 
+std::string
+ToString(CFB::Comms::RequestId id);
+
+
 //
 // JSON Converters
 //
@@ -81,7 +82,7 @@ void
 to_json(json& dst, const DriverRequest& src);
 
 ///
-/// @brief JOSN -> DriverRequest
+/// @brief JSON -> DriverRequest
 ///
 /// @param src
 /// @param dst

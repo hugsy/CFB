@@ -25,23 +25,17 @@
 
 #define PLURAL_IF(x) ((x) ? "s" : "")
 
-#pragma warning(push)
-#pragma warning(disable : 4244) // bad but only for tests
-
-static std::wstring_convert<std::codecvt_utf8<wchar_t>> g_converter;
-
 std::string
 ws2s(std::wstring const& ws)
 {
-    return g_converter.to_bytes(ws);
+    return CFB::Utils::ToString(ws);
 }
 
 std::wstring
 s2ws(std::string const& s)
 {
-    return g_converter.from_bytes(s);
+    return CFB::Utils::ToWideString(s);
 }
-#pragma warning(pop)
 
 namespace Driver
 {
@@ -291,7 +285,7 @@ main(int argc, const char** argv)
     if ( !hFile )
     {
         err("Failed to open '%S'", CFB_DEVICE_NAME);
-        return -1;
+        // return -1;
     }
 
     if ( action == "hook" )

@@ -18,6 +18,7 @@ CapturedIrpManager::~CapturedIrpManager()
         //
         ::KeResetEvent(m_Event);
         ObDereferenceObject(m_Event);
+        m_Event = nullptr;
     }
 }
 

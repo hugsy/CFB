@@ -46,6 +46,6 @@ add_subdirectory(${CFB_ROOT_DIR}/Broker)
 add_subdirectory(${CFB_ROOT_DIR}/Common)
 
 #
-# Build Driver
+# Build GUI
 #
-# add_subdirectory(GUI)
+add_subdirectory(GUI)

@@ -1,10 +1,18 @@
 #include "Utils.hpp"
 
+#ifdef CFB_KERNEL_DRIVER
+#else
+#include <algorithm>
+#include <iostream>
+#include <sstream>
+#endif // CFB_KERNEL_DRIVER
+
 namespace CFB::Utils
 {
 void
-Hexdump(PVOID data, SIZE_T size) // TODO: ugly, improve
+Hexdump(PVOID data, SIZE_T size)
 {
+    // HACK improve
     CHAR ascii[17] = {
         0,
     };
@@ -48,6 +56,126 @@ Hexdump(PVOID data, SIZE_T size) // TODO: ugly, improve
 
     return;
 }
+
+#ifdef CFB_KERNEL_DRIVER
+#else
+std::string
+ToString(std::wstring const& input)
+{
+    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
+    // return converter.to_bytes(input);
+
+    // HACK improve
+    std::string s;
+    std::for_each(
+        input.cbegin(),
+        input.cend(),
+        [&s](auto c)
+        {
+            s += (char)c;
+        });
+    return s;
+}
+
+std::wstring
+ToWideString(std::string const& input)
+{
+    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
+    // return converter.from_bytes(input);
+
+    // HACK improve
+
+    std::wstring s;
+    std::for_each(
+        input.cbegin(),
+        input.cend(),
+        [&s](auto c)
+        {
+            s += (wchar_t)c;
+        });
+    return s;
+}
+
+std::string
+ToString(CFB::Comms::Ioctl code)
+{
+    u32 _code          = (u32)code;
+    u32 DeviceType     = ((_code >> 16) & 0x0000ffff);
+    u32 AccessType     = ((_code >> 14) & 0x00000003);
+    u32 MethodType     = (_code & 0x0000003);
+    u32 FunctionNumber = ((_code >> 2) & 0x0000fff);
+
+    std::ostringstream oss;
+    oss << "CTL_CODE(DeviceType=0x" << std::hex << DeviceType << ", Function=0x" << FunctionNumber;
+    oss << ", Method=" << MethodType << ", Access=" << AccessType << ")";
+    return oss.str();
+}
+
+std::string
+IrpMajorToString(u32 type)
+{
+    switch ( type )
+    {
+    case 0x00:
+        return "IRP_MJ_CREATE";
+    case 0x01:
+        return "IRP_MJ_CREATE_NAMED_PIPE";
+    case 0x02:
+        return "IRP_MJ_CLOSE";
+    case 0x03:
+        return "IRP_MJ_READ";
+    case 0x04:
+        return "IRP_MJ_WRITE";
+    case 0x05:
+        return "IRP_MJ_QUERY_INFORMATION";
+    case 0x06:
+        return "IRP_MJ_SET_INFORMATION";
+    case 0x07:
+        return "IRP_MJ_QUERY_EA";
+    case 0x08:
+        return "IRP_MJ_SET_EA";
+    case 0x09:
+        return "IRP_MJ_FLUSH_BUFFERS";
+    case 0x0a:
+        return "IRP_MJ_QUERY_VOLUME_INFORMATION";
+    case 0x0b:
+        return "IRP_MJ_SET_VOLUME_INFORMATION";
+    case 0x0c:
+        return "IRP_MJ_DIRECTORY_CONTROL";
+    case 0x0d:
+        return "IRP_MJ_FILE_SYSTEM_CONTROL";
+    case 0x0e:
+        return "IRP_MJ_DEVICE_CONTROL";
+    case 0x0f:
+        return "IRP_MJ_INTERNAL_DEVICE_CONTROL";
+    case 0x10:
+        return "IRP_MJ_SHUTDOWN";
+    case 0x11:
+        return "IRP_MJ_LOCK_CONTROL";
+    case 0x12:
+        return "IRP_MJ_CLEANUP";
+    case 0x13:
+        return "IRP_MJ_CREATE_MAILSLOT";
+    case 0x14:
+        return "IRP_MJ_QUERY_SECURITY";
+    case 0x15:
+        return "IRP_MJ_SET_SECURITY";
+    case 0x16:
+        return "IRP_MJ_POWER";
+    case 0x17:
+        return "IRP_MJ_SYSTEM_CONTROL";
+    case 0x18:
+        return "IRP_MJ_DEVICE_CHANGE";
+    case 0x19:
+        return "IRP_MJ_QUERY_QUOTA";
+    case 0x1a:
+        return "IRP_MJ_SET_QUOTA";
+    case 0x1b:
+        return "IRP_MJ_PNP_POWER";
+    }
+    return "UnknownIrpType";
+}
+#endif // CFB_KERNEL_DRIVER
 
 namespace Memory
 {

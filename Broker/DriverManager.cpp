@@ -8,14 +8,13 @@
 #include "Error.hpp"
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
+#include "Messages.hpp"
 #include "States.hpp"
 
 
-static std::wstring_convert<std::codecvt_utf8<wchar_t>> g_converter;
-
 namespace CFB::Broker
 {
-DriverManager::DriverManager()
+DriverManager::DriverManager() : m_RequestNumber {0}
 {
 }
 
@@ -34,6 +33,8 @@ DriverManager::Name()
 void
 DriverManager::Run()
 {
+    WaitForState(CFB::Broker::State::Running);
+
     m_Listener.RunForever();
 }
 
@@ -68,8 +69,6 @@ DriverManager::Setup()
         m_hDevice = std::move(hDevice);
     }
 
-    // SetState(CFB::Broker::State::DriverManagerReady);
-
     return Ok(true);
 }
 
@@ -79,16 +78,20 @@ DriverManager::ExecuteCommand(json const& Request)
 {
     std::lock_guard lock(m_ManagerLock);
     json Response;
-    bool bSuccess = false;
-    DWORD nb      = 0;
+    bool bSuccess    = false;
+    DWORD nbReturned = 0;
 
     if ( Globals.State() <= CFB::Broker::State::ServiceManagerReady )
     {
         return Err(ErrorCode::DeviceNotInitialized);
     }
 
+    auto RequestId = Request.at("id").get<CFB::Comms::RequestId>();
 
-    switch ( Request.at("id").get<CFB::Comms::RequestId>() )
+    InterlockedIncrement64((long long*)&m_RequestNumber);
+    xdbg("New request %s => ID=%llu", CFB::Comms::ToString(RequestId).c_str(), m_RequestNumber);
+
+    switch ( RequestId )
     {
     case CFB::Comms::RequestId::HookDriver:
     {
@@ -103,7 +106,7 @@ DriverManager::ExecuteCommand(json const& Request)
                          data_in_len,
                          nullptr,
                          0,
-                         &nb,
+                         &nbReturned,
                          nullptr));
         break;
     }
@@ -121,7 +124,7 @@ DriverManager::ExecuteCommand(json const& Request)
                          data_in_len,
                          nullptr,
                          0,
-                         &nb,
+                         &nbReturned,
                          nullptr));
         break;
     }
@@ -136,13 +139,13 @@ DriverManager::ExecuteCommand(json const& Request)
                          0,
                          nullptr,
                          0,
-                         &nb,
+                         &nbReturned,
                          nullptr));
-        Response["value"] = nb;
+        Response["value"] = nbReturned;
         break;
     }
 
-    case CFB::Comms::RequestId::EnableDriver:
+    case CFB::Comms::RequestId::EnableMonitoring:
     {
         auto msg         = Request.get<CFB::Comms::DriverRequest>();
         auto data_in     = (LPVOID)msg.DriverName.c_str();
@@ -150,17 +153,17 @@ DriverManager::ExecuteCommand(json const& Request)
         Response["success"] =
             (TRUE == ::DeviceIoControl(
                          m_hDevice.get(),
-                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::EnableDriver),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::EnableMonitoring),
                          data_in,
                          data_in_len,
                          nullptr,
                          0,
-                         &nb,
+                         &nbReturned,
                          nullptr));
         break;
     }
 
-    case CFB::Comms::RequestId::DisableDriver:
+    case CFB::Comms::RequestId::DisableMonitoring:
     {
         auto msg         = Request.get<CFB::Comms::DriverRequest>();
         auto data_in     = (LPVOID)msg.DriverName.c_str();
@@ -168,23 +171,27 @@ DriverManager::ExecuteCommand(json const& Request)
         Response["success"] =
             (TRUE == ::DeviceIoControl(
                          m_hDevice.get(),
-                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::DisableDriver),
+                         static_cast<std::underlying_type<CFB::Comms::Ioctl>::type>(Comms::Ioctl::DisableMonitoring),
                          data_in,
                          data_in_len,
                          nullptr,
                          0,
-                         &nb,
+                         &nbReturned,
                          nullptr));
         break;
     }
 
     case CFB::Comms::RequestId::GetDriverInfo:
     {
+        Response["success"] = false;
+        Response["reason"]  = "NotImplemented";
         break;
     }
 
     case CFB::Comms::RequestId::StoreTestCase:
     {
+        Response["success"] = false;
+        Response["reason"]  = "NotImplemented";
         break;
     }
 
@@ -197,7 +204,7 @@ DriverManager::ExecuteCommand(json const& Request)
             for ( auto const& entry : Value(res) )
             {
                 std::wstring res = L"\\driver\\" + entry.first;
-                Response["body"].push_back(g_converter.to_bytes(res));
+                Response["body"].push_back(CFB::Utils::ToString(res));
             }
         }
         else
@@ -217,7 +224,7 @@ DriverManager::ExecuteCommand(json const& Request)
             for ( auto const& entry : Value(res) )
             {
                 std::wstring res = L"\\Device\\" + entry.first;
-                Response["body"].push_back(g_converter.to_bytes(res));
+                Response["body"].push_back(CFB::Utils::ToString(res));
             }
         }
         else
@@ -230,6 +237,12 @@ DriverManager::ExecuteCommand(json const& Request)
     default:
         return Err(ErrorCode::InvalidRequestId);
     }
+
+    xinfo(
+        "Request[%llu] %s => %s",
+        m_RequestNumber,
+        CFB::Comms::ToString(RequestId).c_str(),
+        boolstr(Response["success"]));
 
     return Ok(Response);
 }

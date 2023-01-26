@@ -9,6 +9,11 @@
         info("[HookedDriverManager] " fmt, __VA_ARGS__);                                                               \
     }
 
+#define xdbg(fmt, ...)                                                                                                 \
+    {                                                                                                                  \
+        dbg("[HookedDriverManager] " fmt, __VA_ARGS__);                                                                \
+    }
+
 namespace Utils = CFB::Driver::Utils;
 
 namespace CFB::Driver
@@ -30,7 +35,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
 {
     PDRIVER_OBJECT pDriver = nullptr;
 
-    dbg("HookedDriverManager::InsertDriver('%wZ', %p, %d)", UnicodePath, UnicodePath, UnicodePath->Length);
+    xdbg("HookedDriverManager::InsertDriver('%wZ', %p, %d)", UnicodePath, UnicodePath, UnicodePath->Length);
 
     //
     // Resolve the given `Path` parameter as name for Driver Object
@@ -53,12 +58,12 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
     }
 
     {
-        dbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
+        xdbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
         Utils::ScopedWrapper ScopedDriverObject(
             pDriver,
             [&pDriver]()
             {
-                dbg("HookedDriverManager::InsertDriver(): derefencing object %p", pDriver);
+                xdbg("HookedDriverManager::InsertDriver(): derefencing object %p", pDriver);
                 ObDereferenceObject(pDriver);
             });
 
@@ -94,7 +99,8 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
                 return STATUS_INSUFFICIENT_RESOURCES;
             }
 
-            dbg("HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
+            xdbg(
+                "HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
                 UnicodePath,
                 ScopedDriverObject.get());
 
@@ -107,9 +113,10 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             //
             // Last, insert the driver to the linked list
             //
-            m_Entries += NewHookedDriver;
+            m_Entries.PushBack(NewHookedDriver);
 
-            dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d",
+            xdbg(
+                "Added '%wZ' to the hooked driver list, TotalEntries=%d",
                 NewHookedDriver->Path.get(),
                 m_Entries.Size());
 
@@ -138,7 +145,7 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
         return STATUS_NOT_FOUND;
     }
 
-    dbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
+    xdbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
 
     m_Entries -= MatchedDriver;
 
@@ -151,15 +158,16 @@ HookedDriverManager::RemoveDriver(const PUNICODE_STRING UnicodePath)
 NTSTATUS
 HookedDriverManager::RemoveAllDrivers()
 {
-    dbg("Removing all drivers");
+    xdbg("Removing all drivers");
 
     Utils::ScopedLock lock(m_Mutex);
-
     do
     {
         auto Entry = m_Entries.PopBack();
         if ( Entry == nullptr )
+        {
             break;
+        }
         delete Entry;
     } while ( true );
 
@@ -185,7 +193,8 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
 
     const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
 
-    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
+    xdbg(
+        "HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
         MatchedDriver->Path.get(),
         boolstr(bEnable),
         (DriverStateChanged ? "" : "un"),

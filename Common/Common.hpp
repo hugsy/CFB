@@ -63,4 +63,17 @@ using uptr  = ULONG_PTR;
 #ifndef boolstrw
 #define boolstrw(x)                 ( (x) ? L"true" : L"false")
 #endif
+
+#ifndef MIN
+#define MIN(a,b) ( (a) < (b) ? (a) : (b))
+#endif // MIN
+
+#ifndef MAX
+#define MAX(a,b) ( (a) < (b) ? (b) : (a))
+#endif // MAX
+
+#ifndef USHRT_MAX
+#define USHRT_MAX ((1 << (sizeof(u16) * 8)) - 1)
+#endif // USHRT_MAX
+
 // clang-format on

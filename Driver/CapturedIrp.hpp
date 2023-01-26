@@ -123,12 +123,20 @@ public:
     CapturePostCallFastIoData(_Out_opt_ PVOID OutputBuffer);
 
     ///
+    ///@brief Total size of captured data (i.e. sizeof(in) + sizeof(out)) including the header
+    ///
+    ///@return usize const
+    ///
+    usize const
+    Size() const;
+
+    ///
     ///@brief Total size of of captured data (i.e. sizeof(in) + sizeof(out))
     ///
     ///@return usize const
     ///
     usize const
-    DataSize();
+    DataSize() const;
 
     ///
     ///@brief Size of of captured input data

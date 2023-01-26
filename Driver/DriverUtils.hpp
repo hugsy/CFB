@@ -17,11 +17,22 @@ operator new[](size_t Size, POOL_TYPE PoolType);
 void __cdecl
 operator delete[](void* Memory, usize Size);
 
+template<typename T>
+T&
+move(T& other)
+{
+    return static_cast<T&&>(other);
+}
+
 namespace CFB::Driver::Utils
 {
 
+//////
+///@brief
 ///
-/// @brief `ToString` method for IRQL
+///@param Level
+///@return const char*
+///
 ///
 /// @param Level
 /// @return const char*
@@ -129,56 +140,54 @@ class KAlloc
 {
 public:
     KAlloc(const usize sz = 0, const u32 tag = CFB_DEVICE_TAG, POOL_TYPE type = NonPagedPoolNx) :
-        _type(type),
-        _tag(tag),
-        _sz(sz),
-        _mem(nullptr)
+        m_PoolType(type),
+        m_PoolTag(tag),
+        m_Size(sz),
+        m_Buffer(nullptr)
     {
         if ( sz )
         {
-            //
-            // Make sure memory is always allocated on a 16 byte alignmnent
-            //
             allocate(CFB::Utils::Memory::AlignValue(sz, 0x10));
         }
     }
 
     ~KAlloc()
     {
-        if ( _sz )
+        if ( valid() )
         {
             free();
         }
     }
 
+    //
+    // No copy/move constructor or copy assignment
+    //
     KAlloc(const KAlloc&) = delete;
-
+    KAlloc(KAlloc&&)      = delete;
     KAlloc&
-    operator=(const KAlloc& other) noexcept
-    {
-        // dbg("In KAlloc::operator=(const KAlloc&)");
-        if ( this != &other )
-        {
-            _mem = other._mem;
-            _tag = other._tag;
-            _sz  = other._sz;
-        }
-        return *this;
-    }
+    operator=(const KAlloc& other) noexcept = delete;
 
+    //
+    // Move assignment ok to allow:
+    // KAlloc a;
+    // [...]
+    // a = KAlloc(...)
+    //
     KAlloc&
     operator=(KAlloc&& other) noexcept
     {
-        // dbg("In KAlloc::operator=(const KAlloc&&)");
         if ( this != &other )
         {
+            // if allocated, free first
             free();
-            _mem       = other._mem;
-            _tag       = other._tag;
-            _sz        = other._sz;
-            other._mem = nullptr;
-            other._tag = 0;
-            other._sz  = 0;
+
+            m_Buffer  = other.m_Buffer;
+            m_PoolTag = other.m_PoolTag;
+            m_Size    = other.m_Size;
+
+            other.m_Size    = 0;
+            other.m_PoolTag = 0;
+            other.m_Buffer  = nullptr;
         }
         return *this;
     }
@@ -186,33 +195,41 @@ public:
     T
     operator[](usize idx)
     {
-        return _mem[idx];
+        return m_Buffer[idx];
     }
 
     const T
     get() const
     {
-        return _mem;
+        return m_Buffer;
     }
 
     const usize
     size() const
     {
-        return _sz;
+        return m_Size;
+    }
+
+    bool
+    valid() const
+    {
+        return m_Buffer != nullptr && m_Size > 0;
     }
 
     operator bool() const
     {
-        return _mem != nullptr && _sz > 0;
+        return valid();
     }
 
     friend bool
     operator==(KAlloc const& lhs, KAlloc const& rhs)
     {
-        if ( lhs._sz != rhs._sz || lhs._tag != rhs._tag )
+        if ( lhs.m_Size != rhs.m_Size || lhs.m_PoolTag != rhs.m_PoolTag )
+        {
             return false;
+        }
 
-        return ::RtlCompareMemory((PVOID)lhs._mem, (PVOID)rhs._mem, lhs._sz);
+        return ::RtlCompareMemory((PVOID)lhs.m_Buffer, (PVOID)rhs.m_Buffer, lhs.m_Size);
     }
 
 protected:
@@ -227,16 +244,16 @@ protected:
 
         if ( sz > 0 )
         {
-            auto p = ::ExAllocatePoolWithTag(_type, sz, _tag);
+            auto p = ::ExAllocatePoolWithTag(m_PoolType, sz, m_PoolTag);
             if ( !p )
             {
                 ::ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
             }
 
-            _mem = reinterpret_cast<T>(p);
-            ::RtlSecureZeroMemory((PVOID)_mem, sz);
+            m_Buffer = reinterpret_cast<T>(p);
+            ::RtlSecureZeroMemory((PVOID)m_Buffer, sz);
 
-            dbg("KAlloc::allocate(%d) = %p", sz, _mem);
+            dbg("KAlloc::allocate(%d) = %p", sz, m_Buffer);
         }
         else
         {
@@ -247,51 +264,70 @@ protected:
     virtual void
     free()
     {
-        dbg("KAlloc::free(%p)", _mem);
-        if ( _mem != nullptr && _sz > 0 )
+        dbg("KAlloc::free(%p)", m_Buffer);
+        if ( valid() )
         {
-            ::RtlSecureZeroMemory((PUCHAR)_mem, _sz);
-            ::ExFreePoolWithTag(_mem, _tag);
-            _mem = nullptr;
-            _tag = 0;
-            _sz  = 0;
+            ::RtlSecureZeroMemory((PUCHAR)m_Buffer, m_Size);
+            ::ExFreePoolWithTag(m_Buffer, m_PoolTag);
+            m_Buffer  = nullptr;
+            m_PoolTag = 0;
+            m_Size    = 0;
         }
     }
 
-    T _mem;
-    usize _sz;
-    u32 _tag;
-    POOL_TYPE _type;
+    T m_Buffer;
+    usize m_Size;
+    u32 m_PoolTag;
+    POOL_TYPE m_PoolType;
 };
 
 
 class KUnicodeString
 {
 public:
-    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = NonPagedPoolNx);
-
-    KUnicodeString(const wchar_t* src, const POOL_TYPE type = NonPagedPoolNx);
-
     ///
     /// @brief Construct a new KUnicodeString object
     ///
     /// @param src pointer to the beginning of the string
-    /// @param srcsz the SIZE of the buffer allocated for the string (usually, strlen * sizeof(WCHAR) )
+    /// @param srcsz the number of bytes to use to store the unicode string
     /// @param type the pool type to store the buffer in
     ///
-    KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx);
+    KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx) :
+        m_UnicodeString {},
+        m_StringBuffer {KAlloc<wchar_t*>(srcsz, CFB_DEVICE_TAG, type)}
+    {
+        ::memcpy(m_StringBuffer.get(), src, srcsz);
+        ::RtlInitUnicodeString(&m_UnicodeString, m_StringBuffer.get());
 
-    ~KUnicodeString();
+        dbg("KUnicodeString::KUnicodeString('%wZ', %dB)", &m_UnicodeString, length());
+    }
+
+    KUnicodeString() : m_UnicodeString {}
+    {
+    }
+
+    ///
+    ///@brief Destroy the KUnicodeString object
+    ///
+    ~KUnicodeString()
+    {
+        dbg("KUnicodeString::~KUnicodeString(%p)", m_UnicodeString);
+        // deallocation of `m_StringBuffer` is handled by KAlloc
+    }
+
+    KUnicodeString(const KUnicodeString&) = delete;
+    KUnicodeString(KUnicodeString&&)      = delete;
+    KUnicodeString&
+    operator=(const KUnicodeString& other) noexcept = delete;
 
     KUnicodeString&
     operator=(KUnicodeString&& other) noexcept
     {
-        dbg("In KUnicodeString::operator=(const KUnicodeString&&)");
         if ( this != &other )
         {
-            m_len    = other.m_len;
-            m_buffer = other.m_buffer;
-            ::RtlCopyMemory(&m_str, other.get(), sizeof(UNICODE_STRING));
+            m_StringBuffer = static_cast<KAlloc<wchar_t*>&&>(other.m_StringBuffer);
+            ::memcpy(&m_UnicodeString, other.get(), sizeof(UNICODE_STRING));
+            ::memset(&other.m_UnicodeString, 0, sizeof(UNICODE_STRING));
         }
         return *this;
     }
@@ -299,23 +335,31 @@ public:
     friend bool
     operator==(KUnicodeString const& lhs, KUnicodeString const& rhs)
     {
-        return lhs.m_len == rhs.m_len && lhs.m_buffer == rhs.m_buffer;
+        return lhs.length() == rhs.length() && ::RtlCompareUnicodeString(lhs.get(), rhs.get(), true) == 0;
     }
 
     bool
     operator==(PUNICODE_STRING const& other)
     {
-        return *this == KUnicodeString(other->Buffer, other->Length);
+        return length() == other->Length && ::RtlCompareUnicodeString(get(), other, true) == 0;
     }
 
     const wchar_t*
-    operator*() const
+    data() const
     {
-        return m_buffer.get();
+        return m_UnicodeString.Buffer;
     }
 
+    ///
+    ///@brief Get a pointer to the PUNICODE_STRING
+    ///
+    ///@return const PUNICODE_STRING
+    ///
     const PUNICODE_STRING
-    get();
+    get() const
+    {
+        return const_cast<PUNICODE_STRING>(&m_UnicodeString);
+    }
 
     ///
     /// @brief Get the length of the string (i.e. number of characters)
@@ -323,20 +367,14 @@ public:
     /// @return const usize
     ///
     const usize
-    length() const;
-
-    ///
-    /// @brief Get the size of the buffer (i.e. number of bytes)
-    ///
-    /// @return const usize
-    ///
-    const usize
-    size() const;
+    length() const
+    {
+        return m_UnicodeString.Length;
+    }
 
 protected:
-    usize m_len;
-    UNICODE_STRING m_str;
-    KAlloc<wchar_t*> m_buffer;
+    UNICODE_STRING m_UnicodeString;
+    KAlloc<wchar_t*> m_StringBuffer;
 };
 
 
@@ -548,7 +586,9 @@ public:
         ScopedLock lock(m_Mutex);
         bool bSuccess = ::RemoveEntryList(&Entry->Next);
         if ( bSuccess )
+        {
             m_TotalEntry--;
+        }
         return bSuccess;
     }
 
@@ -563,10 +603,14 @@ public:
     {
         ScopedLock lock(m_Mutex);
         if ( m_TotalEntry == 0 )
+        {
             return nullptr;
+        }
         auto LastEntry = ::RemoveHeadList(&m_ListHead);
         if ( LastEntry == &m_ListHead )
+        {
             return nullptr;
+        }
         auto LastItem = CONTAINING_RECORD(LastEntry, T, Next);
         m_TotalEntry--;
         return LastItem;
@@ -577,10 +621,14 @@ public:
     {
         ScopedLock lock(m_Mutex);
         if ( Size() == 0 )
+        {
             return nullptr;
+        }
         auto LastEntry = ::RemoveTailList(&m_ListHead);
         if ( LastEntry == &m_ListHead )
+        {
             return nullptr;
+        }
         auto LastItem = CONTAINING_RECORD(LastEntry, T, Next);
         m_TotalEntry--;
         return LastItem;

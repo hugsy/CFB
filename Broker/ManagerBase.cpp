@@ -42,13 +42,12 @@ ManagerBase::~ManagerBase()
 bool
 ManagerBase::WaitForState(CFB::Broker::State WantedState)
 {
-    const CFB::Broker::State CurrentState = Globals.State();
-    xdbg("Waiting for state '%s' (current '%s')", Utils::ToString(WantedState), Utils::ToString(CurrentState));
-
     const HANDLE handles[] = {m_hChangedStateEvent.get(), m_hTerminationEvent.get()};
 
     while ( true )
     {
+        const CFB::Broker::State CurrentState = Globals.State();
+
         //
         // if the wanted state current or already, leave
         //
@@ -57,10 +56,18 @@ ManagerBase::WaitForState(CFB::Broker::State WantedState)
             break;
         }
 
+        xinfo("Waiting for state '%s' (current '%s')", Utils::ToString(WantedState), Utils::ToString(CurrentState));
+
         //
         // Otherwise wait to be signaled
         //
-        DWORD dwIndex = ::WaitForMultipleObjects(countof(handles), handles, false, INFINITE) - WAIT_OBJECT_0;
+        DWORD dwIndex = ::WaitForMultipleObjects(countof(handles), handles, false, 10'000);
+
+        if ( dwIndex == WAIT_TIMEOUT )
+        {
+            continue;
+        }
+
         if ( handles[dwIndex] == m_hTerminationEvent.get() )
         {
             break;
@@ -83,7 +90,7 @@ ManagerBase::WaitForState(CFB::Broker::State WantedState)
 bool
 ManagerBase::SetState(CFB::Broker::State NewState)
 {
-    xdbg("Notifying state change '%s' -> '%s'", Utils::ToString(Globals.State()), Utils::ToString(NewState));
+    xinfo("Notifying state change '%s' -> '%s'", Utils::ToString(Globals.State()), Utils::ToString(NewState));
 
     auto bRes = Globals.SetState(NewState);
     return bRes;

@@ -4,15 +4,17 @@ namespace CFB::Broker
 {
 enum class State : unsigned int
 {
-    Uninitialized = 1,
-    ServiceManagerReady,
-    IrpManagerReady,
-    ConnectorManagerReady,
-    Running,
-    ConnectorManagerDone,
-    IrpManagerDone,
-    ServiceManagerDone,
-    Finished
+    Uninitialized         = 1,
+    ServiceManagerReady   = 2,
+    IrpManagerReady       = 3,
+    ConnectorManagerReady = 4,
+    AllManagerReady       = ConnectorManagerReady,
+    Running               = 5,
+    ConnectorManagerDone  = 6,
+    IrpManagerDone        = 7,
+    ServiceManagerDone    = 8,
+    AllManagerDone        = ServiceManagerDone,
+    Finished              = 9
 };
 } // namespace CFB::Broker
 

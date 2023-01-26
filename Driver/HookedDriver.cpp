@@ -2,6 +2,11 @@
 
 #include "Native.hpp"
 
+#define xdbg(fmt, ...)                                                                                                 \
+    {                                                                                                                  \
+        dbg("[HookedDriver] " fmt, __VA_ARGS__);                                                                       \
+    }
+
 namespace Callbacks = CFB::Driver::Callbacks;
 namespace Utils     = CFB::Driver::Utils;
 
@@ -17,10 +22,10 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     // FastIoWrite(nullptr),
     // FastIoDeviceControl(nullptr),
     InterceptedIrpsCount(0),
-    Path(UnicodePath->Buffer, UnicodePath->Length, NonPagedPoolNx),
+    Path(UnicodePath->Buffer, UnicodePath->Length),
     HookedDriverObject(new(NonPagedPoolNx) DRIVER_OBJECT)
 {
-    dbg("Creating HookedDriver('%wZ')", &Path);
+    xdbg("Creating HookedDriver('%wZ')", &Path);
 
     //
     // Find the driver from its path
@@ -51,7 +56,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
 
 HookedDriver::~HookedDriver()
 {
-    dbg("Destroying HookedDriver '%wZ'", Path.get());
+    xdbg("Destroying HookedDriver '%wZ'", Path.get());
 
     DisableCapturing();
     RestoreCallbacks();
@@ -202,7 +207,8 @@ HookedDriver::DisableCapturing()
 bool
 HookedDriver::CanCapture()
 {
-    dbg("Driver('%wZ', State=%shooked, Enabled=%s)",
+    xdbg(
+        "Driver('%wZ', State=%shooked, Enabled=%s)",
         Path.get(),
         (State == HookState::Unhooked) ? "un" : "",
         boolstr(Enabled));

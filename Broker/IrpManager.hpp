@@ -3,6 +3,7 @@
 // clang-format off
 #include "Common.hpp"
 #include "ManagerBase.hpp"
+#include "Comms.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -52,13 +53,23 @@ public:
     Result<bool>
     Setup();
 
+    ///
+    ///@brief
+    ///
+    ///@param cb
+    ///@return true
+    ///@return false
+    ///
+    bool
+    SetCallback(std::function<bool(CFB::Comms::CapturedIrp const&)> cb);
+
 private:
     ///
     /// @brief Pop the next IRP from the IrpMonitor and push it to the local queue `m_Irps`
     ///
     /// @return usize
     ///
-    std::vector<int>
+    std::vector<CFB::Comms::CapturedIrp>
     GetNextIrps();
 
     ///
@@ -74,7 +85,9 @@ private:
     ///
     /// @brief
     ///
-    std::vector<std::function<bool(const int&)>> m_Callbacks;
+    std::function<bool(CFB::Comms::CapturedIrp const&)> m_CallbackDispatcher;
+
+    std::mutex m_CallbackLock;
 };
 
 } // namespace CFB::Broker

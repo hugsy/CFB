@@ -50,7 +50,7 @@ target_link_libraries(${PROJECT_NAME} CommonLibDriver)
 
 set(CFB_CERT_CN "BlahCat Corp")
 set(CFB_CERT_STORE "PrivateCertStore")
-set(CFB_DRIVER_INF_FILE "${DRIVER_SOURCE_DIR}/Driver.inf")
+set(CFB_DRIVER_INF_FILE "${DRIVER_SOURCE_DIR}/${PROJECT_NAME}.inf")
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD

@@ -9,7 +9,12 @@
     }
 
 #else
+
 #include <stdio.h>
+
+#include <string>
+
+#include "IoctlCodes.hpp"
 
 #define XPRINTF(...)                                                                                                   \
     {                                                                                                                  \
@@ -30,6 +35,22 @@ namespace CFB::Utils
 ///
 void
 Hexdump(PVOID data, SIZE_T size);
+
+
+#ifdef CFB_KERNEL_DRIVER
+#else
+std::string
+ToString(std::wstring const& input);
+
+std::wstring
+ToWideString(std::string const& input);
+
+std::string
+ToString(CFB::Comms::Ioctl code);
+
+std::string
+IrpMajorToString(u32 type);
+#endif // CFB_KERNEL_DRIVER
 
 namespace Memory
 {

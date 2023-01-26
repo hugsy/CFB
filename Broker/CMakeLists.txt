@@ -31,6 +31,9 @@ set(
     ${BROKER_HEADER_DIR}/IrpManager.hpp
     ${BROKER_HEADER_DIR}/ConnectorManager.hpp
     ${BROKER_HEADER_DIR}/DriverManager.hpp
+
+    ${BROKER_HEADER_DIR}/Connectors/Base.hpp
+    ${BROKER_HEADER_DIR}/Connectors/Dummy.hpp
 )
 
 set(
@@ -46,6 +49,8 @@ set(
     ${BROKER_SOURCE_DIR}/ConnectorManager.cpp
     ${BROKER_SOURCE_DIR}/DriverManager.cpp
     ${BROKER_SOURCE_DIR}/DriverManagerListener.cpp
+
+    ${BROKER_SOURCE_DIR}/Connectors/Dummy.cpp
 )
 
 #
@@ -79,12 +84,30 @@ target_precompile_headers(${PROJECT_NAME}
 #
 # Compilation directives
 #
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+
+target_compile_options(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>
+
+    PRIVATE
+    $<IF:$<CONFIG:Debug>,/WX /Gm- /permissive-,/WX /permissive>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
+)
 
 #
 # Linking directives
 #
-target_link_options(${PROJECT_NAME} PUBLIC /SUBSYSTEM:Console)
+target_link_options(
+    ${PROJECT_NAME}
+    PUBLIC
+    /SUBSYSTEM:Console
+
+    PRIVATE
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
+)
+
 target_link_libraries(${PROJECT_NAME}
     ${BROKER_RES_FILE}
     ws2_32.lib

@@ -8,20 +8,20 @@ namespace CFB::Driver
 {
 
 CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceObject) :
-    m_Valid(false),
-    m_Type(Type),
-    m_Pid(::HandleToULong(::PsGetCurrentProcessId())),
-    m_Tid(::HandleToULong(::PsGetCurrentThreadId())),
-    m_Driver(nullptr),
-    m_DriverName(L""),
-    m_DeviceName(L""),
-    m_ProcessName(L""),
-    m_MajorFunction(0),
-    m_MinorFunction(0),
-    m_IoctlCode(0),
-    m_InputBuffer(0),
-    m_OutputBuffer(0),
-    Next()
+    m_Valid {false},
+    m_Type {Type},
+    m_Pid {::HandleToULong(::PsGetCurrentProcessId())},
+    m_Tid {::HandleToULong(::PsGetCurrentThreadId())},
+    m_Driver {nullptr},
+    m_DriverName {},
+    m_DeviceName {},
+    m_ProcessName {},
+    m_MajorFunction {0},
+    m_MinorFunction {0},
+    m_IoctlCode {0},
+    m_InputBuffer {0},
+    m_OutputBuffer {0},
+    Next {}
 {
     auto FilterByDeviceAddress = [&DeviceObject](const HookedDriver* h)
     {
@@ -29,7 +29,9 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
               CurrentDevice                = CurrentDevice->NextDevice )
         {
             if ( CurrentDevice == DeviceObject )
+            {
                 return true;
+            }
         }
         return false;
     };
@@ -76,14 +78,17 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
             return;
         }
 
-        m_DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
+
+        const PUNICODE_STRING pUsDevice = &DeviceNameInfo.get()->Name;
+        m_DeviceName                    = Utils::KUnicodeString(pUsDevice->Buffer, pUsDevice->Length);
     }
 
     //
     // Set the driver name
     //
     {
-        m_DriverName = Utils::KUnicodeString(m_Driver->Path.get());
+        const PUNICODE_STRING pUsDriver = m_Driver->Path.get();
+        m_DriverName                    = Utils::KUnicodeString(pUsDriver->Buffer, pUsDriver->Length);
     }
 
     //
@@ -117,7 +122,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
             return;
         }
 
-        m_ProcessName = Utils::KUnicodeString(&uStr);
+        m_ProcessName = Utils::KUnicodeString(uStr.Buffer, uStr.Length);
     }
 
     //
@@ -334,11 +339,16 @@ CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer)
     return STATUS_SUCCESS;
 }
 
+usize const
+CapturedIrp::Size() const
+{
+    return sizeof(Comms::CapturedIrpHeader) + DataSize();
+}
 
 usize const
-CapturedIrp::DataSize()
+CapturedIrp::DataSize() const
 {
-    return sizeof(Comms::CapturedIrpHeader) + InputDataSize() + OutputDataSize();
+    return InputDataSize() + OutputDataSize();
 }
 
 
@@ -376,8 +386,8 @@ CapturedIrp::AssociatedDriver() const
 Comms::CapturedIrpHeader
 CapturedIrp::ExportHeader() const
 {
-    Comms::CapturedIrpHeader out;
-    out.TimeStamp          = m_TimeStamp;
+    Comms::CapturedIrpHeader out {};
+    out.TimeStamp          = (u64)(m_TimeStamp.QuadPart);
     out.Irql               = m_Irql;
     out.Type               = (u8)m_Type;
     out.MajorFunction      = m_MajorFunction;
@@ -389,8 +399,9 @@ CapturedIrp::ExportHeader() const
     out.InputBufferLength  = InputDataSize();
     out.OutputBufferLength = OutputDataSize();
 
-    RtlCopyMemory(out.DriverName, *m_DriverName, CFB_DRIVER_MAX_PATH);
-    RtlCopyMemory(out.DeviceName, *m_DeviceName, CFB_DRIVER_MAX_PATH);
+    ::memcpy(out.DriverName, m_DriverName.data(), m_DriverName.length());
+    ::memcpy(out.DeviceName, m_DeviceName.data(), m_DeviceName.length());
+    ::memcpy(out.ProcessName, m_ProcessName.data(), m_ProcessName.length());
 
     return out;
 }

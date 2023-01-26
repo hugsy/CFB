@@ -221,9 +221,9 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     }
 
     case CFB::Comms::Ioctl::GetDriverInfo:
-    case CFB::Comms::Ioctl::EnableDriver:
-    case CFB::Comms::Ioctl::DisableDriver:
         warn("TODO");
+        Status = STATUS_NOT_IMPLEMENTED;
+        break;
 
     default:
         err("Received invalid IOCTL code 0x%08x", IoctlCode);
@@ -268,26 +268,21 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     usize ExpectedBufferSize      = 0;
     usize DumpableIrpNumber       = 0;
 
-    {
-        Globals->IrpManager.Items().ForEach(
-            [&ExpectedBufferSize, &DumpableIrpNumber](CFB::Driver::CapturedIrp* Irp)
-            {
-                ExpectedBufferSize += Irp->DataSize();
-                DumpableIrpNumber++;
-                return true;
-            });
-    }
+    Globals->IrpManager.Items().ForEach(
+        [&ExpectedBufferSize, &DumpableIrpNumber](CFB::Driver::CapturedIrp* Irp)
+        {
+            ExpectedBufferSize += Irp->Size();
+            DumpableIrpNumber++;
+            return true;
+        });
+
+    dbg("[DriverReadRoutine] RequestedBufferSize = %uB , ExpectedBufferSize = %uB , CurrentIrpNumber = %u",
+        RequestedBufferSize,
+        ExpectedBufferSize,
+        DumpableIrpNumber);
 
     //
-    // If the buffer size is 0, return the expected size
-    //
-    if ( RequestedBufferSize == 0 )
-    {
-        return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
-    }
-
-    //
-    // Otherwise, check the arguments and write the IRPs to the client
+    // Otherwise, check RequestedBufferSize vs ExpectedBufferSize
     //
     if ( RequestedBufferSize < ExpectedBufferSize )
     {
@@ -306,7 +301,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     // Critical region for the IRP copy
     //
     {
-        auto scope_lock              = Utils::ScopedLock<Utils::KCriticalRegion>(Globals->IrpManager.CriticalRegion());
+        Utils::ScopedLock<Utils::KCriticalRegion>(Globals->IrpManager.CriticalRegion());
         const uptr BufferPointerBase = reinterpret_cast<uptr>(Buffer);
         const uptr BufferPointerHigh = BufferPointerBase + ExpectedBufferSize;
         uptr BufferPointer           = BufferPointerBase;
@@ -343,12 +338,15 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             //
             {
                 usize const DataSize = CurrentIrp->InputDataSize();
-                if ( BufferPointer + DataSize > BufferPointerHigh )
+                if ( DataSize )
                 {
-                    return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
+                    if ( BufferPointer + DataSize > BufferPointerHigh )
+                    {
+                        return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
+                    }
+                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
+                    BufferPointer += DataSize;
                 }
-                RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
-                BufferPointer += DataSize;
             }
 
             //
@@ -356,17 +354,20 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             //
             {
                 usize const DataSize = CurrentIrp->OutputDataSize();
-                if ( BufferPointer + DataSize > BufferPointerHigh )
+                if ( DataSize )
                 {
-                    return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
+                    if ( BufferPointer + DataSize > BufferPointerHigh )
+                    {
+                        return CompleteRequest(Irp, STATUS_BUFFER_OVERFLOW, 0);
+                    }
+                    RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
+                    BufferPointer += DataSize;
                 }
-                RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
-                BufferPointer += DataSize;
             }
         }
     }
 
-    return CompleteRequest(Irp, STATUS_SUCCESS, 0);
+    return CompleteRequest(Irp, STATUS_SUCCESS, ExpectedBufferSize);
 }
 
 
@@ -415,6 +416,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
                     }
 
                     delete Globals;
+                    Globals = nullptr;
                 }
             }
         });
@@ -465,6 +467,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     Globals->DeviceObject = DeviceObject;
     Globals->DriverObject = DriverObject;
 
-    ok("Device initialization  for '%S' done", CFB_DEVICE_NAME);
+    err("Device initialization for '%S' done, use `%s` for debug logs",
+        CFB_DEVICE_NAME,
+        DML("ed nt !Kd_IHVDRIVER_Mask f"));
     return Status;
 }

@@ -3,6 +3,8 @@
 #include <codecvt>
 #include <locale>
 
+#include "Utils.hpp"
+
 
 namespace CFB::Comms
 {
@@ -17,13 +19,10 @@ to_json(json& dst, const DriverRequest& src)
     {
     case RequestId::HookDriver:
     case RequestId::UnhookDriver:
-    case RequestId::EnableDriver:
-    case RequestId::DisableDriver:
-    {
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
-        dst["driver_name"] = cvt.to_bytes(src.DriverName);
+    case RequestId::EnableMonitoring:
+    case RequestId::DisableMonitoring:
+        dst["driver_name"] = CFB::Utils::ToString(src.DriverName);
         break;
-    }
 
     default:
         break;
@@ -31,27 +30,49 @@ to_json(json& dst, const DriverRequest& src)
 }
 
 void
-from_json(const json& src, DriverRequest& dst)
+from_json(const json& js, DriverRequest& dst)
 {
-    src.at("id").get_to(dst.Id);
-
+    dst.Id = js["id"];
     switch ( dst.Id )
     {
     case RequestId::HookDriver:
     case RequestId::UnhookDriver:
-    case RequestId::EnableDriver:
-    case RequestId::DisableDriver:
-    {
-        std::string driver_name;
-        src.at("driver_name").get_to(driver_name);
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> cvt;
-        dst.DriverName = cvt.from_bytes(driver_name);
+    case RequestId::EnableMonitoring:
+    case RequestId::DisableMonitoring:
+        dst.DriverName = CFB::Utils::ToWideString(js["driver_name"].get<std::string>());
         break;
-    }
 
     default:
         break;
     }
 }
 
+std::string
+ToString(CFB::Comms::RequestId id)
+{
+#define CaseToString(x)                                                                                                \
+    {                                                                                                                  \
+    case (x):                                                                                                          \
+        return #x;                                                                                                     \
+    }
+
+    switch ( id )
+    {
+        CaseToString(RequestId::InvalidId);
+        CaseToString(RequestId::HookDriver);
+        CaseToString(RequestId::UnhookDriver);
+        CaseToString(RequestId::GetNumberOfDrivers);
+        CaseToString(RequestId::GetNamesOfDrivers);
+        CaseToString(RequestId::GetDriverInfo);
+        CaseToString(RequestId::SetEventPointer);
+        CaseToString(RequestId::EnableMonitoring);
+        CaseToString(RequestId::DisableMonitoring);
+        CaseToString(RequestId::StoreTestCase);
+        CaseToString(RequestId::EnumerateDriverObject);
+        CaseToString(RequestId::EnumerateDeviceObject);
+    }
+#undef CaseToString
+
+    return "RequestId::Unknown";
+}
 } // namespace CFB::Comms

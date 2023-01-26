@@ -53,12 +53,12 @@ ServiceManager::~ServiceManager()
 {
     if ( UnloadDriver() == false )
     {
-        err("UnloadDriver() failed");
+        xerr("UnloadDriver() failed");
     }
 
     if ( DeleteDriverFromDisk() == false )
     {
-        err("DeleteDriverFromDisk() failed");
+        xerr("DeleteDriverFromDisk() failed");
     }
 }
 
@@ -67,15 +67,20 @@ ServiceManager::Setup()
 {
     if ( ExtractDriverFromResource() == false )
     {
-        err("ExtractDriverFromResource() failed");
+        xerr("ExtractDriverFromResource() failed");
         return Err(ErrorCode::InitializationError);
     }
 
     if ( LoadDriver() == false )
     {
-        err("LoadDriver() failed");
+        xerr("LoadDriver() failed");
         return Err(ErrorCode::InitializationError);
     }
+
+    //
+    // Notify other thread the driver service is ready
+    //
+    SetState(CFB::Broker::State::ServiceManagerReady);
 
     return Ok(true);
 }
@@ -84,10 +89,7 @@ ServiceManager::Setup()
 void
 ServiceManager::Run()
 {
-    //
-    // Notify other thread the driver service is ready
-    //
-    SetState(CFB::Broker::State::ServiceManagerReady);
+    WaitForState(CFB::Broker::State::Running);
 
     //
     // Simply wait for the other managers to be done
@@ -161,7 +163,7 @@ ServiceManager::ExtractDriverFromResource()
 
     if ( dwWritten != dwDriverSize )
     {
-        err("Incomplete driver file dump");
+        xerr("Incomplete driver file dump");
         return false;
     }
 
@@ -253,7 +255,7 @@ ServiceManager::LoadDriver()
         return false;
     }
 
-    ok("Service '%S' started successfully.", CFB_BROKER_DRIVER_SERVICE_NAME);
+    xok("Service '%S' started successfully.", CFB_BROKER_DRIVER_SERVICE_NAME);
     return true;
 }
 

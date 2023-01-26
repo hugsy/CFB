@@ -96,6 +96,9 @@ public:
     std::shared_ptr<CFB::Broker::DriverManager>
     DriverManager() const;
 
+    std::shared_ptr<CFB::Broker::IrpManager>
+    IrpManager() const;
+
     ///
     /// @brief
     ///

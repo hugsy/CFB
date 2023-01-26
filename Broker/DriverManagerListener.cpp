@@ -36,7 +36,7 @@ DriverManager::TcpListener::TcpListener() : m_ServerSocket(INVALID_SOCKET)
 
         if ( LOBYTE(WsaData.wVersion) != 2 || HIBYTE(WsaData.wVersion) != 2 )
         {
-            err("DriverManager::TcpListener - version check");
+            xerr("WSA version check failed");
             throw std::runtime_error("TcpListener()");
         }
     }
@@ -52,10 +52,10 @@ DriverManager::TcpListener::~TcpListener()
 Result<bool>
 DriverManager::TcpListener::Initialize()
 {
-    WSAPROTOCOL_INFO info = {0};
+    WSAPROTOCOL_INFOW info = {0};
     info.dwServiceFlags1 |= XP1_IFS_HANDLES;
 
-    m_ServerSocket = ::WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT);
+    m_ServerSocket = ::WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_NO_HANDLE_INHERIT);
     if ( m_ServerSocket == INVALID_SOCKET )
     {
         CFB::Log::perror("WSASocket()");
@@ -136,7 +136,7 @@ DriverManager::TcpListener::Accept()
         ::WSAAccept(m_ServerSocket, (SOCKADDR*)&SockInfoClient, &dwSockInfoClientSize, ConditionAcceptFunc, 0);
     if ( ClientSocket == INVALID_SOCKET )
     {
-        err("WSAAccept() failed with WSAGetLastError=%#x", ::WSAGetLastError());
+        xerr("WSAAccept() failed with WSAGetLastError=%#x", ::WSAGetLastError());
         return Err(ErrorCode::SocketInitializationFailed);
     }
 
@@ -149,7 +149,7 @@ DriverManager::TcpListener::Accept()
     Client->m_IpAddress = Ipv4AddressClient;
     Client->m_Port      = ::ntohs(SockInfoClient.sin_port);
 
-    ok("New TCP client %s:%d (hSocket=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
+    xdbg("New TCP client %s:%d (hSocket=%#x)", Client->m_IpAddress.c_str(), Client->m_Port, Client->m_Socket);
     return Ok(Client);
 }
 
@@ -374,6 +374,13 @@ TcpClientRoutine(DriverManager::TcpClient& Client)
 }
 
 
+std::string
+DriverManager::TcpListener::Name()
+{
+    return "DriverManager::TcpListener";
+}
+
+
 Result<u32>
 DriverManager::TcpListener::RunForever()
 {
@@ -413,7 +420,7 @@ DriverManager::TcpListener::RunForever()
         std::stringstream ss;
         for ( auto const& h : Handles )
             ss << h << ", ";
-        dbg("Waiting for events on %s", ss.str().c_str());
+        xdbg("Waiting for events on %s", ss.str().c_str());
 
         //
         // Wait for an event either of termination, from the network or any client thread
@@ -432,7 +439,7 @@ DriverManager::TcpListener::RunForever()
         switch ( dwIndex )
         {
         case 0:
-            dbg("[TcpListener] Global stop requested...");
+            xdbg("[TcpListener] Global stop requested...");
             is_running = false;
             break;
 
@@ -457,7 +464,7 @@ DriverManager::TcpListener::RunForever()
                 auto erased = std::erase_if(m_Clients, FindClientByHandle);
                 if ( erased != 1 )
                 {
-                    err("[TCP_CLOSE] Unexpected size for found client");
+                    xerr("[TCP_CLOSE] Unexpected size for found client");
                 }
                 break;
             }
@@ -501,18 +508,17 @@ DriverManager::TcpListener::RunForever()
                 }
 
 
-                ok("Adding TcpClient(\"%s:%d\", hThread=%#x) to client pool",
-                   Client->m_IpAddress.c_str(),
-                   Client->m_Port,
-                   Client->m_hThread);
+                xok("Adding TcpClient(\"%s:%d\", hThread=%#x) to client pool",
+                    Client->m_IpAddress.c_str(),
+                    Client->m_Port,
+                    Client->m_hThread);
 
                 ::ResumeThread(Client->m_hThread.get());
                 m_Clients.push_back(Client);
                 break;
             }
 
-            err("DriverManager::TcpListener::RunForever::WSAEnumNetworkEvents(): unknown network event value %.08x",
-                Events.lNetworkEvents);
+            xerr("RunForever::WSAEnumNetworkEvents(): unknown network event value %.08x", Events.lNetworkEvents);
             break;
         }
 
@@ -521,7 +527,7 @@ DriverManager::TcpListener::RunForever()
             // if here, we've received the event of EOL from the client thread, so we clean up and continue looping
             //
             const HANDLE hThread = Handles.at(dwIndex);
-            dbg("[TcpListener] handling event_index=%d, thread_handle=%p", dwIndex, hThread);
+            xdbg("Handling event_index=%d, thread_handle=%p", dwIndex, hThread);
 
             //
             // Delete the entry in the client list
@@ -535,7 +541,7 @@ DriverManager::TcpListener::RunForever()
                 auto const erased = std::erase_if(m_Clients, FindClientByHandle);
                 if ( erased != 1 )
                 {
-                    warn("Unexpected size for found client, erased_nb = %d", erased);
+                    xwarn("Unexpected size for found client, erased_nb = %d", erased);
                 }
             }
         }
@@ -547,8 +553,15 @@ DriverManager::TcpListener::RunForever()
 
 DriverManager::TcpClient::~TcpClient()
 {
-    dbg("Terminating TcpClient(Id=%d, TID=%d)", m_Id, m_ThreadId);
+    xdbg("Terminating TcpClient(Id=%d, TID=%d)", m_Id, m_ThreadId);
     ::closesocket(m_Socket);
+}
+
+
+std::string
+DriverManager::TcpClient::Name()
+{
+    return "DriverManager::TcpClient";
 }
 
 

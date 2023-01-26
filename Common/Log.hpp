@@ -35,6 +35,7 @@ ntperror(const char* msg, const NTSTATUS Status);
 #define warn(fmt, ...) CFB::Log::log(DPFLTR_WARNING_LEVEL, "[!] " fmt "\n", __VA_ARGS__)
 #define err(fmt, ...) CFB::Log::log(DPFLTR_ERROR_LEVEL, "[-] " fmt "\n", __VA_ARGS__)
 
+#define DML(cmd) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
 #else
 
 #ifdef _DEBUG

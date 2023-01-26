@@ -56,12 +56,31 @@ add_library(CommonLibUser
     ${COMMON_HEADER_FILES}
 )
 
+add_library(CFB::User::CommonLib ALIAS CommonLibUser)
+
 target_include_directories(CommonLibUser
     INTERFACE
     ${COMMON_SOURCE_DIR}
+
     PUBLIC
     ${CFB_DEPENDENCIES}/json
     ${CFB_DEPENDENCIES}/phnt
+)
+
+target_compile_options(CommonLibUser
+    PUBLIC
+    $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>
+
+    PRIVATE
+    $<IF:$<CONFIG:Debug>,/WX /Gm- /permissive-,/WX /permissive>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
+)
+
+target_link_options(CommonLibUser
+    PUBLIC
+
+    PRIVATE
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
 )
 
 target_link_libraries(CommonLibUser PRIVATE kernel32.lib ntdll.lib)
