@@ -8,13 +8,9 @@ namespace CFB::Broker::Connectors
 class Dummy : public ConnectorBase
 {
 public:
-    Dummy()
-    {
-    }
+    Dummy();
 
-    ~Dummy()
-    {
-    }
+    ~Dummy();
 
     std::string const
     Name() const override;

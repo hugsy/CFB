@@ -20,6 +20,8 @@ set(
 
     App.hpp
     Utils.hpp
+    Helpers.hpp
+    Network.hpp
 )
 
 set(
@@ -28,6 +30,7 @@ set(
     main.cpp
     App.cpp
     Utils.cpp
+    Helpers.cpp
 )
 
 set(IMGUI_DIR ${CFB_DEPENDENCIES}/imgui)
@@ -82,6 +85,8 @@ target_link_libraries(
     ${GUI_RES_FILE}
     CFB::User::CommonLib
     imgui::imgui
+
+    Ws2_32.lib
 )
 
 #

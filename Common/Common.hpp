@@ -1,12 +1,12 @@
-#ifdef CFB_KERNEL_DRIVER
 // clang-format off
+#ifdef CFB_KERNEL_DRIVER
 #include <ntifs.h>
 #include <ntddk.h>
 #include <wdm.h>
-// clang-format on
 #else
 #include <windows.h>
 #endif // CFB_KERNEL_DRIVER
+// clang-format on
 
 #define __STR(x) #x
 #define STR(x) __STR(x)
@@ -75,5 +75,13 @@ using uptr  = ULONG_PTR;
 #ifndef USHRT_MAX
 #define USHRT_MAX ((1 << (sizeof(u16) * 8)) - 1)
 #endif // USHRT_MAX
+
+#ifndef PLURAL_IF
+#define PLURAL_IF(x) ((x) ? "s" : "")
+#endif // PLURAL_IF
+
+#ifndef WPLURAL_IF
+#define WPLURAL_IF(x) ((x) ? L"s" : L"")
+#endif // WPLURAL_IF
 
 // clang-format on

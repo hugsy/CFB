@@ -1,5 +1,6 @@
 #include "Messages.hpp"
 
+#ifndef CFB_KERNEL_DRIVER
 #include <codecvt>
 #include <locale>
 
@@ -76,3 +77,4 @@ ToString(CFB::Comms::RequestId id)
     return "RequestId::Unknown";
 }
 } // namespace CFB::Comms
+#endif // CFB_KERNEL_DRIVER

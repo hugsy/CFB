@@ -34,13 +34,25 @@ configure_file(
 #
 # Build CommonLib for driver
 #
+set(
+    COMMON_DRIVER_SOURCE_FILES
+
+    ${COMMON_SOURCE_FILES}
+)
+
+set(
+    COMMON_DRIVER_HEADER_FILES
+
+    ${COMMON_SOURCE_FILES}
+)
+
 wdk_add_library(CommonLibDriver
     STATIC
     KMDF
     1.15
 
-    ${COMMON_SOURCE_FILES}
-    ${COMMON_HEADER_FILES}
+    ${COMMON_DRIVER_SOURCE_FILES}
+    ${COMMON_DRIVER_HEADER_FILES}
 )
 
 target_include_directories(CommonLibDriver INTERFACE ${COMMON_SOURCE_DIR})
@@ -49,11 +61,25 @@ target_compile_definitions(CommonLibDriver PRIVATE CFB_KERNEL_DRIVER=1)
 #
 # Build CommonLib for user
 #
+set(
+    COMMON_USER_SOURCE_FILES
+
+    ${COMMON_SOURCE_FILES}
+    ${COMMON_SOURCE_DIR}/Messages.cpp
+)
+
+set(
+    COMMON_USER_HEADER_FILES
+
+    ${COMMON_SOURCE_FILES}
+    ${COMMON_SOURCE_DIR}/Messages.hpp
+)
+
 add_library(CommonLibUser
     STATIC
 
-    ${COMMON_SOURCE_FILES}
-    ${COMMON_HEADER_FILES}
+    ${COMMON_USER_SOURCE_FILES}
+    ${COMMON_USER_HEADER_FILES}
 )
 
 add_library(CFB::User::CommonLib ALIAS CommonLibUser)

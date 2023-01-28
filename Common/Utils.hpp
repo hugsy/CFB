@@ -28,13 +28,15 @@
 namespace CFB::Utils
 {
 ///
-/// @brief Print out an hexdump-like version of the buffer
+/// @brief Print out an hexdump-like version of the buffer.
 ///
-/// @param data
-/// @param size
+/// @param data A pointer to the buffer to hexdump
+/// @param size The size of the buffer
+/// @param header If not null, an header to print before the hexdump
+/// @param base Specifies the base address
 ///
 void
-Hexdump(PVOID data, SIZE_T size);
+Hexdump(PVOID data, SIZE_T size, PCSTR header = nullptr, SIZE_T base = 0);
 
 
 #ifdef CFB_KERNEL_DRIVER

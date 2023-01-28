@@ -1,12 +1,14 @@
 #pragma once
 
-// clang-format off
 #include "Common.hpp"
+
+#ifndef CFB_KERNEL_DRIVER
+///
+/// This file defines the communication protocol and structures for Broker <-> Clients
+///
 
 #include "json.hpp"
 using json = nlohmann::json;
-// clang-format on
-
 
 namespace CFB::Comms
 {
@@ -91,3 +93,5 @@ void
 from_json(const json& src, DriverRequest& dst);
 
 } // namespace CFB::Comms
+
+#endif // CFB_KERNEL_DRIVER

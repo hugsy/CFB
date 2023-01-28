@@ -5,6 +5,17 @@
     (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
 #endif // CTL_CODE
 
+#ifndef FILE_DEVICE_UNKNOWN
+#define FILE_DEVICE_UNKNOWN 0x0022
+#endif // FILE_DEVICE_UNKNOWN
+
+#ifndef METHOD_BUFFERED
+#define METHOD_BUFFERED 0
+#endif // METHOD_BUFFERED
+
+#ifndef FILE_ANY_ACCESS
+#define FILE_ANY_ACCESS 0
+#endif // FILE_ANY_ACCESS
 
 namespace CFB::Comms
 {

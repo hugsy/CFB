@@ -1,5 +1,6 @@
 #include "App.hpp"
 
+#include <algorithm>
 #include <array>
 #include <codecvt>
 #include <fstream>
@@ -9,6 +10,7 @@
 #include <ranges>
 
 #include "Addons/imgui_hexeditor.h"
+#include "Helpers.hpp"
 #include "Utils.hpp"
 #include "imgui.h"
 
@@ -29,6 +31,7 @@ static std::unordered_map<std::string_view, bool> Windows = {
 
     {"Demo", false},
 };
+
 
 namespace CFB::GUI::App
 {
@@ -73,7 +76,8 @@ RenderSettingsWindow()
     {
         ImGui::SetItemDefaultFocus();
 
-        ImGui::InputText("CFB Broker URI", Globals.Target.data(), Globals.Target.size());
+        ImGui::InputText("CFB Broker Host", Globals.Target.Host.data(), Globals.Target.Host.capacity());
+        ImGui::InputInt("CFB Broker Port", (int*)&Globals.Target.Port, 0, 0, ImGuiInputTextFlags_CharsDecimal);
         const std::array<const char*, 1> fonts = {
             Globals.SelectedFontPath.c_str(),
         };
@@ -277,52 +281,72 @@ RenderSessionInfoWindow()
 {
     ImGui::Begin("SessionInfo");
 
-    ImGui::Text("Connected: %s", boolstr(Globals.Connected));
-    if ( !Globals.Connected )
+    ImGui::Text("Viewing %lu IRPs", Globals.CapturedIrps.size());
+
+    ImGui::Separator();
+
+    ImGui::Text("Target: %s:%u", Globals.Target.Host.c_str(), Globals.Target.Port);
+    ImGui::Text("Connected: %s", boolstr(Globals.Target.IsConnected));
+
+    bool NewState = Globals.Target.IsConnected;
+    CFB::GUI::Helpers::ToggleButton(Globals.Target.IsConnected ? "Disconnect" : "Connect", &NewState);
+
+    if ( NewState != Globals.Target.IsConnected )
     {
-        if ( ImGui::Button("Connect") )
-        {
-            // TODO
-            Globals.Connected = true;
-        }
+        Globals.Target.IsConnected ? Globals.Target.Disconnect() : Globals.Target.Connect();
     }
-    else
+
+    if ( Globals.Target.IsConnected )
     {
-        ImGui::Text("Target: %s", Globals.Target.c_str());
-        if ( ImGui::Button("Disconnect") )
-        {
-            // TODO: handle connection
-            Globals.Connected = false;
-        }
-
-        ImGui::Separator();
-
-        if ( Globals.IsCapturing )
-        {
-            ImGui::Text("Capturing %d drivers", Globals.HookedDrivers.size());
-            if ( Globals.HookedDrivers.size() > 0 )
-            {
-                for ( auto const& Driver : Globals.HookedDrivers )
+        ImGui::Text(
+            "Hooked Drivers: %lu",
+            std::count_if(
+                Globals.Drivers.cbegin(),
+                Globals.Drivers.cend(),
+                [](std::pair<std::string, std::pair<bool, bool>> const& Entry)
                 {
-                    ImGui::BulletText("%s", Driver.c_str());
-                }
-            }
-            ImGui::Text("Captured %d IRPs", Globals.CapturedIrps.size());
+                    return Entry.second.first == true;
+                }));
+        ImGui::Text(
+            "Monitored Drivers: %lu",
+            std::count_if(
+                Globals.Drivers.cbegin(),
+                Globals.Drivers.cend(),
+                [](std::pair<std::string, std::pair<bool, bool>> const& Entry)
+                {
+                    return Entry.second.second == true;
+                }));
+        ImGui::Text("Driver Found: %lu", Globals.Drivers.size());
 
-            ImGui::Separator();
-
-            if ( ImGui::Button("Stop Capturing") )
-            {
-                // TODO: handle disconnection
-                Globals.IsCapturing = false;
-            }
-        }
-        else
+        if ( Globals.RefreshingDrivers )
         {
-            if ( ImGui::Button("Start Capturing") )
+            CFB::GUI::Helpers::Spinner("DriverRefresh##spinner", 7, 3, ImGui::GetColorU32(ImGuiCol_Button));
+        }
+        else if ( ImGui::Button("Refresh##RefreshDriver") )
+        {
+            Globals.RefreshDriverList();
+        }
+
+        for ( auto& [Driver, Flags] : Globals.Drivers )
+        {
+            if ( ImGui::TreeNode(Driver.c_str()) )
             {
-                // TODO handle connection
-                Globals.IsCapturing = true;
+
+                bool DoHook = Flags.first;
+                if ( ImGui::Checkbox("Is Hooked", &DoHook) )
+                {
+                    DoHook ? Globals.EnableDriver(Driver) : Globals.DisableDriver(Driver);
+                }
+
+                if ( DoHook )
+                {
+                    bool DoCapture = Flags.second;
+                    if ( ImGui::Checkbox("Is Capturing", &DoCapture) )
+                    {
+                        DoCapture ? Globals.EnableMonitoring(Driver) : Globals.DisableMonitoring(Driver);
+                    }
+                }
+                ImGui::TreePop();
             }
         }
     }

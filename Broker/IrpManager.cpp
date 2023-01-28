@@ -144,6 +144,7 @@ IrpManager::Run()
                 //
                 if ( !m_CallbackDispatcher )
                 {
+                    xwarn("No connector callback dispatcher registered");
                     break;
                 }
 
@@ -184,6 +185,7 @@ IrpManager::GetNextIrps()
         bool bRes        = ::ReadFile(m_hDevice.get(), RawData.get(), dataLength, &nbDataRead, nullptr);
         if ( bRes )
         {
+            xdbg("%uB data fetched, %uB allocated", nbDataRead, dataLength);
             dataLength = nbDataRead;
             break;
         }
@@ -199,18 +201,12 @@ IrpManager::GetNextIrps()
         return {};
     }
 
-    xinfo("%d B data fetched", dataLength);
-
     if ( dataLength < sizeof(CFB::Comms::CapturedIrpHeader) )
     {
         warn("Event was set but not enough data was fetched");
         ::ResetEvent(m_hNewIrpEvent.get());
         return {};
     }
-
-#ifdef _DEBUG
-    CFB::Utils::Hexdump(RawData.get(), dataLength);
-#endif // _DEBUG
 
     //
     // Parse it
@@ -223,9 +219,13 @@ IrpManager::GetNextIrps()
             auto const Header = reinterpret_cast<CFB::Comms::CapturedIrpHeader*>(RawData.get() + offset);
             xdbg("Parsing from offset %d", offset);
 
-            if ( offset + sizeof(CFB::Comms::CapturedIrpHeader) >= dataLength )
+            if ( offset + sizeof(CFB::Comms::CapturedIrpHeader) > dataLength )
             {
-                warn("Out-of-bound Header access: offset=%llu , dataLength=%llu ", offset, dataLength);
+                warn(
+                    "Out-of-bound Header access: offset=%llu + sizeof(header)=%llu, dataLength=%llu ",
+                    offset,
+                    sizeof(CFB::Comms::CapturedIrpHeader),
+                    dataLength);
                 break;
             }
 

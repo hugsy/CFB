@@ -24,7 +24,6 @@ set(
     ${BROKER_HEADER_DIR}/Native.hpp
     ${BROKER_HEADER_DIR}/Context.hpp
     ${BROKER_HEADER_DIR}/States.hpp
-    ${BROKER_HEADER_DIR}/Messages.hpp
     ${BROKER_HEADER_DIR}/BrokerUtils.hpp
     ${BROKER_HEADER_DIR}/ManagerBase.hpp
     ${BROKER_HEADER_DIR}/ServiceManager.hpp
@@ -41,7 +40,6 @@ set(
 
     ${BROKER_SOURCE_DIR}/Main.cpp
     ${BROKER_SOURCE_DIR}/Context.cpp
-    ${BROKER_SOURCE_DIR}/Messages.cpp
     ${BROKER_SOURCE_DIR}/BrokerUtils.cpp
     ${BROKER_SOURCE_DIR}/ManagerBase.cpp
     ${BROKER_SOURCE_DIR}/ServiceManager.cpp

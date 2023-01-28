@@ -23,7 +23,6 @@
 #include "Utils.hpp"
 // clang-format on
 
-#define PLURAL_IF(x) ((x) ? "s" : "")
 
 std::string
 ws2s(std::wstring const& ws)

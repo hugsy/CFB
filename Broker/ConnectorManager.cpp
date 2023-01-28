@@ -8,36 +8,44 @@
 // clang-format on
 
 
-namespace Connectors = CFB::Broker::Connectors;
-
-std::vector<std::unique_ptr<Connectors::ConnectorBase>> g_Connectors;
-
 namespace CFB::Broker
 {
 
-ConnectorManager::ConnectorManager()
-{
-    //
-    // Add new connector to that list
-    //
-    g_Connectors.push_back(std::make_unique<Connectors::Dummy>());
-}
+///
+///@brief
+///
+static std::vector<std::unique_ptr<Connectors::ConnectorBase>> g_Connectors {};
 
-
-ConnectorManager::~ConnectorManager()
-{
-}
-
-
-static bool
+///
+///@brief
+///
+///@param Irp
+///@return true
+///@return false
+///
+bool
 CallbackDispatcher(CFB::Comms::CapturedIrp const& Irp)
 {
+    const usize nbTotal = g_Connectors.size();
+    dbg("[ConnectorManager::CallbackDispatcher] Dispatching IRP @ %llu to %u connector%s",
+        Irp.Header.TimeStamp,
+        nbTotal,
+        PLURAL_IF(nbTotal > 1),
+        &g_Connectors);
+
+
+    usize nbSuccess = 0;
+
     for ( auto& Connector : g_Connectors )
     {
         dbg("[ConnectorManager::CallbackDispatcher] Sending IRP to Connector:'%s'", Connector->Name().c_str());
-        Connector->IrpCallback(Irp);
+        if ( Success(Connector->IrpCallback(Irp)) )
+        {
+            nbSuccess++;
+        }
     }
 
+    dbg("[ConnectorManager::CallbackDispatcher] %u/%u executed successfully", nbSuccess, nbTotal);
     return true;
 }
 
@@ -60,8 +68,23 @@ ConnectorManager::Setup()
     //
     // Register the callback dispatcher
     //
-    xdbg("Register the IRP callback dispatcher");
-    Globals.IrpManager()->SetCallback(&CallbackDispatcher);
+    xdbg("Register the connector dispatcher to the IRP manager");
+    if ( Globals.IrpManager()->SetCallback(&CallbackDispatcher) )
+    {
+        xinfo("Connector dispatcher successfully registered");
+
+        //
+        // Add new connector to that list
+        //
+        g_Connectors.push_back(std::make_unique<Connectors::Dummy>());
+
+        xdbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
+    }
+    else
+    {
+        xinfo("Failed to register the connector dispatcher");
+        // TODO report the error
+    }
 
     //
     // Notify other threads that the Collector Manager is ready

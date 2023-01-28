@@ -15,13 +15,13 @@ public:
     /// @brief Construct a new Connector Manager object
     ///
     ///
-    ConnectorManager();
+    ConnectorManager(){}
 
     ///
     /// @brief Destroy the Connector Manager object
     ///
     ///
-    ~ConnectorManager();
+    ~ConnectorManager(){}
 
     ///
     /// @brief
@@ -45,5 +45,8 @@ public:
     ///
     void
     Run();
+
+
+private:
 };
 } // namespace CFB::Broker

@@ -10,20 +10,23 @@
 namespace CFB::Utils
 {
 void
-Hexdump(PVOID data, SIZE_T size)
+Hexdump(PVOID data, SIZE_T size, PCSTR header, SIZE_T base)
 {
     // HACK improve
-    CHAR ascii[17] = {
-        0,
-    };
+    CHAR ascii[17] {};
     auto ptr = reinterpret_cast<u8*>(data);
+
+    if ( header )
+    {
+        XPRINTF("%s\n", header);
+    }
 
     for ( size_t i = 0; i < size; ++i )
     {
         u8 c = ptr[i];
 
         if ( !ascii[0] )
-            XPRINTF("%04Ix   ", i);
+            XPRINTF("%08Ix   ", base + i);
 
         XPRINTF("%02X ", c);
 
