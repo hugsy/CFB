@@ -3,6 +3,8 @@
 // clang-format off
 #include "Common.hpp"
 #include "ManagerBase.hpp"
+
+#include "Connectors/Base.hpp"
 // clang-format on
 
 
@@ -15,13 +17,17 @@ public:
     /// @brief Construct a new Connector Manager object
     ///
     ///
-    ConnectorManager(){}
+    ConnectorManager()
+    {
+    }
 
     ///
     /// @brief Destroy the Connector Manager object
     ///
     ///
-    ~ConnectorManager(){}
+    ~ConnectorManager()
+    {
+    }
 
     ///
     /// @brief
@@ -46,6 +52,14 @@ public:
     void
     Run();
 
+    ///
+    ///@brief Get the Connector By Name object
+    ///
+    ///@param ConnectorName
+    ///@return Result<std::shared_ptr<Connectors::ConnectorBase>>
+    ///
+    Result<std::shared_ptr<Connectors::ConnectorBase>>
+    GetConnectorByName(std::string_view const& ConnectorName);
 
 private:
 };

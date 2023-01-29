@@ -25,6 +25,10 @@ to_json(json& dst, const DriverRequest& src)
         dst["driver_name"] = CFB::Utils::ToString(src.DriverName);
         break;
 
+    case RequestId::GetPendingIrp:
+        dst["number_of_irp"] = src.NumberOfIrp;
+        break;
+
     default:
         break;
     }
@@ -41,6 +45,10 @@ from_json(const json& js, DriverRequest& dst)
     case RequestId::EnableMonitoring:
     case RequestId::DisableMonitoring:
         dst.DriverName = CFB::Utils::ToWideString(js["driver_name"].get<std::string>());
+        break;
+
+    case RequestId::GetPendingIrp:
+        dst.NumberOfIrp = js["number_of_irp"];
         break;
 
     default:
@@ -68,7 +76,7 @@ ToString(CFB::Comms::RequestId id)
         CaseToString(RequestId::SetEventPointer);
         CaseToString(RequestId::EnableMonitoring);
         CaseToString(RequestId::DisableMonitoring);
-        CaseToString(RequestId::StoreTestCase);
+        CaseToString(RequestId::GetPendingIrp);
         CaseToString(RequestId::EnumerateDriverObject);
         CaseToString(RequestId::EnumerateDeviceObject);
     }

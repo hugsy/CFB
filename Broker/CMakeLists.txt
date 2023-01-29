@@ -33,6 +33,7 @@ set(
 
     ${BROKER_HEADER_DIR}/Connectors/Base.hpp
     ${BROKER_HEADER_DIR}/Connectors/Dummy.hpp
+    ${BROKER_HEADER_DIR}/Connectors/JsonQueue.hpp
 )
 
 set(
@@ -49,6 +50,7 @@ set(
     ${BROKER_SOURCE_DIR}/DriverManagerListener.cpp
 
     ${BROKER_SOURCE_DIR}/Connectors/Dummy.cpp
+    ${BROKER_SOURCE_DIR}/Connectors/JsonQueue.cpp
 )
 
 #

@@ -1,20 +1,19 @@
 #pragma once
 
-///
-/// This is an example of connector to print out IRP to terminal
-///
+#include <queue>
+#include <mutex>
 
 #include "Connectors/Base.hpp"
 
 namespace CFB::Broker::Connectors
 {
 
-class Dummy : public ConnectorBase
+class JsonQueue : public ConnectorBase
 {
 public:
-    Dummy();
+    JsonQueue();
 
-    ~Dummy();
+    ~JsonQueue();
 
     std::string const
     Name() const override;
@@ -22,7 +21,12 @@ public:
     Result<u32>
     IrpCallback(CFB::Comms::CapturedIrp const& Irp) override;
 
+    std::unique_ptr<CFB::Comms::CapturedIrp>
+    Pop();
+
 private:
+    std::queue<std::unique_ptr<CFB::Comms::CapturedIrp>> m_Queue;
+    std::mutex m_Lock;
 };
 
 } // namespace CFB::Broker::Connectors

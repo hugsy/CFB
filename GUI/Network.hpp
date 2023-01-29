@@ -57,7 +57,7 @@ public:
             return true;
         }
 
-        IsConnected = (closesocket(m_Socket) == 0);
+        IsConnected = (closesocket(m_Socket) == 0) ? false : true;
         WSACleanup();
         return IsConnected;
     }

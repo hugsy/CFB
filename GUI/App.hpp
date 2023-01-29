@@ -41,6 +41,8 @@ public:
         Target.Host.assign("192.168.57.87");
         Target.Port        = 1337;
         Target.IsConnected = false;
+
+        m_IrpThread.detach();
     }
 
     ~Context()
@@ -49,6 +51,8 @@ public:
         {
             Target.Disconnect();
         }
+
+        m_IrpThread.join();
     }
 
     bool Restart;
@@ -249,6 +253,39 @@ private:
             return json::parse(Body);
         }
     }
+
+    std::jthread m_IrpThread = std::jthread(
+        [this]()
+        {
+            // TODO better synchro with events
+            while ( KeepRunning )
+            {
+                if ( Target.IsConnected )
+                {
+                    CFB::Comms::DriverRequest req;
+                    req.Id          = CFB::Comms::RequestId::GetPendingIrp;
+                    req.NumberOfIrp = 1;
+
+                    auto rep = SendCommand(req);
+                    if ( rep && rep.value()["error_code"] == 0 )
+                    {
+                        json body = rep.value()["body"];
+
+                        if ( body["success"] == true && body["number_of_irp"] > 0 )
+                        {
+                            for ( auto const& entry : body["body"] )
+                            {
+                                // TODO lock on CapturedIrps
+                                CFB::Comms::CapturedIrp Irp = entry.get<CFB::Comms::CapturedIrp>();
+                                CapturedIrps.push_back(std::move(Irp));
+                            }
+                        }
+                    }
+                }
+
+                std::this_thread::sleep_for(1s);
+            }
+        });
 };
 
 

@@ -26,11 +26,12 @@ enum class RequestId : uptr
     SetEventPointer    = 0x06,
     EnableMonitoring   = 0x07,
     DisableMonitoring  = 0x08,
-    StoreTestCase      = 0x09,
 
     // Command IDs for Broker
     EnumerateDriverObject = 0x11,
     EnumerateDeviceObject = 0x12,
+    GetPendingIrpNumber   = 0x13,
+    GetPendingIrp         = 0x14,
 };
 
 
@@ -49,6 +50,12 @@ struct DriverRequest
     /// - DisableMonitoring
     ///
     std::wstring DriverName;
+
+    ///
+    ///@brief used for
+    /// - GetPendingIrp
+    ///
+    u16 NumberOfIrp;
 };
 
 

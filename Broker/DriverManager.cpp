@@ -1,3 +1,4 @@
+// clang-format off
 #include "DriverManager.hpp"
 
 #include <codecvt>
@@ -11,6 +12,8 @@
 #include "Messages.hpp"
 #include "States.hpp"
 
+#include "Connectors/JsonQueue.hpp"
+// clang-format on
 
 namespace CFB::Broker
 {
@@ -188,13 +191,6 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-    case CFB::Comms::RequestId::StoreTestCase:
-    {
-        Response["success"] = false;
-        Response["reason"]  = "NotImplemented";
-        break;
-    }
-
     case CFB::Comms::RequestId::EnumerateDriverObject:
     {
         auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\Driver");
@@ -234,8 +230,51 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
+    case CFB::Comms::RequestId::GetPendingIrp:
+    {
+        auto msg = Request.get<CFB::Comms::DriverRequest>();
+        if ( msg.NumberOfIrp == 0 )
+        {
+            Response["success"] = false;
+            Response["reason"]  = "Invalid Parameter";
+            break;
+        }
+
+        //
+        //
+        //
+        auto res = Globals.ConnectorManager()->GetConnectorByName("JsonQueue");
+        if ( Failed(res) )
+        {
+            Response["success"] = false;
+            Response["reason"]  = "Cannot find connector";
+            break;
+        }
+
+        auto const ConnBase = Value(res);
+        auto const Conn     = reinterpret_cast<Connectors::JsonQueue*>(ConnBase.get());
+        usize nb            = 0;
+        while ( true )
+        {
+            std::unique_ptr<CFB::Comms::CapturedIrp> Irp = std::move(Conn->Pop());
+            if ( !Irp )
+            {
+                break;
+            }
+
+            nb++;
+            Response["body"].push_back(json(*Irp));
+        }
+
+        Response["success"]       = true;
+        Response["number_of_irp"] = nb;
+        break;
+    }
+
     default:
-        return Err(ErrorCode::InvalidRequestId);
+        Response["success"] = false;
+        Response["reason"]  = "Invalid Request ID";
+        break;
     }
 
     xinfo(
@@ -243,6 +282,8 @@ DriverManager::ExecuteCommand(json const& Request)
         m_RequestNumber,
         CFB::Comms::ToString(RequestId).c_str(),
         boolstr(Response["success"]));
+
+    xdbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
 
     return Ok(Response);
 }

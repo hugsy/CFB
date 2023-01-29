@@ -28,7 +28,6 @@ static std::unordered_map<std::string_view, bool> Windows = {
     {"IrpFactory", false},
     {"IrpDetail", false},
     {"Settings", false},
-
     {"Demo", false},
 };
 
@@ -47,24 +46,17 @@ Context::LoadIrpsFromFile(std::filesystem::path const& JsonFile)
     }
 
     std::ifstream ifs(JsonFile);
-    json JsIrps = json::parse(ifs);
-
-    for ( auto const& JsIrp : JsIrps )
-    {
-        CapturedIrps.push_back(std::move(CFB::Comms::FromJson(JsIrp)));
-    }
+    json j       = json::parse(ifs);
+    auto NewIrps = j.get<std::vector<CFB::Comms::CapturedIrp>>();
+    std::copy(NewIrps.begin(), NewIrps.end(), std::back_inserter(CapturedIrps));
 }
 
 void
 Context::SaveIrpsToFile(std::filesystem::path const& JsonFile)
 {
+    json j = Globals.CapturedIrps;
     std::ofstream file(JsonFile);
-    file << "[";
-    for ( auto const& Irp : Globals.CapturedIrps )
-    {
-        file << CFB::Comms::ToJson(Irp);
-    }
-    file << "]";
+    file << j.dump();
 }
 
 void
@@ -153,6 +145,7 @@ PrepareMenubar()
 
         if ( ImGui::BeginMenu("Help") )
         {
+            // TODO finish
             ImGui::EndMenu();
         }
 
@@ -160,11 +153,13 @@ PrepareMenubar()
     }
 }
 
+// move to helpers
 static inline void
 InputHex(const char* label, void* value, int type)
 {
     const static auto TEXT_WIDTH = ImGui::CalcTextSize("A").x;
-    const char* fmt;
+    const float INPUT_HEX_WIDTH  = TEXT_WIDTH * 20;
+    const char* fmt              = nullptr;
     switch ( type )
     {
     case ImGuiDataType_U8:
@@ -184,7 +179,7 @@ InputHex(const char* label, void* value, int type)
         break;
     }
 
-    ImGui::PushItemWidth(TEXT_WIDTH * 20);
+    ImGui::PushItemWidth(INPUT_HEX_WIDTH);
     ImGui::InputScalar(
         label,
         type,
@@ -281,7 +276,7 @@ RenderSessionInfoWindow()
 {
     ImGui::Begin("SessionInfo");
 
-    ImGui::Text("Viewing %lu IRPs", Globals.CapturedIrps.size());
+    ImGui::Text("Viewing %llu IRPs", Globals.CapturedIrps.size());
 
     ImGui::Separator();
 
@@ -290,7 +285,6 @@ RenderSessionInfoWindow()
 
     bool NewState = Globals.Target.IsConnected;
     CFB::GUI::Helpers::ToggleButton(Globals.Target.IsConnected ? "Disconnect" : "Connect", &NewState);
-
     if ( NewState != Globals.Target.IsConnected )
     {
         Globals.Target.IsConnected ? Globals.Target.Disconnect() : Globals.Target.Connect();
@@ -299,7 +293,7 @@ RenderSessionInfoWindow()
     if ( Globals.Target.IsConnected )
     {
         ImGui::Text(
-            "Hooked Drivers: %lu",
+            "Hooked Drivers: %llu",
             std::count_if(
                 Globals.Drivers.cbegin(),
                 Globals.Drivers.cend(),
@@ -308,7 +302,7 @@ RenderSessionInfoWindow()
                     return Entry.second.first == true;
                 }));
         ImGui::Text(
-            "Monitored Drivers: %lu",
+            "Monitored Drivers: %llu",
             std::count_if(
                 Globals.Drivers.cbegin(),
                 Globals.Drivers.cend(),
@@ -316,7 +310,7 @@ RenderSessionInfoWindow()
                 {
                     return Entry.second.second == true;
                 }));
-        ImGui::Text("Driver Found: %lu", Globals.Drivers.size());
+        ImGui::Text("Driver Found: %llu", Globals.Drivers.size());
 
         if ( Globals.RefreshingDrivers )
         {
@@ -327,11 +321,19 @@ RenderSessionInfoWindow()
             Globals.RefreshDriverList();
         }
 
-        for ( auto& [Driver, Flags] : Globals.Drivers )
+        static ImGuiTextFilter DriverFilter;
+        DriverFilter.Draw();
+
+        auto DriverView = Globals.Drivers | std::views::filter(
+                                                [](auto const& Entry) -> bool
+                                                {
+                                                    return (DriverFilter.PassFilter(Entry.first.c_str()));
+                                                });
+
+        for ( auto& [Driver, Flags] : DriverView )
         {
             if ( ImGui::TreeNode(Driver.c_str()) )
             {
-
                 bool DoHook = Flags.first;
                 if ( ImGui::Checkbox("Is Hooked", &DoHook) )
                 {
@@ -382,29 +384,16 @@ RenderIrpFactoryWindow()
 }
 
 void
-RenderIrpDetailWindow(CFB::Comms::CapturedIrp const& Irp)
+RenderIrpDetailWindow(CFB::Comms::CapturedIrp& Irp)
 {
     static MemoryEditor InputBufferView, OutputBufferView;
 
     ImGui::Begin("IrpDetail");
-    std::string DevicePath  = CFB::Utils::ToString(Irp.Header.DeviceName);
-    std::string DriverPath  = CFB::Utils::ToString(Irp.Header.DriverName);
-    std::string ProcessName = CFB::Utils::ToString(Irp.Header.ProcessName);
-
-    std::vector<u8> InputBuffer, OutputBuffer;
-    InputBuffer.resize(Irp.Header.InputBufferLength);
-    OutputBuffer.resize(Irp.Header.OutputBufferLength);
-
-    // fake data
-    // TODO: use value from IRP
-    for ( usize i = 0; i < InputBuffer.size(); i++ )
-    {
-        InputBuffer[i] = i;
-    }
-    for ( usize i = 0; i < OutputBuffer.size(); i++ )
-    {
-        OutputBuffer[i] = i;
-    }
+    std::string DevicePath        = CFB::Utils::ToString(Irp.Header.DeviceName);
+    std::string DriverPath        = CFB::Utils::ToString(Irp.Header.DriverName);
+    std::string ProcessName       = CFB::Utils::ToString(Irp.Header.ProcessName);
+    std::vector<u8>& InputBuffer  = Irp.InputBuffer;
+    std::vector<u8>& OutputBuffer = Irp.OutputBuffer;
 
     ImGui::InputText("Driver Path", DriverPath.data(), DriverPath.size(), ImGuiInputTextFlags_ReadOnly);
     ImGui::InputText("Device Path", DevicePath.data(), DevicePath.size(), ImGuiInputTextFlags_ReadOnly);
@@ -448,7 +437,7 @@ RenderIrpTableWindow()
 
     ImGui::Separator();
 
-    const float TEXT_BASE_WIDTH  = ImGui::CalcTextSize("A").x;
+    // const float TEXT_BASE_WIDTH  = ImGui::CalcTextSize("A").x;
     const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
     const ImGuiTableFlags IrpTableFlags =
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
@@ -517,19 +506,19 @@ RenderIrpTableWindow()
             ImGui::Selectable(label.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%S", Irp.Header.DriverName);
+            ImGui::Text("%S", const_cast<wchar_t*>(Irp.Header.DriverName));
 
             ImGui::TableNextColumn();
-            ImGui::Text("%S", Irp.Header.DeviceName);
+            ImGui::Text("%S", const_cast<wchar_t*>(Irp.Header.DeviceName));
 
             ImGui::TableNextColumn();
             ImGui::Text("%u", Irp.Header.Irql);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.Type);
+            ImGui::Text("%s", Irp.Header.Type == 0 ? "IRP" : (Irp.Header.Type == 1 ? "FastIRP" : "Unknown"));
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.MajorFunction);
+            ImGui::Text("%s", CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction).c_str());
 
             ImGui::TableNextColumn();
             ImGui::Text("%u", Irp.Header.MinorFunction);
@@ -538,22 +527,22 @@ RenderIrpTableWindow()
             ImGui::Text("0x%08X", Irp.Header.IoctlCode);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.Pid);
+            ImGui::Text("%lu", Irp.Header.Pid);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.Tid);
+            ImGui::Text("%lu", Irp.Header.Tid);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%s", Irp.Header.ProcessName);
+            ImGui::Text("%S", const_cast<wchar_t*>(Irp.Header.ProcessName));
 
             ImGui::TableNextColumn();
             ImGui::Text("0x%08X", Irp.Header.Status);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.InputBufferLength);
+            ImGui::Text("%lu", Irp.Header.InputBufferLength);
 
             ImGui::TableNextColumn();
-            ImGui::Text("%d", Irp.Header.OutputBufferLength);
+            ImGui::Text("%lu", Irp.Header.OutputBufferLength);
 
             if ( selected )
             {
@@ -563,7 +552,7 @@ RenderIrpTableWindow()
 
         if ( SelectedIrp.has_value() )
         {
-            RenderIrpDetailWindow(SelectedIrp.value());
+            // RenderIrpDetailWindow(SelectedIrp.value());
         }
 
         ImGui::EndTable();

@@ -4,9 +4,10 @@
 
 #include "imgui_internal.h"
 
-void
+bool
 CFB::GUI::Helpers::ToggleButton(const char* str_id, bool* v)
 {
+    bool item_is_clicked  = false;
     ImVec2 p              = ImGui::GetCursorScreenPos();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
@@ -16,7 +17,10 @@ CFB::GUI::Helpers::ToggleButton(const char* str_id, bool* v)
 
     ImGui::InvisibleButton(str_id, ImVec2(width, height));
     if ( ImGui::IsItemClicked() )
-        *v = !*v;
+    {
+        *v              = !*v;
+        item_is_clicked = true;
+    }
 
     float t = *v ? 1.0f : 0.0f;
 
@@ -39,6 +43,8 @@ CFB::GUI::Helpers::ToggleButton(const char* str_id, bool* v)
         ImVec2(p.x + radius + t * (width - radius * 2.0f), p.y + radius),
         radius - 1.5f,
         IM_COL32(255, 255, 255, 255));
+
+    return item_is_clicked;
 }
 
 

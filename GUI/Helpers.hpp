@@ -11,7 +11,7 @@ namespace CFB::GUI::Helpers
 ///@param str_id
 ///@param v
 ///
-void
+bool
 ToggleButton(const char* str_id, bool* v);
 
 

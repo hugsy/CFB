@@ -43,6 +43,73 @@ struct CapturedIrp
 };
 
 
+static void
+to_json(nlohmann::json& j, CapturedIrpHeader const& h)
+{
+    j["TimeStamp"]          = h.TimeStamp;
+    j["DriverName"]         = CFB::Utils::ToString(h.DriverName);
+    j["DeviceName"]         = CFB::Utils::ToString(h.DeviceName);
+    j["Irql"]               = h.Irql;
+    j["Type"]               = h.Type;
+    j["MajorFunction"]      = h.MajorFunction;
+    j["MinorFunction"]      = h.MinorFunction;
+    j["IoctlCode"]          = h.IoctlCode;
+    j["Pid"]                = h.Pid;
+    j["Tid"]                = h.Tid;
+    j["Status"]             = h.Status;
+    j["ProcessName"]        = CFB::Utils::ToString(h.ProcessName);
+    j["InputBufferLength"]  = h.InputBufferLength;
+    j["OutputBufferLength"] = h.OutputBufferLength;
+}
+
+static void
+from_json(const nlohmann::json& j, CapturedIrpHeader& h)
+{
+    j.at("TimeStamp").get_to<u64>(h.TimeStamp);
+    j.at("Irql").get_to(h.Irql);
+    j.at("Type").get_to(h.Type);
+    j.at("MajorFunction").get_to(h.MajorFunction);
+    j.at("MinorFunction").get_to(h.MinorFunction);
+    j.at("IoctlCode").get_to(h.IoctlCode);
+    j.at("Pid").get_to(h.Pid);
+    j.at("Tid").get_to(h.Tid);
+    j.at("Status").get_to(h.Status);
+    j.at("InputBufferLength").get_to<u32>(h.InputBufferLength);
+    j.at("OutputBufferLength").get_to<u32>(h.OutputBufferLength);
+
+    auto const& ProcessName = CFB::Utils::ToWideString(j.at("ProcessName").get<std::string>());
+    auto const& DriverName  = CFB::Utils::ToWideString(j.at("DriverName").get<std::string>());
+    auto const& DeviceName  = CFB::Utils::ToWideString(j.at("DeviceName").get<std::string>());
+    ::memcpy(
+        h.ProcessName,
+        ProcessName.c_str(),
+        MIN(ProcessName.size() * sizeof(wchar_t), sizeof(h.ProcessName) - sizeof(wchar_t)));
+    ::memcpy(
+        h.DeviceName,
+        DeviceName.c_str(),
+        MIN(DeviceName.size() * sizeof(wchar_t), sizeof(h.DeviceName) - sizeof(wchar_t)));
+    ::memcpy(
+        h.DriverName,
+        DriverName.c_str(),
+        MIN(DriverName.size() * sizeof(wchar_t), sizeof(h.DriverName) - sizeof(wchar_t)));
+}
+
+static void
+to_json(nlohmann::json& j, CapturedIrp const& i)
+{
+    j["Header"]       = i.Header;
+    j["InputBuffer"]  = i.InputBuffer;
+    j["OutputBuffer"] = i.OutputBuffer;
+}
+
+static void
+from_json(const nlohmann::json& j, CapturedIrp& i)
+{
+    j.at("Header").get_to(i.Header);
+    j.at("InputBuffer").get_to(i.InputBuffer);
+    j.at("OutputBuffer").get_to(i.OutputBuffer);
+}
+
 static std::string
 ToString(CapturedIrp const& Irp)
 {
@@ -53,57 +120,6 @@ ToString(CapturedIrp const& Irp)
         << Irp.Header.Pid << " " << Irp.Header.Tid << " " << CFB::Utils::ToString(Irp.Header.ProcessName) << " "
         << Irp.Header.Status << " " << Irp.Header.InputBufferLength << " " << Irp.Header.OutputBufferLength;
     return oss.str();
-}
-
-static std::string
-ToJson(CapturedIrp const& Irp)
-{
-    std::ostringstream oss;
-    oss << "{";
-    oss << "\"TimeStamp\": " << Irp.Header.TimeStamp << ", ";
-    oss << "\"DriverName\": \"" << CFB::Utils::ToString(Irp.Header.DriverName) << "\", ";
-    oss << "\"DeviceName\": \"" << CFB::Utils::ToString(Irp.Header.DeviceName) << "\", ";
-    oss << "\"Irql\": " << (u32)Irp.Header.Irql << ", ";
-    oss << "\"Type\": " << (u32)Irp.Header.Type << ", ";
-    oss << "\"MajorFunction\": " << (u32)Irp.Header.MajorFunction << ", ";
-    oss << "\"MinorFunction\": " << (u32)Irp.Header.MinorFunction << ", ";
-    oss << "\"IoctlCode\": " << Irp.Header.IoctlCode << ", ";
-    oss << "\"Pid\": " << Irp.Header.Pid << ", ";
-    oss << "\"Tid\": " << Irp.Header.Tid << ", ";
-    oss << "\"ProcessName\": " << CFB::Utils::ToString(Irp.Header.ProcessName) << ", ";
-    oss << "\"Status\": " << Irp.Header.Status << ", ";
-    oss << "\"InputBufferLength\": " << Irp.Header.InputBufferLength << ", ";
-    oss << "\"OutputBufferLength\": " << Irp.Header.OutputBufferLength;
-    oss << "}";
-    return oss.str();
-}
-
-static CapturedIrp
-FromJson(nlohmann::json const& js)
-{
-    CapturedIrp Irp {};
-
-    std::wstring DriverName  = CFB::Utils::ToWideString(js["DriverName"].get<std::string>());
-    std::wstring DeviceName  = CFB::Utils::ToWideString(js["DeviceName"].get<std::string>());
-    std::wstring ProcessName = CFB::Utils::ToWideString(js["ProcessName"].get<std::string>());
-
-    RtlCopyMemory(Irp.Header.DriverName, DriverName.c_str(), DriverName.size() * sizeof(wchar_t));
-    RtlCopyMemory(Irp.Header.DeviceName, DeviceName.c_str(), DeviceName.size() * sizeof(wchar_t));
-    RtlCopyMemory(Irp.Header.ProcessName, ProcessName.c_str(), ProcessName.size() * sizeof(wchar_t));
-
-    Irp.Header.TimeStamp          = js["TimeStamp"];
-    Irp.Header.Irql               = js["Irql"];
-    Irp.Header.Type               = js["Type"];
-    Irp.Header.MajorFunction      = js["MajorFunction"];
-    Irp.Header.MinorFunction      = js["MinorFunction"];
-    Irp.Header.IoctlCode          = js["IoctlCode"];
-    Irp.Header.Pid                = js["Pid"];
-    Irp.Header.Tid                = js["Tid"];
-    Irp.Header.Status             = js["Status"];
-    Irp.Header.InputBufferLength  = js["InputBufferLength"];
-    Irp.Header.OutputBufferLength = js["OutputBufferLength"];
-
-    return Irp;
 }
 #endif // CFB_KERNEL_DRIVER
 

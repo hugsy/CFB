@@ -32,6 +32,7 @@ enum class ErrorCode
     LookupError,
     DeviceNotInitialized,
     InvalidRequestId,
+    NotFound,
 };
 
 ///
@@ -161,6 +162,7 @@ ToString(ErrorType const& x)
         CaseToString(ErrorCode::UnexpectedStateError);
         CaseToString(ErrorCode::InvalidInput);
         CaseToString(ErrorCode::InvalidParameter);
+        CaseToString(ErrorCode::InitializationError);
         CaseToString(ErrorCode::UnexpectedType);
         CaseToString(ErrorCode::ArithmeticError);
         CaseToString(ErrorCode::OverflowError);
@@ -168,13 +170,18 @@ ToString(ErrorType const& x)
         CaseToString(ErrorCode::IllegalValue);
         CaseToString(ErrorCode::NotImplementedError);
         CaseToString(ErrorCode::PendingIoError);
+        CaseToString(ErrorCode::NetworkError);
         CaseToString(ErrorCode::ConnectionError);
         CaseToString(ErrorCode::TerminationError);
         CaseToString(ErrorCode::ServiceError);
         CaseToString(ErrorCode::FilesystemError);
         CaseToString(ErrorCode::InsufficientPrivilegeError);
         CaseToString(ErrorCode::SocketInitializationFailed);
-        CaseToString(ErrorCode::NetworkError);
+        CaseToString(ErrorCode::LookupError);
+        CaseToString(ErrorCode::DeviceNotInitialized);
+        CaseToString(ErrorCode::InvalidRequestId);
+        CaseToString(ErrorCode::NotFound);
+
     default:
         throw std::invalid_argument("Unimplemented item");
     }

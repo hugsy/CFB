@@ -4,7 +4,8 @@
 #include "Context.hpp"
 #include "Log.hpp"
 
-#include "Connectors/Dummy.hpp"
+#include "Connectors/Dummy.hpp" // for test
+#include "Connectors/JsonQueue.hpp"
 // clang-format on
 
 
@@ -14,7 +15,7 @@ namespace CFB::Broker
 ///
 ///@brief
 ///
-static std::vector<std::unique_ptr<Connectors::ConnectorBase>> g_Connectors {};
+static std::vector<std::shared_ptr<Connectors::ConnectorBase>> g_Connectors {};
 
 ///
 ///@brief
@@ -76,7 +77,10 @@ ConnectorManager::Setup()
         //
         // Add new connector to that list
         //
-        g_Connectors.push_back(std::make_unique<Connectors::Dummy>());
+
+        // TODO add check for name unicity
+        g_Connectors.push_back(std::make_shared<Connectors::Dummy>());
+        g_Connectors.push_back(std::make_shared<Connectors::JsonQueue>());
 
         xdbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
     }
@@ -93,6 +97,26 @@ ConnectorManager::Setup()
     SetState(CFB::Broker::State::ConnectorManagerReady);
 
     return Ok(true);
+}
+
+
+Result<std::shared_ptr<Connectors::ConnectorBase>>
+ConnectorManager::GetConnectorByName(std::string_view const& ConnectorName)
+{
+    auto res = std::find_if(
+        g_Connectors.cbegin(),
+        g_Connectors.cend(),
+        [&ConnectorName](auto const& Conn)
+        {
+            return Conn->Name() == ConnectorName;
+        });
+
+    if ( res == std::end(g_Connectors) )
+    {
+        return Err(ErrorCode::NotFound);
+    }
+
+    return Ok(*res);
 }
 
 

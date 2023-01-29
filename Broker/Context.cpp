@@ -182,6 +182,12 @@ GlobalContext::IrpManager() const
     return m_IrpManager;
 }
 
+std::shared_ptr<CFB::Broker::ConnectorManager>
+GlobalContext::ConnectorManager() const
+{
+    return m_ConnectorManager;
+}
+
 
 const HANDLE
 GlobalContext::TerminationEvent() const
