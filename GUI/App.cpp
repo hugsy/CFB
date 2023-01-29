@@ -512,9 +512,15 @@ RenderIrpTableWindow()
             ImGui::Text("%S", const_cast<wchar_t*>(Irp.Header.DeviceName));
 
             ImGui::TableNextColumn();
-            ImGui::Text("%u", Irp.Header.Irql);
+            // TODO use helper
+            ImGui::Text(
+                "%s",
+                Irp.Header.Irql == 0 ?
+                    "PASSIVE_LEVEL" :
+                    (Irp.Header.Irql == 1 ? "APC_LEVEL" : (Irp.Header.Irql == 2 ? "DISPATCH_LEVEL" : "HIGH")));
 
             ImGui::TableNextColumn();
+            // TODO use helper
             ImGui::Text("%s", Irp.Header.Type == 0 ? "IRP" : (Irp.Header.Type == 1 ? "FastIRP" : "Unknown"));
 
             ImGui::TableNextColumn();
@@ -552,7 +558,7 @@ RenderIrpTableWindow()
 
         if ( SelectedIrp.has_value() )
         {
-            // RenderIrpDetailWindow(SelectedIrp.value());
+            RenderIrpDetailWindow(SelectedIrp.value());
         }
 
         ImGui::EndTable();

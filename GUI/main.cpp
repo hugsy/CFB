@@ -71,27 +71,30 @@ WaitForNextFrameResources();
 LRESULT WINAPI
 WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-
-const static wchar_t* g_WindowTitle = PROJECT_NAME L" (GUI version " GUI_VERSION L")";
+const static wchar_t* g_ClassName   = WIDECHAR2(PROJECT_NAME);
+const static wchar_t* g_WindowTitle = WIDECHAR2(PROJECT_NAME " (GUI version " GUI_VERSION ")");
 
 int
 RunImGuiApp()
 {
     // Create application window
-    // ImGui_ImplWin32_EnableDpiAwareness();
+    ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW wc = {
         sizeof(wc),
         CS_CLASSDC,
         WndProc,
         0L,
         0L,
-        GetModuleHandle(NULL),
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        L"ImGui Example",
-        NULL};
+        GetModuleHandle(nullptr),
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        g_ClassName,
+        nullptr};
+    wc.hIcon   = ::LoadIconW(nullptr, MAKEINTRESOURCEW(101));
+    wc.hIconSm = ::LoadIconW(nullptr, MAKEINTRESOURCEW(101));
+
     ::RegisterClassExW(&wc);
     HWND hwnd = ::CreateWindowW(
         wc.lpszClassName,
@@ -101,10 +104,10 @@ RunImGuiApp()
         100,
         1280,
         800,
-        NULL,
-        NULL,
+        nullptr,
+        nullptr,
         wc.hInstance,
-        NULL);
+        nullptr);
 
     // Initialize Direct3D
     if ( !CreateDeviceD3D(hwnd) )
