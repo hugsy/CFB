@@ -53,8 +53,9 @@ SaveFileWindows(std::string_view const& Filter)
 
 namespace CFB::GUI::Utils
 {
+
 std::optional<std::filesystem::path>
-OpenFile(std::string_view const& Filter)
+FileManager::OpenFile(std::string_view const& Filter)
 {
 #ifdef _WIN32
     return OpenFileWindows(Filter);
@@ -65,7 +66,7 @@ OpenFile(std::string_view const& Filter)
 
 
 std::optional<std::filesystem::path>
-SaveFile(std::string_view const& Filter)
+FileManager::SaveFile(std::string_view const& Filter)
 {
 #ifdef _WIN32
     return SaveFileWindows(Filter);

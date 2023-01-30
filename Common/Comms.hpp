@@ -116,7 +116,8 @@ ToString(CapturedIrp const& Irp)
     std::ostringstream oss;
     oss << Irp.Header.TimeStamp << " " << CFB::Utils::ToString(Irp.Header.DriverName) << " "
         << CFB::Utils::ToString(Irp.Header.DeviceName) << " " << Irp.Header.Irql << Irp.Header.Type << " "
-        << Irp.Header.MajorFunction << " " << Irp.Header.MinorFunction << " " << Irp.Header.IoctlCode << " "
+        << Irp.Header.MajorFunction << " " << Irp.Header.MinorFunction << " "
+        << CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction) << " " << Irp.Header.IoctlCode << " "
         << Irp.Header.Pid << " " << Irp.Header.Tid << " " << CFB::Utils::ToString(Irp.Header.ProcessName) << " "
         << Irp.Header.Status << " " << Irp.Header.InputBufferLength << " " << Irp.Header.OutputBufferLength;
     return oss.str();

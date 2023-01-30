@@ -63,7 +63,7 @@ Hexdump(PVOID data, SIZE_T size, PCSTR header, SIZE_T base)
 #ifdef CFB_KERNEL_DRIVER
 #else
 std::string
-ToString(std::wstring const& input)
+ToString(std::wstring const& WideString)
 {
     // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
     // return converter.to_bytes(input);
@@ -71,8 +71,8 @@ ToString(std::wstring const& input)
     // HACK improve
     std::string s;
     std::for_each(
-        input.cbegin(),
-        input.cend(),
+        WideString.cbegin(),
+        WideString.cend(),
         [&s](auto c)
         {
             s += (char)c;
@@ -81,7 +81,7 @@ ToString(std::wstring const& input)
 }
 
 std::wstring
-ToWideString(std::string const& input)
+ToWideString(std::string const& String)
 {
     // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
     // return converter.from_bytes(input);
@@ -90,8 +90,8 @@ ToWideString(std::string const& input)
 
     std::wstring s;
     std::for_each(
-        input.cbegin(),
-        input.cend(),
+        String.cbegin(),
+        String.cend(),
         [&s](auto c)
         {
             s += (wchar_t)c;
@@ -100,13 +100,13 @@ ToWideString(std::string const& input)
 }
 
 std::string
-ToString(CFB::Comms::Ioctl code)
+ToString(CFB::Comms::Ioctl IoctlCode)
 {
-    u32 _code          = (u32)code;
-    u32 DeviceType     = ((_code >> 16) & 0x0000ffff);
-    u32 AccessType     = ((_code >> 14) & 0x00000003);
-    u32 MethodType     = (_code & 0x0000003);
-    u32 FunctionNumber = ((_code >> 2) & 0x0000fff);
+    u32 code           = (u32)IoctlCode;
+    u32 DeviceType     = ((code >> 16) & 0x0000ffff);
+    u32 AccessType     = ((code >> 14) & 0x00000003);
+    u32 MethodType     = (code & 0x0000003);
+    u32 FunctionNumber = ((code >> 2) & 0x0000fff);
 
     std::ostringstream oss;
     oss << "CTL_CODE(DeviceType=0x" << std::hex << DeviceType << ", Function=0x" << FunctionNumber;

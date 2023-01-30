@@ -97,7 +97,7 @@ PrepareMenubar()
         {
             if ( ImGui::MenuItem("Save IRPs to file") )
             {
-                auto fpath = CFB::GUI::Utils::SaveFile("*.json");
+                auto fpath = CFB::GUI::Utils::FileManager::SaveFile("JSON Files\0*.json\0\0");
                 if ( fpath )
                 {
                     Globals.SaveIrpsToFile(fpath.value());
@@ -106,7 +106,7 @@ PrepareMenubar()
 
             if ( ImGui::MenuItem("Load IRPs from file") )
             {
-                auto fpath = CFB::GUI::Utils::OpenFile("*.json");
+                auto fpath = CFB::GUI::Utils::FileManager::OpenFile("JSON Files\0*.json\0\0");
                 if ( fpath )
                 {
                     Globals.LoadIrpsFromFile(fpath.value());
@@ -386,6 +386,9 @@ RenderIrpFactoryWindow()
 void
 RenderIrpDetailWindow(CFB::Comms::CapturedIrp& Irp)
 {
+    const static auto TEXT_WIDTH = ImGui::CalcTextSize("A").x;
+    const float INPUT_HEX_WIDTH  = TEXT_WIDTH * 20;
+
     static MemoryEditor InputBufferView, OutputBufferView;
 
     ImGui::Begin("IrpDetail");
@@ -403,9 +406,11 @@ RenderIrpDetailWindow(CFB::Comms::CapturedIrp& Irp)
     ImGui::SameLine();
     InputHexU32("Status Code", (void*)&Irp.Header.Status);
 
-    InputHexU32("PID", (void*)&Irp.Header.Pid);
+    ImGui::PushItemWidth(INPUT_HEX_WIDTH);
+    ImGui::InputInt("PID", (int*)&Irp.Header.Pid, 0, 0, ImGuiInputTextFlags_ReadOnly);
     ImGui::SameLine();
-    InputHexU32("TID", (void*)&Irp.Header.Tid);
+    ImGui::InputInt("TID", (int*)&Irp.Header.Tid, 0, 0, ImGuiInputTextFlags_ReadOnly);
+    ImGui::PopItemWidth();
 
     InputHexU8("Major Function", (void*)&Irp.Header.MajorFunction);
     ImGui::SameLine();
@@ -470,6 +475,8 @@ RenderIrpTableWindow()
                                    return (filter.PassFilter(IrpAsString.c_str()));
                                });
 
+    static std::optional<CFB::Comms::CapturedIrp> SelectedIrp = std::nullopt;
+
     if ( ImGui::BeginTable("IrpTable", ColumnNumber, IrpTableFlags, ImVec2(0.0f, TEXT_BASE_HEIGHT * 8)) )
     {
         //
@@ -488,11 +495,10 @@ RenderIrpTableWindow()
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableHeadersRow();
 
-
         //
         // Populate data
         //
-        static std::optional<CFB::Comms::CapturedIrp> SelectedIrp = std::nullopt;
+        usize RowIndex = 0;
         for ( auto const& Irp : IrpsView )
         {
             bool selected = false;
@@ -503,6 +509,7 @@ RenderIrpTableWindow()
             //
             ImGui::TableNextColumn();
             std::string label = std::to_string(Irp.Header.TimeStamp);
+            label += "##" + std::to_string(RowIndex);
             ImGui::Selectable(label.c_str(), &selected, ImGuiSelectableFlags_SpanAllColumns);
 
             ImGui::TableNextColumn();
@@ -554,9 +561,11 @@ RenderIrpTableWindow()
             {
                 SelectedIrp = Irp;
             }
+
+            RowIndex++;
         }
 
-        if ( SelectedIrp.has_value() )
+        if ( SelectedIrp )
         {
             RenderIrpDetailWindow(SelectedIrp.value());
         }
