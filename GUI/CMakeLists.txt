@@ -97,7 +97,7 @@ add_custom_command(
     COMMAND
     rc /nologo /fo ${GUI_RES_FILE} /r ${GUI_RC_FILE}
     COMMENT
-    " Generating the .res file "
+    "Compiling '${GUI_RES_FILE}' file"
 )
 
 #

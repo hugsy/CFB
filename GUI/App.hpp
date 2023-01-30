@@ -244,13 +244,29 @@ private:
 
         // Response
         {
-            auto Body = Target.Receive<std::string>(4096);
-            if ( Body.size() == 0 )
+            const usize BufferLength = 4096;
+            std::string Buffer       = "";
+
+            while ( true )
             {
-                return std::nullopt;
+                auto Chunk           = Target.Receive<std::string>(BufferLength);
+                auto const ChunkSize = ::strlen(Chunk.c_str());
+                Chunk.resize(ChunkSize);
+                if ( ChunkSize == 0 )
+                {
+                    return std::nullopt;
+                }
+
+                Buffer += Chunk;
+
+                if ( ChunkSize < BufferLength || Chunk[ChunkSize - 1] == '}' )
+                {
+                    break;
+                }
             }
 
-            return json::parse(Body);
+            // TODO handle parsing exception
+            return json::parse(Buffer);
         }
     }
 

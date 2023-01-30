@@ -31,7 +31,7 @@ jobs:
       if: matrix.os == 'windows-latest'
 
     - name: Inject slug/short variables
-      uses: rlespinasse/github-slug-action@v3.x
+      uses: rlespinasse/github-slug-action@v4.x
 
     - name: Setup msbuild
       uses: microsoft/setup-msbuild@v1.1
@@ -48,6 +48,7 @@ jobs:
         cd ..
 
     - name: Prepare artifact
+      if: matrix.configuration == 'RelWithDebInfo'
       run: |
         mkdir artifact
         cd ${{ env.BUILD_DIR }}
@@ -55,7 +56,8 @@ jobs:
         cd ..
 
     - name: Publish artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
+      if: matrix.configuration == 'RelWithDebInfo'
       with:
         name: cfb_broker_${{ matrix.platform }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: artifact/

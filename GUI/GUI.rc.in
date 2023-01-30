@@ -1,12 +1,16 @@
+#include <Winver.h>
+
 VS_VERSION_INFO     VERSIONINFO
 FILEVERSION         @GUI_VERSION_MAJOR@,@GUI_VERSION_MINOR@,@GUI_VERSION_PATCH@,0
 PRODUCTVERSION      @CFB_VERSION_MAJOR@,@CFB_VERSION_MINOR@,@CFB_VERSION_PATCH@,0
-FILEOS              0x4
-FILETYPE            0x2
+FILEOS              VOS_NT_WINDOWS32
+FILETYPE            VFT_APP
+FILESUBTYPE         VFT2_UNKNOWN
+
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
-        BLOCK "040904b0"
+        BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName",        "@CFB_COMPANY_NAME@\0"
             VALUE "FileDescription",    "@PROJECT_DESCRIPTION@\0"
@@ -15,6 +19,7 @@ BEGIN
             VALUE "OriginalFilename",   "@PROJECT_NAME@.exe\0"
             VALUE "ProductName",        "@CMAKE_PROJECT_NAME@\0"
             VALUE "ProductVersion",     "@CFB_VERSION_MAJOR@,@CFB_VERSION_MINOR@,@CFB_VERSION_PATCH@,0\0"
+            VALUE "Comments",           "@PROJECT_DESCRIPTION@\0"
         END
     END
     BLOCK "VarFileInfo"

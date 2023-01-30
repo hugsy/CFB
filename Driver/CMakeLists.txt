@@ -1,4 +1,8 @@
-project(IrpMonitor LANGUAGES CXX VERSION 0.2.0)
+project(IrpMonitor
+    LANGUAGES CXX
+    VERSION 0.2.0
+    DESCRIPTION "Driver part of CFB"
+)
 
 message(STATUS "Configuring '${PROJECT_NAME}'")
 
