@@ -92,8 +92,8 @@ RunImGuiApp()
         nullptr,
         g_ClassName,
         nullptr};
-    wc.hIcon   = ::LoadIconW(nullptr, MAKEINTRESOURCEW(101));
-    wc.hIconSm = ::LoadIconW(nullptr, MAKEINTRESOURCEW(101));
+    wc.hIcon   = ::LoadIconW(nullptr, L"IDI_ICON1");
+    wc.hIconSm = ::LoadIconW(nullptr, L"IDI_ICON1");
 
     ::RegisterClassExW(&wc);
     HWND hwnd = ::CreateWindowW(

@@ -236,12 +236,6 @@ protected:
     virtual void
     allocate(const usize sz)
     {
-        if ( sz >= MAXUSHORT )
-        {
-            ::ExRaiseStatus(STATUS_INVALID_PARAMETER_1);
-            return;
-        }
-
         if ( sz > 0 )
         {
             auto p = ::ExAllocatePoolWithTag(m_PoolType, sz, m_PoolTag);
@@ -252,13 +246,8 @@ protected:
 
             m_Buffer = reinterpret_cast<T>(p);
             ::RtlSecureZeroMemory((PVOID)m_Buffer, sz);
-
-            dbg("KAlloc::allocate(%d) = %p", sz, m_Buffer);
         }
-        else
-        {
-            dbg("KAlloc::allocate(%d)", sz);
-        }
+        dbg("KAlloc::allocate(%d) = %p", sz, m_Buffer);
     }
 
     virtual void

@@ -9,6 +9,10 @@ set(DRIVER_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "DRIVER_VERSION
 set(DRIVER_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "DRIVER_VERSION_MINOR")
 set(DRIVER_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE INTERNAL "DRIVER_VERSION_PATCH")
 
+set(DRIVER_RC_FILE ${DRIVER_SOURCE_DIR}/Driver.rc)
+set(DRIVER_RES_FILE ${DRIVER_SOURCE_DIR}/Driver.res)
+configure_file(${DRIVER_RC_FILE}.in ${DRIVER_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTES)
+
 set(
     DRIVER_HEADER_FILES
 
@@ -46,11 +50,22 @@ wdk_add_driver(
 target_include_directories(${PROJECT_NAME} PUBLIC CommonLibDriver)
 target_compile_definitions(${PROJECT_NAME} PRIVATE CFB_KERNEL_DRIVER=1)
 target_link_options(${PROJECT_NAME} PUBLIC /integritycheck)
-target_link_libraries(${PROJECT_NAME} CommonLibDriver)
+target_link_libraries(${PROJECT_NAME} CommonLibDriver ${DRIVER_RES_FILE})
 
-set(CFB_CERT_CN "BlahCat Corp")
+set(CFB_CERT_CN "${CFB_COMPANY_NAME}")
 set(CFB_CERT_STORE "PrivateCertStore")
 set(CFB_DRIVER_INF_FILE "${DRIVER_SOURCE_DIR}/${PROJECT_NAME}.inf")
+
+#
+# Custom command directives
+#
+add_custom_command(
+    TARGET ${PROJECT_NAME} PRE_BUILD
+    COMMAND
+    rc /nologo /fo ${DRIVER_RES_FILE} /r ${DRIVER_RC_FILE}
+    COMMENT
+    "Generating the .res file"
+)
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
