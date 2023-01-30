@@ -57,7 +57,7 @@ set(
 # Create the broker rc file
 #
 cmake_path(SET CFB_BROKER_DRIVER_PATH "$ENV{TEMP}/IrpMonitor.sys")
-cmake_path(SET CFB_BROKER_ICON_PATH "${CFB_ROOT_DIR}/Assets/img/logo/logo.ico")
+cmake_path(SET CFB_BROKER_ICON_PATH "${CFB_ROOT_DIR}/Assets/Images/logo/logo.ico")
 configure_file(${BROKER_RC_FILE}.in ${BROKER_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTES)
 
 #

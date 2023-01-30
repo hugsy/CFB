@@ -42,7 +42,7 @@ find_package(ImGui REQUIRED)
 #
 set(GUI_RC_FILE ${GUI_SOURCE_DIR}/GUI.rc)
 set(GUI_RES_FILE ${GUI_SOURCE_DIR}/GUI.res)
-cmake_path(SET CFB_GUI_ICON_PATH "${CFB_ROOT_DIR}/Assets/img/logo/logo.ico")
+cmake_path(SET CFB_GUI_ICON_PATH "${CFB_ROOT_DIR}/Assets/Images/logo/logo.ico")
 configure_file(${GUI_RC_FILE}.in ${GUI_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTES)
 
 #
