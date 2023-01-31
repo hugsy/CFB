@@ -7,7 +7,7 @@
 /// This file defines the communication protocol and structures for Broker <-> Clients
 ///
 
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace CFB::Comms

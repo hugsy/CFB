@@ -51,10 +51,12 @@ wdk_add_driver(
     ${DRIVER_SOURCE_FILES}
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC CommonLibDriver)
+add_executable(CFB::Kernel::Driver ALIAS ${PROJECT_NAME})
+
+target_include_directories(${PROJECT_NAME} PUBLIC CFB::Kernel::CommonLib)
 target_compile_definitions(${PROJECT_NAME} PRIVATE CFB_KERNEL_DRIVER=1)
 target_link_options(${PROJECT_NAME} PUBLIC /integritycheck)
-target_link_libraries(${PROJECT_NAME} CommonLibDriver ${DRIVER_RES_FILE})
+target_link_libraries(${PROJECT_NAME} CFB::Kernel::CommonLib ${DRIVER_RES_FILE})
 
 set(CFB_CERT_CN "${CFB_COMPANY_NAME}")
 set(CFB_CERT_STORE "PrivateCertStore")
@@ -84,10 +86,6 @@ add_custom_command(
     COMMENT
     "Sign driver, copy to tempdir"
 )
-
-if(CFB_BUILD_TOOLS)
-    add_subdirectory(Client)
-endif(CFB_BUILD_TOOLS)
 
 #
 # Install directives

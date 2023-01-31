@@ -55,6 +55,8 @@ wdk_add_library(CommonLibDriver
     ${COMMON_DRIVER_HEADER_FILES}
 )
 
+add_library(CFB::Kernel::CommonLib ALIAS CommonLibDriver)
+
 target_include_directories(CommonLibDriver INTERFACE ${COMMON_SOURCE_DIR})
 target_compile_definitions(CommonLibDriver PRIVATE CFB_KERNEL_DRIVER=1)
 
@@ -88,9 +90,8 @@ target_include_directories(CommonLibUser
     INTERFACE
     ${COMMON_SOURCE_DIR}
 
-    PUBLIC
-    ${CFB_DEPENDENCIES}/json
-    ${CFB_DEPENDENCIES}/phnt
+    PRIVATE
+    ${PHNT_INCLUDE_DIRS}
 )
 
 target_compile_options(CommonLibUser

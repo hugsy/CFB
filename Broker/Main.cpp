@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include <argparse.hpp>
+#include <argparse/argparse.hpp>
 #include <wil/resource.h>
 
 #include "Broker.hpp"

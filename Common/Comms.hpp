@@ -4,10 +4,13 @@
 #include "Utils.hpp"
 
 #ifndef CFB_KERNEL_DRIVER
+// clang-format off
 #include <codecvt>
-#include <json.hpp>
 #include <locale>
 #include <sstream>
+
+#include <nlohmann/json.hpp>
+// clang-format on
 #endif // CFB_KERNEL_DRIVER
 
 

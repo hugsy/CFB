@@ -22,13 +22,33 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+option(CFB_BUILD_BROKER "Build Broker" ON)
+option(CFB_BUILD_GUI "Build GUI" OFF)
 option(CFB_BUILD_TOOLS "Build Tools" OFF)
 
-message(STATUS "Locating Windows Driver Kit")
-find_package(WDK REQUIRED)
+#
+# Check the dependencies
+#
+if(CFB_BUILD_BROKER)
+    find_path(PHNT_INCLUDE_DIRS "ntd3dkmt.h")
+    find_package(wil CONFIG REQUIRED)
+    find_package(nlohmann_json CONFIG REQUIRED)
+    find_package(argparse CONFIG REQUIRED)
+
+    message(STATUS "Locating Windows Driver Kit")
+    find_package(WDK REQUIRED)
+endif(CFB_BUILD_BROKER)
+
+if(CFB_BUILD_GUI)
+    find_package(imgui CONFIG REQUIRED)
+endif(CFB_BUILD_GUI)
+
+if(CFB_BUILD_TOOLS)
+    find_package(argparse CONFIG REQUIRED)
+    find_package(wil CONFIG REQUIRED)
+endif(CFB_BUILD_TOOLS)
 
 set(CFB_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
-set(CFB_DEPENDENCIES ${CFB_ROOT_DIR}/External)
 
 set(CFB_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "CFB_VERSION_MAJOR")
 set(CFB_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "CFB_VERSION_MINOR")
@@ -37,21 +57,19 @@ set(CFB_COMPANY_NAME "BlahCat Corp." CACHE INTERNAL "CFB_COMPANY_NAME")
 string(TIMESTAMP CFB_CURRENT_YEAR "%Y")
 
 #
-# Build Driver
-#
-add_subdirectory(${CFB_ROOT_DIR}/Driver)
-
-#
-# Build Broker
-#
-add_subdirectory(${CFB_ROOT_DIR}/Broker)
-
-#
-# Build the common library
+# Build it
 #
 add_subdirectory(${CFB_ROOT_DIR}/Common)
 
-#
-# Build GUI
-#
-add_subdirectory(${CFB_ROOT_DIR}/GUI)
+if(CFB_BUILD_BROKER)
+    add_subdirectory(${CFB_ROOT_DIR}/Driver)
+    add_subdirectory(${CFB_ROOT_DIR}/Broker)
+endif(CFB_BUILD_BROKER)
+
+if(CFB_BUILD_GUI)
+    add_subdirectory(${CFB_ROOT_DIR}/GUI)
+endif(CFB_BUILD_GUI)
+
+if(CFB_BUILD_TOOLS)
+    add_subdirectory(${CFB_ROOT_DIR}/Driver/Client)
+endif(CFB_BUILD_TOOLS)

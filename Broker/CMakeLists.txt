@@ -64,16 +64,18 @@ configure_file(${BROKER_RC_FILE}.in ${BROKER_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE
 # Create the executable target
 #
 add_executable(${PROJECT_NAME} WIN32 ${SOURCE_FILES})
-add_dependencies(${PROJECT_NAME} IrpMonitor)
+add_executable(CFB::User::Broker ALIAS ${PROJECT_NAME})
+add_dependencies(${PROJECT_NAME} CFB::Kernel::Driver)
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
     ${BROKER_HEADER_DIR}
-    CommonLibUser
-    ${CFB_DEPENDENCIES}/wil/include
-    ${CFB_DEPENDENCIES}/argparse
-    ${CFB_DEPENDENCIES}/phnt
-    ${CFB_DEPENDENCIES}/json
+    CFB::User::CommonLib
+
+    ${PHNT_INCLUDE_DIRS}
+    argparse::argparse
+    WIL::WIL
+    nlohmann_json::nlohmann_json
 )
 
 target_precompile_headers(${PROJECT_NAME}
@@ -110,13 +112,19 @@ target_link_options(
 
 target_link_libraries(${PROJECT_NAME}
     ${BROKER_RES_FILE}
+
+    CFB::User::CommonLib
+
+    argparse::argparse
+    WIL::WIL
+    nlohmann_json::nlohmann_json
+
     ws2_32.lib
     Userenv.lib
     Rpcrt4.lib
     kernel32.lib
     ntdll.lib
     Advapi32.lib
-    CommonLibUser
 )
 
 set_target_properties(${PROJECT_NAME}

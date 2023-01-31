@@ -9,7 +9,7 @@
 
 #include <wil/resource.h>
 
-#include "json.hpp"
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 // clang-format on
 

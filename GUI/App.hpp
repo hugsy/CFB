@@ -4,7 +4,7 @@
 #include "Common.hpp"
 #include "Comms.hpp"
 #include "Messages.hpp"
-#include "json.hpp"
+#include "Network.hpp"
 
 #include <chrono>
 #include <filesystem>
@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Network.hpp"
+#include <nlohmann/json.hpp>
 // clang-format on
 
 

@@ -1,0 +1,70 @@
+{
+    "name": "cfb",
+    "version": "0.2.0",
+    "description": [
+        "Canadian Furious Beaver - IRP interceptor and replayer"
+    ],
+    "$default-features-explanation": "Users using this tool transitively will get all backends automatically",
+    "default-features": [
+        "driver",
+        "broker",
+        "gui"
+    ],
+    "features": {
+        "broker": {
+            "description": "The CFB broker, server part of the application",
+            "dependencies": [
+                {
+                    "name": "nlohmann-json"
+                },
+                {
+                    "name": "argparse"
+                },
+                {
+                    "name": "phnt"
+                },
+                {
+                    "name": "wil"
+                }
+            ]
+        },
+        "driver": {
+            "description": "The CFB driver",
+            "dependencies": []
+        },
+        "gui": {
+            "description": "The CFB GUI",
+            "dependencies": [
+                {
+                    "name": "nlohmann-json"
+                },
+                {
+                    "name": "imgui",
+                    "features": [
+                        "docking-experimental",
+                        "dx12-binding",
+                        "win32-binding"
+                    ],
+                    "platform": "windows"
+                },
+                {
+                    "name": "phnt"
+                },
+                {
+                    "name": "wil"
+                }
+            ]
+        },
+        "tools": {
+            "description": "Some debug tools for CFB",
+            "dependencies": [
+                {
+                    "name": "argparse"
+                },
+                {
+                    "name": "wil"
+                }
+            ]
+        }
+    }
+}

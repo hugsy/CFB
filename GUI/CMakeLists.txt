@@ -35,7 +35,6 @@ set(
 
 set(IMGUI_DIR ${CFB_DEPENDENCIES}/imgui)
 set(IMGUI_BACKEND win32-dx12)
-find_package(ImGui REQUIRED)
 
 #
 # Create the broker rc file
@@ -53,7 +52,13 @@ add_executable(${PROJECT_NAME} ${GUI_SOURCE_FILES})
 #
 # Compilation directives
 #
-target_include_directories(${PROJECT_NAME} PUBLIC CFB::User::CommonLib imgui::imgui ${CFB_DEPENDENCIES}/json)
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    CFB::User::CommonLib
+
+    PRIVATE
+)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC _UNICODE UNICODE ImTextureID=ImU64)
 
@@ -81,12 +86,15 @@ target_link_options(
 
 target_link_libraries(
     ${PROJECT_NAME}
+
     PRIVATE
     ${GUI_RES_FILE}
     CFB::User::CommonLib
     imgui::imgui
-
+    nlohmann_json::nlohmann_json
     Ws2_32.lib
+    D3D12.lib
+    DXGI.lib
 )
 
 #

@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   BUILD_DIR: ./build
-  CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON"
+  CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON -DCFB_BUILD_BROKER:BOOL=ON -DCFB_BUILD_GUI:BOOL=ON"
 
 jobs:
   build_broker:

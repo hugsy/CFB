@@ -14,7 +14,7 @@
 #include <utility>
 #include <vector>
 
-#include <argparse.hpp>
+#include <argparse/argparse.hpp>
 #include <wil/resource.h>
 
 #include "Common.hpp"
