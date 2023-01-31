@@ -108,9 +108,13 @@ public:
                                   return;
                               }
 
-                              for ( std::string const& DriverPath : rep.value()["body"]["body"] )
+                              auto const DriverList = rep.value()["body"]["body"];
+                              for ( std::string const& DriverPath : DriverList )
                               {
-                                  Drivers[DriverPath] = {false, false};
+                                  if ( Drivers.find(DriverPath) == Drivers.end() )
+                                  {
+                                      Drivers[DriverPath] = {false, false};
+                                  }
                               }
 
                               RefreshingDrivers = false;
