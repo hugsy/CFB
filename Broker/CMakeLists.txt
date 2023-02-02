@@ -2,8 +2,8 @@ project(Broker LANGUAGES CXX VERSION 0.2.0)
 
 message(STATUS "Configuring '${PROJECT_NAME}'")
 
-set(BROKER_SOURCE_DIR ${CFB_ROOT_DIR}/Broker)
-set(BROKER_HEADER_DIR ${BROKER_SOURCE_DIR})
+set(BROKER_SOURCE_DIR ${CFB_ROOT_DIR}/Broker/Source)
+set(BROKER_HEADER_DIR ${CFB_ROOT_DIR}/Broker/Headers)
 
 set(BROKER_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "BROKER_VERSION_MAJOR")
 set(BROKER_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "BROKER_VERSION_MINOR")
@@ -68,14 +68,9 @@ add_executable(CFB::User::Broker ALIAS ${PROJECT_NAME})
 add_dependencies(${PROJECT_NAME} CFB::Kernel::Driver)
 
 target_include_directories(${PROJECT_NAME}
-    PUBLIC
+    PRIVATE
     ${BROKER_HEADER_DIR}
-    CFB::User::CommonLib
-
     ${PHNT_INCLUDE_DIRS}
-    argparse::argparse
-    WIL::WIL
-    nlohmann_json::nlohmann_json
 )
 
 target_precompile_headers(${PROJECT_NAME}
@@ -144,7 +139,7 @@ install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION Tools OPTIONAL)
 add_custom_command(
     TARGET ${PROJECT_NAME} PRE_BUILD
     COMMAND
-    rc /nologo /fo ${BROKER_RES_FILE} /r ${BROKER_RC_FILE}
+    rc /nologo /I ${BROKER_HEADER_DIR} /fo ${BROKER_RES_FILE} /r ${BROKER_RC_FILE}
     COMMENT
-    " Generating the .res file "
+    "Compiling '${BROKER_RES_FILE}' resource file"
 )

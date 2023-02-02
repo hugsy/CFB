@@ -178,6 +178,49 @@ IrpMajorToString(u32 type)
     }
     return "UnknownIrpType";
 }
+
+std::string
+ToString(CFB::Comms::RequestId id)
+{
+    using CFB::Comms::RequestId;
+#define CaseToString(x)                                                                                                \
+    {                                                                                                                  \
+    case (x):                                                                                                          \
+        return #x;                                                                                                     \
+    }
+
+    switch ( id )
+    {
+        CaseToString(RequestId::InvalidId);
+        CaseToString(RequestId::HookDriver);
+        CaseToString(RequestId::UnhookDriver);
+        CaseToString(RequestId::GetNumberOfDrivers);
+        CaseToString(RequestId::GetNamesOfDrivers);
+        CaseToString(RequestId::GetDriverInfo);
+        CaseToString(RequestId::SetEventPointer);
+        CaseToString(RequestId::EnableMonitoring);
+        CaseToString(RequestId::DisableMonitoring);
+        CaseToString(RequestId::GetPendingIrp);
+        CaseToString(RequestId::EnumerateDriverObject);
+        CaseToString(RequestId::EnumerateDeviceObject);
+    }
+#undef CaseToString
+
+    return "RequestId::Unknown";
+}
+
+std::string
+ToString(CFB::Comms::CapturedIrp const& Irp)
+{
+    std::ostringstream oss;
+    oss << Irp.Header.TimeStamp << " " << CFB::Utils::ToString(Irp.Header.DriverName) << " "
+        << CFB::Utils::ToString(Irp.Header.DeviceName) << " " << Irp.Header.Irql << Irp.Header.Type << " "
+        << Irp.Header.MajorFunction << " " << Irp.Header.MinorFunction << " "
+        << CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction) << " " << Irp.Header.IoctlCode << " "
+        << Irp.Header.Pid << " " << Irp.Header.Tid << " " << CFB::Utils::ToString(Irp.Header.ProcessName) << " "
+        << Irp.Header.Status << " " << Irp.Header.InputBufferLength << " " << Irp.Header.OutputBufferLength;
+    return oss.str();
+}
 #endif // CFB_KERNEL_DRIVER
 
 namespace Memory

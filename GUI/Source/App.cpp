@@ -9,6 +9,8 @@
 #include <ranges>
 
 #include "Addons/imgui_hexeditor.h"
+#include "Comms.hpp"
+#include "GuiUtils.hpp"
 #include "Helpers.hpp"
 #include "Utils.hpp"
 #include "imgui.h"
@@ -470,7 +472,7 @@ RenderIrpTableWindow()
     auto IrpsView = Irps | std::views::filter(
                                [](CFB::Comms::CapturedIrp const& Irp) -> bool
                                {
-                                   auto const IrpAsString = CFB::Comms::ToString(Irp);
+                                   auto const IrpAsString = CFB::Utils::ToString(Irp);
                                    return (filter.PassFilter(IrpAsString.c_str()));
                                });
 

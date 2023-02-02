@@ -1,12 +1,14 @@
 #pragma once
 
-#include "Common.hpp"
-
-#ifndef CFB_KERNEL_DRIVER
 ///
 /// This file defines the communication protocol and structures for Broker <-> Clients
 ///
 
+#include "Common.hpp"
+
+#ifdef CFB_KERNEL_DRIVER
+
+#else
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
@@ -58,28 +60,6 @@ struct DriverRequest
     u16 NumberOfIrp;
 };
 
-
-struct DriverResponse
-{
-    struct
-    {
-        u32 Status;
-        usize DataLength;
-    } Header;
-
-    struct
-    {
-        u8 Data[1];
-    } Body;
-};
-
-std::string
-ToString(CFB::Comms::RequestId id);
-
-
-//
-// JSON Converters
-//
 
 ///
 /// @brief DriverRequest -> JSON

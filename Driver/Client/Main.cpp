@@ -3,12 +3,10 @@
 #undef UNICODE
 
 // clang-format off
-#include <windows.h>
-
 #include <algorithm>
 #include <codecvt>
 #include <iostream>
-#include <locale>
+
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -19,22 +17,11 @@
 
 #include "Common.hpp"
 #include "IoctlCodes.hpp"
-#include "Log.hpp"
 #include "Utils.hpp"
+#include "Comms.hpp"
+#include "Log.hpp"
 // clang-format on
 
-
-std::string
-ws2s(std::wstring const& ws)
-{
-    return CFB::Utils::ToString(ws);
-}
-
-std::wstring
-s2ws(std::string const& s)
-{
-    return CFB::Utils::ToWideString(s);
-}
 
 namespace Driver
 {
@@ -42,7 +29,7 @@ bool
 Hook(HANDLE hFile, std::string const& arg)
 {
     DWORD nb                    = 0;
-    std::wstring driver_name    = s2ws(arg);
+    std::wstring driver_name    = CFB::Utils::ToWideString(arg);
     const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
     bool bSuccess = ::DeviceIoControl(
@@ -66,7 +53,7 @@ bool
 Unhook(HANDLE hFile, std::string const& arg)
 {
     DWORD nb                    = 0;
-    std::wstring driver_name    = s2ws(arg);
+    std::wstring driver_name    = CFB::Utils::ToWideString(arg);
     const usize driver_name_len = std::min(driver_name.length() * 2, (usize)CFB_DRIVER_MAX_PATH);
 
     bool bSuccess = ::DeviceIoControl(
@@ -134,7 +121,7 @@ GetNumberOfDrivers(HANDLE hFile)
 bool
 ToggleMonitoring(HANDLE hFile, std::string const& arg, bool enable)
 {
-    std::wstring driver_name     = s2ws(arg);
+    std::wstring driver_name     = CFB::Utils::ToWideString(arg);
     const usize driver_name_len  = driver_name.length() * 2;
     const usize msglen           = std::min(driver_name_len, (usize)CFB_DRIVER_MAX_PATH);
     const CFB::Comms::Ioctl code = enable ? CFB::Comms::Ioctl::EnableMonitoring : CFB::Comms::Ioctl::DisableMonitoring;
@@ -233,10 +220,10 @@ ReceiveData(HANDLE hFile)
 
 } // namespace Driver
 
-
 int
 main(int argc, const char** argv)
 {
+
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =

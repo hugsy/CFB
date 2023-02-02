@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.hpp"
+#include "Comms.hpp"
 
 #ifdef CFB_KERNEL_DRIVER
 #define XPRINTF(...)                                                                                                   \
@@ -15,6 +16,11 @@
 #include <string>
 
 #include "IoctlCodes.hpp"
+
+#ifdef CFB_KERNEL_DRIVER
+#else
+#include "Messages.hpp"
+#endif // CFB_KERNEL_DRIVER
 
 #define XPRINTF(...)                                                                                                   \
     {                                                                                                                  \
@@ -49,6 +55,12 @@ ToWideString(std::string const& input);
 
 std::string
 ToString(CFB::Comms::Ioctl code);
+
+std::string
+ToString(CFB::Comms::RequestId id);
+
+std::string
+ToString(CFB::Comms::CapturedIrp const& Irp);
 
 std::string
 IrpMajorToString(u32 type);

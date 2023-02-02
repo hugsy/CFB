@@ -8,8 +8,8 @@ project(
 
 message(STATUS "Configuring '${PROJECT_NAME}'")
 
-set(GUI_SOURCE_DIR ${CFB_ROOT_DIR}/GUI)
-set(GUI_HEADER_DIR ${GUI_SOURCE_DIR})
+set(GUI_SOURCE_DIR ${CFB_ROOT_DIR}/GUI/Source)
+set(GUI_HEADER_DIR ${CFB_ROOT_DIR}/GUI/Headers)
 
 set(GUI_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "GUI_VERSION_MAJOR")
 set(GUI_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "GUI_VERSION_MINOR")
@@ -18,23 +18,23 @@ set(GUI_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE INTERNAL "GUI_VERSION_PATCH
 set(
     GUI_HEADER_FILES
 
-    App.hpp
-    Utils.hpp
-    Helpers.hpp
-    Network.hpp
+    ${GUI_HEADER_DIR}/App.hpp
+    ${GUI_HEADER_DIR}/GuiUtils.hpp
+    ${GUI_HEADER_DIR}/Helpers.hpp
+    ${GUI_HEADER_DIR}/Network.hpp
 )
 
 set(
     GUI_SOURCE_FILES
 
-    main.cpp
-    App.cpp
-    Utils.cpp
-    Helpers.cpp
+    ${GUI_SOURCE_DIR}/main.cpp
+    ${GUI_SOURCE_DIR}/App.cpp
+    ${GUI_SOURCE_DIR}/GuiUtils.cpp
+    ${GUI_SOURCE_DIR}/Helpers.cpp
 )
 
-set(IMGUI_DIR ${CFB_DEPENDENCIES}/imgui)
-set(IMGUI_BACKEND win32-dx12)
+# set(IMGUI_DIR ${CFB_DEPENDENCIES}/imgui)
+# set(IMGUI_BACKEND win32-dx12)
 
 #
 # Create the broker rc file
@@ -48,6 +48,7 @@ configure_file(${GUI_RC_FILE}.in ${GUI_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTE
 # Build the GUI
 #
 add_executable(${PROJECT_NAME} ${GUI_SOURCE_FILES})
+add_executable(CFB::User::Gui ALIAS ${PROJECT_NAME})
 
 #
 # Compilation directives
@@ -55,9 +56,9 @@ add_executable(${PROJECT_NAME} ${GUI_SOURCE_FILES})
 target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
-    CFB::User::CommonLib
 
     PRIVATE
+    ${GUI_HEADER_DIR}
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC _UNICODE UNICODE ImTextureID=ImU64)
@@ -105,7 +106,7 @@ add_custom_command(
     COMMAND
     rc /nologo /fo ${GUI_RES_FILE} /r ${GUI_RC_FILE}
     COMMENT
-    "Compiling '${GUI_RES_FILE}' file"
+    "Compiling '${GUI_RES_FILE}' resource file"
 )
 
 #

@@ -3,6 +3,7 @@
 // clang-format off
 #include "Common.hpp"
 #include "Comms.hpp"
+#include "Utils.hpp"
 #include "Messages.hpp"
 #include "Network.hpp"
 

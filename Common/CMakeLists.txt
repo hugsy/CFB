@@ -1,7 +1,7 @@
 message(STATUS "Configuring 'CommonLib'")
 
-set(COMMON_SOURCE_DIR ${CFB_ROOT_DIR}/Common)
-set(COMMON_HEADER_DIR ${COMMON_SOURCE_DIR})
+set(COMMON_SOURCE_DIR ${CFB_ROOT_DIR}/Common/Source)
+set(COMMON_HEADER_DIR ${CFB_ROOT_DIR}/Common/Headers)
 
 set(
     COMMON_HEADER_FILES
@@ -10,14 +10,16 @@ set(
 
     ${COMMON_HEADER_DIR}/Common.hpp
     ${COMMON_HEADER_DIR}/Comms.hpp
-    ${COMMON_HEADER_DIR}/Log.hpp
-    ${COMMON_HEADER_DIR}/Utils.hpp
     ${COMMON_HEADER_DIR}/IoctlCodes.hpp
+    ${COMMON_HEADER_DIR}/Log.hpp
+    ${COMMON_HEADER_DIR}/Messages.hpp
+    ${COMMON_HEADER_DIR}/Utils.hpp
 )
 
 set(
     COMMON_SOURCE_FILES
 
+    ${COMMON_SOURCE_DIR}/Comms.cpp
     ${COMMON_SOURCE_DIR}/Log.cpp
     ${COMMON_SOURCE_DIR}/Utils.cpp
 )
@@ -43,7 +45,7 @@ set(
 set(
     COMMON_DRIVER_HEADER_FILES
 
-    ${COMMON_SOURCE_FILES}
+    ${COMMON_HEADER_FILES}
 )
 
 wdk_add_library(CommonLibDriver
@@ -57,7 +59,7 @@ wdk_add_library(CommonLibDriver
 
 add_library(CFB::Kernel::CommonLib ALIAS CommonLibDriver)
 
-target_include_directories(CommonLibDriver INTERFACE ${COMMON_SOURCE_DIR})
+target_include_directories(CommonLibDriver PUBLIC ${COMMON_HEADER_DIR})
 target_compile_definitions(CommonLibDriver PRIVATE CFB_KERNEL_DRIVER=1)
 
 #
@@ -73,8 +75,8 @@ set(
 set(
     COMMON_USER_HEADER_FILES
 
-    ${COMMON_SOURCE_FILES}
-    ${COMMON_SOURCE_DIR}/Messages.hpp
+    ${COMMON_HEADER_FILES}
+    ${COMMON_HEADER_DIR}/Messages.hpp
 )
 
 add_library(CommonLibUser
@@ -87,8 +89,8 @@ add_library(CommonLibUser
 add_library(CFB::User::CommonLib ALIAS CommonLibUser)
 
 target_include_directories(CommonLibUser
-    INTERFACE
-    ${COMMON_SOURCE_DIR}
+    PUBLIC
+    ${COMMON_HEADER_DIR}
 
     PRIVATE
     ${PHNT_INCLUDE_DIRS}
@@ -97,17 +99,24 @@ target_include_directories(CommonLibUser
 target_compile_options(CommonLibUser
     PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address -D_DISABLE_VECTOR_ANNOTATION>>
 
     PRIVATE
     $<IF:$<CONFIG:Debug>,/WX /Gm- /permissive-,/WX /permissive>
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
+)
+
+target_compile_definitions(CommonLibUser
+    PUBLIC
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_VECTOR_ANNOTATION>>
+
+    PRIVATE
 )
 
 target_link_options(CommonLibUser
     PUBLIC
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
 
     PRIVATE
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
 )
 
 target_link_libraries(CommonLibUser PRIVATE kernel32.lib ntdll.lib)

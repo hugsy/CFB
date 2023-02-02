@@ -1,3 +1,4 @@
+#pragma once
 // clang-format off
 #ifdef CFB_KERNEL_DRIVER
 #include <ntifs.h>

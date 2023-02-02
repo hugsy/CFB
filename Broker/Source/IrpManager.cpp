@@ -7,6 +7,7 @@
 #include "IoctlCodes.hpp"
 #include "Log.hpp"
 #include "Messages.hpp"
+#include "Utils.hpp"
 
 
 using namespace std::literals::chrono_literals;

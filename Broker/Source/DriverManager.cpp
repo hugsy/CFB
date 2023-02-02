@@ -11,6 +11,8 @@
 #include "Log.hpp"
 #include "Messages.hpp"
 #include "States.hpp"
+#include "Utils.hpp"
+#include "Comms.hpp"
 
 #include "Connectors/JsonQueue.hpp"
 // clang-format on
@@ -92,7 +94,7 @@ DriverManager::ExecuteCommand(json const& Request)
     auto RequestId = Request.at("id").get<CFB::Comms::RequestId>();
 
     InterlockedIncrement64((long long*)&m_RequestNumber);
-    xdbg("New request %s => ID=%llu", CFB::Comms::ToString(RequestId).c_str(), m_RequestNumber);
+    xdbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
 
     switch ( RequestId )
     {
@@ -280,7 +282,7 @@ DriverManager::ExecuteCommand(json const& Request)
     xinfo(
         "Request[%llu] %s => %s",
         m_RequestNumber,
-        CFB::Comms::ToString(RequestId).c_str(),
+        CFB::Utils::ToString(RequestId).c_str(),
         boolstr(Response["success"]));
 
     xdbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());

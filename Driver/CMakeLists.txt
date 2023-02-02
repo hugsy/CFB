@@ -6,8 +6,8 @@ project(IrpMonitor
 
 message(STATUS "Configuring '${PROJECT_NAME}'")
 
-set(DRIVER_SOURCE_DIR ${CFB_ROOT_DIR}/Driver)
-set(DRIVER_HEADER_DIR ${DRIVER_SOURCE_DIR})
+set(DRIVER_SOURCE_DIR ${CFB_ROOT_DIR}/Driver/Source)
+set(DRIVER_HEADER_DIR ${CFB_ROOT_DIR}/Driver/Headers)
 
 set(DRIVER_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE INTERNAL "DRIVER_VERSION_MAJOR")
 set(DRIVER_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE INTERNAL "DRIVER_VERSION_MINOR")
@@ -53,7 +53,7 @@ wdk_add_driver(
 
 add_executable(CFB::Kernel::Driver ALIAS ${PROJECT_NAME})
 
-target_include_directories(${PROJECT_NAME} PUBLIC CFB::Kernel::CommonLib)
+target_include_directories(${PROJECT_NAME} PRIVATE ${DRIVER_HEADER_DIR})
 target_compile_definitions(${PROJECT_NAME} PRIVATE CFB_KERNEL_DRIVER=1)
 target_link_options(${PROJECT_NAME} PUBLIC /integritycheck)
 target_link_libraries(${PROJECT_NAME} CFB::Kernel::CommonLib ${DRIVER_RES_FILE})
@@ -70,7 +70,7 @@ add_custom_command(
     COMMAND
     rc /nologo /fo ${DRIVER_RES_FILE} /r ${DRIVER_RC_FILE}
     COMMENT
-    "Generating the .res file"
+    "Compiling '${DRIVER_RES_FILE}' resource file"
 )
 
 add_custom_command(
