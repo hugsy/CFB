@@ -3,13 +3,12 @@ name: "Build Artifact"
 on: [push, pull_request]
 
 env:
-  BUILD_DIR: ./build
   CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON -DCFB_BUILD_TESTS:BOOL=ON -DCFB_BUILD_GUI:BOOL=ON"
   CMAKE_TOOLCHAIN_FILE: "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
 
 jobs:
-  build_broker:
-    name: "CFB-Broker ${{ matrix.os }}/${{ matrix.platform }}/${{ matrix.configuration }}"
+  build:
+    name: "${{ matrix.os }}/${{ matrix.platform }}/${{ matrix.configuration }}"
 
     strategy:
       fail-fast: false
@@ -20,16 +19,15 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-
     - uses: actions/checkout@v3
       with:
         submodules: true
 
     - name: Sets Windows specific environment variables
+      if: matrix.os == 'windows-latest'
       shell: powershell
       run: |
         echo "NB_CPU=$env:NUMBER_OF_PROCESSORS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      if: matrix.os == 'windows-latest'
 
     - name: Inject slug/short variables
       uses: rlespinasse/github-slug-action@v4.x
@@ -42,23 +40,26 @@ jobs:
 
     - name: Build CFB
       run: |
-        mkdir ${{ env.BUILD_DIR }}
-        cd ${{ env.BUILD_DIR }}
-        cmake .. ${{ env.CMAKE_FLAGS }}
-        cmake --build . --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
+        mkdir ./build
+        cmake -S . -B ./build -A ${{ matrix.platform }} ${{ env.CMAKE_FLAGS }}
+        cmake --build ./build --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
+
+    - name: Run tests
+      continue-on-error: true
+      run: |
+        cd build
+        ctest --parallel ${{ env.NB_CPU }} --build-config ${{ matrix.configuration }} -T test
         cd ..
 
     - name: Prepare artifact
       if: matrix.configuration == 'RelWithDebInfo'
       run: |
         mkdir artifact
-        cd ${{ env.BUILD_DIR }}
-        cmake --install . --config ${{ matrix.configuration }} --prefix ../artifact --verbose
-        cd ..
+        cmake --install ./build --config ${{ matrix.configuration }} --prefix ./artifact --verbose
 
     - name: Publish artifact
       uses: actions/upload-artifact@v3
       if: matrix.configuration == 'RelWithDebInfo'
       with:
-        name: cfb_broker_${{ matrix.platform }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: artifact/
