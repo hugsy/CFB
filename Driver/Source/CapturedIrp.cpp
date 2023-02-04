@@ -13,6 +13,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
     m_Pid {::HandleToULong(::PsGetCurrentProcessId())},
     m_Tid {::HandleToULong(::PsGetCurrentThreadId())},
     m_Driver {nullptr},
+    m_DeviceObject {nullptr},
     m_DriverName {},
     m_DeviceName {},
     m_ProcessName {},
@@ -44,9 +45,11 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         // Could be a bad pointer restoration. Anyway, we log and fail for now.
         //
         err("Failed to find a HookedDriver object associated to the received IRP.\n"
-            "This could indicates a corruption of the hooked driver list, you should probably reboot...\n");
+            "This could indicates a corruption of the hooked driver list, you should probably reboot...");
         return;
     }
+
+    m_DeviceObject = DeviceObject;
 
     KeQuerySystemTime(&m_TimeStamp);
 

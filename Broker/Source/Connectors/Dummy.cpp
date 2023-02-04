@@ -5,6 +5,7 @@
 #include "Log.hpp"
 #include "Utils.hpp"
 
+#define MAX_HEXDUMP_BYTES 256
 
 namespace CFB::Broker::Connectors
 {
@@ -50,24 +51,38 @@ Dummy::IrpCallback(CFB::Comms::CapturedIrp const& Irp)
         details << "  - Device: " << CFB::Utils::ToString(Irp.Header.DeviceName) << std::endl;
         details << "  - Process: " << CFB::Utils::ToString(Irp.Header.ProcessName) << " (PID:" << Irp.Header.Pid
                 << ", TID:" << Irp.Header.Tid << ")" << std::endl;
-        details << "  - IOCTL code: " << CFB::Utils::ToString(CFB::Comms::Ioctl {Irp.Header.IoctlCode}) << std::endl;
+        if ( Irp.Header.MajorFunction == 0xe || Irp.Header.MajorFunction == 0xf )
+        {
+            details << "  - IOCTL code: " << CFB::Utils::ToString(CFB::Comms::Ioctl {Irp.Header.IoctlCode})
+                    << std::endl;
+        }
         details << std::hex;
-        details << "  - Status: " << Irp.Header.Status << std::endl;
         details << "  - Major: " << CFB::Utils::IrpMajorToString((u32)Irp.Header.MajorFunction) << std::endl;
         details << "  - Minor: " << (u32)Irp.Header.MinorFunction << std::endl;
         details << "  - InLen: " << Irp.Header.InputBufferLength << std::endl;
         details << "  - OutLen: " << Irp.Header.OutputBufferLength << std::endl;
+        details << "  - Status: " << Irp.Header.Status << std::endl;
         dbg("%s", details.str().c_str());
+        if ( Irp.Header.Status )
+        {
+            CFB::Log::ntperror("  - NTSTATUS", Irp.Header.Status);
+        }
     }
 
     if ( Irp.Header.InputBufferLength )
     {
-        CFB::Utils::Hexdump((PVOID)Irp.InputBuffer.data(), Irp.InputBuffer.size(), "InputBuffer");
+        CFB::Utils::Hexdump(
+            (PVOID)Irp.InputBuffer.data(),
+            MIN(Irp.InputBuffer.size(), MAX_HEXDUMP_BYTES),
+            "InputBuffer");
     }
 
     if ( Irp.Header.OutputBufferLength )
     {
-        CFB::Utils::Hexdump((PVOID)Irp.OutputBuffer.data(), Irp.OutputBuffer.size(), "Output Buffer");
+        CFB::Utils::Hexdump(
+            (PVOID)Irp.OutputBuffer.data(),
+            MIN(Irp.OutputBuffer.size(), MAX_HEXDUMP_BYTES),
+            "Output Buffer");
     }
 
     return Ok(0);

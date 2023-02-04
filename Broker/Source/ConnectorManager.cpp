@@ -77,10 +77,8 @@ ConnectorManager::Setup()
         //
         // Add new connector to that list
         //
-
-        // TODO add check for name unicity
         g_Connectors.push_back(std::make_shared<Connectors::Dummy>());
-        g_Connectors.push_back(std::make_shared<Connectors::JsonQueue>());
+        // g_Connectors.push_back(std::make_shared<Connectors::JsonQueue>());
 
         xdbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
     }

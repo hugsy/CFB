@@ -63,7 +63,7 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
             pDriver,
             [&pDriver]()
             {
-                xdbg("HookedDriverManager::InsertDriver(): derefencing object %p", pDriver);
+                xdbg("HookedDriverManager::InsertDriver(): dereferencing object %p", pDriver);
                 ObDereferenceObject(pDriver);
             });
 
@@ -191,7 +191,9 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         return STATUS_NOT_FOUND;
     }
 
-    const bool DriverStateChanged = (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
+    const bool OldState = MatchedDriver->CanCapture();
+    (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
+    const bool DriverStateChanged = OldState != MatchedDriver->CanCapture();
 
     xdbg(
         "HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
@@ -205,7 +207,7 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         MatchedDriver->Path.get(),
         MatchedDriver->CanCapture() ? "" : "not ");
 
-    return DriverStateChanged ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
+    return STATUS_SUCCESS;
 }
 
 Utils::LinkedList<HookedDriver>&

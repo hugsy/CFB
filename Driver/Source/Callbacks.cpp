@@ -34,7 +34,16 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Capture the IRP data if capturing mode is enabled for the current driver
     //
-    auto CapturedIrp  = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
+    auto CapturedIrp = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
+    if ( !(CapturedIrp && CapturedIrp->IsValid()) )
+    {
+        //
+        // Call the original routine
+        //
+        PDRIVER_DISPATCH OriginalIoctlDeviceControl = DeviceObject->DriverObject->MajorFunction[Stack->MajorFunction];
+        return OriginalIoctlDeviceControl(DeviceObject, Irp);
+    }
+
     auto const Driver = CapturedIrp->AssociatedDriver();
     NTSTATUS Status   = STATUS_SUCCESS;
 
@@ -91,6 +100,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     }
 
     delete CapturedIrp;
+
     return IoctlStatus;
 }
 
@@ -167,7 +177,26 @@ InterceptGenericFastIoDeviceControl(
     // Prepare the object
     //
     auto CapturedFastIo = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
-    const auto Driver   = CapturedFastIo->AssociatedDriver();
+    if ( !(CapturedFastIo && CapturedFastIo->IsValid()) )
+    {
+        //
+        // Call the original routine
+        //
+        const PDRIVER_OBJECT Driver                               = FileObject->DeviceObject->DriverObject;
+        const PFAST_IO_DEVICE_CONTROL OriginalFastIoDeviceControl = Driver->FastIoDispatch->FastIoDeviceControl;
+        return OriginalFastIoDeviceControl(
+            FileObject,
+            Wait,
+            InputBuffer,
+            InputBufferLength,
+            OutputBuffer,
+            OutputBufferLength,
+            IoControlCode,
+            IoStatus,
+            DeviceObject);
+    }
+
+    const auto Driver       = CapturedFastIo->AssociatedDriver();
     const bool bCaptureData = Driver->CanCapture();
 
     //
@@ -248,7 +277,17 @@ InterceptGenericFastIoRead(
     // Prepare the object
     //
     auto CapturedFastRead = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
-    auto Driver           = CapturedFastRead->AssociatedDriver();
+    if ( !(CapturedFastRead && CapturedFastRead->IsValid()) )
+    {
+        //
+        // Call the original routine
+        //
+        const PDRIVER_OBJECT Driver            = FileObject->DeviceObject->DriverObject;
+        const PFAST_IO_READ OriginalFastIoRead = Driver->FastIoDispatch->FastIoRead;
+        return OriginalFastIoRead(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
+    }
+
+    auto Driver             = CapturedFastRead->AssociatedDriver();
     const bool bCaptureData = Driver->CanCapture();
 
     dbg("Initialized CapturedFastRead at %p", CapturedFastRead);
@@ -314,6 +353,16 @@ InterceptGenericFastIoWrite(
     //
     auto CapturedFastWrite =
         new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::FastIo_Ioctl, DeviceObject);
+    if ( !(CapturedFastWrite && CapturedFastWrite->IsValid()) )
+    {
+        //
+        // Call the original routine
+        //
+        const PDRIVER_OBJECT Driver             = FileObject->DeviceObject->DriverObject;
+        const PFAST_IO_READ OriginalFastIoWrite = Driver->FastIoDispatch->FastIoWrite;
+        return OriginalFastIoWrite(FileObject, FileOffset, BufferLength, Wait, LockKey, Buffer, IoStatus, DeviceObject);
+    }
+
     auto Driver             = CapturedFastWrite->AssociatedDriver();
     const bool bCaptureData = Driver->CanCapture();
 

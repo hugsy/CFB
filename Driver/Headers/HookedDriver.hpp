@@ -165,21 +165,21 @@ private:
     /// @brief If `true`, any IRP targetting the driver object underneath will be pushed to the queue of
     /// intercepted IRPs
     ///
-    bool Enabled;
+    bool m_Enabled;
 
     ///
     /// @brief The total number of intercepted IRPs
     ///
-    u64 InterceptedIrpsCount;
+    u64 m_InterceptedIrpsCount;
 
     ///
-    /// @brief Mutex to guard callback access
+    /// @brief CallbackLock to guard callback access
     ///
-    Utils::KFastMutex Mutex;
+    Utils::KFastMutex m_CallbackLock;
 
     ///
     /// @brief
     ///
-    HookState State;
+    HookState m_State;
 };
 } // namespace CFB::Driver

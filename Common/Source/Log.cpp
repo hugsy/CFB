@@ -72,9 +72,9 @@ RtlNtStatusToDosError(_In_ NTSTATUS Status);
 void
 perror(const char* msg)
 {
-    const u32 sysMsgSz = 1024;
+    const u32 sysMsgSz = 2048;
     auto sysMsg        = std::string();
-    sysMsg.reserve(sysMsgSz);
+    sysMsg.resize(sysMsgSz);
     const auto errcode = ::GetLastError();
 
     ::FormatMessageA(

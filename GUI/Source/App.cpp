@@ -65,7 +65,7 @@ RenderSettingsWindow()
 {
     ImGui::Begin("Settings");
 
-    if ( ImGui::BeginChild("SettingsChild1") )
+    if ( ImGui::BeginChild("Settings##Child1") )
     {
         ImGui::SetItemDefaultFocus();
 

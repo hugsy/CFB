@@ -52,7 +52,7 @@ struct GlobalContext
     Driver::CapturedIrpManager IrpManager;
 
 
-    GlobalContext() : DriverObject(nullptr), DeviceObject(nullptr), Owner(nullptr), ContextLock(), SessionId(-1)
+    GlobalContext() : DriverObject {nullptr}, DeviceObject {nullptr}, Owner {nullptr}, ContextLock {}, SessionId(-1)
     {
         dbg("Creating GlobalContext");
     }
