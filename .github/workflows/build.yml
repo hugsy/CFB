@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ['windows-latest']
-        platform: ['x64']
+        platform: ['x64', 'arm64']
         configuration: ['Debug', 'RelWithDebInfo']
 
     runs-on: ${{ matrix.os }}
