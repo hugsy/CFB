@@ -238,7 +238,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             RtlCopyMemory(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
 
             ok("Capturing input data:");
-            CFB::Utils::Hexdump(m_InputBuffer.get(), m_InputBuffer.size());
+            CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
         }
 
     } while ( false );
@@ -314,7 +314,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
 
 #ifdef _DEBUG
     ok("Capturing output data:");
-    CFB::Utils::Hexdump(m_OutputBuffer.get(), m_OutputBuffer.size());
+    CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
 
     return STATUS_SUCCESS;

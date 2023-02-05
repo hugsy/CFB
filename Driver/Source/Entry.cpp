@@ -174,10 +174,6 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
     ULONG dwDataWritten         = 0;
 
-#ifdef _DEBUG
-    CFB::Utils::Hexdump(InputBuffer, InputBufferLen);
-#endif // _DEBUG
-
     dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
 
     switch ( IoctlCode )
