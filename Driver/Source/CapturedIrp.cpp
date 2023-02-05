@@ -149,9 +149,9 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         return STATUS_ACCESS_DENIED;
     }
 
-    NTSTATUS Status          = STATUS_SUCCESS;
-    ULONG Method             = -1;
-    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
+    NTSTATUS Status                = STATUS_SUCCESS;
+    ULONG Method                   = -1;
+    const PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
     ULONG InputBufferLength  = 0;
     ULONG OutputBufferLength = 0;
@@ -177,6 +177,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         break;
 
     case IRP_MJ_WRITE:
+        DbgBreakPoint();
         InputBufferLength = Stack->Parameters.Write.Length;
         m_InputBuffer     = Utils::KAlloc<u8*>(InputBufferLength);
         break;
@@ -202,21 +203,29 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
              Method == METHOD_NEITHER )
         {
             if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16) )
+            {
                 RtlCopyMemory(
                     m_InputBuffer.get(),
                     Stack->Parameters.DeviceIoControl.Type3InputBuffer,
                     m_InputBuffer.size());
+            }
             else
+            {
                 Status = STATUS_INVALID_PARAMETER;
+            }
             break;
         }
 
         if ( Method == METHOD_BUFFERED )
         {
             if ( Irp->AssociatedIrp.SystemBuffer )
+            {
                 ::RtlCopyMemory(m_InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, m_InputBuffer.size());
+            }
             else
+            {
                 Status = STATUS_INVALID_PARAMETER_1;
+            }
             break;
         }
 

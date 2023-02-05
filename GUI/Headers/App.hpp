@@ -313,7 +313,6 @@ private:
                         {
                             for ( auto const& entry : body["body"] )
                             {
-                                // TODO lock on CapturedIrps
                                 CFB::Comms::CapturedIrp Irp = entry.get<CFB::Comms::CapturedIrp>();
                                 std::scoped_lock lock(IrpLock);
                                 CapturedIrps.push_back(std::move(Irp));
