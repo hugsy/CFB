@@ -54,8 +54,10 @@ ToString(KIRQL const Level)
         return "APC_LEVEL";
     case DISPATCH_LEVEL:
         return "DISPATCH_LEVEL";
+#ifdef CMCI_LEVEL
     case CMCI_LEVEL:
         return "CMCI_LEVEL";
+#endif // CMCI_LEVEL
     case CLOCK_LEVEL:
         return "CLOCK_LEVEL";
     case POWER_LEVEL:

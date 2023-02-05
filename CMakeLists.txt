@@ -65,29 +65,20 @@ string(TIMESTAMP CFB_CURRENT_YEAR "%Y")
 # Build
 #
 add_subdirectory(${CFB_ROOT_DIR}/Common)
+add_subdirectory(${CFB_ROOT_DIR}/Driver)
+add_subdirectory(${CFB_ROOT_DIR}/Broker)
+
+if(CFB_BUILD_GUI)
+    add_subdirectory(${CFB_ROOT_DIR}/GUI)
+endif(CFB_BUILD_GUI)
+
+if(CFB_BUILD_TOOLS)
+    add_subdirectory(${CFB_ROOT_DIR}/Driver/Client)
+endif(CFB_BUILD_TOOLS)
 
 if(CFB_BUILD_TESTS)
     include(CTest)
     add_subdirectory(${CFB_ROOT_DIR}/Common/Tests)
+    add_subdirectory(${CFB_ROOT_DIR}/Broker/Tests)
+    add_subdirectory(${CFB_ROOT_DIR}/GUI/Tests)
 endif(CFB_BUILD_TESTS)
-
-if(CFB_BUILD_BROKER)
-    add_subdirectory(${CFB_ROOT_DIR}/Driver)
-    add_subdirectory(${CFB_ROOT_DIR}/Broker)
-
-    if(CFB_BUILD_TESTS)
-        add_subdirectory(${CFB_ROOT_DIR}/Broker/Tests)
-    endif(CFB_BUILD_TESTS)
-
-    if(CFB_BUILD_TOOLS)
-        add_subdirectory(${CFB_ROOT_DIR}/Driver/Client)
-    endif(CFB_BUILD_TOOLS)
-endif(CFB_BUILD_BROKER)
-
-if(CFB_BUILD_GUI)
-    add_subdirectory(${CFB_ROOT_DIR}/GUI)
-
-    if(CFB_BUILD_TESTS)
-        add_subdirectory(${CFB_ROOT_DIR}/GUI/Tests)
-    endif(CFB_BUILD_TESTS)
-endif(CFB_BUILD_GUI)

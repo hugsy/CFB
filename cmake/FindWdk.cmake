@@ -80,12 +80,16 @@ set(WDK_COMPILE_FLAGS
 set(WDK_COMPILE_DEFINITIONS "WINNT=1")
 set(WDK_COMPILE_DEFINITIONS_DEBUG "MSC_NOOPT;DEPRECATE_DDK_FUNCTIONS=1;DBG=1")
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+if(CMAKE_GENERATOR_PLATFORM STREQUAL "win32")
     list(APPEND WDK_COMPILE_DEFINITIONS "_X86_=1;i386=1;STD_CALL")
     set(WDK_PLATFORM "x86")
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
     list(APPEND WDK_COMPILE_DEFINITIONS "_WIN64;_AMD64_;AMD64")
     set(WDK_PLATFORM "x64")
+elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "arm64")
+    list(APPEND WDK_COMPILE_DEFINITIONS "_WIN64;_ARM64_;ARM64")
+    set(WDK_COMPILE_FLAGS ${WDK_COMPILE_FLAGS} /GS-) # TODO: fixes missing symbol __security_pop_cookie, fix
+    set(WDK_PLATFORM "arm64")
 else()
     message(FATAL_ERROR "Unsupported architecture")
 endif()
@@ -133,11 +137,15 @@ function(wdk_add_driver _target)
         "${WDK_ROOT}/Include/${WDK_VERSION}/km/crt"
     )
 
-    target_link_libraries(${_target} WDK::NTOSKRNL WDK::HAL WDK::BUFFEROVERFLOWK WDK::WMILIB)
+    target_link_libraries(${_target}
+        WDK::NTOSKRNL
+        WDK::HAL
+        WDK::WMILIB
 
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        target_link_libraries(${_target} WDK::MEMCMP)
-    endif()
+        $<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>:WDK::BUFFEROVERFLOWFASTFAILK>
+        $<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},x64>:WDK::BUFFEROVERFLOWK>
+        $<$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},win32>:WDK::BUFFEROVERFLOWK WDK::MEMCMP>
+    )
 
     if(DEFINED WDK_KMDF)
         target_include_directories(${_target} SYSTEM PRIVATE "${WDK_ROOT}/Include/wdf/kmdf/${WDK_KMDF}")
