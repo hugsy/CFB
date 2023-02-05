@@ -27,24 +27,24 @@ public:
             return true;
         }
 
-        WSADATA WsaData;
-        if ( WSAStartup(MAKEWORD(2, 2), &WsaData) )
+        WSADATA WsaData {};
+        if ( ::WSAStartup(MAKEWORD(2, 2), &WsaData) )
         {
             return false;
         }
 
-        m_Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        m_Socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if ( m_Socket == INVALID_SOCKET )
         {
-            WSACleanup();
+            ::WSACleanup();
             return false;
         }
 
         SOCKADDR_IN sa;
-        sa.sin_addr.s_addr = inet_addr(Host.c_str());
+        sa.sin_addr.s_addr = ::inet_addr(Host.c_str());
         sa.sin_family      = AF_INET;
-        sa.sin_port        = htons(Port);
-        IsConnected        = connect(m_Socket, (PSOCKADDR)&sa, sizeof(SOCKADDR_IN)) != SOCKET_ERROR;
+        sa.sin_port        = ::htons(Port);
+        IsConnected        = ::connect(m_Socket, (PSOCKADDR)&sa, sizeof(SOCKADDR_IN)) != SOCKET_ERROR;
 
         return IsConnected;
     }
@@ -57,8 +57,8 @@ public:
             return true;
         }
 
-        IsConnected = (closesocket(m_Socket) == 0) ? false : true;
-        WSACleanup();
+        IsConnected = (::closesocket(m_Socket) == 0) ? false : true;
+        ::WSACleanup();
         return IsConnected;
     }
 

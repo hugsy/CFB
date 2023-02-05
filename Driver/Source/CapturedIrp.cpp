@@ -83,7 +83,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
 
 
         const PUNICODE_STRING pUsDevice = &DeviceNameInfo.get()->Name;
-        m_DeviceName                    = Utils::KUnicodeString(pUsDevice->Buffer, pUsDevice->Length);
+        m_DeviceName                    = Utils::KUnicodeString(pUsDevice);
     }
 
     //
@@ -91,7 +91,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
     //
     {
         const PUNICODE_STRING pUsDriver = m_Driver->Path.get();
-        m_DriverName                    = Utils::KUnicodeString(pUsDriver->Buffer, pUsDriver->Length);
+        m_DriverName                    = Utils::KUnicodeString(pUsDriver);
     }
 
     //
@@ -177,13 +177,11 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         break;
 
     case IRP_MJ_WRITE:
-        InputBufferLength  = Stack->Parameters.Write.Length;
-        OutputBufferLength = 0;
-        m_InputBuffer      = Utils::KAlloc<u8*>(InputBufferLength);
+        InputBufferLength = Stack->Parameters.Write.Length;
+        m_InputBuffer     = Utils::KAlloc<u8*>(InputBufferLength);
         break;
 
     case IRP_MJ_READ:
-        InputBufferLength  = 0;
         OutputBufferLength = Stack->Parameters.Read.Length;
         m_OutputBuffer     = Utils::KAlloc<u8*>(OutputBufferLength);
         Method             = (m_DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
@@ -272,6 +270,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     //
     // Check if the operation supports having output buffer
     //
+    usize Count {m_OutputBuffer.size()}, Offset {0};
     switch ( m_MajorFunction )
     {
     case IRP_MJ_DEVICE_CONTROL:
@@ -281,9 +280,17 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
 
     case IRP_MJ_READ:
         if ( Irp->MdlAddress )
-            UserBuffer = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+        {
+            UserBuffer = ::MmGetSystemAddressForMdlSafe(
+                Irp->MdlAddress,
+                NormalPagePriority | MdlMappingNoWrite | MdlMappingNoExecute);
+            Count  = Irp->MdlAddress->ByteCount;
+            Offset = Irp->MdlAddress->ByteOffset;
+        }
         else
+        {
             UserBuffer = Irp->UserBuffer;
+        }
         break;
 
     default:
@@ -298,10 +305,12 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
         return STATUS_SUCCESS;
     }
 
+    dbg("Copying %p <- %p (%luB)", m_OutputBuffer.get() + Offset, UserBuffer, Count);
+
     //
     // If here, just copy the buffer
     //
-    RtlCopyMemory(m_OutputBuffer.get(), UserBuffer, m_OutputBuffer.size());
+    RtlCopyMemory(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
 #ifdef _DEBUG
     ok("Capturing output data:");

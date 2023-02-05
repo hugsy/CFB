@@ -275,10 +275,10 @@ class KUnicodeString
 {
 public:
     ///
-    /// @brief Construct a new KUnicodeString object
+    /// @brief Construct a new KUnicodeString object for a widechar buffer and length
     ///
-    /// @param src pointer to the beginning of the string
-    /// @param srcsz the number of bytes to use to store the unicode string
+    /// @param src pointer to the beginning of the string. The buffer **MUST** include a null terminator
+    /// @param srcsz the number of bytes to use to store the unicode string, including the null terminator
     /// @param type the pool type to store the buffer in
     ///
     KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx) :
@@ -288,9 +288,35 @@ public:
         ::memcpy(m_StringBuffer.get(), src, srcsz);
         ::RtlInitUnicodeString(&m_UnicodeString, m_StringBuffer.get());
 
-        dbg("KUnicodeString::KUnicodeString('%wZ', %dB)", &m_UnicodeString, length());
+        dbg("KUnicodeString::KUnicodeString('%wZ', length=%lluB, capacity=%lluB)",
+            &m_UnicodeString,
+            length(),
+            capacity());
     }
 
+    ///
+    ///@brief Construct a new KUnicodeString object from a pointer to a UNICODE_STRING
+    ///
+    ///@param src
+    ///@param type
+    ///
+    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = NonPagedPoolNx) :
+        m_UnicodeString {},
+        m_StringBuffer {KAlloc<wchar_t*>(src->MaximumLength, CFB_DEVICE_TAG, type)}
+    {
+        ::memcpy(m_StringBuffer.get(), src->Buffer, src->Length);
+        ::RtlInitUnicodeString(&m_UnicodeString, m_StringBuffer.get());
+
+        dbg("KUnicodeString::KUnicodeString('%wZ', length=%lluB, capacity=%lluB)",
+            &m_UnicodeString,
+            length(),
+            capacity());
+    }
+
+    ///
+    ///@brief Default constructor
+    ///
+    ///
     KUnicodeString() : m_UnicodeString {}
     {
     }
@@ -321,10 +347,10 @@ public:
         return *this;
     }
 
-    friend bool
-    operator==(KUnicodeString const& lhs, KUnicodeString const& rhs)
+    bool
+    operator==(KUnicodeString const& other)
     {
-        return lhs.length() == rhs.length() && ::RtlCompareUnicodeString(lhs.get(), rhs.get(), true) == 0;
+        return length() == other.length() && ::RtlCompareUnicodeString(get(), other.get(), true) == 0;
     }
 
     bool
@@ -359,6 +385,12 @@ public:
     length() const
     {
         return m_UnicodeString.Length;
+    }
+
+    const usize
+    capacity() const
+    {
+        return m_UnicodeString.MaximumLength;
     }
 
 protected:

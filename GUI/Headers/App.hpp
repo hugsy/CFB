@@ -66,6 +66,7 @@ public:
     std::vector<CFB::Comms::CapturedIrp> CapturedIrps;
     bool RefreshingDrivers;
     Target Target;
+    std::mutex IrpLock;
 
     ///
     ///@brief
@@ -93,35 +94,38 @@ public:
     RefreshDriverList()
     {
         bool res = false;
-        std::jthread thr {[this, &res]
-                          {
-                              Drivers.clear();
+        std::jthread thr {
+            [this, &res]
+            {
+                Drivers.clear();
+                RefreshingDrivers = true;
+                res               = true;
 
-                              RefreshingDrivers = true;
+                for ( auto id :
+                      {CFB::Comms::RequestId::EnumerateDriverObject, CFB::Comms::RequestId::EnumerateMinifilterObject} )
+                {
+                    CFB::Comms::DriverRequest req;
+                    req.Id = id;
 
-                              CFB::Comms::DriverRequest req;
-                              req.Id = CFB::Comms::RequestId::EnumerateDriverObject;
+                    auto rep = SendCommand(req);
+                    if ( !rep || rep.value()["error_code"] != 0 )
+                    {
+                        res = false;
+                        break;
+                    }
 
-                              auto rep = SendCommand(req);
-                              if ( !rep || rep.value()["error_code"] != 0 )
-                              {
-                                  res = false;
-                                  return;
-                              }
-
-                              auto const DriverList = rep.value()["body"]["body"];
-                              for ( std::string const& DriverPath : DriverList )
-                              {
-                                  if ( Drivers.find(DriverPath) == Drivers.end() )
-                                  {
-                                      Drivers[DriverPath] = {false, false};
-                                  }
-                              }
-
-                              RefreshingDrivers = false;
-                              res               = true;
-                              return;
-                          }};
+                    auto const DriverList = rep.value()["body"]["body"];
+                    for ( std::string const& DriverPath : DriverList )
+                    {
+                        if ( Drivers.find(DriverPath) == Drivers.end() )
+                        {
+                            Drivers[DriverPath] = {false, false};
+                        }
+                    }
+                }
+                RefreshingDrivers = false;
+                return;
+            }};
         thr.detach();
         return res;
     }
@@ -270,8 +274,21 @@ private:
                 }
             }
 
-            // TODO handle parsing exception
-            return json::parse(Buffer);
+            const usize BufferSize = ::strlen(Buffer.c_str());
+            if ( !BufferSize )
+            {
+                return std::nullopt;
+            }
+
+            try
+            {
+                Buffer.resize(BufferSize);
+                return json::parse(Buffer);
+            }
+            catch ( const std::exception& e )
+            {
+                return std::nullopt;
+            }
         }
     }
 
@@ -298,6 +315,7 @@ private:
                             {
                                 // TODO lock on CapturedIrps
                                 CFB::Comms::CapturedIrp Irp = entry.get<CFB::Comms::CapturedIrp>();
+                                std::scoped_lock lock(IrpLock);
                                 CapturedIrps.push_back(std::move(Irp));
                             }
                         }
@@ -323,5 +341,6 @@ RenderUI();
 ///
 ///
 extern Context Globals;
+
 
 } // namespace CFB::GUI::App

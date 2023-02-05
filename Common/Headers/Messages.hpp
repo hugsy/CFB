@@ -30,10 +30,11 @@ enum class RequestId : uptr
     DisableMonitoring  = 0x08,
 
     // Command IDs for Broker
-    EnumerateDriverObject = 0x11,
-    EnumerateDeviceObject = 0x12,
-    GetPendingIrpNumber   = 0x13,
-    GetPendingIrp         = 0x14,
+    EnumerateDriverObject     = 0x11,
+    EnumerateDeviceObject     = 0x12,
+    GetPendingIrpNumber       = 0x13,
+    GetPendingIrp             = 0x14,
+    EnumerateMinifilterObject = 0x15,
 };
 
 

@@ -18,14 +18,6 @@ static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PT
 }
 
 
-///
-/// @brief This is the main interception routine: it will find the HookedDriver  associated to a DeviceObject. If
-/// any is found, and capture mode is enabled the IRP data will be pushed to the queue of captured data.
-///
-/// @param DeviceObject
-/// @param Irp
-/// @return NTSTATUS
-///
 NTSTATUS
 InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -105,13 +97,6 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 }
 
 
-///
-/// @brief
-///
-/// @param DeviceObject
-/// @param Irp
-/// @return NTSTATUS
-///
 NTSTATUS
 InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -119,13 +104,6 @@ InterceptedDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 }
 
 
-///
-/// @brief The ReadFile() interception routine wrapper.
-///
-/// @param DeviceObject
-/// @param Irp
-/// @return NTSTATUS STATUS_SUCCESS on success.
-///
 NTSTATUS
 InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -133,13 +111,6 @@ InterceptedReadRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 }
 
 
-///
-/// @brief The WriteFile() interception routine wrapper.
-///
-/// @param DeviceObject
-/// @param Irp
-/// @return NTSTATUS
-///
 NTSTATUS
 InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
@@ -147,20 +118,6 @@ InterceptedWriteRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 }
 
 
-///
-/// @brief The `InterceptGenericFastIoDeviceControl()` interception routine wrapper.
-///
-/// @param FileObject
-/// @param Wait
-/// @param InputBuffer
-/// @param InputBufferLength
-/// @param OutputBuffer
-/// @param OutputBufferLength
-/// @param IoControlCode
-/// @param IoStatus
-/// @param DeviceObject
-/// @return BOOLEAN
-///
 BOOLEAN
 InterceptGenericFastIoDeviceControl(
     _In_ PFILE_OBJECT FileObject,
@@ -248,20 +205,6 @@ InterceptGenericFastIoDeviceControl(
 }
 
 
-///
-/// @brief The `InterceptGenericFastIoRead()` interception routine wrapper.
-///
-/// @param FileObject
-/// @param FileOffset
-/// @param BufferLength
-/// @param Wait
-/// @param LockKey
-/// @param Buffer
-/// @param IoStatus
-/// @param DeviceObject
-///
-/// @return BOOLEAN
-///
 BOOLEAN
 InterceptGenericFastIoRead(
     _In_ PFILE_OBJECT FileObject,
@@ -323,20 +266,6 @@ InterceptGenericFastIoRead(
 }
 
 
-///
-/// @brief The InterceptGenericFastIoWrite() interception routine wrapper.
-///
-/// @param FileObject
-/// @param FileOffset
-/// @param Length
-/// @param Wait
-/// @param LockKey
-/// @param Buffer
-/// @param IoStatus
-/// @param DeviceObject
-///
-/// @return BOOLEAN
-///
 BOOLEAN
 InterceptGenericFastIoWrite(
     _In_ PFILE_OBJECT FileObject,

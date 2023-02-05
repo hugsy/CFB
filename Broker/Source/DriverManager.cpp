@@ -91,7 +91,8 @@ DriverManager::ExecuteCommand(json const& Request)
         return Err(ErrorCode::DeviceNotInitialized);
     }
 
-    auto RequestId = Request.at("id").get<CFB::Comms::RequestId>();
+    auto RequestId      = Request.at("id").get<CFB::Comms::RequestId>();
+    Response["success"] = false;
 
     InterlockedIncrement64((long long*)&m_RequestNumber);
     xdbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
@@ -222,6 +223,26 @@ DriverManager::ExecuteCommand(json const& Request)
             for ( auto const& entry : Value(res) )
             {
                 std::wstring res = L"\\Device\\" + entry.first;
+                Response["body"].push_back(CFB::Utils::ToString(res));
+            }
+        }
+        else
+        {
+            Response["success"] = false;
+        }
+        break;
+    }
+
+    case CFB::Comms::RequestId::EnumerateMinifilterObject:
+    {
+        auto res = CFB::Broker::Utils::EnumerateObjectDirectory(L"\\FileSystem");
+        if ( Success(res) )
+        {
+            Response["success"] = true;
+
+            for ( auto const& entry : Value(res) )
+            {
+                std::wstring res = L"\\FileSystem\\" + entry.first;
                 Response["body"].push_back(CFB::Utils::ToString(res));
             }
         }

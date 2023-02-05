@@ -18,7 +18,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     OriginalDriverObject {nullptr},
     Next {},
     m_InterceptedIrpsCount {0},
-    Path {UnicodePath->Buffer, UnicodePath->Length},
+    Path {UnicodePath},
     HookedDriverObject {new(NonPagedPoolNx) DRIVER_OBJECT}
 {
     xdbg("Creating HookedDriver('%wZ')", &Path);

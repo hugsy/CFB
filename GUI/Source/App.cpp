@@ -469,12 +469,29 @@ RenderIrpTableWindow()
         "Output Length",
     };
 
+    /*
     auto IrpsView = Irps | std::views::filter(
                                [](CFB::Comms::CapturedIrp const& Irp) -> bool
                                {
                                    auto const IrpAsString = CFB::Utils::ToString(Irp);
                                    return (filter.PassFilter(IrpAsString.c_str()));
                                });
+    */
+    std::vector<CFB::Comms::CapturedIrp> IrpsView;
+    {
+        std::scoped_lock lock(Globals.IrpLock);
+        std::for_each(
+            Irps.cbegin(),
+            Irps.cend(),
+            [&IrpsView](CFB::Comms::CapturedIrp const& Irp)
+            {
+                auto const IrpAsString = CFB::Utils::ToString(Irp);
+                if ( filter.PassFilter(IrpAsString.c_str()) )
+                {
+                    IrpsView.push_back(Irp);
+                }
+            });
+    }
 
     static std::optional<CFB::Comms::CapturedIrp> SelectedIrp = std::nullopt;
 
