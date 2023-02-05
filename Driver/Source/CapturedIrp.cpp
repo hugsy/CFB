@@ -150,7 +150,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     }
 
     NTSTATUS Status                = STATUS_SUCCESS;
-    ULONG Method                   = -1;
+    const ULONG Flags              = m_DeviceObject->Flags;
     const PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
     ULONG InputBufferLength  = 0;
@@ -173,11 +173,9 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         m_IoctlCode        = Stack->Parameters.DeviceIoControl.IoControlCode;
         m_InputBuffer      = Utils::KAlloc<u8*>(InputBufferLength);
         m_OutputBuffer     = Utils::KAlloc<u8*>(OutputBufferLength);
-        Method             = METHOD_FROM_CTL_CODE(m_IoctlCode);
         break;
 
     case IRP_MJ_WRITE:
-        DbgBreakPoint();
         InputBufferLength = Stack->Parameters.Write.Length;
         m_InputBuffer     = Utils::KAlloc<u8*>(InputBufferLength);
         break;
@@ -185,9 +183,6 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     case IRP_MJ_READ:
         OutputBufferLength = Stack->Parameters.Read.Length;
         m_OutputBuffer     = Utils::KAlloc<u8*>(OutputBufferLength);
-        Method             = (m_DeviceObject->Flags & DO_BUFFERED_IO) ? METHOD_BUFFERED :
-                             (m_DeviceObject->Flags & DO_DIRECT_IO)   ? METHOD_IN_DIRECT :
-                                                                        -1;
         break;
 
     default:
@@ -200,7 +195,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     do
     {
         if ( (m_MajorFunction == IRP_MJ_DEVICE_CONTROL || m_MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) &&
-             Method == METHOD_NEITHER )
+             METHOD_FROM_CTL_CODE(m_IoctlCode) == METHOD_NEITHER )
         {
             if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16) )
             {
@@ -216,7 +211,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             break;
         }
 
-        if ( Method == METHOD_BUFFERED )
+        if ( Flags & DO_BUFFERED_IO )
         {
             if ( Irp->AssociatedIrp.SystemBuffer )
             {
@@ -229,7 +224,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             break;
         }
 
-        if ( Method == METHOD_IN_DIRECT || Method == METHOD_OUT_DIRECT )
+        if ( Flags & DO_DIRECT_IO )
         {
             if ( !Irp->MdlAddress )
             {
