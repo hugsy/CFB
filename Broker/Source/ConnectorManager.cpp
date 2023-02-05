@@ -39,6 +39,11 @@ CallbackDispatcher(CFB::Comms::CapturedIrp const& Irp)
 
     for ( auto& Connector : g_Connectors )
     {
+        if ( Connector->IsEnabled() == false )
+        {
+            continue;
+        }
+
         dbg("[ConnectorManager::CallbackDispatcher] Sending IRP to Connector:'%s'", Connector->Name().c_str());
         if ( Success(Connector->IrpCallback(Irp)) )
         {
@@ -77,8 +82,17 @@ ConnectorManager::Setup()
         //
         // Add new connector to that list
         //
-        g_Connectors.push_back(std::make_shared<Connectors::Dummy>());
-        // g_Connectors.push_back(std::make_shared<Connectors::JsonQueue>());
+        {
+            auto conn = std::make_shared<Connectors::Dummy>();
+            conn->Enable();
+            g_Connectors.push_back(conn);
+        }
+
+        {
+            auto conn = std::make_shared<Connectors::JsonQueue>();
+            conn->Enable();
+            g_Connectors.push_back(conn);
+        }
 
         xdbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
     }
