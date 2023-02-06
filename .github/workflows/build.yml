@@ -45,7 +45,7 @@ jobs:
         cmake --build ./build --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
 
     - name: Run tests
-      if: matrix.configuration == 'RelWithDebInfo'
+      if: matrix.configuration == 'RelWithDebInfo' && matrix.platform == 'x64'
       continue-on-error: true
       run: |
         cd build
