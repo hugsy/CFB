@@ -6,6 +6,7 @@
 #cmakedefine PROJECT_DESCRIPTION           "@CMAKE_PROJECT_DESCRIPTION@"
 #cmakedefine PROJECT_AUTHOR                "@PROJECT_AUTHOR@"
 #cmakedefine PROJECT_LICENSE               "@PROJECT_LICENSE@"
+#cmakedefine PROJECT_URL                   "@PROJECT_URL@"
 
 #define DRIVER_VERSION_MAJOR          @DRIVER_VERSION_MAJOR@
 #define DRIVER_VERSION_MINOR          @DRIVER_VERSION_MINOR@

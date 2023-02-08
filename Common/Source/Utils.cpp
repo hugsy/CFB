@@ -60,61 +60,7 @@ Hexdump(PVOID data, SIZE_T size, PCSTR header, SIZE_T base)
     return;
 }
 
-#ifdef CFB_KERNEL_DRIVER
-#else
-std::string
-ToString(std::wstring const& WideString)
-{
-    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
-    // return converter.to_bytes(input);
-
-    // HACK improve
-    std::string s;
-    std::for_each(
-        WideString.cbegin(),
-        WideString.cend(),
-        [&s](auto c)
-        {
-            s += (char)c;
-        });
-    return s;
-}
-
-std::wstring
-ToWideString(std::string const& String)
-{
-    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
-    // return converter.from_bytes(input);
-
-    // HACK improve
-
-    std::wstring s;
-    std::for_each(
-        String.cbegin(),
-        String.cend(),
-        [&s](auto c)
-        {
-            s += (wchar_t)c;
-        });
-    return s;
-}
-
-std::string
-ToString(CFB::Comms::Ioctl IoctlCode)
-{
-    u32 code           = (u32)IoctlCode;
-    u32 DeviceType     = ((code >> 16) & 0x0000ffff);
-    u32 AccessType     = ((code >> 14) & 0x00000003);
-    u32 MethodType     = (code & 0x0000003);
-    u32 FunctionNumber = ((code >> 2) & 0x0000fff);
-
-    std::ostringstream oss;
-    oss << "CTL_CODE(DeviceType=0x" << std::hex << DeviceType << ", Function=0x" << FunctionNumber;
-    oss << ", Method=" << MethodType << ", Access=" << AccessType << ")";
-    return oss.str();
-}
-
-std::string
+const char*
 IrpMajorToString(u32 type)
 {
     switch ( type )
@@ -177,6 +123,106 @@ IrpMajorToString(u32 type)
         return "IRP_MJ_PNP_POWER";
     }
     return "UnknownIrpType";
+}
+
+const char*
+IrpTypeToString(u8 Type)
+{
+    switch ( Type )
+    {
+    case 0:
+        return "IRP";
+    case 1:
+        return "FastIRP";
+    }
+
+    return "Unknown";
+}
+
+const char*
+IrqlToString(u32 type)
+{
+    switch ( type )
+    {
+    case 0:
+        return "PASSIVE_LEVEL";
+    case 1:
+        return "APC_LEVEL";
+    case 2:
+        return "DISPATCH_LEVEL";
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+        return "DEVICE_IRQL";
+    case 13:
+        return "CLOCK_LEVEL";
+    case 14:
+        return "POWER_LEVEL";
+    case 15:
+        return "HIGH_LEVEL";
+    }
+    return "Unknown";
+}
+
+#ifdef CFB_KERNEL_DRIVER
+#else
+std::string
+ToString(std::wstring const& WideString)
+{
+    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
+    // return converter.to_bytes(input);
+
+    // HACK improve
+    std::string s;
+    std::for_each(
+        WideString.cbegin(),
+        WideString.cend(),
+        [&s](auto c)
+        {
+            s += (char)c;
+        });
+    return s;
+}
+
+std::wstring
+ToWideString(std::string const& String)
+{
+    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
+    // return converter.from_bytes(input);
+
+    // HACK improve
+
+    std::wstring s;
+    std::for_each(
+        String.cbegin(),
+        String.cend(),
+        [&s](auto c)
+        {
+            s += (wchar_t)c;
+        });
+    return s;
+}
+
+std::string
+ToString(CFB::Comms::Ioctl IoctlCode)
+{
+    u32 code           = (u32)IoctlCode;
+    u32 DeviceType     = ((code >> 16) & 0x0000ffff);
+    u32 AccessType     = ((code >> 14) & 0x00000003);
+    u32 MethodType     = (code & 0x0000003);
+    u32 FunctionNumber = ((code >> 2) & 0x0000fff);
+
+    std::ostringstream oss;
+    oss << "CTL_CODE(DeviceType=0x" << std::hex << DeviceType << ", Function=0x" << FunctionNumber;
+    oss << ", Method=" << MethodType << ", Access=" << AccessType << ")";
+    return oss.str();
 }
 
 std::string

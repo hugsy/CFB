@@ -23,10 +23,10 @@ TEST_CASE("Strings", NS)
     {
         for ( int i = 0; i < 0x1c; i++ )
         {
-            CHECK(CFB::Utils::IrpMajorToString(i).starts_with("IRP_"));
+            CHECK(std::string(CFB::Utils::IrpMajorToString(i)).starts_with("IRP_"));
         }
 
-        CHECK(CFB::Utils::IrpMajorToString(0x4242) == "UnknownIrpType");
+        CHECK(std::string(CFB::Utils::IrpMajorToString(0x4242)) == "UnknownIrpType");
     }
 }
 

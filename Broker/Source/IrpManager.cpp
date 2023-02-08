@@ -266,7 +266,7 @@ IrpManager::GetNextIrps()
             xdbg(
                 "New IRP (DeviceName='%S', Type=%s, InputBufferLength=%u, OutputBufferLength=%u) pushed to queue",
                 Irp.Header.DeviceName,
-                CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction).c_str(),
+                CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction),
                 Irp.Header.InputBufferLength,
                 Irp.Header.OutputBufferLength);
 

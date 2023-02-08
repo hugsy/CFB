@@ -373,9 +373,6 @@ struct MemoryEditor
                         }
                         struct UserData
                         {
-                            // FIXME: We should have a way to retrieve the text edit cursor position more easily in the
-                            // API, this is rather tedious. This is such a ugly mess we may be better off not using
-                            // InputText() at all here.
                             static int
                             Callback(ImGuiInputTextCallbackData* data)
                             {

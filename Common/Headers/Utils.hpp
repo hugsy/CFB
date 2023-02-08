@@ -44,6 +44,22 @@ namespace CFB::Utils
 void
 Hexdump(PVOID data, SIZE_T size, PCSTR header = nullptr, SIZE_T base = 0);
 
+const char*
+IrqlToString(u32 type);
+
+
+const char*
+IrpMajorToString(u32 type);
+
+///
+///@brief
+///
+///@param Type
+///@return const char*
+///
+const char*
+IrpTypeToString(u8 Type);
+
 
 #ifdef CFB_KERNEL_DRIVER
 #else
@@ -62,8 +78,7 @@ ToString(CFB::Comms::RequestId id);
 std::string
 ToString(CFB::Comms::CapturedIrp const& Irp);
 
-std::string
-IrpMajorToString(u32 type);
+
 #endif // CFB_KERNEL_DRIVER
 
 namespace Memory

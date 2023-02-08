@@ -10,6 +10,7 @@
 
 #include "Addons/imgui_hexeditor.h"
 #include "Comms.hpp"
+#include "CompileInfo.hpp"
 #include "GuiUtils.hpp"
 #include "Helpers.hpp"
 #include "Utils.hpp"
@@ -29,7 +30,7 @@ static std::unordered_map<std::string_view, bool> Windows = {
     {"IrpFactory", false},
     {"IrpDetail", false},
     {"Settings", false},
-    {"Demo", false},
+    {"About", false},
 };
 
 
@@ -58,6 +59,39 @@ Context::SaveIrpsToFile(std::filesystem::path const& JsonFile)
     json j = Globals.CapturedIrps;
     std::ofstream file(JsonFile);
     file << j.dump();
+}
+
+void
+RenderAboutWindow()
+{
+    if ( ImGui::Begin("About") )
+    {
+        if ( ImGui::BeginChild("About##Child1") )
+        {
+            ImGui::SetItemDefaultFocus();
+
+            ImGui::Text("%s - %s", PROJECT_NAME, PROJECT_DESCRIPTION);
+            ImGui::Text("Author - %s", PROJECT_AUTHOR);
+            ImGui::Text("License - %s", PROJECT_LICENSE);
+            ImGui::Text("License - %s", PROJECT_LICENSE);
+
+            ImGui::Separator();
+
+            ImGui::Text("DRIVER_VERSION - %s", DRIVER_VERSION);
+            ImGui::Text("BROKER_VERSION - %s", BROKER_VERSION);
+            ImGui::Text("GUI_VERSION - %s", GUI_VERSION);
+
+            ImGui::Separator();
+
+            if ( ImGui::Button("OK") )
+            {
+                Windows["About"] = false;
+            }
+
+            ImGui::EndChild();
+        }
+        ImGui::End();
+    }
 }
 
 void
@@ -141,12 +175,6 @@ PrepareMenubar()
                 }
             }
 
-            ImGui::EndMenu();
-        }
-
-        if ( ImGui::BeginMenu("Help") )
-        {
-            // TODO finish
             ImGui::EndMenu();
         }
 
@@ -537,19 +565,13 @@ RenderIrpTableWindow()
             ImGui::Text("%S", const_cast<wchar_t*>(Irp.Header.DeviceName));
 
             ImGui::TableNextColumn();
-            // TODO use helper
-            ImGui::Text(
-                "%s",
-                Irp.Header.Irql == 0 ?
-                    "PASSIVE_LEVEL" :
-                    (Irp.Header.Irql == 1 ? "APC_LEVEL" : (Irp.Header.Irql == 2 ? "DISPATCH_LEVEL" : "HIGH")));
+            ImGui::Text("%s", CFB::Utils::IrqlToString(Irp.Header.Irql));
 
             ImGui::TableNextColumn();
-            // TODO use helper
-            ImGui::Text("%s", Irp.Header.Type == 0 ? "IRP" : (Irp.Header.Type == 1 ? "FastIRP" : "Unknown"));
+            ImGui::Text("%s", CFB::Utils::IrpTypeToString(Irp.Header.Type));
 
             ImGui::TableNextColumn();
-            ImGui::Text("%s", CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction).c_str());
+            ImGui::Text("%s", CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction));
 
             ImGui::TableNextColumn();
             ImGui::Text("%u", Irp.Header.MinorFunction);
@@ -627,9 +649,9 @@ RenderUI()
         RenderSettingsWindow();
     }
 
-    if ( Windows["Demo"] )
+    if ( Windows["About"] )
     {
-        ImGui::ShowDemoWindow();
+        RenderAboutWindow();
     }
 }
 

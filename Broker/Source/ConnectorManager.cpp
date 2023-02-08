@@ -99,7 +99,7 @@ ConnectorManager::Setup()
     else
     {
         xinfo("Failed to register the connector dispatcher");
-        // TODO report the error
+        return Err(ErrorCode::InitializationError);
     }
 
     //
