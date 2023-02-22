@@ -48,6 +48,7 @@ configure_file(${GUI_RC_FILE}.in ${GUI_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTE
 # Build the GUI
 #
 add_executable(${PROJECT_NAME} ${GUI_SOURCE_FILES})
+add_dependencies(${PROJECT_NAME} CFB::User::CommonLib)
 add_executable(CFB::User::Gui ALIAS ${PROJECT_NAME})
 
 #

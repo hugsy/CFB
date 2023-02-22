@@ -73,13 +73,14 @@ RenderAboutWindow()
             ImGui::Text("%s - %s", PROJECT_NAME, PROJECT_DESCRIPTION);
             ImGui::Text("Author - %s", PROJECT_AUTHOR);
             ImGui::Text("License - %s", PROJECT_LICENSE);
-            ImGui::Text("License - %s", PROJECT_LICENSE);
+            ImGui::Text("URL - %s", PROJECT_HOMEPAGE_URL);
 
             ImGui::Separator();
 
-            ImGui::Text("DRIVER_VERSION - %s", DRIVER_VERSION);
-            ImGui::Text("BROKER_VERSION - %s", BROKER_VERSION);
-            ImGui::Text("GUI_VERSION - %s", GUI_VERSION);
+            ImGui::Text("Versions");
+            ImGui::BulletText("Driver: %s", DRIVER_VERSION);
+            ImGui::BulletText("Broker: %s", BROKER_VERSION);
+            ImGui::BulletText("Gui: %s", GUI_VERSION);
 
             ImGui::Separator();
 
@@ -618,14 +619,8 @@ RenderIrpTableWindow()
 void
 RenderUI()
 {
-    //
-    // layout
-    //
     PrepareDockSpace();
 
-    //
-    // main windows
-    //
     if ( Windows["SessionInfo"] )
     {
         RenderSessionInfoWindow();
@@ -641,9 +636,6 @@ RenderUI()
         RenderIrpFactoryWindow();
     }
 
-    //
-    // extra stuff
-    //
     if ( Windows["Settings"] )
     {
         RenderSettingsWindow();
