@@ -174,7 +174,11 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     const ULONG OutputBufferLen = CurrentStack->Parameters.DeviceIoControl.OutputBufferLength;
     ULONG dwDataWritten         = 0;
 
-    dbg("Attempting to process IOCTL %#x (IRQL=%d)", IoctlCode, ::KeGetCurrentIrql());
+    dbg("Attempting to process IOCTL %#x (IRQL=%d, in=%luB, out=%luB)",
+        IoctlCode,
+        ::KeGetCurrentIrql(),
+        InputBufferLen,
+        OutputBufferLen);
 
     switch ( IoctlCode )
     {

@@ -71,6 +71,7 @@ HookedDriver::SwapCallbacks()
         return;
     }
 
+
     //
     // Hook all `IRP_MJ_*`
     //

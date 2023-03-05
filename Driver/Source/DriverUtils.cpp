@@ -4,7 +4,6 @@
 ///
 /// @brief Basic allocator/deallocator for the kernel
 ///
-/// TODO: I don't use them, so remove in favor of per class allocation method?
 ///
 void* __cdecl
 operator new(usize Size, POOL_TYPE PoolType, ULONG PoolTag)

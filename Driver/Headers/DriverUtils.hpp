@@ -277,18 +277,20 @@ public:
     ///
     /// @brief Construct a new KUnicodeString object for a widechar buffer and length
     ///
-    /// @param src pointer to the beginning of the string. The buffer **MUST** include a null terminator
-    /// @param srcsz the number of bytes to use to store the unicode string, including the null terminator
+    /// @param src pointer to the beginning of the string
+    /// @param srcsz the number of bytes to use to store the unicode string
     /// @param type the pool type to store the buffer in
     ///
     KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx) :
         m_UnicodeString {},
-        m_StringBuffer {KAlloc<wchar_t*>(srcsz, CFB_DEVICE_TAG, type)}
+        m_StringBuffer {KAlloc<wchar_t*>(sizeof(wchar_t) + srcsz, CFB_DEVICE_TAG, type)}
     {
         ::memcpy(m_StringBuffer.get(), src, srcsz);
-        ::RtlInitUnicodeString(&m_UnicodeString, m_StringBuffer.get());
+        m_UnicodeString.Buffer        = m_StringBuffer.get();
+        m_UnicodeString.Length        = srcsz;
+        m_UnicodeString.MaximumLength = srcsz + sizeof(wchar_t);
 
-        dbg("KUnicodeString::KUnicodeString('%wZ', length=%lluB, capacity=%lluB)",
+        dbg("KUnicodeString::KUnicodeString1('%wZ', length=%lluB, capacity=%lluB)",
             &m_UnicodeString,
             length(),
             capacity());
@@ -304,10 +306,12 @@ public:
         m_UnicodeString {},
         m_StringBuffer {KAlloc<wchar_t*>(src->MaximumLength, CFB_DEVICE_TAG, type)}
     {
-        ::memcpy(m_StringBuffer.get(), src->Buffer, src->Length);
-        ::RtlInitUnicodeString(&m_UnicodeString, m_StringBuffer.get());
+        ::memcpy(m_StringBuffer.get(), src->Buffer, MIN(src->Length, src->MaximumLength));
+        m_UnicodeString.Buffer        = m_StringBuffer.get();
+        m_UnicodeString.Length        = src->Length;
+        m_UnicodeString.MaximumLength = src->MaximumLength;
 
-        dbg("KUnicodeString::KUnicodeString('%wZ', length=%lluB, capacity=%lluB)",
+        dbg("KUnicodeString::KUnicodeString2('%wZ', length=%lluB, capacity=%lluB)",
             &m_UnicodeString,
             length(),
             capacity());
@@ -377,7 +381,7 @@ public:
     }
 
     ///
-    /// @brief Get the length of the string (i.e. number of characters)
+    /// @brief Get the length of the buffer (i.e. number of bytes)
     ///
     /// @return const usize
     ///
@@ -387,6 +391,11 @@ public:
         return m_UnicodeString.Length;
     }
 
+    ///
+    /// @brief Get the maximum length of the buffer (i.e. number of bytes)
+    ///
+    /// @return const usize
+    ///
     const usize
     capacity() const
     {

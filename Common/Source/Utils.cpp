@@ -12,7 +12,6 @@ namespace CFB::Utils
 void
 Hexdump(PVOID data, SIZE_T size, PCSTR header, SIZE_T base)
 {
-    // HACK improve
     CHAR ascii[17] {};
     auto ptr = reinterpret_cast<u8*>(data);
 

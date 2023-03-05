@@ -175,7 +175,7 @@ private:
     ///
     /// @brief CallbackLock to guard callback access
     ///
-    Utils::KFastMutex m_CallbackLock;
+    Utils::KQueuedSpinLock m_CallbackLock;
 
     ///
     /// @brief
