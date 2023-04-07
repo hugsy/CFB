@@ -15,6 +15,10 @@ set(DRIVER_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE INTERNAL "DRIVER_VERSION
 
 set(DRIVER_RC_FILE ${DRIVER_SOURCE_DIR}/Driver.rc)
 set(DRIVER_RES_FILE ${DRIVER_SOURCE_DIR}/Driver.res)
+set(CFB_CERT_CN "${CFB_COMPANY_NAME}")
+set(CFB_CERT_STORE "PrivateCertStore")
+set(CFB_DRIVER_INF_FILE "${DRIVER_SOURCE_DIR}/${PROJECT_NAME}.inf")
+
 configure_file(${DRIVER_RC_FILE}.in ${DRIVER_RC_FILE} NEWLINE_STYLE WIN32 ESCAPE_QUOTES)
 
 set(
@@ -58,10 +62,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE CFB_KERNEL_DRIVER=1)
 target_link_options(${PROJECT_NAME} PUBLIC /integritycheck)
 target_link_libraries(${PROJECT_NAME} CFB::Kernel::CommonLib ${DRIVER_RES_FILE})
 
-set(CFB_CERT_CN "${CFB_COMPANY_NAME}")
-set(CFB_CERT_STORE "PrivateCertStore")
-set(CFB_DRIVER_INF_FILE "${DRIVER_SOURCE_DIR}/${PROJECT_NAME}.inf")
-
 #
 # Custom command directives
 #
@@ -75,6 +75,8 @@ add_custom_command(
 
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND
+    powershell -ep bypass "Get-ChildItem -Recurse Cert:\\CurrentUser | Where-Object { $_.Subject -match '${CFB_CERT_CN}' } | Remove-Item"
     COMMAND
     makecert.exe -r -pe -ss ${CFB_CERT_STORE} -n CN="${CFB_CERT_CN}" -eku 1.3.6.1.5.5.7.3.3 "$<TARGET_FILE_DIR:${PROJECT_NAME}>/BlahCatTest.cer"
     COMMAND

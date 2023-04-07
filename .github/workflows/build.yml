@@ -33,7 +33,7 @@ jobs:
       uses: rlespinasse/github-slug-action@v4.x
 
     - name: Setup msbuild
-      uses: microsoft/setup-msbuild@v1.1
+      uses: microsoft/setup-msbuild@v1.3
       with:
         msbuild-architecture: ${{ matrix.platform }}
       if: matrix.os == 'windows-latest'
