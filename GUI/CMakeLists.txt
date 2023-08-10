@@ -68,10 +68,10 @@ target_compile_options(
     ${PROJECT_NAME}
     PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
 
     PRIVATE
     $<IF:$<CONFIG:Debug>,/WX /Gm- /permissive-,/WX /permissive>
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
 )
 
 #
@@ -81,9 +81,9 @@ target_link_options(
     ${PROJECT_NAME}
     PUBLIC
     /SUBSYSTEM:WINDOWS
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
 
     PRIVATE
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/InferAsanLibs>>
 )
 
 target_link_libraries(

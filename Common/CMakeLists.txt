@@ -99,7 +99,7 @@ target_include_directories(CommonLibUser
 target_compile_options(CommonLibUser
     PUBLIC
     $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address -D_DISABLE_VECTOR_ANNOTATION>>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:/fsanitize=address>>
 
     PRIVATE
     $<IF:$<CONFIG:Debug>,/WX /Gm- /permissive-,/WX /permissive>
@@ -107,8 +107,9 @@ target_compile_options(CommonLibUser
 
 target_compile_definitions(CommonLibUser
     PUBLIC
-    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_VECTOR_ANNOTATION>>
 
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_VECTOR_ANNOTATION>>
+    $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_STRING_ANNOTATION>>
     PRIVATE
 )
 

@@ -5,7 +5,7 @@ enable_testing()
 set(GUI_HEADERS_DIR ${CFB_ROOT_DIR}/GUI/Headers)
 set(GUI_TEST_DIR ${CFB_ROOT_DIR}/GUI/Tests)
 
-set(TEST_SET
+list(APPEND TEST_SET
 )
 
 foreach(TEST_FILE ${TEST_SET})
