@@ -1,6 +1,10 @@
 name: "Build Artifact"
 
-on: [push, pull_request]
+on:
+  schedule:
+    - cron: 0 0 * * *
+  push:
+  pull_request:
 
 env:
   CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON -DCFB_BUILD_TESTS:BOOL=ON -DCFB_BUILD_GUI:BOOL=ON"
@@ -28,9 +32,6 @@ jobs:
       shell: powershell
       run: |
         echo "NB_CPU=$env:NUMBER_OF_PROCESSORS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-    - name: Inject slug/short variables
-      uses: rlespinasse/github-slug-action@v4.x
 
     - name: Setup msbuild
       if: matrix.os == 'windows-latest'
@@ -63,5 +64,6 @@ jobs:
       uses: actions/upload-artifact@v3
       if: matrix.configuration == 'RelWithDebInfo'
       with:
-        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ github.ref_name }}_${{ github.sha }}
         path: artifact/
+        retention-days: 1
