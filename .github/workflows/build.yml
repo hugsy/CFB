@@ -1,10 +1,11 @@
 name: "Build Artifact"
 
 on:
-  schedule:
-    - cron: 0 0 * * *
+  workflow_dispatch:
   push:
   pull_request:
+  schedule:
+    - cron: 0 0 * * *
 
 env:
   CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON -DCFB_BUILD_TESTS:BOOL=ON -DCFB_BUILD_GUI:BOOL=ON"
