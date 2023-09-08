@@ -67,4 +67,3 @@ jobs:
       with:
         name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ github.ref_name }}_${{ github.sha }}
         path: artifact/
-        retention-days: 1
