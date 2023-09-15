@@ -63,7 +63,6 @@ jobs:
 
     - name: Publish artifact
       uses: actions/upload-artifact@v3
-      if: matrix.configuration == 'RelWithDebInfo'
       with:
-        name: CFB_${{ matrix.platform }}_${{ github.sha }}
+        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}+${{ github.sha }}
         path: artifact/
