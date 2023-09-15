@@ -263,3 +263,10 @@ __pycache__/
 .vscode
 /Assets/img/logo/bear.png
 .gitignore
+Common/Headers/CompileInfo.hpp
+Broker/Source/Broker.rc
+Broker/Source/Broker.res
+Driver/Source/Driver.rc
+Driver/Source/Driver.res
+GUI/Source/GUI.rc
+GUI/Source/GUI.res

@@ -1,0 +1,37 @@
+#include <Winver.h>
+
+VS_VERSION_INFO     VERSIONINFO
+FILEVERSION         @GUI_VERSION_MAJOR@,@GUI_VERSION_MINOR@,@GUI_VERSION_PATCH@,0
+PRODUCTVERSION      @CFB_VERSION_MAJOR@,@CFB_VERSION_MINOR@,@CFB_VERSION_PATCH@,0
+FILEOS              VOS_NT_WINDOWS32
+FILETYPE            VFT_APP
+FILESUBTYPE         VFT2_UNKNOWN
+
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",        "@CFB_COMPANY_NAME@\0"
+            VALUE "FileDescription",    "@PROJECT_DESCRIPTION@\0"
+            VALUE "FileVersion",        "@GUI_VERSION_MAJOR@,@GUI_VERSION_MINOR@,@GUI_VERSION_PATCH@,0\0"
+            VALUE "LegalCopyright",     "© @CFB_CURRENT_YEAR@ @CFB_COMPANY_NAME@ Release Under @PROJECT_LICENSE@\0"
+            VALUE "OriginalFilename",   "@PROJECT_NAME@.exe\0"
+            VALUE "ProductName",        "@CMAKE_PROJECT_NAME@\0"
+            VALUE "ProductVersion",     "@CFB_VERSION_MAJOR@,@CFB_VERSION_MINOR@,@CFB_VERSION_PATCH@,0\0"
+            VALUE "Comments",           "@PROJECT_DESCRIPTION@\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+IDI_ICON1 ICON "@CFB_GUI_ICON_PATH@"
