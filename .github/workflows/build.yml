@@ -13,7 +13,7 @@ env:
 
 jobs:
   build:
-    name: "${{ matrix.os }}/${{ matrix.platform }}/${{ matrix.configuration }}"
+    name: "${{ matrix.platform }}/${{ matrix.configuration }}"
 
     strategy:
       fail-fast: false
@@ -28,41 +28,40 @@ jobs:
       with:
         submodules: true
 
-    - name: Sets Windows specific environment variables
-      if: matrix.os == 'windows-latest'
-      shell: powershell
+    - name: Prepare
+      shell: pwsh
       run: |
         echo "NB_CPU=$env:NUMBER_OF_PROCESSORS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-    - name: Setup msbuild
-      if: matrix.os == 'windows-latest'
+        mkdir artifact
+        mkdir build
+  
+    - name: Setup
       shell: pwsh
       run: |
         Import-Module .\.github\Invoke-VisualStudio.ps1
         Invoke-VisualStudio2022${{ matrix.platform }}
 
-    - name: Build CFB
+    - name: Build
+      shell: pwsh
       run: |
-        mkdir ./build
         cmake -S . -B ./build -A ${{ matrix.platform }} ${{ env.CMAKE_FLAGS }}
         cmake --build ./build --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
 
-    - name: Run tests
-      if: matrix.configuration == 'RelWithDebInfo' && matrix.platform == 'x64'
+    - name: Test
       continue-on-error: true
+      shell: pwsh
       run: |
         cd build
         ctest --parallel ${{ env.NB_CPU }} --build-config ${{ matrix.configuration }} -T test
         cd ..
 
-    - name: Prepare artifact
-      if: matrix.configuration == 'RelWithDebInfo'
+    - name: Install
+      shell: pwsh
       run: |
-        mkdir artifact
         cmake --install ./build --config ${{ matrix.configuration }} --prefix ./artifact --verbose
 
-    - name: Publish artifact
+    - name: Publish
       uses: actions/upload-artifact@v3
       with:
-        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}+${{ github.sha }}
+        name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ github.sha }}
         path: artifact/
