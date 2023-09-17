@@ -1,15 +1,21 @@
 name: "Build Artifact"
 
 on:
-  workflow_dispatch:
   push:
   pull_request:
   schedule:
     - cron: 0 0 * * *
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release'
+        required: false
+        default: nightly
 
 env:
   CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=ON -DCFB_BUILD_TESTS:BOOL=ON -DCFB_BUILD_GUI:BOOL=ON"
   CMAKE_TOOLCHAIN_FILE: "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+  TAG_NAME: ""
 
 jobs:
   build:
@@ -27,7 +33,13 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: true
-
+        
+    - if: github.event_name == 'workflow_dispatch'
+      run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    
+    - if: github.event_name == 'schedule'
+      run: echo "TAG_NAME=nightly" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        
     - name: Prepare
       shell: pwsh
       run: |
@@ -60,8 +72,10 @@ jobs:
       run: |
         cmake --install ./build --config ${{ matrix.configuration }} --prefix ./artifact --verbose
 
-    - name: Publish
+    - name: Upload
       uses: actions/upload-artifact@v3
       with:
         name: CFB_${{ matrix.platform }}_${{ matrix.configuration }}_${{ github.sha }}
         path: artifact/
+        retention-days: 1
+        
