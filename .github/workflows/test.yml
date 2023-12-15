@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  workflow_run:
+    workflows: ["Build",]
+
+jobs:
+  test:
+    name: "${{ matrix.platform }}/${{ matrix.configuration }}"
+
+    env:
+      CMAKE_FLAGS: "-DCFB_BUILD_TOOLS:BOOL=OFF -DCFB_BUILD_GUI:BOOL=OFF -DCFB_BUILD_TESTS:BOOL=ON"
+      CMAKE_TOOLCHAIN_FILE: "C:\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+      TAG_NAME: ""
+      NB_CPU: 1
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-latest']
+        platform: ['x64'] # , 'arm64', 'win32'
+        configuration: ['RelWithDebInfo'] # 'Debug',
+
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup
+      shell: pwsh
+      run: |
+        echo "NB_CPU=$env:NUMBER_OF_PROCESSORS" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Import-Module .\.github\Invoke-VisualStudio.ps1
+        Invoke-VisualStudio2022${{ matrix.platform }}
+
+    - name: Build
+      shell: pwsh
+      run: |
+        mkdir build
+        cmake -S . -B ./build -A ${{ matrix.platform }} ${{ env.CMAKE_FLAGS }}
+        cmake --build ./build --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
+
+    - name: Test
+      shell: pwsh
+      run: |
+        ctest --parallel ${{ env.NB_CPU }} --build-config ${{ matrix.configuration }} -T test  --test-dir ./build
