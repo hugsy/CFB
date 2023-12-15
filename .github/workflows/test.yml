@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         os: ['windows-latest']
-        platform: ['x64', 'arm64']
-        configuration: ['Debug', 'RelWithDebInfo']
+        platform: ['x64'] # , 'arm64', 'win32'
+        configuration: ['RelWithDebInfo'] # 'Debug',
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -41,7 +41,6 @@ jobs:
         cmake --build ./build --verbose --parallel ${{ env.NB_CPU }} --config ${{ matrix.configuration }}
 
     - name: Test
-      if: matrix.configuration == 'RelWithDebInfo' && matrix.platform == 'x64'
       shell: pwsh
       run: |
         ctest --parallel ${{ env.NB_CPU }} --build-config ${{ matrix.configuration }} -T test  --test-dir ./build
