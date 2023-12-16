@@ -2,7 +2,7 @@
 #define NS "CFB::Comms"
 
 // clang-format off
-#include <catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <nlohmann/json.hpp>
 
 #include "Comms.hpp"

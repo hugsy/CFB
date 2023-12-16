@@ -1,4 +1,7 @@
-project(Broker LANGUAGES CXX VERSION 0.2.0)
+project(Broker
+    LANGUAGES CXX
+    VERSION 0.2.0
+)
 
 message(STATUS "Configuring '${PROJECT_NAME}'")
 
@@ -70,7 +73,10 @@ add_dependencies(${PROJECT_NAME} CFB::Kernel::Driver)
 target_include_directories(${PROJECT_NAME}
     PRIVATE
     ${BROKER_HEADER_DIR}
-    ${PHNT_INCLUDE_DIRS}
+
+    $<TARGET_PROPERTY:Deps::Argparse,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:Deps::JSON,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:Deps::WIL,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_precompile_headers(${PROJECT_NAME}
@@ -81,7 +87,7 @@ target_precompile_headers(${PROJECT_NAME}
 #
 # Compilation directives
 #
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 target_compile_options(
     ${PROJECT_NAME}
@@ -110,9 +116,8 @@ target_link_libraries(${PROJECT_NAME}
 
     CFB::User::CommonLib
 
-    argparse::argparse
-    WIL::WIL
-    nlohmann_json::nlohmann_json
+    Deps::WIL
+    Deps::JSON
 
     ws2_32.lib
     Userenv.lib

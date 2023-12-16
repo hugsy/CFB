@@ -1,7 +1,7 @@
 project(
     GUI
     LANGUAGES CXX
-    VERSION 0.1.0
+    VERSION 0.2.0
     DESCRIPTION "ImGui-based GUI for CFB"
     HOMEPAGE_URL https://github.com/hugsy/cfb
 )
@@ -33,9 +33,6 @@ set(
     ${GUI_SOURCE_DIR}/Helpers.cpp
 )
 
-# set(IMGUI_DIR ${CFB_DEPENDENCIES}/imgui)
-# set(IMGUI_BACKEND win32-dx12)
-
 #
 # Create the broker rc file
 #
@@ -60,6 +57,7 @@ target_include_directories(
 
     PRIVATE
     ${GUI_HEADER_DIR}
+    $<TARGET_PROPERTY:Deps::ImGUI,INCLUDE_DIRECTORIES>
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC _UNICODE UNICODE ImTextureID=ImU64)
@@ -92,8 +90,8 @@ target_link_libraries(
     PRIVATE
     ${GUI_RES_FILE}
     CFB::User::CommonLib
-    imgui::imgui
-    nlohmann_json::nlohmann_json
+    Deps::ImGUI
+    Deps::JSON
     Ws2_32.lib
     D3D12.lib
     DXGI.lib

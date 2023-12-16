@@ -1,13 +1,13 @@
 #pragma once
 
-#include <format>
+
 #include <optional>
 #include <variant>
 
 #include "Common.hpp"
 
 
-enum class ErrorCode
+enum class ErrorCode : u32
 {
     GenericError,
     RuntimeError,
@@ -54,9 +54,9 @@ using Result = std::variant<SuccessType<T>, ErrorType>;
 struct Err : ErrorType
 {
 #ifdef _WIN32
-    Err(ErrorCode ErrCode = ErrorCode::GenericError) : ErrorType(ErrCode, ::GetLastError())
+    Err(ErrorCode ErrCode = ErrorCode::GenericError) : ErrorType {ErrCode, ::GetLastError()}
 #else
-    Err(ErrorCode ErrCode = ErrorCode::GenericError) : ErrorType(ErrCode, errno)
+    Err(ErrorCode ErrCode = ErrorCode::GenericError) : ErrorType {ErrCode, ::errno}
 #endif // _WIN32
     {
     }
@@ -131,17 +131,6 @@ Error(Result<T> const& f)
     }
     throw std::bad_variant_access();
 }
-
-
-template<>
-struct std::formatter<ErrorType, char> : std::formatter<std::string, char>
-{
-    auto
-    format(ErrorType const a, format_context& ctx)
-    {
-        return formatter<string, char>::format(std::format("ErrorCode::{}", a), ctx);
-    }
-};
 
 
 namespace CFB::Broker::Utils

@@ -1,6 +1,8 @@
 #pragma once
 
 // clang-format off
+#include <mutex>
+
 #include "Common.hpp"
 #include "Broker.hpp"
 #include "Error.hpp"

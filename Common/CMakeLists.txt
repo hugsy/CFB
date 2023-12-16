@@ -92,8 +92,7 @@ target_include_directories(CommonLibUser
     PUBLIC
     ${COMMON_HEADER_DIR}
 
-    PRIVATE
-    ${PHNT_INCLUDE_DIRS}
+    $<TARGET_PROPERTY:Deps::JSON,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_options(CommonLibUser
@@ -107,9 +106,9 @@ target_compile_options(CommonLibUser
 
 target_compile_definitions(CommonLibUser
     PUBLIC
-
     $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_VECTOR_ANNOTATION>>
     $<$<NOT:$<STREQUAL:${CMAKE_GENERATOR_PLATFORM},arm64>>:$<$<CONFIG:Debug>:_DISABLE_STRING_ANNOTATION>>
+
     PRIVATE
 )
 

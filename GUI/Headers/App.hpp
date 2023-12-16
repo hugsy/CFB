@@ -9,6 +9,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <unordered_map>

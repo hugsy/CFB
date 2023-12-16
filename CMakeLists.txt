@@ -26,31 +26,26 @@ option(CFB_BUILD_GUI "Build GUI" ON)
 option(CFB_BUILD_TOOLS "Build Tools" OFF)
 option(CFB_BUILD_TESTS "Build Tests" OFF)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 #
 # Check the dependencies
 #
 message(STATUS "Locating Windows Driver Kit")
 find_package(WDK REQUIRED)
-find_path(PHNT_INCLUDE_DIRS "ntd3dkmt.h")
-find_package(nlohmann_json CONFIG REQUIRED)
-find_package(wil CONFIG REQUIRED)
-find_package(argparse CONFIG REQUIRED)
+find_package(PhNt REQUIRED)
+find_package(WIL REQUIRED)
+find_package(Json REQUIRED)
+find_package(argparse REQUIRED)
 
 if(CFB_BUILD_GUI)
-    list(APPEND VCPKG_MANIFEST_FEATURES "gui")
-    find_package(imgui CONFIG REQUIRED)
+    find_package(ImGUI REQUIRED)
 endif(CFB_BUILD_GUI)
 
-if(CFB_BUILD_TOOLS)
-    list(APPEND VCPKG_MANIFEST_FEATURES "tools")
-    find_package(argparse CONFIG REQUIRED)
-    find_package(wil CONFIG REQUIRED)
-endif(CFB_BUILD_TOOLS)
-
 if(CFB_BUILD_TESTS)
-    list(APPEND VCPKG_MANIFEST_FEATURES "tests")
-    find_package(Catch2 CONFIG REQUIRED)
-    find_package(trompeloeil CONFIG REQUIRED)
+    find_package(Catch2 REQUIRED)
 endif(CFB_BUILD_TESTS)
 
 set(CFB_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
