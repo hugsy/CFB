@@ -20,12 +20,12 @@ namespace CFB::Driver
 {
 HookedDriverManager::HookedDriverManager()
 {
-    dbg("Creating HookedDriverManager");
+    xdbg("Creating HookedDriverManager");
 }
 
 HookedDriverManager::~HookedDriverManager()
 {
-    dbg("Destroying HookedDriverManager");
+    xdbg("Destroying HookedDriverManager");
 
     HookedDriverManager::RemoveAllDrivers();
 }
@@ -57,73 +57,68 @@ HookedDriverManager::InsertDriver(const PUNICODE_STRING UnicodePath)
         }
     }
 
+
+    xdbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
+    Utils::ScopedWrapper ScopedDriverObject(
+        pDriver,
+        [&pDriver]()
+        {
+            xdbg("HookedDriverManager::InsertDriver(): dereferencing object %p", pDriver);
+            ObDereferenceObject(pDriver);
+        });
+
+    //
+    // Refuse to hook IrpMonitor
+    //
+    if ( pDriver == Globals->DriverObject )
     {
-        xdbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
-        Utils::ScopedWrapper ScopedDriverObject(
-            pDriver,
-            [&pDriver]()
-            {
-                xdbg("HookedDriverManager::InsertDriver(): dereferencing object %p", pDriver);
-                ObDereferenceObject(pDriver);
-            });
-
-        //
-        // Refuse to hook IrpMonitor
-        //
-        if ( pDriver == Globals->DriverObject )
-        {
-            return STATUS_ACCESS_DENIED;
-        }
-
-        {
-            Utils::ScopedLock lock(m_Mutex);
-
-            //
-            // Check if the driver is already hooked
-            //
-            auto FromDriverAddress = [&ScopedDriverObject](const HookedDriver* h)
-            {
-                return h->OriginalDriverObject == ScopedDriverObject.get();
-            };
-
-            if ( m_Entries.Find(FromDriverAddress) != nullptr )
-            {
-                return STATUS_ALREADY_REGISTERED;
-            }
-
-            //
-            // Check if there's space
-            //
-            if ( m_Entries.Size() >= CFB_MAX_HOOKED_DRIVERS )
-            {
-                return STATUS_INSUFFICIENT_RESOURCES;
-            }
-
-            xdbg(
-                "HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
-                UnicodePath,
-                ScopedDriverObject.get());
-
-            //
-            // Allocate the new HookedDriver, this will result in all the `IRP_MJ_*` of the driver being
-            // redirected to IrpMonitor
-            //
-            auto NewHookedDriver = new HookedDriver(UnicodePath);
-
-            //
-            // Last, insert the driver to the linked list
-            //
-            m_Entries.PushBack(NewHookedDriver);
-
-            xdbg(
-                "Added '%wZ' to the hooked driver list, TotalEntries=%d",
-                NewHookedDriver->Path.get(),
-                m_Entries.Size());
-
-            xinfo("Driver '%wZ' is hooked", NewHookedDriver->Path.get());
-        }
+        return STATUS_ACCESS_DENIED;
     }
 
+    {
+        Utils::ScopedLock lock(m_Mutex);
+
+        //
+        // Check if the driver is already hooked
+        //
+        auto FromDriverAddress = [&ScopedDriverObject](const HookedDriver* h)
+        {
+            return h->OriginalDriverObject == ScopedDriverObject.get();
+        };
+
+        if ( m_Entries.Find(FromDriverAddress) != nullptr )
+        {
+            return STATUS_ALREADY_REGISTERED;
+        }
+
+        //
+        // Check if there's space
+        //
+        if ( m_Entries.Size() >= CFB_MAX_HOOKED_DRIVERS )
+        {
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+
+        xdbg(
+            "HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
+            UnicodePath,
+            ScopedDriverObject.get());
+
+        //
+        // Allocate the new HookedDriver, this will result in all the `IRP_MJ_*` of the driver being
+        // redirected to IrpMonitor
+        //
+        auto NewHookedDriver = new HookedDriver(UnicodePath);
+
+        //
+        // Last, insert the driver to the linked list
+        //
+        m_Entries.PushBack(NewHookedDriver);
+
+        xdbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.get(), m_Entries.Size());
+
+        xinfo("Driver '%wZ' is hooked", NewHookedDriver->Path.get());
+    }
 
     return STATUS_SUCCESS;
 }

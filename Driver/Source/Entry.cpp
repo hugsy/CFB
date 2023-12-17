@@ -221,9 +221,11 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     }
 
     case CFB::Comms::Ioctl::GetDriverInfo:
+    {
         warn("TODO");
         Status = STATUS_NOT_IMPLEMENTED;
         break;
+    }
 
     default:
         err("Received invalid IOCTL code 0x%08x", IoctlCode);

@@ -408,9 +408,9 @@ CapturedIrp::ExportHeader() const
     out.InputBufferLength  = InputDataSize();
     out.OutputBufferLength = OutputDataSize();
 
-    ::memcpy(out.DriverName, m_DriverName.data(), m_DriverName.length());
-    ::memcpy(out.DeviceName, m_DeviceName.data(), m_DeviceName.length());
-    ::memcpy(out.ProcessName, m_ProcessName.data(), m_ProcessName.length());
+    ::memcpy(out.DriverName, m_DriverName.data(), m_DriverName.size());
+    ::memcpy(out.DeviceName, m_DeviceName.data(), m_DeviceName.size());
+    ::memcpy(out.ProcessName, m_ProcessName.data(), m_ProcessName.size());
 
     return out;
 }

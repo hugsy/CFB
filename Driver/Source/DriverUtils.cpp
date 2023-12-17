@@ -1,5 +1,10 @@
 #include "DriverUtils.hpp"
 
+#define xdbg(fmt, ...)                                                                                                 \
+    {                                                                                                                  \
+        dbg("[CFB::Driver::Utils] " fmt, __VA_ARGS__);                                                                 \
+    }
+
 
 ///
 /// @brief Basic allocator/deallocator for the kernel
@@ -67,6 +72,79 @@ ToString(KIRQL const Level)
     return "INVALID_LEVEL";
 }
 #pragma endregion
+
+#pragma region KUnicodeString
+
+KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type) :
+    m_UnicodeString {},
+    m_StringBuffer {KAlloc<wchar_t*>(sizeof(wchar_t) + srcsz, CFB_DEVICE_TAG, type)}
+{
+    ::memcpy(m_StringBuffer.get(), src, srcsz);
+    m_UnicodeString.Buffer        = m_StringBuffer.get();
+    m_UnicodeString.Length        = srcsz;
+    m_UnicodeString.MaximumLength = srcsz + sizeof(wchar_t);
+    ::memset(m_StringBuffer.get(), 0, capacity() - size());
+
+    xdbg(
+        "KUnicodeString::KUnicodeString((wchar_t*)L'%wZ', length=%lluB, capacity=%lluB)",
+        &m_UnicodeString,
+        size(),
+        capacity());
+}
+
+KUnicodeString::KUnicodeString(PUNICODE_STRING&& src, const POOL_TYPE type) : m_UnicodeString {*src}, m_StringBuffer {}
+{
+    xdbg(
+        "KUnicodeString::KUnicodeString((&&)L'%wZ', length=%lluB, capacity=%lluB)",
+        &m_UnicodeString,
+        size(),
+        capacity());
+}
+
+
+KUnicodeString::KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type) :
+    m_UnicodeString {},
+    m_StringBuffer {KAlloc<wchar_t*>(src->MaximumLength, CFB_DEVICE_TAG, type)}
+{
+    ::memcpy(m_StringBuffer.get(), src->Buffer, MIN(src->Length, src->MaximumLength));
+    m_UnicodeString.Buffer        = m_StringBuffer.get();
+    m_UnicodeString.Length        = src->Length;
+    m_UnicodeString.MaximumLength = src->MaximumLength;
+
+    xdbg(
+        "KUnicodeString::KUnicodeString((const&)L'%wZ', length=%lluB, capacity=%lluB)",
+        &m_UnicodeString,
+        size(),
+        capacity());
+}
+
+
+KUnicodeString&
+KUnicodeString::operator=(KUnicodeString&& other) noexcept
+{
+    if ( this != &other )
+    {
+        m_StringBuffer = static_cast<KAlloc<wchar_t*>&&>(other.m_StringBuffer);
+        ::memcpy(&m_UnicodeString, other.get(), sizeof(UNICODE_STRING));
+        ::memset(&other.m_UnicodeString, 0, sizeof(UNICODE_STRING));
+    }
+    return *this;
+}
+
+
+bool
+KUnicodeString::operator==(KUnicodeString const& other)
+{
+    return size() == other.size() && ::RtlCompareUnicodeString(get(), other.get(), true) == 0;
+}
+
+
+bool
+KUnicodeString::operator==(PUNICODE_STRING const& other)
+{
+    return size() == other->Length && ::RtlCompareUnicodeString(get(), other, true) == 0;
+}
+#pragma endregion KUnicodeString
 
 #pragma region KMutex
 KMutex::KMutex()

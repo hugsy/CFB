@@ -198,7 +198,7 @@ public:
         return m_Buffer[idx];
     }
 
-    const T
+    const T&
     get() const
     {
         return m_Buffer;
@@ -275,55 +275,39 @@ class KUnicodeString
 {
 public:
     ///
-    /// @brief Construct a new KUnicodeString object for a widechar buffer and length
+    /// @brief Creates a managed KUnicodeString from a widechar buffer and length. The resulting buffer is guaranteed
+    /// to be null-finished
     ///
     /// @param src pointer to the beginning of the string
     /// @param srcsz the number of bytes to use to store the unicode string
     /// @param type the pool type to store the buffer in
     ///
-    KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx) :
-        m_UnicodeString {},
-        m_StringBuffer {KAlloc<wchar_t*>(sizeof(wchar_t) + srcsz, CFB_DEVICE_TAG, type)}
-    {
-        ::memcpy(m_StringBuffer.get(), src, srcsz);
-        m_UnicodeString.Buffer        = m_StringBuffer.get();
-        m_UnicodeString.Length        = srcsz;
-        m_UnicodeString.MaximumLength = srcsz + sizeof(wchar_t);
-
-        dbg("KUnicodeString::KUnicodeString1('%wZ', length=%lluB, capacity=%lluB)",
-            &m_UnicodeString,
-            length(),
-            capacity());
-    }
+    KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_TYPE type = NonPagedPoolNx);
 
     ///
-    ///@brief Construct a new KUnicodeString object from a pointer to a UNICODE_STRING
+    ///@brief Construct a new KUnicodeString object from a pointer to a moved UNICODE_STRING pointer. Since
+    /// KUnicodeString is owned, the pointer is a wrapper of the structure and should become the sole owner (handling
+    /// deleting).
     ///
     ///@param src
     ///@param type
     ///
-    KUnicodeString(const PUNICODE_STRING src, const POOL_TYPE type = NonPagedPoolNx) :
-        m_UnicodeString {},
-        m_StringBuffer {KAlloc<wchar_t*>(src->MaximumLength, CFB_DEVICE_TAG, type)}
-    {
-        ::memcpy(m_StringBuffer.get(), src->Buffer, MIN(src->Length, src->MaximumLength));
-        m_UnicodeString.Buffer        = m_StringBuffer.get();
-        m_UnicodeString.Length        = src->Length;
-        m_UnicodeString.MaximumLength = src->MaximumLength;
+    KUnicodeString(PUNICODE_STRING&& src, const POOL_TYPE type = NonPagedPoolNx);
 
-        dbg("KUnicodeString::KUnicodeString2('%wZ', length=%lluB, capacity=%lluB)",
-            &m_UnicodeString,
-            length(),
-            capacity());
-    }
+    ///
+    ///@brief Construct a new KUnicodeString object from a reference to a UNICODE_STRING which is copied to become the
+    /// managed object.
+    ///
+    ///@param src
+    ///@param type
+    ///
+    KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type = NonPagedPoolNx);
 
     ///
     ///@brief Default constructor
     ///
     ///
-    KUnicodeString() : m_UnicodeString {}
-    {
-    }
+    KUnicodeString() = default;
 
     ///
     ///@brief Destroy the KUnicodeString object
@@ -340,29 +324,33 @@ public:
     operator=(const KUnicodeString& other) noexcept = delete;
 
     KUnicodeString&
-    operator=(KUnicodeString&& other) noexcept
-    {
-        if ( this != &other )
-        {
-            m_StringBuffer = static_cast<KAlloc<wchar_t*>&&>(other.m_StringBuffer);
-            ::memcpy(&m_UnicodeString, other.get(), sizeof(UNICODE_STRING));
-            ::memset(&other.m_UnicodeString, 0, sizeof(UNICODE_STRING));
-        }
-        return *this;
-    }
+    operator=(KUnicodeString&& other) noexcept;
 
+    ///
+    ///@brief KUnicodeString comparison
+    ///
+    ///@param other
+    ///@return true
+    ///@return false
+    ///
     bool
-    operator==(KUnicodeString const& other)
-    {
-        return length() == other.length() && ::RtlCompareUnicodeString(get(), other.get(), true) == 0;
-    }
+    operator==(KUnicodeString const& other);
 
+    ///
+    ///@brief String comparison to UNICODE_STRING pointer
+    ///
+    ///@param other
+    ///@return true
+    ///@return false
+    ///
     bool
-    operator==(PUNICODE_STRING const& other)
-    {
-        return length() == other->Length && ::RtlCompareUnicodeString(get(), other, true) == 0;
-    }
+    operator==(PUNICODE_STRING const& other);
 
+    ///
+    ///@brief Get a direct pointer to the wchar_t* data
+    ///
+    ///@return const wchar_t*
+    ///
     const wchar_t*
     data() const
     {
@@ -386,7 +374,7 @@ public:
     /// @return const usize
     ///
     const usize
-    length() const
+    size() const
     {
         return m_UnicodeString.Length;
     }
@@ -403,8 +391,8 @@ public:
     }
 
 protected:
-    UNICODE_STRING m_UnicodeString;
-    KAlloc<wchar_t*> m_StringBuffer;
+    UNICODE_STRING m_UnicodeString {};
+    KAlloc<wchar_t*> m_StringBuffer {};
 };
 
 
@@ -707,6 +695,7 @@ private:
     usize m_TotalEntry;
 };
 
+
 ///
 /// @brief Basic implementation of unique pointer for the kernel
 ///
@@ -791,7 +780,8 @@ public:
         return m_data;
     }
 
-    explicit operator bool() const
+    explicit
+    operator bool() const
     {
         return m_data;
     }
