@@ -33,10 +33,10 @@ log(
     // Explicitly refusing to log anything if IRQ level too high, since most Rtl* encoding functions are for
     // PASSIVE_LEVEL only
     //
-    if ( ::KeGetCurrentIrql() >= DISPATCH_LEVEL )
-    {
-        return;
-    }
+    // if ( ::KeGetCurrentIrql() >= DISPATCH_LEVEL )
+    // {
+    //     return;
+    // }
 
     //
     // Use `nt!Kd_IHVDRIVER_Mask` to control the level

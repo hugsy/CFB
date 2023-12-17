@@ -4,6 +4,12 @@
 #include "Context.hpp"
 #include "HookedDriver.hpp"
 
+#define xdbg(fmt, ...)                                                                                                 \
+    {                                                                                                                  \
+        dbg("[CFB::Driver::Callbacks] " fmt, __VA_ARGS__);                                                             \
+    }
+
+
 namespace CFB::Driver::Callbacks
 {
 
@@ -21,12 +27,14 @@ static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PT
 NTSTATUS
 InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
+    NTSTATUS Status          = STATUS_SUCCESS;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
     //
     // Capture the IRP data if capturing mode is enabled for the current driver
     //
-    auto CapturedIrp = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
+    CFB::Driver::CapturedIrp* CapturedIrp =
+        new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
     if ( !(CapturedIrp && CapturedIrp->IsValid()) )
     {
         //
@@ -37,9 +45,9 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     }
 
     auto const Driver = CapturedIrp->AssociatedDriver();
-    NTSTATUS Status   = STATUS_SUCCESS;
 
-    dbg("Initialized CapturedIrp at %p", CapturedIrp);
+
+    xdbg("Initialized CapturedIrp at %p", CapturedIrp);
 
     // TODO: replace with SharedPointer<CapturedIrp>
 
