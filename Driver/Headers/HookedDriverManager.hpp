@@ -61,7 +61,7 @@ public:
     /// @return NTSTATUS
     ///
     NTSTATUS
-    InsertDriver(PUNICODE_STRING const UnicodePath);
+    InsertDriver(Utils::KUnicodeString const& UnicodePath);
 
     ///
     /// @brief
@@ -70,7 +70,7 @@ public:
     /// @return NTSTATUS
     ///
     NTSTATUS
-    RemoveDriver(PUNICODE_STRING const UnicodePath);
+    RemoveDriver(Utils::KUnicodeString const& UnicodePath);
 
     ///
     /// @brief

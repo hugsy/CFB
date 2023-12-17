@@ -79,11 +79,12 @@ KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_T
     m_UnicodeString {},
     m_StringBuffer {KAlloc<wchar_t*>(sizeof(wchar_t) + srcsz, CFB_DEVICE_TAG, type)}
 {
-    ::memcpy(m_StringBuffer.get(), src, srcsz);
     m_UnicodeString.Buffer        = m_StringBuffer.get();
     m_UnicodeString.Length        = srcsz;
     m_UnicodeString.MaximumLength = srcsz + sizeof(wchar_t);
-    ::memset(m_StringBuffer.get(), 0, capacity() - size());
+
+    ::memset(m_StringBuffer.get(), 0, capacity());
+    ::memcpy(m_StringBuffer.get(), src, srcsz);
 
     xdbg(
         "KUnicodeString::KUnicodeString((wchar_t*)L'%wZ', length=%lluB, capacity=%lluB)",
@@ -119,6 +120,38 @@ KUnicodeString::KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type)
 }
 
 
+KUnicodeString::~KUnicodeString()
+{
+    xdbg("KUnicodeString::~KUnicodeString(%p)", m_UnicodeString);
+}
+
+
+KUnicodeString::KUnicodeString(const KUnicodeString& other)
+{
+    m_StringBuffer = KAlloc<wchar_t*>(other.capacity());
+    ::memcpy(m_StringBuffer.get(), other.data(), other.size());
+
+    m_UnicodeString.Buffer        = m_StringBuffer.get();
+    m_UnicodeString.Length        = other.size();
+    m_UnicodeString.MaximumLength = other.capacity();
+}
+
+KUnicodeString&
+KUnicodeString::operator=(const KUnicodeString& other) noexcept
+{
+    if ( this != &other )
+    {
+        m_StringBuffer = KAlloc<wchar_t*>(other.capacity());
+        ::memcpy(m_StringBuffer.get(), other.get(), other.size());
+
+        m_UnicodeString.Buffer        = m_StringBuffer.get();
+        m_UnicodeString.Length        = other.size();
+        m_UnicodeString.MaximumLength = other.capacity();
+    }
+    return *this;
+}
+
+
 KUnicodeString&
 KUnicodeString::operator=(KUnicodeString&& other) noexcept
 {
@@ -144,6 +177,35 @@ KUnicodeString::operator==(PUNICODE_STRING const& other)
 {
     return size() == other->Length && ::RtlCompareUnicodeString(get(), other, true) == 0;
 }
+
+
+const wchar_t*
+KUnicodeString::data() const
+{
+    return m_UnicodeString.Buffer;
+}
+
+
+const PUNICODE_STRING
+KUnicodeString::get() const
+{
+    return const_cast<PUNICODE_STRING>(&m_UnicodeString);
+}
+
+
+const usize
+KUnicodeString::size() const
+{
+    return m_UnicodeString.Length;
+}
+
+
+const usize
+KUnicodeString::capacity() const
+{
+    return m_UnicodeString.MaximumLength;
+}
+
 #pragma endregion KUnicodeString
 
 #pragma region KMutex

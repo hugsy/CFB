@@ -95,7 +95,9 @@ DriverManager::ExecuteCommand(json const& Request)
     Response["success"] = false;
 
     InterlockedIncrement64((long long*)&m_RequestNumber);
-    xdbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
+
+    if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
+        xdbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
 
     switch ( RequestId )
     {
@@ -300,13 +302,16 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-    xinfo(
-        "Request[%llu] %s => %s",
-        m_RequestNumber,
-        CFB::Utils::ToString(RequestId).c_str(),
-        boolstr(Response["success"]));
+    if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
+    {
+        xinfo(
+            "Request[%llu] %s => %s",
+            m_RequestNumber,
+            CFB::Utils::ToString(RequestId).c_str(),
+            boolstr(Response["success"]));
 
-    xdbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
+        xdbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
+    }
 
     return Ok(Response);
 }

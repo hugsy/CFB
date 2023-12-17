@@ -8,20 +8,20 @@
     }
 
 namespace Callbacks = CFB::Driver::Callbacks;
-namespace Utils     = CFB::Driver::Utils;
+
 
 namespace CFB::Driver
 {
-HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
+HookedDriver::HookedDriver(Utils::KUnicodeString const& UnicodePath) :
+    Next {},
+    OriginalDriverObject {nullptr},
+    HookedDriverObject {new(NonPagedPoolNx) DRIVER_OBJECT},
+    Path {UnicodePath},
     m_Enabled {false},
     m_State {HookState::Unhooked},
-    OriginalDriverObject {nullptr},
-    Next {},
-    m_InterceptedIrpsCount {0},
-    Path {UnicodePath},
-    HookedDriverObject {new(NonPagedPoolNx) DRIVER_OBJECT}
+    m_InterceptedIrpsCount {0}
 {
-    xdbg("Creating HookedDriver('%wZ')", &Path);
+    xdbg("Creating HookedDriver('%wZ')", Path.get());
 
     //
     // Find the driver from its path
@@ -29,7 +29,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     NTSTATUS Status = ::ObReferenceObjectByName(
         Path.get(),
         OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
+        nullptr,
         0,
         *IoDriverObjectType,
         KernelMode,
@@ -42,7 +42,7 @@ HookedDriver::HookedDriver(const PUNICODE_STRING UnicodePath) :
     //
     // Create a copy DRIVER_OBJECT
     //
-    ::RtlCopyMemory(HookedDriverObject.get(), OriginalDriverObject, sizeof(DRIVER_OBJECT));
+    ::memcpy(HookedDriverObject.get(), OriginalDriverObject, sizeof(DRIVER_OBJECT));
 
     //
     // Swap the IRP major function callbacks of the HookedDriver, avoiding to trigger PatchGuard

@@ -151,7 +151,10 @@ _Function_class_(DRIVER_DISPATCH) DriverCloseRoutine(_In_ PDEVICE_OBJECT Device,
 NTSTATUS
 _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
-    UNREFERENCED_PARAMETER(DeviceObject);
+    if ( DeviceObject != Globals->DeviceObject )
+    {
+        return CompleteRequest(Irp, STATUS_UNSUCCESSFUL, 0);
+    }
 
     //
     // This should never happen as we checked the process when getting the handle, but still
@@ -184,15 +187,15 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
     {
     case CFB::Comms::Ioctl::HookDriver:
     {
-        auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
-        Status          = Globals->DriverManager.InsertDriver(DriverName.get());
+        auto const DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
+        Status                = Globals->DriverManager.InsertDriver(DriverName);
         break;
     }
 
     case CFB::Comms::Ioctl::UnhookDriver:
     {
-        auto DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
-        Status          = Globals->DriverManager.RemoveDriver(DriverName.get());
+        auto const DriverName = Utils::KUnicodeString(reinterpret_cast<wchar_t*>(InputBuffer), InputBufferLen);
+        Status                = Globals->DriverManager.RemoveDriver(DriverName);
         break;
     }
 
@@ -472,5 +475,6 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     err("Device initialization for '%S' done, use `%s` for debug logs",
         CFB_DEVICE_NAME,
         DML("ed nt !Kd_IHVDRIVER_Mask f"));
+
     return Status;
 }

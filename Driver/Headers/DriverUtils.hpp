@@ -303,6 +303,14 @@ public:
     ///
     KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type = NonPagedPoolNx);
 
+
+    ///
+    ///@brief Copy constructor for KUnicodeString
+    ///
+    ///@param other
+    ///
+    KUnicodeString(const KUnicodeString& other);
+
     ///
     ///@brief Default constructor
     ///
@@ -312,16 +320,12 @@ public:
     ///
     ///@brief Destroy the KUnicodeString object
     ///
-    ~KUnicodeString()
-    {
-        dbg("KUnicodeString::~KUnicodeString(%p)", m_UnicodeString);
-        // deallocation of `m_StringBuffer` is handled by KAlloc
-    }
+    ~KUnicodeString();
 
-    KUnicodeString(const KUnicodeString&) = delete;
-    KUnicodeString(KUnicodeString&&)      = delete;
+
     KUnicodeString&
-    operator=(const KUnicodeString& other) noexcept = delete;
+    operator=(const KUnicodeString& other) noexcept;
+
 
     KUnicodeString&
     operator=(KUnicodeString&& other) noexcept;
@@ -352,10 +356,7 @@ public:
     ///@return const wchar_t*
     ///
     const wchar_t*
-    data() const
-    {
-        return m_UnicodeString.Buffer;
-    }
+    data() const;
 
     ///
     ///@brief Get a pointer to the PUNICODE_STRING
@@ -363,10 +364,7 @@ public:
     ///@return const PUNICODE_STRING
     ///
     const PUNICODE_STRING
-    get() const
-    {
-        return const_cast<PUNICODE_STRING>(&m_UnicodeString);
-    }
+    get() const;
 
     ///
     /// @brief Get the length of the buffer (i.e. number of bytes)
@@ -374,10 +372,7 @@ public:
     /// @return const usize
     ///
     const usize
-    size() const
-    {
-        return m_UnicodeString.Length;
-    }
+    size() const;
 
     ///
     /// @brief Get the maximum length of the buffer (i.e. number of bytes)
@@ -385,10 +380,7 @@ public:
     /// @return const usize
     ///
     const usize
-    capacity() const
-    {
-        return m_UnicodeString.MaximumLength;
-    }
+    capacity() const;
 
 protected:
     UNICODE_STRING m_UnicodeString {};

@@ -45,7 +45,7 @@ public:
     ///
     ///@param UnicodePath the unicode name of the driver
     ///
-    HookedDriver(const PUNICODE_STRING UnicodePath);
+    HookedDriver(Utils::KUnicodeString const& UnicodePath);
 
     ///
     ///@brief Destroy the Hooked Driver object

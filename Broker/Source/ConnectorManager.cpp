@@ -28,7 +28,7 @@ bool
 CallbackDispatcher(CFB::Comms::CapturedIrp const& Irp)
 {
     const usize nbTotal = g_Connectors.size();
-    dbg("[ConnectorManager::CallbackDispatcher] Dispatching IRP @ %llu to %u connector%s",
+    dbg("[ConnectorManager::CallbackDispatcher] Dispatching IRP @ %llx to %u connector%s",
         Irp.Header.TimeStamp,
         nbTotal,
         PLURAL_IF(nbTotal > 1),
