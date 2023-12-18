@@ -12,7 +12,7 @@ Building CFB requires only [`cmake`](https://cmake.org), and the Windows [SDK](h
 ```powershell
 cd \path\to\CFB.git
 mkdir build
-cmake -S . -B ./build -D CFB_BUILD_TOOLS:BOOL=ON -A $platform
+cmake -S . -B ./build -D CFB_BUILD_TOOLS:BOOL=ON -D CFB_BUILD_GUI:BOOL=ON -A $platform
 cmake --build ./build --verbose --parallel $env:NUMBER_OF_PROCESSORS --config $config
 ```
 
@@ -20,7 +20,7 @@ Where `$platform` can be:
   - `x64`
   - `arm64`
 
-`win32` may work but is totally untested. Feedback welcome.
+`win32` may work to build the broker. However, ImGUI doesn't compile on 32-bit.
 
 ### To install 
 
