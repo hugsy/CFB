@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ['windows-latest']
-        platform: ['x64', 'arm64']
+        platform: ['x64', 'arm64', 'win32']
         configuration: ['Debug', 'RelWithDebInfo']
 
     runs-on: ${{ matrix.os }}
