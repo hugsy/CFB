@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::Driver::Main]"
+
 #include "Common.hpp"
 #include "Context.hpp"
 #include "IoctlCodes.hpp"
@@ -87,7 +89,7 @@ _Function_class_(DRIVER_DISPATCH) DriverCreateRoutine(_In_ PDEVICE_OBJECT pObjec
     else
     {
         auto ScopedSpinLock       = CFB::Driver::Utils::ScopedLock(Globals->ContextLock);
-        PEPROCESS pCallingProcess = ::PsGetCurrentProcess();
+        PEPROCESS pCallingProcess = ::IoGetCurrentProcess();
 
         if ( Globals->Owner == nullptr )
         {
@@ -281,7 +283,7 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
             return true;
         });
 
-    dbg("[DriverReadRoutine] RequestedBufferSize = %uB , ExpectedBufferSize = %uB , CurrentIrpNumber = %u",
+    dbg("DriverReadRoutine(RequestedBufferSize = %uB , ExpectedBufferSize = %uB , CurrentIrpNumber = %u)",
         RequestedBufferSize,
         ExpectedBufferSize,
         DumpableIrpNumber);

@@ -135,7 +135,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
             return;
         }
 
-        CANSI_STRING aStr;
+        CANSI_STRING aStr {};
         Status = ::RtlInitAnsiStringEx(&aStr, lpProcessName);
         if ( !NT_SUCCESS(Status) )
         {
@@ -143,7 +143,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
             return;
         }
 
-        UNICODE_STRING uStr;
+        UNICODE_STRING uStr {};
         Status = ::RtlAnsiStringToUnicodeString(&uStr, &aStr, true);
         if ( !NT_SUCCESS(Status) )
         {
@@ -256,10 +256,12 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
                 return STATUS_INVALID_PARAMETER_3;
             }
 
-            RtlCopyMemory(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
+            ::memcpy(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
 
+#ifdef _DEBUG
             xok("Capturing input data:");
             CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
+#endif // _DEBUG
         }
     }
 

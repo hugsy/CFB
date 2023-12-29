@@ -1,22 +1,10 @@
+#define CFB_NS "[CFB::Driver::HookedDriverManager]"
+
 #include "HookedDriverManager.hpp"
 
 #include "Context.hpp"
 #include "Native.hpp"
 
-#define xerr(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        err("[HookedDriverManager] " fmt, __VA_ARGS__);                                                                \
-    }
-
-#define xinfo(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        info("[HookedDriverManager] " fmt, __VA_ARGS__);                                                               \
-    }
-
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[HookedDriverManager] " fmt, __VA_ARGS__);                                                                \
-    }
 
 namespace Utils = CFB::Driver::Utils;
 
@@ -24,12 +12,12 @@ namespace CFB::Driver
 {
 HookedDriverManager::HookedDriverManager()
 {
-    xdbg("Creating HookedDriverManager");
+    dbg("Creating HookedDriverManager");
 }
 
 HookedDriverManager::~HookedDriverManager()
 {
-    xdbg("Destroying HookedDriverManager");
+    dbg("Destroying HookedDriverManager");
 
     HookedDriverManager::RemoveAllDrivers();
 }
@@ -40,7 +28,7 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
     NTSTATUS Status        = STATUS_UNSUCCESSFUL;
     PDRIVER_OBJECT pDriver = nullptr;
 
-    xdbg("HookedDriverManager::InsertDriver('%wZ')", UnicodePath.get());
+    dbg("HookedDriverManager::InsertDriver('%wZ')", UnicodePath.get());
 
     //
     // Resolve the given `Path` parameter as name for Driver Object
@@ -63,7 +51,7 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
     }
 
 
-    xdbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
+    dbg("HookedDriverManager::InsertDriver(): Found driver at %p", pDriver);
 
     //
     // On any failure, make sure to dereference the object
@@ -75,7 +63,7 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
             //
             // Always dereference of scope-leave. `HookedDriver` manages its own driver reference
             //
-            xdbg("HookedDriverManager::InsertDriver(): dereferencing object %p", pDriver);
+            dbg("HookedDriverManager::InsertDriver(): dereferencing object %p", pDriver);
             ObDereferenceObject(pDriver);
         });
 
@@ -84,7 +72,7 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
     //
     if ( pDriver == Globals->DriverObject )
     {
-        xerr("HookedDriverManager::InsertDriver(): refusing to hook %S", CFB_DRIVER_BASENAME);
+        err("HookedDriverManager::InsertDriver(): refusing to hook %S", CFB_DRIVER_BASENAME);
         return STATUS_ACCESS_DENIED;
     }
 
@@ -112,8 +100,7 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    xdbg(
-        "HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
+    dbg("HookedDriverManager::InsertDriver(): Driver '%wZ' (%p) is not hooked, hooking now...",
         UnicodePath.get(),
         ScopedDriverObject.get());
 
@@ -128,9 +115,9 @@ HookedDriverManager::InsertDriver(Utils::KUnicodeString const& UnicodePath)
     //
     m_Entries.PushBack(NewHookedDriver);
 
-    xdbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.get(), m_Entries.Size());
+    dbg("Added '%wZ' to the hooked driver list, TotalEntries=%d", NewHookedDriver->Path.get(), m_Entries.Size());
 
-    xinfo("Driver '%wZ' is hooked", NewHookedDriver->Path.get());
+    info("Driver '%wZ' is hooked", NewHookedDriver->Path.get());
 
     return STATUS_SUCCESS;
 }
@@ -152,13 +139,13 @@ HookedDriverManager::RemoveDriver(Utils::KUnicodeString const& UnicodePath)
         return STATUS_NOT_FOUND;
     }
 
-    xdbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
+    dbg("Removing HookedDriver '%wZ' (%p) ...", MatchedDriver->Path.get(), MatchedDriver);
 
     m_Entries -= MatchedDriver;
 
     ObDereferenceObject(MatchedDriver->OriginalDriverObject);
 
-    xinfo("Driver '%wZ' is unhooked", MatchedDriver->Path.get());
+    info("Driver '%wZ' is unhooked", MatchedDriver->Path.get());
     delete MatchedDriver;
 
     return STATUS_SUCCESS;
@@ -167,7 +154,7 @@ HookedDriverManager::RemoveDriver(Utils::KUnicodeString const& UnicodePath)
 NTSTATUS
 HookedDriverManager::RemoveAllDrivers()
 {
-    xdbg("Removing all drivers");
+    dbg("Removing all drivers");
 
     Utils::ScopedLock lock(m_Mutex);
     do
@@ -204,14 +191,13 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
     (bEnable) ? MatchedDriver->EnableCapturing() : MatchedDriver->DisableCapturing();
     const bool DriverStateChanged = OldState != MatchedDriver->CanCapture();
 
-    xdbg(
-        "HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
+    dbg("HookedDriverManager::SetMonitoringState('%wZ', %s): state %schanged, CanCapture=%s",
         MatchedDriver->Path.get(),
         boolstr(bEnable),
         (DriverStateChanged ? "" : "un"),
         boolstr(MatchedDriver->CanCapture()));
 
-    xinfo(
+    info(
         "Capture of IRPs to driver '%wZ' are %scaptured",
         MatchedDriver->Path.get(),
         MatchedDriver->CanCapture() ? "" : "not ");

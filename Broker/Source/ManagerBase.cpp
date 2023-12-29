@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::Broker::ManagerBase]"
+
 #include "ManagerBase.hpp"
 
 #include <thread>
@@ -56,7 +58,7 @@ ManagerBase::WaitForState(CFB::Broker::State WantedState)
             break;
         }
 
-        xinfo("Waiting for state '%s' (current '%s')", Utils::ToString(WantedState), Utils::ToString(CurrentState));
+        info("Waiting for state '%s' (current '%s')", Utils::ToString(WantedState), Utils::ToString(CurrentState));
 
         //
         // Otherwise wait to be signaled
@@ -90,7 +92,7 @@ ManagerBase::WaitForState(CFB::Broker::State WantedState)
 bool
 ManagerBase::SetState(CFB::Broker::State NewState)
 {
-    xinfo("Notifying state change '%s' -> '%s'", Utils::ToString(Globals.State()), Utils::ToString(NewState));
+    info("Notifying state change '%s' -> '%s'", Utils::ToString(Globals.State()), Utils::ToString(NewState));
 
     auto bRes = Globals.SetState(NewState);
     return bRes;

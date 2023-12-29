@@ -8,8 +8,7 @@
 #include <stdio.h>
 
 #include <iostream>
-
-#endif //! CFB_KERNEL_DRIVER
+#endif // CFB_KERNEL_DRIVER
 
 #define __WFILE__ WIDEN(__FILE__)
 #define __WFUNCTION__ WIDEN(__FUNCTION__)
@@ -18,26 +17,12 @@
 namespace CFB::Log
 {
 void
-log(
-#ifdef CFB_KERNEL_DRIVER
-    ULONG level,
-#endif // CFB_KERNEL_DRIVER
-    const char* fmtstr,
-    ...)
+Log(ULONG level, const char* fmtstr, ...)
 {
     va_list args;
     va_start(args, fmtstr);
 
 #ifdef CFB_KERNEL_DRIVER
-    //
-    // Explicitly refusing to log anything if IRQ level too high, since most Rtl* encoding functions are for
-    // PASSIVE_LEVEL only
-    //
-    // if ( ::KeGetCurrentIrql() >= DISPATCH_LEVEL )
-    // {
-    //     return;
-    // }
-
     //
     // Use `nt!Kd_IHVDRIVER_Mask` to control the level
     //
@@ -47,10 +32,17 @@ log(
     std::string out;
     out.resize(1024);
 
-    ::vprintf(fmtstr, args);
     ::vsnprintf(out.data(), out.size(), fmtstr, args);
-    ::OutputDebugStringA(out.c_str());
 
+    if ( level == LogLevelDebug )
+    {
+        ::OutputDebugStringA(out.c_str());
+    }
+    else
+    {
+        out.resize(std::strlen(out.c_str()));
+        std::cerr << out;
+    }
 #endif // CFB_KERNEL_DRIVER
 
     va_end(args);

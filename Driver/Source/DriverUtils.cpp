@@ -1,9 +1,6 @@
-#include "DriverUtils.hpp"
+#define CFB_NS "[CFB::Driver::Utils]"
 
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[CFB::Driver::Utils] " fmt, __VA_ARGS__);                                                                 \
-    }
+#include "DriverUtils.hpp"
 
 
 ///
@@ -86,8 +83,7 @@ KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_T
     ::memset(m_StringBuffer.get(), 0, capacity());
     ::memcpy(m_StringBuffer.get(), src, srcsz);
 
-    xdbg(
-        "KUnicodeString::KUnicodeString((wchar_t*)L'%wZ', length=%lluB, capacity=%lluB)",
+    dbg("KUnicodeString::KUnicodeString((wchar_t*)L'%wZ', length=%lluB, capacity=%lluB)",
         &m_UnicodeString,
         size(),
         capacity());
@@ -95,8 +91,7 @@ KUnicodeString::KUnicodeString(const wchar_t* src, const u16 srcsz, const POOL_T
 
 KUnicodeString::KUnicodeString(PUNICODE_STRING&& src, const POOL_TYPE type) : m_UnicodeString {*src}, m_StringBuffer {}
 {
-    xdbg(
-        "KUnicodeString::KUnicodeString((&&)L'%wZ', length=%lluB, capacity=%lluB)",
+    dbg("KUnicodeString::KUnicodeString((&&)L'%wZ', length=%lluB, capacity=%lluB)",
         &m_UnicodeString,
         size(),
         capacity());
@@ -112,8 +107,7 @@ KUnicodeString::KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type)
     m_UnicodeString.Length        = src->Length;
     m_UnicodeString.MaximumLength = src->MaximumLength;
 
-    xdbg(
-        "KUnicodeString::KUnicodeString((const&)L'%wZ', length=%lluB, capacity=%lluB)",
+    dbg("KUnicodeString::KUnicodeString((const&)L'%wZ', length=%lluB, capacity=%lluB)",
         &m_UnicodeString,
         size(),
         capacity());
@@ -122,7 +116,7 @@ KUnicodeString::KUnicodeString(PUNICODE_STRING const& src, const POOL_TYPE type)
 
 KUnicodeString::~KUnicodeString()
 {
-    xdbg("KUnicodeString::~KUnicodeString(%p)", m_UnicodeString);
+    dbg("KUnicodeString::~KUnicodeString(%p)", m_UnicodeString);
 }
 
 

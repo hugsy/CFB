@@ -84,13 +84,13 @@ public:
     ScopedIrql(KIRQL level) : m_NewIrql(level)
     {
         KeRaiseIrql(m_NewIrql, &m_OldIrql);
-        dbg("IRQL %s -> %s", ToString(m_OldIrql), ToString(m_NewIrql));
+        dbg("ScopedIrql(): IRQL %s -> %s", ToString(m_OldIrql), ToString(m_NewIrql));
     }
 
     ~ScopedIrql()
     {
-        ::KeLowerIrql(m_OldIrql);
-        dbg("IRQL %d <- %d", ToString(m_OldIrql), ToString(m_NewIrql));
+        KeLowerIrql(m_OldIrql);
+        dbg("~ScopedIrql(): IRQL %d <- %d", ToString(m_OldIrql), ToString(m_NewIrql));
     }
 
 private:

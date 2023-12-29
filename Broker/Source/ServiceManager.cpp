@@ -1,3 +1,4 @@
+#define CFB_NS "[CFB::Broker::ServiceManager]"
 #include "ServiceManager.hpp"
 
 #include "Context.hpp"
@@ -53,12 +54,12 @@ ServiceManager::~ServiceManager()
 {
     if ( UnloadDriver() == false )
     {
-        xerr("UnloadDriver() failed");
+        err("UnloadDriver() failed");
     }
 
     if ( DeleteDriverFromDisk() == false )
     {
-        xerr("DeleteDriverFromDisk() failed");
+        err("DeleteDriverFromDisk() failed");
     }
 }
 
@@ -67,13 +68,13 @@ ServiceManager::Setup()
 {
     if ( ExtractDriverFromResource() == false )
     {
-        xerr("ExtractDriverFromResource() failed");
+        err("ExtractDriverFromResource() failed");
         return Err(ErrorCode::InitializationError);
     }
 
     if ( LoadDriver() == false )
     {
-        xerr("LoadDriver() failed");
+        err("LoadDriver() failed");
         return Err(ErrorCode::InitializationError);
     }
 
@@ -115,7 +116,7 @@ ServiceManager::BackgroundService()
 bool
 ServiceManager::ExtractDriverFromResource()
 {
-    xdbg("Extracting driver from resources...");
+    dbg("Extracting driver from resources...");
 
     HRSRC DriverRsc = ::FindResourceW(nullptr, MAKEINTRESOURCEW(IDR_CFB_DRIVER), MAKEINTRESOURCEW(CFB_DRIVER_DATAFILE));
     if ( !DriverRsc )
@@ -138,7 +139,7 @@ ServiceManager::ExtractDriverFromResource()
         return false;
     }
 
-    xdbg("Dumping driver to '%S'", m_DriverTempPath.c_str());
+    dbg("Dumping driver to '%S'", m_DriverTempPath.c_str());
 
     wil::unique_handle hDriverFile(::CreateFileW(
         m_DriverTempPath.c_str(),
@@ -163,11 +164,11 @@ ServiceManager::ExtractDriverFromResource()
 
     if ( dwWritten != dwDriverSize )
     {
-        xerr("Incomplete driver file dump");
+        err("Incomplete driver file dump");
         return false;
     }
 
-    xdbg("Driver written in '%S'", m_DriverTempPath.c_str());
+    dbg("Driver written in '%S'", m_DriverTempPath.c_str());
     return true;
 }
 
@@ -182,7 +183,7 @@ ServiceManager::DeleteDriverFromDisk()
 bool
 ServiceManager::LoadDriver()
 {
-    xdbg("Loading driver '%S'", m_DriverTempPath.c_str());
+    dbg("Loading driver '%S'", m_DriverTempPath.c_str());
 
     //
     // Get a handle to the service control manager
@@ -247,7 +248,7 @@ ServiceManager::LoadDriver()
     //
     // Start the service
     //
-    xdbg("Starting service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
+    dbg("Starting service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::StartServiceW(m_hService.get(), 0, nullptr) )
     {
@@ -255,7 +256,7 @@ ServiceManager::LoadDriver()
         return false;
     }
 
-    xok("Service '%S' started successfully.", CFB_BROKER_DRIVER_SERVICE_NAME);
+    ok("Service '%S' started successfully.", CFB_BROKER_DRIVER_SERVICE_NAME);
     return true;
 }
 
@@ -265,7 +266,7 @@ ServiceManager::UnloadDriver()
 {
     SERVICE_STATUS ServiceStatus = {0};
 
-    xdbg("Stopping service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
+    dbg("Stopping service '%S'", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::ControlService(m_hService.get(), SERVICE_CONTROL_STOP, &ServiceStatus) )
     {
@@ -273,7 +274,7 @@ ServiceManager::UnloadDriver()
         return false;
     }
 
-    xdbg("Service '%S' stopped", CFB_BROKER_DRIVER_SERVICE_NAME);
+    dbg("Service '%S' stopped", CFB_BROKER_DRIVER_SERVICE_NAME);
 
     if ( !::DeleteService(m_hService.get()) )
     {

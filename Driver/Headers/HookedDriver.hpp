@@ -165,7 +165,7 @@ private:
     /// @brief If `true`, any IRP targetting the driver object underneath will be pushed to the queue of
     /// intercepted IRPs
     ///
-    bool m_Enabled;
+    bool m_CapturingEnabled;
 
     ///
     /// @brief The total number of intercepted IRPs

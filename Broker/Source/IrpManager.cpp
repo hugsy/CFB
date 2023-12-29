@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::Broker::IrpManager]"
+
 #include "IrpManager.hpp"
 
 #include <chrono>
@@ -28,7 +30,7 @@ IrpManager::IrpManager()
             throw std::runtime_error("IrpManager()");
         }
 
-        xdbg("Got handle to event %x", hEvent.get());
+        dbg("Got handle to event %x", hEvent.get());
         m_hNewIrpEvent = std::move(hEvent);
     }
 }
@@ -73,7 +75,7 @@ IrpManager::Setup()
         }
         m_hDevice = std::move(hDevice);
     }
-    xdbg("Got handle %x to device %S", m_hDevice.get(), CFB_USER_DEVICE_PATH);
+    dbg("Got handle %x to device %S", m_hDevice.get(), CFB_USER_DEVICE_PATH);
 
     //
     // Share the notification event with the driver
@@ -96,7 +98,7 @@ IrpManager::Setup()
             return Err(ErrorCode::InitializationError);
         }
     }
-    xdbg("Event shared with driver");
+    dbg("Event shared with driver");
 
     //
     // Notify other threads that the IRP Manager is ready
@@ -116,7 +118,7 @@ IrpManager::Run()
     //
     WaitForState(CFB::Broker::State::Running);
 
-    xinfo("Waiting for intercepted IRP...");
+    info("Waiting for intercepted IRP...");
 
     //
     // The IRP Manager waits for either a termination event or a new IRP event
@@ -130,13 +132,13 @@ IrpManager::Run()
         {
         case WAIT_OBJECT_0 + 0:
         {
-            xdbg("Received termination event");
+            dbg("Received termination event");
             bDoLoop = false;
             break;
         }
         case WAIT_OBJECT_0 + 1:
         {
-            xdbg("Received new IRP data event");
+            dbg("Received new IRP data event");
 
             for ( auto const& Irp : GetNextIrps() )
             {
@@ -145,7 +147,7 @@ IrpManager::Run()
                 //
                 if ( !m_CallbackDispatcher )
                 {
-                    xwarn("No connector callback dispatcher registered");
+                    warn("No connector callback dispatcher registered");
                     break;
                 }
 
@@ -186,7 +188,7 @@ IrpManager::GetNextIrps()
         bool bRes        = ::ReadFile(m_hDevice.get(), RawData.get(), dataLength, &nbDataRead, nullptr);
         if ( bRes )
         {
-            xdbg("%uB data fetched, %uB allocated", nbDataRead, dataLength);
+            dbg("%uB data fetched, %uB allocated", nbDataRead, dataLength);
             dataLength = nbDataRead;
             break;
         }
@@ -218,7 +220,7 @@ IrpManager::GetNextIrps()
         while ( offset < dataLength )
         {
             auto const Header = reinterpret_cast<CFB::Comms::CapturedIrpHeader*>(RawData.get() + offset);
-            xdbg("Parsing from offset %d", offset);
+            dbg("Parsing from offset %d", offset);
 
             if ( offset + sizeof(CFB::Comms::CapturedIrpHeader) > dataLength )
             {
@@ -263,8 +265,7 @@ IrpManager::GetNextIrps()
                 offset += Irp.Header.OutputBufferLength;
             }
 
-            xdbg(
-                "New IRP (DeviceName='%S', Type=%s, InputBufferLength=%u, OutputBufferLength=%u) pushed to queue",
+            dbg("New IRP (DeviceName='%S', Type=%s, InputBufferLength=%u, OutputBufferLength=%u) pushed to queue",
                 Irp.Header.DeviceName,
                 CFB::Utils::IrpMajorToString(Irp.Header.MajorFunction),
                 Irp.Header.InputBufferLength,
@@ -274,7 +275,7 @@ IrpManager::GetNextIrps()
         }
     }
 
-    xdbg("%d IRPs pulled from driver", Irps.size());
+    dbg("%d IRPs pulled from driver", Irps.size());
 
     //
     // Reset the event
@@ -290,7 +291,7 @@ IrpManager::SetCallback(std::function<bool(CFB::Comms::CapturedIrp const&)> cb)
 {
     std::scoped_lock(m_CallbackLock);
     m_CallbackDispatcher = cb;
-    xdbg("Callback %p added", cb);
+    dbg("Callback %p added", cb);
     return true;
 }
 } // namespace CFB::Broker

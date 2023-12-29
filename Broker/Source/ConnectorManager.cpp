@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::ConnectorManager::CallbackDispatcher]"
+
 // clang-format off
 #include "ConnectorManager.hpp"
 
@@ -7,7 +9,6 @@
 #include "Connectors/Dummy.hpp" // for test
 #include "Connectors/JsonQueue.hpp"
 // clang-format on
-
 
 namespace CFB::Broker
 {
@@ -28,12 +29,11 @@ bool
 CallbackDispatcher(CFB::Comms::CapturedIrp const& Irp)
 {
     const usize nbTotal = g_Connectors.size();
-    dbg("[ConnectorManager::CallbackDispatcher] Dispatching IRP @ %llx to %u connector%s",
+    dbg("[ConnectorManager::CallbackDispatcher] Dispatching IRP received at TS=%llu to %u connector%s",
         Irp.Header.TimeStamp,
         nbTotal,
         PLURAL_IF(nbTotal > 1),
         &g_Connectors);
-
 
     usize nbSuccess = 0;
 
@@ -74,10 +74,10 @@ ConnectorManager::Setup()
     //
     // Register the callback dispatcher
     //
-    xdbg("Register the connector dispatcher to the IRP manager");
+    dbg("Register the connector dispatcher to the IRP manager");
     if ( Globals.IrpManager()->SetCallback(&CallbackDispatcher) )
     {
-        xinfo("Connector dispatcher successfully registered");
+        info("Connector dispatcher successfully registered");
 
         //
         // Add new connector to that list
@@ -94,11 +94,11 @@ ConnectorManager::Setup()
             g_Connectors.push_back(conn);
         }
 
-        xdbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
+        dbg("%u connector%s registered to %p", g_Connectors.size(), PLURAL_IF(g_Connectors.size() > 1), &g_Connectors);
     }
     else
     {
-        xinfo("Failed to register the connector dispatcher");
+        info("Failed to register the connector dispatcher");
         return Err(ErrorCode::InitializationError);
     }
 
@@ -141,7 +141,7 @@ ConnectorManager::Run()
     // Wait for termination event
     //
     ::WaitForSingleObject(m_hTerminationEvent.get(), INFINITE);
-    xdbg("TerminationEvent received");
+    dbg("TerminationEvent received");
 
     //
     // Propagate the notification to the other managers

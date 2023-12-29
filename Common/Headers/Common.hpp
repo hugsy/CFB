@@ -41,7 +41,7 @@ using uptr  = ULONG_PTR;
 #define CFB_DEVICE_NAME                   L"IrpMonitor"
 #define CFB_DEVICE_PATH                   L"\\Device\\" CFB_DEVICE_NAME
 #define CFB_DOS_DEVICE_PATH               L"\\??\\" CFB_DEVICE_NAME
-#define CFB_USER_DEVICE_PATH              L"\\\\.\\" CFB_DEVICE_NAME
+#define CFB_USER_DEVICE_PATH              L"\\\\?\\GlobalRoot\\Device\\" CFB_DEVICE_NAME
 #define CFB_DEVICE_TAG                    ' BFC'
 
 #define CFB_DRIVER_MAX_PATH               256
