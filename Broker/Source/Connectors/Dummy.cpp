@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::Broker::Connectors::Dummy]"
+
 #include "Connectors/Dummy.hpp"
 
 #include <iostream>
@@ -7,43 +9,18 @@
 
 #define MAX_HEXDUMP_BYTES 256
 
-#define xerr(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        warn("[CFB::Broker::Manager::%s] " fmt, Name().c_str(), __VA_ARGS__);                                          \
-    }
-
-#define xwarn(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        warn("[CFB::Broker::Connector::%s] " fmt, Name().c_str(), __VA_ARGS__);                                        \
-    }
-
-#define xok(fmt, ...)                                                                                                  \
-    {                                                                                                                  \
-        ok("[CFB::Broker::Connector::%s] " fmt, Name().c_str(), __VA_ARGS__);                                          \
-    }
-
-#define xinfo(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        info("[CFB::Broker::Connector::%s] " fmt, Name().c_str(), __VA_ARGS__);                                        \
-    }
-
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[CFB::Broker::Connector::%s] " fmt, Name().c_str(), __VA_ARGS__);                                         \
-    }
-
 
 namespace CFB::Broker::Connectors
 {
 
 Dummy::Dummy()
 {
-    xdbg("Initializing connector '%s'", Name().c_str());
+    dbg("Initializing connector '%s'", Name().c_str());
 }
 
 Dummy::~Dummy()
 {
-    xdbg("Terminating connector '%s'", Name().c_str());
+    dbg("Terminating connector '%s'", Name().c_str());
 }
 
 std::string const

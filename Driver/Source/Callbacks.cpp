@@ -1,13 +1,10 @@
+#define CFB_NS "[CFB::Driver::Callbacks]"
+
 #include "Callbacks.hpp"
 
 #include "CapturedIrp.hpp"
 #include "Context.hpp"
 #include "HookedDriver.hpp"
-
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[CFB::Driver::Callbacks] " fmt, __VA_ARGS__);                                                             \
-    }
 
 
 namespace CFB::Driver::Callbacks
@@ -47,7 +44,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     auto const Driver = CapturedIrp->AssociatedDriver();
 
 
-    xdbg("Initialized CapturedIrp at %p", CapturedIrp);
+    dbg("Initialized CapturedIrp at %p", CapturedIrp);
 
     // TODO: replace with SharedPointer<CapturedIrp>
 
