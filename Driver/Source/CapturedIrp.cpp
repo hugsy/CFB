@@ -1,29 +1,10 @@
+#define CFB_NS "[CFB::Driver::CapturedIrp]"
+
 #include "CapturedIrp.hpp"
 
 #include "Context.hpp"
 #include "Native.hpp"
 #include "Utils.hpp"
-
-#define xerr(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        err("[CFB::Driver::CapturedIrp] " fmt, __VA_ARGS__);                                                           \
-    }
-
-#define xwarn(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        warn("[CFB::Driver::CapturedIrp] " fmt, __VA_ARGS__);                                                          \
-    }
-
-#define xok(fmt, ...)                                                                                                  \
-    {                                                                                                                  \
-        ok("[CFB::Driver::CapturedIrp] " fmt, __VA_ARGS__);                                                            \
-    }
-
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[CFB::Driver::CapturedIrp] " fmt, __VA_ARGS__);                                                           \
-    }
-
 
 namespace CFB::Driver
 {
@@ -89,7 +70,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         NTSTATUS Status = ::ObQueryNameString(DeviceObject, nullptr, 0, &ReturnLength);
         if ( Status != STATUS_INFO_LENGTH_MISMATCH )
         {
-            xerr("CapturedIrp() failed with %#08x", Status);
+            err("CapturedIrp() failed with %#08x", Status);
             return;
         }
 
@@ -100,7 +81,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         Status         = ::ObQueryNameString(DeviceObject, DeviceNameInfo.get(), DeviceNameInfo.size(), &ReturnLength);
         if ( !NT_SUCCESS(Status) )
         {
-            xerr("CapturedIrp() failed with %#08x", Status);
+            err("CapturedIrp() failed with %#08x", Status);
             return;
         }
 
@@ -124,14 +105,14 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         NTSTATUS Status   = ::PsLookupProcessByProcessId(UlongToHandle(m_Pid), &Process);
         if ( !NT_SUCCESS(Status) )
         {
-            xerr("PsLookupProcessByProcessId() failed with Status=%#08x", Status);
+            err("PsLookupProcessByProcessId() failed with Status=%#08x", Status);
             return;
         }
 
         PSTR lpProcessName = ::PsGetProcessImageFileName(Process);
         if ( !lpProcessName )
         {
-            xerr("PsGetProcessImageFileName() failed with Status=%#08x", Status);
+            err("PsGetProcessImageFileName() failed with Status=%#08x", Status);
             return;
         }
 
@@ -139,7 +120,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         Status = ::RtlInitAnsiStringEx(&aStr, lpProcessName);
         if ( !NT_SUCCESS(Status) )
         {
-            xerr("RtlInitAnsiStringEx() failed with Status=%#08x", Status);
+            err("RtlInitAnsiStringEx() failed with Status=%#08x", Status);
             return;
         }
 
@@ -147,7 +128,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         Status = ::RtlAnsiStringToUnicodeString(&uStr, &aStr, true);
         if ( !NT_SUCCESS(Status) )
         {
-            xerr("RtlAnsiStringToUnicodeString() failed with Status=%#08x", Status);
+            err("RtlAnsiStringToUnicodeString() failed with Status=%#08x", Status);
             return;
         }
 
@@ -162,7 +143,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
 
 CapturedIrp::~CapturedIrp()
 {
-    xdbg("~CapturedIrp");
+    dbg("~CapturedIrp");
 }
 
 
@@ -172,7 +153,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     NTSTATUS Status = STATUS_UNSUCCESSFUL;
     if ( !m_Valid )
     {
-        xwarn("CapturedIRP was insufficiently initialized");
+        warn("CapturedIRP was insufficiently initialized");
         return Status;
     }
 
@@ -182,7 +163,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     ULONG InputBufferLength  = 0;
     ULONG OutputBufferLength = 0;
 
-    xdbg("CapturePreCallData(%p)", Irp);
+    dbg("CapturePreCallData(%p)", Irp);
 
     m_MajorFunction = Stack->MajorFunction;
     m_MinorFunction = Stack->MinorFunction;
@@ -259,7 +240,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             ::memcpy(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
 
 #ifdef _DEBUG
-            xok("Capturing input data:");
+            ok("Capturing input data:");
             CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
         }
@@ -274,7 +255,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
 {
     if ( !m_Valid )
     {
-        xwarn("CapturedIRP was insufficiently initialized");
+        warn("CapturedIRP was insufficiently initialized");
         return STATUS_ACCESS_DENIED;
     }
 
@@ -327,7 +308,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
         return STATUS_SUCCESS;
     }
 
-    xdbg("Copying %p <- %p (%luB)", m_OutputBuffer.get() + Offset, UserBuffer, Count);
+    dbg("Copying %p <- %p (%luB)", m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
     //
     // If here, just copy the buffer
@@ -335,7 +316,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     ::memcpy(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
 #ifdef _DEBUG
-    xok("Capturing output data:");
+    ok("Capturing output data:");
     CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
 
@@ -348,7 +329,7 @@ CapturedIrp::CapturePreCallFastIoData(_In_ PVOID InputBuffer, _In_ ULONG IoContr
 {
     if ( !m_Valid )
     {
-        xwarn("CapturedIRP was insufficiently initialized");
+        warn("CapturedIRP was insufficiently initialized");
         return STATUS_ACCESS_DENIED;
     }
 
@@ -364,7 +345,7 @@ CapturedIrp::CapturePostCallFastIoData(_In_ PVOID OutputBuffer)
 {
     if ( !m_Valid )
     {
-        xwarn("CapturedIRP was insufficiently initialized");
+        warn("CapturedIRP was insufficiently initialized");
         return STATUS_ACCESS_DENIED;
     }
 
