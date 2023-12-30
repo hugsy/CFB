@@ -39,6 +39,7 @@ ntperror(const char* msg, const NTSTATUS Status);
 #define info(fmt, ...) CFB::Log::Log(DPFLTR_TRACE_LEVEL, "[*] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #define warn(fmt, ...) CFB::Log::Log(DPFLTR_WARNING_LEVEL, "[!] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #define err(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[-] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define crit(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[/!\\] " CFB_NS " " fmt "\n", __VA_ARGS__)
 
 #define DML(cmd) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
 
@@ -54,5 +55,6 @@ ntperror(const char* msg, const NTSTATUS Status);
 #define info(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[*] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #define warn(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[!] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #define err(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[-] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define crit(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[/!\\] " CFB_NS " " fmt "\n", __VA_ARGS__)
 
 #endif // CFB_KERNEL_DRIVER

@@ -197,10 +197,7 @@ HookedDriverManager::SetMonitoringState(const PUNICODE_STRING UnicodePath, bool 
         (DriverStateChanged ? "" : "un"),
         boolstr(MatchedDriver->CanCapture()));
 
-    info(
-        "Capture of IRPs to driver '%wZ' are %scaptured",
-        MatchedDriver->Path.get(),
-        MatchedDriver->CanCapture() ? "" : "not ");
+    info("IRPs to driver '%wZ' are %scaptured", MatchedDriver->Path.get(), MatchedDriver->CanCapture() ? "" : "not ");
 
     return STATUS_SUCCESS;
 }

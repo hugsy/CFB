@@ -52,11 +52,13 @@ public:
     ScopedLock(T& lock) : _lock(lock)
     {
         _lock.Lock();
+        dbg("ScopedLock(rsrc=%p)", &_lock);
     }
 
     ~ScopedLock()
     {
         _lock.Unlock();
+        dbg("~ScopedLock(rsrc=%p)", &_lock);
     }
 
     ScopedLock(const ScopedLock&) = delete;

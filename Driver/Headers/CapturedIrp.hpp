@@ -60,15 +60,12 @@ public:
     operator new(usize sz)
     {
         void* Memory = ::ExAllocatePoolWithTag(NonPagedPoolNx, sz, CFB_DEVICE_TAG);
-        if ( Memory )
+        if ( !Memory )
         {
-            dbg("Allocating CapturedIrp at %p", Memory);
-            ::RtlSecureZeroMemory(Memory, sz);
+            ::ExRaiseStatus(STATUS_NO_MEMORY);
         }
-        else
-        {
-            ExRaiseStatus(STATUS_NO_MEMORY);
-        }
+        dbg("Allocated CapturedIrp at %p", Memory);
+        ::RtlSecureZeroMemory(Memory, sz);
         return Memory;
     }
 

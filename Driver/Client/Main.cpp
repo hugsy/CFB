@@ -178,45 +178,28 @@ ReceiveData(HANDLE hFile)
     //
     // Try read into empty buffer to probe the size
     //
-    DWORD expectedDataLength = 0;
-    {
-        u8* data  = nullptr;
-        bool bRes = ::ReadFile(hFile, data, 0, &expectedDataLength, nullptr);
-        info("ReceiveData(nullptr) = %s", boolstr(bRes));
-        if ( bRes )
-        {
-            ok("  -> expectedDataLength = %d", expectedDataLength);
-        }
-        else
-        {
-            err("stopping");
-            return std::nullopt;
-        }
-    }
+    DWORD dataLength = 1;
 
-    if ( expectedDataLength == 0 )
+    while ( true )
     {
-        return 0;
-    }
-
-    //
-    // Get read content
-    //
-    {
-        const DWORD dataLength = expectedDataLength;
-        auto data              = std::make_unique<u8[]>(dataLength);
-        bool bRes              = ::ReadFile(hFile, data.get(), dataLength, &expectedDataLength, nullptr);
+        DWORD expectedDataLength = 0;
+        auto data                = std::make_unique<u8[]>(dataLength);
+        bool bRes                = ::ReadFile(hFile, data.get(), dataLength, &expectedDataLength, nullptr);
         info("ReceiveData(data, %d) = %s", dataLength, boolstr(bRes));
         if ( bRes )
         {
             CFB::Utils::Hexdump(data.get(), dataLength);
             return dataLength;
         }
-        else
+
+        u32 gle = ::GetLastError();
+        if ( gle != ERROR_INSUFFICIENT_BUFFER )
         {
-            err("stopping");
+            err("Stopping, ReadFile() failed with GLE=0x%08x", gle);
             return std::nullopt;
         }
+
+        dataLength *= 2;
     }
 }
 

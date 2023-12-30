@@ -15,6 +15,7 @@ class HookedDriver
 public:
     enum class HookState
     {
+        Invalid,
         Unhooked,
         Hooked
     };
@@ -89,7 +90,7 @@ public:
     ///@return false
     ///
     bool
-    CanCapture();
+    CanCapture() const;
 
     ///
     ///@brief Enable the IRP capture mode for the driver
@@ -145,6 +146,8 @@ public:
     HookedDriver&
     operator--();
 
+    void
+    FlagAsInvalid();
 
 private:
     ///

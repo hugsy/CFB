@@ -48,8 +48,10 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         // This is really bad: if here the interception routine got called by a non-hooked driver
         // Could be a bad pointer restoration. Anyway, we log and fail for now.
         //
-        err("Failed to find a HookedDriver object associated to the received IRP.\n"
-            "This could indicates a corruption of the hooked driver list, you should probably reboot...");
+        err(""
+            "Failed to find a HookedDriver object associated to the received IRP. "
+            "This could indicates a corruption of the hooked driver list, you should probably reboot..."
+            "");
         return;
     }
 
@@ -61,8 +63,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
     // Set the Device name
     //
     {
-        ULONG ReturnLength;
-        Utils::KAlloc<POBJECT_NAME_INFORMATION> DeviceNameInfo;
+        ULONG ReturnLength {};
 
         //
         // Query the exact size
@@ -77,17 +78,15 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         //
         // Get the value, store it in the member
         //
-        DeviceNameInfo = Utils::KAlloc<POBJECT_NAME_INFORMATION>(sizeof(OBJECT_NAME_INFORMATION) + ReturnLength);
-        Status         = ::ObQueryNameString(DeviceObject, DeviceNameInfo.get(), DeviceNameInfo.size(), &ReturnLength);
+        auto DeviceNameInfo = Utils::KAlloc<POBJECT_NAME_INFORMATION>(sizeof(OBJECT_NAME_INFORMATION) + ReturnLength);
+        Status = ::ObQueryNameString(DeviceObject, DeviceNameInfo.get(), DeviceNameInfo.size(), &ReturnLength);
         if ( !NT_SUCCESS(Status) )
         {
             err("CapturedIrp() failed with %#08x", Status);
             return;
         }
 
-
-        const PUNICODE_STRING pUsDevice = &DeviceNameInfo.get()->Name;
-        m_DeviceName                    = Utils::KUnicodeString(pUsDevice);
+        m_DeviceName = Utils::KUnicodeString(&DeviceNameInfo.get()->Name);
     }
 
     //
@@ -135,6 +134,7 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
         m_ProcessName = Utils::KUnicodeString(&uStr);
     }
 
+
     //
     // Mark the object as valid
     //
@@ -143,18 +143,17 @@ CapturedIrp::CapturedIrp(const CapturedIrp::IrpType Type, PDEVICE_OBJECT DeviceO
 
 CapturedIrp::~CapturedIrp()
 {
-    dbg("~CapturedIrp");
+    dbg("~CapturedIrp()");
 }
 
 
 NTSTATUS
 CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 {
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
     if ( !m_Valid )
     {
         warn("CapturedIRP was insufficiently initialized");
-        return Status;
+        return STATUS_UNSUCCESSFUL;
     }
 
     const ULONG Flags              = m_DeviceObject->Flags;
@@ -199,9 +198,17 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     //
     // Now, copy the input/output buffer content to the CapturedIrp object
     //
+    NTSTATUS Status = STATUS_UNSUCCESSFUL;
+
+    switch ( m_MajorFunction )
     {
-        if ( (m_MajorFunction == IRP_MJ_DEVICE_CONTROL || m_MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) &&
-             METHOD_FROM_CTL_CODE(m_IoctlCode) == METHOD_NEITHER )
+    case IRP_MJ_DEVICE_CONTROL:
+    case IRP_MJ_INTERNAL_DEVICE_CONTROL:
+    {
+        //
+        // Handle NEITHER method for IOCTLs
+        //
+        if ( METHOD_FROM_CTL_CODE(m_IoctlCode) == METHOD_NEITHER )
         {
             if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer < (PVOID)(1 << 16) )
             {
@@ -209,10 +216,15 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             }
 
             ::memcpy(m_InputBuffer.get(), Stack->Parameters.DeviceIoControl.Type3InputBuffer, m_InputBuffer.size());
-
-            return STATUS_SUCCESS;
+            Status = STATUS_SUCCESS;
         }
-
+        break;
+    }
+    default:
+    {
+        //
+        // Otherwise, use copy method from flags
+        //
         if ( Flags & DO_BUFFERED_IO )
         {
             if ( !Irp->AssociatedIrp.SystemBuffer )
@@ -221,10 +233,9 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             }
 
             ::memcpy(m_InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, m_InputBuffer.size());
-            return STATUS_SUCCESS;
+            Status = STATUS_SUCCESS;
         }
-
-        if ( Flags & DO_DIRECT_IO )
+        else if ( Flags & DO_DIRECT_IO )
         {
             if ( !Irp->MdlAddress )
             {
@@ -238,13 +249,23 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
             }
 
             ::memcpy(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
-
-#ifdef _DEBUG
-            ok("Capturing input data:");
-            CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
-#endif // _DEBUG
+            Status = STATUS_SUCCESS;
         }
+        break;
     }
+    }
+
+    if ( !NT_SUCCESS(Status) )
+    {
+        err("CapturePreCallData() returned %#08x", Status);
+    }
+#ifdef _DEBUG
+    else
+    {
+        dbg("Captured input data (%lu bytes):", m_InputBuffer.size());
+        CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
+    }
+#endif // _DEBUG
 
     return Status;
 }
@@ -256,7 +277,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     if ( !m_Valid )
     {
         warn("CapturedIRP was insufficiently initialized");
-        return STATUS_ACCESS_DENIED;
+        return STATUS_UNSUCCESSFUL;
     }
 
     PVOID UserBuffer = nullptr;
@@ -316,7 +337,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     ::memcpy(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
 #ifdef _DEBUG
-    ok("Capturing output data:");
+    dbg("Captured output data (%lu bytes):", m_OutputBuffer.size());
     CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
 

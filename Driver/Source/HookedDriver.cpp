@@ -45,7 +45,10 @@ HookedDriver::HookedDriver(Utils::KUnicodeString const& UnicodePath) :
     // Swap the IRP major function callbacks of the HookedDriver, avoiding to trigger PatchGuard
     //
     SwapCallbacks();
+
+    NT_ASSERT(m_State == HookState::Hooked);
 }
+
 
 HookedDriver::~HookedDriver()
 {
@@ -56,6 +59,7 @@ HookedDriver::~HookedDriver()
 
     ObDereferenceObject(OriginalDriverObject);
 }
+
 
 void
 HookedDriver::SwapCallbacks()
@@ -73,9 +77,7 @@ HookedDriver::SwapCallbacks()
     //
     for ( u16 i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++ )
     {
-        PDRIVER_DISPATCH OldRoutine = (PDRIVER_DISPATCH)InterlockedExchangePointer(
-            (PVOID*)&HookedDriverObject->MajorFunction[i],
-            (PVOID)Callbacks::InterceptGenericRoutine);
+        HookedDriverObject->MajorFunction[i] = (PDRIVER_DISPATCH)Callbacks::InterceptGenericRoutine;
     }
 
     //
@@ -83,27 +85,23 @@ HookedDriver::SwapCallbacks()
     //
     if ( OriginalDriverObject->FastIoDispatch )
     {
-        PFAST_IO_DEVICE_CONTROL OldFastIoDeviceControl = (PFAST_IO_DEVICE_CONTROL)InterlockedExchangePointer(
-            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoDeviceControl,
-            (PVOID)Callbacks::InterceptGenericFastIoDeviceControl);
-
-        PFAST_IO_READ OldFastIoRead = (PFAST_IO_READ)InterlockedExchangePointer(
-            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoRead,
-            (PVOID)Callbacks::InterceptGenericFastIoRead);
-
-        PFAST_IO_WRITE OldFastIoWrite = (PFAST_IO_WRITE)InterlockedExchangePointer(
-            (PVOID*)&HookedDriverObject->FastIoDispatch->FastIoWrite,
-            (PVOID)Callbacks::InterceptGenericFastIoWrite);
+        HookedDriverObject->FastIoDispatch->FastIoDeviceControl =
+            (PFAST_IO_DEVICE_CONTROL)Callbacks::InterceptGenericFastIoDeviceControl;
+        HookedDriverObject->FastIoDispatch->FastIoRead  = (PFAST_IO_READ)Callbacks::InterceptGenericFastIoRead;
+        HookedDriverObject->FastIoDispatch->FastIoWrite = (PFAST_IO_WRITE)Callbacks::InterceptGenericFastIoWrite;
     }
 
     //
-    // This is where the hooking takes places: for each device object of the original driver, we replace
-    // the driver object pointer member making it point to our hooked version.
+    // This is where the hooking takes places: for each device object of the original driver, replace
+    // the driver object pointer member making it point to the hooked version.
     //
     for ( PDEVICE_OBJECT DeviceObject = OriginalDriverObject->DeviceObject; DeviceObject != nullptr;
           DeviceObject                = DeviceObject->NextDevice )
     {
-        InterlockedExchangePointer((PVOID*)&DeviceObject->DriverObject, (PVOID)HookedDriverObject.get());
+        if ( DeviceObject->DriverObject == OriginalDriverObject )
+        {
+            InterlockedExchangePointer((PVOID*)&DeviceObject->DriverObject, (PVOID)HookedDriverObject.get());
+        }
     }
 
     //
@@ -112,6 +110,7 @@ HookedDriver::SwapCallbacks()
     m_State = HookState::Hooked;
 }
 
+
 void
 HookedDriver::RestoreCallbacks()
 {
@@ -119,7 +118,7 @@ HookedDriver::RestoreCallbacks()
 
     if ( m_State != HookState::Hooked )
     {
-        warn("Invalid state: expecting 'Hooked'");
+        warn("Invalid state: expecting 'Hooked', got %#x", m_State);
         return;
     }
 
@@ -143,7 +142,15 @@ bool
 HookedDriver::EnableCapturing()
 {
     Utils::ScopedLock lock(m_CallbackLock);
-    m_CapturingEnabled = true;
+    if ( m_State != HookState::Hooked )
+    {
+        return false;
+    }
+    if ( m_CapturingEnabled == false )
+    {
+        m_CapturingEnabled = true;
+        dbg("Enabled IRP capturing for %wZ", Path.get());
+    }
     return true;
 }
 
@@ -153,17 +160,21 @@ HookedDriver::DisableCapturing()
 {
     Utils::ScopedLock lock(m_CallbackLock);
     m_CapturingEnabled = false;
+    dbg("Disabled IRP capturing for %wZ", Path.get());
     return true;
+}
+
+void
+HookedDriver::FlagAsInvalid()
+{
+    Utils::ScopedLock lock(m_CallbackLock);
+    m_State = HookState::Invalid;
 }
 
 
 bool
-HookedDriver::CanCapture()
+HookedDriver::CanCapture() const
 {
-    dbg("Driver('%wZ', State=%shooked, Enabled=%s)",
-        Path.get(),
-        (m_State == HookState::Unhooked) ? "un" : "",
-        boolstr(m_CapturingEnabled));
     return m_State == HookState::Hooked && m_CapturingEnabled == true;
 }
 
