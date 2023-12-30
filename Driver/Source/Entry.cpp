@@ -476,7 +476,7 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
 
     err("Device initialization for '%S' done, use `%s` for debug logs",
         CFB_DEVICE_NAME,
-        DML("ed nt !Kd_IHVDRIVER_Mask f"));
+        DML("ed nt !Kd_IHVDRIVER_Mask f", "ed nt !Kd_IHVDRIVER_Mask f"));
 
     return Status;
 }

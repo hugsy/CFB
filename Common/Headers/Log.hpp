@@ -31,8 +31,7 @@ ntperror(const char* msg, const NTSTATUS Status);
 #ifdef _DEBUG
 #define dbg(fmt, ...) CFB::Log::Log(DPFLTR_INFO_LEVEL, "[=] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #else
-// #define dbg(fmt, ...)
-#define dbg(fmt, ...) CFB::Log::log(DPFLTR_INFO_LEVEL, "[=] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define dbg(fmt, ...)
 #endif // _DEBUG
 
 #define ok(fmt, ...) CFB::Log::Log(DPFLTR_INFO_LEVEL, "[+] " CFB_NS " " fmt "\n", __VA_ARGS__)
@@ -41,7 +40,7 @@ ntperror(const char* msg, const NTSTATUS Status);
 #define err(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[-] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #define crit(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[/!\\] " CFB_NS " " fmt "\n", __VA_ARGS__)
 
-#define DML(cmd) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
+#define DML(cmd, title) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
 
 #else // CFB_KERNEL_DRIVER
 
