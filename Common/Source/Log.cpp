@@ -24,8 +24,13 @@ Log(ULONG level, const char* fmtstr, ...)
 
 #ifdef CFB_KERNEL_DRIVER
     //
-    // Use `nt!Kd_IHVDRIVER_Mask` to control the level
+    // Use `nt!Kd_IHVDRIVER_Mask` to control the level. Only log at PASSIVE & APC
     //
+    if ( ::KeGetCurrentIrql() >= DISPATCH_LEVEL )
+    {
+        return;
+    }
+
     ::vDbgPrintEx(DPFLTR_IHVDRIVER_ID, level, fmtstr, args);
 
 #else
