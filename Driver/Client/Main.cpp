@@ -178,7 +178,7 @@ ReceiveData(HANDLE hFile)
     //
     // Try read into empty buffer to probe the size
     //
-    DWORD dataLength = 1;
+    DWORD dataLength = 1024;
 
     while ( true )
     {
