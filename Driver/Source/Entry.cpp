@@ -225,13 +225,6 @@ _Function_class_(DRIVER_DISPATCH) DriverDeviceControlRoutine(_In_ PDEVICE_OBJECT
         break;
     }
 
-    case CFB::Comms::Ioctl::GetDriverInfo:
-    {
-        warn("TODO");
-        Status = STATUS_NOT_IMPLEMENTED;
-        break;
-    }
-
     default:
         err("Received invalid IOCTL code 0x%08x", IoctlCode);
         Status = STATUS_INVALID_DEVICE_REQUEST;
@@ -297,7 +290,6 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
     }
 
     NT_ASSERT(Irp->MdlAddress);
-
     PVOID Buffer = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
     if ( Buffer == nullptr )
     {
@@ -315,6 +307,8 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
 
         for ( usize i = 0; i < DumpableIrpNumber; i++ )
         {
+            dbg("Popping IRP %d/%d", i + 1, DumpableIrpNumber);
+
             //
             // Pop front the captured IRP
             //
@@ -338,6 +332,13 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
 
                 RtlCopyMemory((PVOID)BufferPointer, &Header, DataSize);
                 BufferPointer += DataSize;
+
+                dbg("IRP %d/%d - Copied header: Process='%S', PID=%d, TID=%d",
+                    i + 1,
+                    DumpableIrpNumber,
+                    Header.ProcessName,
+                    Header.Pid,
+                    Header.Tid);
             }
 
             //
@@ -354,6 +355,15 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
                     RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->InputBuffer(), DataSize);
                     BufferPointer += DataSize;
                 }
+
+
+                dbg("IRP %d/%d - Copied input buffer (%d bytes)",
+                    i + 1,
+                    DumpableIrpNumber,
+                    CurrentIrp->InputDataSize());
+#ifdef _DEBUG
+                CFB::Utils::Hexdump(Buffer, MIN(CurrentIrp->InputDataSize(), CFB_MAX_HEXDUMP_BYTE));
+#endif // _DEBUG
             }
 
             //
@@ -370,7 +380,17 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
                     RtlCopyMemory((PVOID)BufferPointer, CurrentIrp->OutputBuffer(), DataSize);
                     BufferPointer += DataSize;
                 }
+
+                dbg("IRP %d/%d - Copied output buffer (%d bytes)",
+                    i + 1,
+                    DumpableIrpNumber,
+                    CurrentIrp->OutputDataSize());
+#ifdef _DEBUG
+                CFB::Utils::Hexdump(Buffer, MIN(CurrentIrp->OutputDataSize(), CFB_MAX_HEXDUMP_BYTE));
+#endif // _DEBUG
             }
+
+            dbg("IRP %d/%d returned to client", i + 1, DumpableIrpNumber);
         }
     }
 
@@ -474,7 +494,8 @@ DriverEntry(_In_ PDRIVER_OBJECT DriverObject, _In_ PUNICODE_STRING RegistryPath)
     Globals->DeviceObject = DeviceObject;
     Globals->DriverObject = DriverObject;
 
-    err("Device initialization for '%S' done, use `%s` for debug logs",
+    warn(
+        "Device initialization for '%S' successful, use `%s` for debug logs",
         CFB_DEVICE_NAME,
         DML("ed nt !Kd_IHVDRIVER_Mask f", "ed nt !Kd_IHVDRIVER_Mask f"));
 

@@ -76,8 +76,6 @@ add_custom_command(
 add_custom_command(
     TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND
-    powershell -ep bypass "Get-ChildItem -Recurse Cert:\\CurrentUser | Where-Object { $_.Subject -match '${CFB_CERT_CN}' } | Remove-Item"
-    COMMAND
     makecert.exe -r -pe -ss ${CFB_CERT_STORE} -n CN="${CFB_CERT_CN}" -eku 1.3.6.1.5.5.7.3.3 "$<TARGET_FILE_DIR:${PROJECT_NAME}>/BlahCatTest.cer"
     COMMAND
     signtool.exe sign /v /a /fd SHA256 /s ${CFB_CERT_STORE} /n "${CFB_CERT_CN}" $<TARGET_FILE:${PROJECT_NAME}>

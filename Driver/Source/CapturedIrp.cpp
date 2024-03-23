@@ -267,7 +267,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     }
 #endif // _DEBUG
 
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 
@@ -337,7 +337,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     ::memcpy(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
 #ifdef _DEBUG
-    dbg("Captured output data (%lu bytes):", m_OutputBuffer.size());
+    dbg("Capturing output data:");
     CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
 
