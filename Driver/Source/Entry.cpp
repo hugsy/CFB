@@ -361,9 +361,9 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
                     i + 1,
                     DumpableIrpNumber,
                     CurrentIrp->InputDataSize());
-#ifdef _DEBUG
+                // #ifdef _DEBUG
                 CFB::Utils::Hexdump(Buffer, MIN(CurrentIrp->InputDataSize(), CFB_MAX_HEXDUMP_BYTE));
-#endif // _DEBUG
+                // #endif // _DEBUG
             }
 
             //
@@ -385,9 +385,9 @@ _Function_class_(DRIVER_DISPATCH) DriverReadRoutine(_In_ PDEVICE_OBJECT DeviceOb
                     i + 1,
                     DumpableIrpNumber,
                     CurrentIrp->OutputDataSize());
-#ifdef _DEBUG
+                // #ifdef _DEBUG
                 CFB::Utils::Hexdump(Buffer, MIN(CurrentIrp->OutputDataSize(), CFB_MAX_HEXDUMP_BYTE));
-#endif // _DEBUG
+                // #endif // _DEBUG
             }
 
             dbg("IRP %d/%d returned to client", i + 1, DumpableIrpNumber);

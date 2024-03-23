@@ -10,7 +10,7 @@
 // clang-format on
 
 
-#define CFB_MAX_HEXDUMP_BYTE 128
+#define CFB_MAX_HEXDUMP_BYTE 64
 
 namespace Driver = CFB::Driver;
 namespace Utils  = CFB::Driver::Utils;

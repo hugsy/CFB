@@ -156,6 +156,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         return STATUS_UNSUCCESSFUL;
     }
 
+    NTSTATUS Status                = STATUS_UNSUCCESSFUL;
     const ULONG Flags              = m_DeviceObject->Flags;
     const PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
@@ -164,8 +165,9 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
 
     dbg("CapturePreCallData(%p)", Irp);
 
-    m_MajorFunction = Stack->MajorFunction;
-    m_MinorFunction = Stack->MinorFunction;
+    m_MajorFunction    = Stack->MajorFunction;
+    m_MinorFunction    = Stack->MinorFunction;
+    const ULONG Method = METHOD_FROM_CTL_CODE(m_IoctlCode);
 
     //
     // Determine & allocate the input/output buffer sizes from the IRP for "normal" IOCTLs
@@ -198,74 +200,69 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
     //
     // Now, copy the input/output buffer content to the CapturedIrp object
     //
-    NTSTATUS Status = STATUS_UNSUCCESSFUL;
+    PVOID Buffer       = m_InputBuffer.get();
+    ULONG BufferLength = m_InputBuffer.size();
 
-    switch ( m_MajorFunction )
+    // __try // TODO fix unwinding
     {
-    case IRP_MJ_DEVICE_CONTROL:
-    case IRP_MJ_INTERNAL_DEVICE_CONTROL:
-    {
-        //
-        // Handle NEITHER method for IOCTLs
-        //
-        if ( METHOD_FROM_CTL_CODE(m_IoctlCode) == METHOD_NEITHER )
+        Status = STATUS_SUCCESS;
+        do
         {
-            if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer < (PVOID)(1 << 16) )
+            if ( (Stack->MajorFunction == IRP_MJ_DEVICE_CONTROL ||
+                  Stack->MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL) &&
+                 Method == METHOD_NEITHER )
             {
-                return STATUS_INVALID_PARAMETER;
+                if ( Stack->Parameters.DeviceIoControl.Type3InputBuffer >= (PVOID)(1 << 16) )
+                    RtlCopyMemory(Buffer, Stack->Parameters.DeviceIoControl.Type3InputBuffer, BufferLength);
+                else
+                    Status = STATUS_INVALID_PARAMETER;
+                break;
             }
 
-            ::memcpy(m_InputBuffer.get(), Stack->Parameters.DeviceIoControl.Type3InputBuffer, m_InputBuffer.size());
-            Status = STATUS_SUCCESS;
-        }
-        break;
+            if ( Method == METHOD_BUFFERED )
+            {
+                if ( Irp->AssociatedIrp.SystemBuffer )
+                    RtlCopyMemory(Buffer, Irp->AssociatedIrp.SystemBuffer, BufferLength);
+                else
+                    Status = STATUS_INVALID_PARAMETER_1;
+                break;
+            }
+
+            if ( Method == METHOD_IN_DIRECT || Method == METHOD_OUT_DIRECT )
+            {
+                if ( !Irp->MdlAddress )
+                {
+                    Status = STATUS_INVALID_PARAMETER_2;
+                    break;
+                }
+
+                PVOID pDataAddr = MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
+                if ( !pDataAddr )
+                {
+                    Status = STATUS_INVALID_PARAMETER_3;
+                    break;
+                }
+
+                RtlCopyMemory(Buffer, pDataAddr, BufferLength);
+            }
+        } while ( 0 );
     }
-    default:
-    {
-        //
-        // Otherwise, use copy method from flags
-        //
-        if ( Flags & DO_BUFFERED_IO )
-        {
-            if ( !Irp->AssociatedIrp.SystemBuffer )
-            {
-                return STATUS_INVALID_PARAMETER_1;
-            }
-
-            ::memcpy(m_InputBuffer.get(), Irp->AssociatedIrp.SystemBuffer, m_InputBuffer.size());
-            Status = STATUS_SUCCESS;
-        }
-        else if ( Flags & DO_DIRECT_IO )
-        {
-            if ( !Irp->MdlAddress )
-            {
-                return STATUS_INVALID_PARAMETER_2;
-            }
-
-            PVOID pDataAddr = ::MmGetSystemAddressForMdlSafe(Irp->MdlAddress, NormalPagePriority);
-            if ( !pDataAddr )
-            {
-                return STATUS_INVALID_PARAMETER_3;
-            }
-
-            ::memcpy(m_InputBuffer.get(), pDataAddr, m_InputBuffer.size());
-            Status = STATUS_SUCCESS;
-        }
-        break;
-    }
-    }
+    // __except (EXCEPTION_EXECUTE_HANDLER)
+    // {
+    //     Status = GetExceptionCode();
+    // }
 
     if ( !NT_SUCCESS(Status) )
     {
         err("CapturePreCallData() returned %#08x", Status);
     }
-#ifdef _DEBUG
+    // #ifdef _DEBUG
     else
     {
         dbg("Captured input data (%lu bytes):", m_InputBuffer.size());
         CFB::Utils::Hexdump(m_InputBuffer.get(), MIN(m_InputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
     }
-#endif // _DEBUG
+    // #endif // _DEBUG
 
     return STATUS_SUCCESS;
 }
@@ -336,10 +333,10 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     //
     ::memcpy(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
-#ifdef _DEBUG
+    // #ifdef _DEBUG
     dbg("Capturing output data:");
     CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
-#endif // _DEBUG
+    // #endif // _DEBUG
 
     return STATUS_SUCCESS;
 }
