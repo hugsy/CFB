@@ -143,7 +143,7 @@ ToggleMonitoring(HANDLE hFile, std::string const& arg, bool enable)
 
 
 bool
-SendData(std::string const& device_name, const u32 ioctl)
+SendData(std::string const& device_name, const u32 ioctl, std::vector<u8>& buffer_in)
 {
     wil::unique_handle hFile(::CreateFileA(
         device_name.c_str(),
@@ -160,12 +160,16 @@ SendData(std::string const& device_name, const u32 ioctl)
     }
 
     DWORD nbBytesReturned = 0;
-    const usize sz        = 0x20;
-    auto buffer_in        = std::make_unique<u8[]>(sz);
-    ::memset(buffer_in.get(), 'A', sz);
-
-    bool bSuccess = ::DeviceIoControl(hFile.get(), ioctl, buffer_in.get(), sz, nullptr, 0, &nbBytesReturned, nullptr);
-    info("SendData('%s', %dB) returned %s", device_name.c_str(), sz, boolstr(bSuccess));
+    bool bSuccess         = ::DeviceIoControl(
+        hFile.get(),
+        ioctl,
+        buffer_in.data(),
+        buffer_in.size(),
+        nullptr,
+        0,
+        &nbBytesReturned,
+        nullptr);
+    info("SendData('%s', %dB) returned %s", device_name.c_str(), buffer_in.size(), boolstr(bSuccess));
 
     return bSuccess;
 }
@@ -173,48 +177,27 @@ SendData(std::string const& device_name, const u32 ioctl)
 std::optional<u32>
 ReceiveData(HANDLE hFile)
 {
-    //
-    // Try read into empty buffer to probe the size
-    //
-    DWORD expectedDataLength = 0;
-    {
-        u8* data  = nullptr;
-        bool bRes = ::ReadFile(hFile, data, 0, &expectedDataLength, nullptr);
-        info("ReceiveData(nullptr) = %s", boolstr(bRes));
-        if ( bRes )
-        {
-            ok("  -> expectedDataLength = %d", expectedDataLength);
-        }
-        else
-        {
-            err("stopping");
-            return std::nullopt;
-        }
-    }
+    DWORD expectedDataLength = 1024;
 
-    if ( expectedDataLength == 0 )
-    {
-        return 0;
-    }
-
-    //
-    // Get read content
-    //
+    while ( true )
     {
         const DWORD dataLength = expectedDataLength;
         auto data              = std::make_unique<u8[]>(dataLength);
         bool bRes              = ::ReadFile(hFile, data.get(), dataLength, &expectedDataLength, nullptr);
         info("ReceiveData(data, %d) = %s", dataLength, boolstr(bRes));
-        if ( bRes )
+        if ( bRes == false )
         {
-            CFB::Utils::Hexdump(data.get(), dataLength);
-            return dataLength;
-        }
-        else
-        {
-            err("stopping");
+            if ( ::GetLastError() == ERROR_INSUFFICIENT_BUFFER )
+            {
+                expectedDataLength = dataLength * 2;
+                continue;
+            }
+            err("ReadFile() failed, GLE %#x", ::GetLastError());
             return std::nullopt;
         }
+
+        CFB::Utils::Hexdump(data.get(), dataLength);
+        return dataLength;
     }
 }
 
@@ -227,7 +210,7 @@ main(int argc, const char** argv)
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =
-        {"hook", "hook-unhook", "unhook", "size", "set-capturing", "send-data", "read-data", "session"};
+        {"hook", "unhook", "size", "monitor", "unmonitor", "send", "recv", "session"};
 
     program.add_argument("--action")
         .default_value(std::string("hook"))
@@ -244,7 +227,6 @@ main(int argc, const char** argv)
     program.add_argument("--driver").default_value(std::string("\\driver\\hevd"));
     program.add_argument("--device").default_value(std::string("\\\\.\\HackSysExtremeVulnerableDriver"));
     program.add_argument("--ioctl").scan<'i', int>().default_value(0x222003); // BUFFER_OVERFLOW_STACK
-    program.add_argument("--enable").default_value(false).implicit_value(true);
 
     try
     {
@@ -257,11 +239,10 @@ main(int argc, const char** argv)
         std::exit(1);
     }
 
-    auto action      = program.get<std::string>("--action");
-    auto driver_name = program.get<std::string>("--driver");
-    auto device_name = program.get<std::string>("--device");
-    auto ioctl       = program.get<int>("--ioctl");
-    auto enable      = program.get<bool>("--enable");
+    const auto action      = program.get<std::string>("--action");
+    const auto driver_name = program.get<std::string>("--driver");
+    const auto device_name = program.get<std::string>("--device");
+    const auto ioctl       = program.get<int>("--ioctl");
 
     wil::unique_handle hEvent;
 
@@ -271,7 +252,7 @@ main(int argc, const char** argv)
     if ( !hFile )
     {
         err("Failed to open '%S'", CFB_DEVICE_NAME);
-        // return -1;
+        return -1;
     }
 
     if ( action == "hook" )
@@ -282,24 +263,26 @@ main(int argc, const char** argv)
     {
         Driver::Unhook(hFile.get(), driver_name);
     }
-    else if ( action == "hook-unhook" )
-    {
-        Driver::Hook(hFile.get(), driver_name);
-        Driver::Unhook(hFile.get(), driver_name);
-    }
     else if ( action == "size" )
     {
         Driver::GetNumberOfDrivers(hFile.get());
     }
-    else if ( action == "set-capturing" )
+    else if ( action == "monitor" )
     {
-        Driver::ToggleMonitoring(hFile.get(), driver_name, enable);
+        Driver::ToggleMonitoring(hFile.get(), driver_name, true);
     }
-    else if ( action == "send-data" )
+    else if ( action == "unmonitor" )
     {
-        Driver::SendData(device_name, ioctl);
+        Driver::ToggleMonitoring(hFile.get(), driver_name, false);
     }
-    else if ( action == "read-data" )
+    else if ( action == "send" )
+    {
+        const usize sz {0x100};
+        auto buffer_in = std::vector<u8>(sz);
+        ::memset(buffer_in.data(), 'A', sz);
+        Driver::SendData(device_name, ioctl, buffer_in);
+    }
+    else if ( action == "recv" )
     {
         Driver::ReceiveData(hFile.get());
     }
@@ -315,7 +298,12 @@ main(int argc, const char** argv)
 
         for ( int i = 0; i < 2; i++ )
         {
-            Driver::SendData(device_name, ioctl);
+            const usize sz {0x100};
+            auto buffer_in  = std::vector<u8>(sz);
+            auto buffer_out = std::vector<u8>(sz);
+            ::memset(buffer_in.data(), 'A', sz);
+
+            Driver::SendData(device_name, ioctl, buffer_in);
 
             u32 Status = ::WaitForSingleObject(hEvent.get(), 1 * 1000);
             switch ( Status )
