@@ -149,7 +149,6 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         return STATUS_ACCESS_DENIED;
     }
 
-    NTSTATUS Status                = STATUS_UNSUCCESSFUL;
     const ULONG Flags              = m_DeviceObject->Flags;
     const PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
@@ -240,7 +239,7 @@ CapturedIrp::CapturePreCallData(_In_ PIRP Irp)
         }
     }
 
-    return Status;
+    return STATUS_SUCCESS;
 }
 
 
@@ -310,7 +309,7 @@ CapturedIrp::CapturePostCallData(_In_ PIRP Irp, _In_ NTSTATUS ReturnedIoctlStatu
     RtlCopyMemory(m_OutputBuffer.get() + Offset, UserBuffer, Count);
 
 #ifdef _DEBUG
-    ok("Capturing output data:");
+    dbg("Capturing output data:");
     CFB::Utils::Hexdump(m_OutputBuffer.get(), MIN(m_OutputBuffer.size(), CFB_MAX_HEXDUMP_BYTE));
 #endif // _DEBUG
 

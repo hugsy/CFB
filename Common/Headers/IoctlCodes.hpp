@@ -72,11 +72,6 @@ enum class Ioctl : u32
     ///
     DisableMonitoring  = CTL_CODE(FILE_DEVICE_UNKNOWN, 0x808, METHOD_BUFFERED, FILE_ANY_ACCESS),
 
-    ///
-    ///@brief StoreTestCase
-    ///
-    StoreTestCase      = CTL_CODE(FILE_DEVICE_UNKNOWN, 0x809, METHOD_BUFFERED, FILE_ANY_ACCESS),
-
     // clang-format on
 };
 
