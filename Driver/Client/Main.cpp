@@ -14,13 +14,15 @@
 
 #include <argparse/argparse.hpp>
 #include <wil/resource.h>
+// clang-format on
+
+#define CFB_NS "[CFB::Test::DriverClient]"
 
 #include "Common.hpp"
-#include "IoctlCodes.hpp"
-#include "Utils.hpp"
 #include "Comms.hpp"
+#include "IoctlCodes.hpp"
 #include "Log.hpp"
-// clang-format on
+#include "Utils.hpp"
 
 
 namespace Driver
@@ -206,7 +208,6 @@ ReceiveData(HANDLE hFile)
 int
 main(int argc, const char** argv)
 {
-
     argparse::ArgumentParser program("DriverClient");
 
     const std::vector<std::string> valid_actions =
@@ -234,8 +235,7 @@ main(int argc, const char** argv)
     }
     catch ( const std::runtime_error& err )
     {
-        std::cerr << err.what() << std::endl;
-        std::cerr << program;
+        std::cerr << err.what() << "\n" << program;
         std::exit(1);
     }
 
@@ -254,6 +254,8 @@ main(int argc, const char** argv)
         err("Failed to open '%S'", CFB_DEVICE_NAME);
         return -1;
     }
+
+    ok("Got handle to '%S' as %p", CFB_DEVICE_PATH, hFile.get());
 
     if ( action == "hook" )
     {

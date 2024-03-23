@@ -5,32 +5,6 @@
 #include "Error.hpp"
 #include "States.hpp"
 
-#define xerr(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        warn("[%s] " fmt, Name().c_str(), __VA_ARGS__);                                                                \
-    }
-
-#define xwarn(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        warn("[%s] " fmt, Name().c_str(), __VA_ARGS__);                                                                \
-    }
-
-#define xok(fmt, ...)                                                                                                  \
-    {                                                                                                                  \
-        ok("[%s] " fmt, Name().c_str(), __VA_ARGS__);                                                                  \
-    }
-
-#define xinfo(fmt, ...)                                                                                                \
-    {                                                                                                                  \
-        info("[%s] " fmt, Name().c_str(), __VA_ARGS__);                                                                \
-    }
-
-#define xdbg(fmt, ...)                                                                                                 \
-    {                                                                                                                  \
-        dbg("[%s] " fmt, Name().c_str(), __VA_ARGS__);                                                                 \
-    }
-
-
 namespace CFB::Broker
 {
 class ManagerBase

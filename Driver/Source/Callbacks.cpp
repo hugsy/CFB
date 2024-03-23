@@ -1,8 +1,11 @@
+#define CFB_NS "[CFB::Driver::Callbacks]"
+
 #include "Callbacks.hpp"
 
 #include "CapturedIrp.hpp"
 #include "Context.hpp"
 #include "HookedDriver.hpp"
+
 
 namespace CFB::Driver::Callbacks
 {
@@ -17,27 +20,60 @@ static inline CompleteRequest(_In_ PIRP Irp, _In_ NTSTATUS Status, _In_ ULONG_PT
     return Status;
 }
 
+NTSTATUS static ExecuteOriginalCallback(
+    _In_ PDRIVER_OBJECT DriverObject,
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PIRP Irp,
+    _Out_ NTSTATUS* IoctlStatus)
+{
+    *IoctlStatus             = STATUS_UNSUCCESSFUL;
+    PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
+
+    __try
+    {
+        PDRIVER_DISPATCH OriginalIoctlDeviceControl = DriverObject->MajorFunction[Stack->MajorFunction];
+        *IoctlStatus                                = OriginalIoctlDeviceControl(DeviceObject, Irp);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        NTSTATUS Status = GetExceptionCode();
+        crit("Exception 0x%08x caught while executing original function", Status);
+        return Status;
+    }
+
+    return STATUS_SUCCESS;
+}
 
 NTSTATUS
 InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
 {
+    NTSTATUS Status          = STATUS_UNSUCCESSFUL;
+    NTSTATUS IoctlStatus     = STATUS_UNSUCCESSFUL;
     PIO_STACK_LOCATION Stack = ::IoGetCurrentIrpStackLocation(Irp);
 
     //
     // Capture the IRP data if capturing mode is enabled for the current driver
     //
     auto CapturedIrp = new CFB::Driver::CapturedIrp(CFB::Driver::CapturedIrp::IrpType::Irp, DeviceObject);
-    if ( !(CapturedIrp && CapturedIrp->IsValid()) )
+    if ( !CapturedIrp->IsValid() )
     {
         //
-        // Call the original routine
+        // There was an issue at the allocation or initialization of the CapturedIrp object. Fallback safely by calling
+        // the original routine
         //
+        delete CapturedIrp;
+        warn("Failed to initialize CapturedIrp(), fallback");
         PDRIVER_DISPATCH OriginalIoctlDeviceControl = DeviceObject->DriverObject->MajorFunction[Stack->MajorFunction];
         return OriginalIoctlDeviceControl(DeviceObject, Irp);
     }
 
     auto const Driver = CapturedIrp->AssociatedDriver();
-    NTSTATUS Status   = STATUS_SUCCESS;
+
+    //
+    // Consequently, `Driver` here should never be null
+    //
+    NT_ASSERT(Driver != nullptr);
+
 
     dbg("Initialized CapturedIrp at %p", CapturedIrp);
 
@@ -49,7 +85,7 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
         Status = CapturedIrp->CapturePreCallData(Irp);
         if ( !NT_SUCCESS(Status) )
         {
-            warn("CapturedIrp->CapturePreCallData(%p) failed with Status = 0x%08X", CapturedIrp, Status);
+            warn("CapturedIrp(%p)->CapturePreCallData(IRP=%p) failed with Status = 0x%08X", CapturedIrp, Irp, Status);
             Driver->DisableCapturing();
         }
     }
@@ -57,8 +93,18 @@ InterceptGenericRoutine(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp)
     //
     // Call the original routine
     //
-    PDRIVER_DISPATCH OriginalIoctlDeviceControl = Driver->OriginalDriverObject->MajorFunction[Stack->MajorFunction];
-    NTSTATUS IoctlStatus                        = OriginalIoctlDeviceControl(DeviceObject, Irp);
+    Status = ExecuteOriginalCallback(Driver->OriginalDriverObject, DeviceObject, Irp, &IoctlStatus);
+    if ( !NT_SUCCESS(Status) )
+    {
+        //
+        // The status of `ExecuteOriginalCallback` indicates whether  an exception was hit. This can happen if the
+        // driver was unloaded. If so disable the HookDriver object and mark it invalid to never touch the invalid
+        // memory area again.
+        //
+        warn("ExecuteOriginalCallback() failed with Status = Status = 0x%08X", Status);
+        Driver->DisableCapturing();
+        Driver->FlagAsInvalid();
+    }
 
     //
     // Collect the output from the call

@@ -4,13 +4,13 @@
 
 namespace CFB::Log
 {
-void
-log(
-#ifdef CFB_KERNEL_DRIVER
-    ULONG level,
+#ifndef CFB_KERNEL_DRIVER
+static inline const ULONG LogLevelDebug = 0;
+static inline const ULONG LogLevelInfo  = 1;
 #endif // CFB_KERNEL_DRIVER
-    const char* fmtstr,
-    ...);
+
+void
+Log(ULONG level, const char* fmtstr, ...);
 
 #ifndef CFB_KERNEL_DRIVER
 void
@@ -21,32 +21,39 @@ ntperror(const char* msg, const NTSTATUS Status);
 #endif
 }; // namespace CFB::Log
 
+#ifndef CFB_NS
+/// @brief Customizable log prefix
+#define CFB_NS
+#endif // !CFB_NS
+
 #ifdef CFB_KERNEL_DRIVER
 
 #ifdef _DEBUG
-#define dbg(fmt, ...) CFB::Log::log(DPFLTR_INFO_LEVEL, "[=] " fmt "\n", __VA_ARGS__)
-#else
-// #define dbg(fmt, ...)
-#define dbg(fmt, ...) CFB::Log::log(DPFLTR_INFO_LEVEL, "[=] " fmt "\n", __VA_ARGS__)
-#endif // _DEBUG
-
-#define ok(fmt, ...) CFB::Log::log(DPFLTR_INFO_LEVEL, "[+] " fmt "\n", __VA_ARGS__)
-#define info(fmt, ...) CFB::Log::log(DPFLTR_TRACE_LEVEL, "[*] " fmt "\n", __VA_ARGS__)
-#define warn(fmt, ...) CFB::Log::log(DPFLTR_WARNING_LEVEL, "[!] " fmt "\n", __VA_ARGS__)
-#define err(fmt, ...) CFB::Log::log(DPFLTR_ERROR_LEVEL, "[-] " fmt "\n", __VA_ARGS__)
-
-#define DML(cmd) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
-#else
-
-#ifdef _DEBUG
-#define dbg(fmt, ...) CFB::Log::log("[=] " fmt "\n", __VA_ARGS__)
+#define dbg(fmt, ...) CFB::Log::Log(DPFLTR_INFO_LEVEL, "[=] " CFB_NS " " fmt "\n", __VA_ARGS__)
 #else
 #define dbg(fmt, ...)
 #endif // _DEBUG
 
-#define ok(fmt, ...) CFB::Log::log("[+] " fmt "\n", __VA_ARGS__)
-#define info(fmt, ...) CFB::Log::log("[*] " fmt "\n", __VA_ARGS__)
-#define warn(fmt, ...) CFB::Log::log("[!] " fmt "\n", __VA_ARGS__)
-#define err(fmt, ...) CFB::Log::log("[-] " fmt "\n", __VA_ARGS__)
+#define ok(fmt, ...) CFB::Log::Log(DPFLTR_INFO_LEVEL, "[+] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define info(fmt, ...) CFB::Log::Log(DPFLTR_TRACE_LEVEL, "[*] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define warn(fmt, ...) CFB::Log::Log(DPFLTR_WARNING_LEVEL, "[!] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define err(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[-] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define crit(fmt, ...) CFB::Log::Log(DPFLTR_ERROR_LEVEL, "[/!\\] " CFB_NS " " fmt "\n", __VA_ARGS__)
 
-#endif
+#define DML(cmd, title) "<?dml?> <exec cmd=\"" cmd "\">" cmd "</exec>"
+
+#else // CFB_KERNEL_DRIVER
+
+#ifdef _DEBUG
+#define dbg(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelDebug, "[=] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#else
+#define dbg(fmt, ...)
+#endif // _DEBUG
+
+#define ok(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[+] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define info(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[*] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define warn(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[!] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define err(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[-] " CFB_NS " " fmt "\n", __VA_ARGS__)
+#define crit(fmt, ...) CFB::Log::Log(CFB::Log::LogLevelInfo, "[/!\\] " CFB_NS " " fmt "\n", __VA_ARGS__)
+
+#endif // CFB_KERNEL_DRIVER

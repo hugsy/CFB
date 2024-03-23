@@ -42,7 +42,7 @@ namespace CFB::Utils
 /// @param base Specifies the base address
 ///
 void
-Hexdump(PVOID data, SIZE_T size, PCSTR header = nullptr, SIZE_T base = 0);
+Hexdump(const PVOID data, SIZE_T size, PCSTR header = nullptr, SIZE_T base = 0);
 
 const char*
 IrqlToString(u32 type);

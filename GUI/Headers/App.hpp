@@ -40,7 +40,7 @@ public:
         CapturedIrps {}
     {
         Target.Host.reserve(1024);
-        Target.Host.assign("192.168.57.87");
+        Target.Host.assign("192.168.57.24");
         Target.Port        = 1337;
         Target.IsConnected = false;
 

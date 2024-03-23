@@ -15,6 +15,7 @@ class HookedDriver
 public:
     enum class HookState
     {
+        Invalid,
         Unhooked,
         Hooked
     };
@@ -45,7 +46,7 @@ public:
     ///
     ///@param UnicodePath the unicode name of the driver
     ///
-    HookedDriver(const PUNICODE_STRING UnicodePath);
+    HookedDriver(Utils::KUnicodeString const& UnicodePath);
 
     ///
     ///@brief Destroy the Hooked Driver object
@@ -89,7 +90,7 @@ public:
     ///@return false
     ///
     bool
-    CanCapture();
+    CanCapture() const;
 
     ///
     ///@brief Enable the IRP capture mode for the driver
@@ -145,6 +146,8 @@ public:
     HookedDriver&
     operator--();
 
+    void
+    FlagAsInvalid();
 
 private:
     ///
@@ -165,7 +168,7 @@ private:
     /// @brief If `true`, any IRP targetting the driver object underneath will be pushed to the queue of
     /// intercepted IRPs
     ///
-    bool m_Enabled;
+    bool m_CapturingEnabled;
 
     ///
     /// @brief The total number of intercepted IRPs

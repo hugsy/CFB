@@ -1,3 +1,5 @@
+#define CFB_NS "[CFB::Broker::DriverManager]"
+
 // clang-format off
 #include "DriverManager.hpp"
 
@@ -70,7 +72,7 @@ DriverManager::Setup()
             return Err(ErrorCode::InitializationError);
         }
 
-        xdbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
+        dbg("Got handle %x to device %S", hDevice.get(), CFB_USER_DEVICE_PATH);
         m_hDevice = std::move(hDevice);
     }
 
@@ -95,7 +97,9 @@ DriverManager::ExecuteCommand(json const& Request)
     Response["success"] = false;
 
     InterlockedIncrement64((long long*)&m_RequestNumber);
-    xdbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
+
+    if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
+        dbg("New request %s => ID=%llu", CFB::Utils::ToString(RequestId).c_str(), m_RequestNumber);
 
     switch ( RequestId )
     {
@@ -300,13 +304,16 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-    xinfo(
-        "Request[%llu] %s => %s",
-        m_RequestNumber,
-        CFB::Utils::ToString(RequestId).c_str(),
-        boolstr(Response["success"]));
+    if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
+    {
+        info(
+            "Request[%llu] %s => %s",
+            m_RequestNumber,
+            CFB::Utils::ToString(RequestId).c_str(),
+            boolstr(Response["success"]));
 
-    xdbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
+        dbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
+    }
 
     return Ok(Response);
 }
