@@ -304,7 +304,7 @@ DriverManager::ExecuteCommand(json const& Request)
         break;
     }
 
-    if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
+    // if ( RequestId != CFB::Comms::RequestId::GetPendingIrp )
     {
         info(
             "Request[%llu] %s => %s",
@@ -312,7 +312,7 @@ DriverManager::ExecuteCommand(json const& Request)
             CFB::Utils::ToString(RequestId).c_str(),
             boolstr(Response["success"]));
 
-        dbg("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
+        info("Request[%llu] => %s", m_RequestNumber, Response.dump().c_str());
     }
 
     return Ok(Response);
