@@ -173,40 +173,40 @@ IrqlToString(u32 type)
 #ifdef CFB_KERNEL_DRIVER
 #else
 std::string
-ToString(std::wstring const& WideString)
+ToString(std::wstring const& wide_string)
 {
-    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
-    // return converter.to_bytes(input);
+    int size_needed =
+        ::WideCharToMultiByte(CP_UTF8, 0, wide_string.data(), (int)wide_string.size(), nullptr, 0, nullptr, nullptr);
 
-    // HACK improve
-    std::string s;
-    std::for_each(
-        WideString.cbegin(),
-        WideString.cend(),
-        [&s](auto c)
-        {
-            s += (char)c;
-        });
-    return s;
+    std::string str(size_needed, 0);
+
+    if ( 0 == ::WideCharToMultiByte(
+                  CP_UTF8,
+                  0,
+                  wide_string.data(),
+                  (int)wide_string.size(),
+                  str.data(),
+                  (int)str.size(),
+                  nullptr,
+                  nullptr) )
+    {
+        str.clear();
+    }
+    return str;
 }
 
 std::wstring
-ToWideString(std::string const& String)
+ToWideString(std::string const& str)
 {
-    // auto converter = std::wstring_convert<std::codecvt_utf8<wchar_t> >();
-    // return converter.from_bytes(input);
+    int size_needed = ::MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), nullptr, 0);
 
-    // HACK improve
+    std::wstring wstr(size_needed, 0);
 
-    std::wstring s;
-    std::for_each(
-        String.cbegin(),
-        String.cend(),
-        [&s](auto c)
-        {
-            s += (wchar_t)c;
-        });
-    return s;
+    if ( 0 == ::MultiByteToWideChar(CP_UTF8, 0, str.data(), (int)str.size(), wstr.data(), (int)wstr.size()) )
+    {
+        wstr.clear();
+    }
+    return wstr;
 }
 
 std::string

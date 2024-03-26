@@ -11,12 +11,23 @@
 
 ## What is it?
 
-**Canadian Furious Beaver** is a distributed tool for capturing IRPs sent to any Windows driver. It operates in 2 parts:
+> [!CAUTION]
+> CFB is meant for research and debug purposes, it should never be used on production systems. Also BSoD may happen. You've been warned.
+
+**Canadian Furious Beaver** is a [`ProcMon`](https://learn.microsoft.com/en-us/sysinternals/downloads/procmon)-style tool designed only for capturing IRPs sent to any Windows driver. It operates in 2 parts:
 
 1. the "Broker" combines both a user-land agent and a self-extractable driver (`IrpMonitor.sys`) that will install itself on the targeted system. After installing the driver, the broker will expose a TCP port listening (by default, on TCP/1337) and start collecting IRP from hooked drivers. The communication protocol was made to be simple by design (i.e. not secure) allowing any [3rd party tool](https://github.com/hugsy/cfb-cli) to dump the driver IRPs from the same Broker easily (via simple JSON messages).
 
 2. the clients can connect to the broker, and will receive IRPs as a JSON message making it easy to view, or convert to another format.
 
+![GUI](https://i.imgur.com/MUFYrL2.png)
+
+![CLI](https://i.imgur.com/5MWjqLa.png)
+
+3. IRPs (metadata, input/output buffers) can be stored to file on disk in the JSON format allowing for easy further scripting.
+
+> [!WARNING]
+> Although the CFB driver (`IrpMonitor.sys`) should not violate patchguard, it however is only self-signed and so requires [`TestSigning`](https://learn.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option) enabled in the BCD
 
 ## Why the name?
 
@@ -25,5 +36,4 @@ Because I had no idea for the name of this tool, so it was graciously generated 
 ## Kudos
 
  * `processhacker` for their [`phnt` header files](https://github.com/processhacker/phnt)
- * `p-ranav` for their [`argparse` library](https://github.com/p-ranav/argparse)
  * `nlohmann` for their [`json` library](https://github.com/nlohmann/json)
